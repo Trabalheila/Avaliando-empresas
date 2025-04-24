@@ -1,0 +1,24 @@
+/* src/index.css */
+
+/* Importa as diretivas principais do Tailwind CSS */
+@tailwind base; /* Aplica o estilo base do Tailwind */
+@tailwind components; /* Aplica os componentes do Tailwind */
+@tailwind utilities; /* Aplica os utilitários do Tailwind */
+
+/* Adicione estilos personalizados abaixo, se necessário */
+
+/* Exemplo de personalização adicional */
+body {
+  font-family: 'Arial', sans-serif; /* Fonte global do projeto */
+}
+
+/* Exemplo de estilo adicional */
+h1 {
+  font-weight: bold;
+  color: #333; /* Cor do texto do título */
+}
+
+/* Se quiser personalizar outros elementos, como links, parágrafos, etc., faça aqui */
+p {
+  margin-top: 1rem;
+}
