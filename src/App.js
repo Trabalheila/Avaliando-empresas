@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { GoogleLogin } from '@react-oauth/google';  // Importando o componente de login com o Google
+import LinkedinLogin from 'react-linkedin-login-oauth2'; // Importando o componente de login com o LinkedIn
 import EmpresaList from './components/EmpresaList';  // Importando o componente de lista de empresas
 
 function App() {
@@ -33,15 +34,26 @@ function App() {
     "Infotec",
   ];
 
-  // Função chamada após o sucesso do login
+  // Função chamada após o sucesso do login do Google
   const handleLoginSuccess = (response) => {
     console.log("Login bem-sucedido:", response);
     setUser(response);  // Armazena as informações do usuário autenticado
   };
 
-  // Função chamada se o login falhar
+  // Função chamada se o login do Google falhar
   const handleLoginFailure = (error) => {
     console.error("Erro no login:", error);
+  };
+
+  // Função chamada após o sucesso do login do LinkedIn
+  const handleLinkedinSuccess = (response) => {
+    console.log("Login do LinkedIn bem-sucedido:", response);
+    setUser(response);  // Armazena as informações do usuário autenticado
+  };
+
+  // Função chamada se o login do LinkedIn falhar
+  const handleLinkedinFailure = (error) => {
+    console.error("Erro no login do LinkedIn:", error);
   };
 
   // Função para enviar a avaliação
@@ -60,13 +72,25 @@ function App() {
         <h1 className="text-4xl font-bold text-center text-blue-600 mb-4">Trabalhei lá</h1>
         <p className="text-center text-lg mb-6">Compartilhe sua experiência em uma das empresas listadas abaixo.</p>
 
-        {/* Se o usuário não estiver logado, exibe o botão de login do Google */}
+        {/* Se o usuário não estiver logado, exibe os botões de login */}
         {!user ? (
-          <GoogleLogin
-            onSuccess={handleLoginSuccess}  // Sucesso do login
-            onError={handleLoginFailure}     // Erro no login
-            useOneTap  // Habilita o login "One Tap"
-          />
+          <>
+            <GoogleLogin
+              onSuccess={handleLoginSuccess}  // Sucesso do login
+              onError={handleLoginFailure}     // Erro no login
+              useOneTap  // Habilita o login "One Tap"
+            />
+            <LinkedinLogin
+              clientId="SEU_CLIENT_ID_DO_LINKEDIN" // Substitua pelo seu Client ID do LinkedIn
+              redirectUri="http://localhost:3000"  // URL de redirecionamento, atualize conforme necessário
+              onFailure={handleLinkedinFailure}
+              onSuccess={handleLinkedinSuccess}
+            >
+              <button className="w-full bg-blue-700 text-white py-3 rounded-md mt-4">
+                Login com LinkedIn
+              </button>
+            </LinkedinLogin>
+          </>
         ) : (
           <div className="text-center">
             <p className="text-lg">Bem-vindo, {user.profileObj.name}!</p>
