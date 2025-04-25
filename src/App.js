@@ -132,6 +132,13 @@ function App() {
           <h2 className="text-2xl font-semibold mb-4">Empresas Avaliadas</h2>
           <EmpresaList empresas={empresas} />
         </div>
+
+        {/* Link para a Política de Privacidade */}
+        <footer className="mt-8 text-center text-blue-300 hover:text-white">
+          <a href="/politica-de-privacidade.html">
+            Política de Privacidade
+          </a>
+        </footer>
       </div>
     </div>
   );
