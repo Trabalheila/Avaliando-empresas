@@ -1,24 +1,178 @@
-/* src/index.css */
-
-/* Importa as diretivas principais do Tailwind CSS */
-@tailwind base; /* Aplica o estilo base do Tailwind */
-@tailwind components; /* Aplica os componentes do Tailwind */
-@tailwind utilities; /* Aplica os utilitários do Tailwind */
-
-/* Adicione estilos personalizados abaixo, se necessário */
-
-/* Exemplo de personalização adicional */
+/* Estilos globais modernos */
 body {
-  font-family: 'Arial', sans-serif; /* Fonte global do projeto */
+  background: linear-gradient(to bottom right, #ffffff, #e0f0ff);
+  font-family: 'Poppins', sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; /* flex-start usado para garantir alinhamento correto */
+  padding-top: 40px;
 }
 
-/* Exemplo de estilo adicional */
+.container {
+  background: white;
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  width: 100%;
+  text-align: center;
+}
+
 h1 {
+  font-size: 2.5rem;
+  color: #0d47a1;
+  margin-bottom: 0.5rem;
   font-weight: bold;
-  color: #333; /* Cor do texto do título */
 }
 
-/* Se quiser personalizar outros elementos, como links, parágrafos, etc., faça aqui */
-p {
-  margin-top: 1rem;
+h2, h3 {
+  font-size: 1.5rem;
+  color: #1565c0;
+  margin-top: 2rem;
+}
+
+p, label, select, textarea, button {
+  font-size: 1rem;
+  margin-top: 0.5rem;
+  color: #333;
+}
+
+select, textarea, button {
+  width: 100%;
+  padding: 0.8rem;
+  margin-top: 0.5rem;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+button {
+  background-color: #0d47a1;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #1565c0;
+}
+
+.star-button {
+  font-size: 1.5rem;
+  color: #ccc;
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin: 0 3px;
+}
+
+.star-button.active {
+  color: gold;
+}
+
+.star-rating {
+  display: flex;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+/* Estilos para as estrelas de avaliação */
+.avaliacao-item {
+  margin-top: 20px;
+}
+
+.avaliacao-stars input[type="radio"] {
+  display: none;
+}
+
+.avaliacao-stars label {
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #ffcc00;
+}
+
+.avaliacao-stars input[type="radio"]:checked ~ label {
+  color: #ffcc00;
+}
+
+button[type="submit"] {
+  background-color: #0d47a1;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 5px;
+  width: 100%;
+  border: none;
+  font-weight: bold;
+}
+
+button[type="submit"]:hover {
+  background-color: #1565c0;
+}
+
+footer {
+  margin-top: 30px;
+}
+
+footer a {
+  color: #0077cc;
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
+
+/* Estilo para exibir as estrelas de avaliação e o texto das categorias */
+label {
+  font-weight: bold;
+  display: block;
+  margin-top: 10px;
+}
+
+textarea {
+  margin-top: 10px;
+}
+
+/* Estilização do formulário de avaliação */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+form .flex {
+  display: flex;
+  gap: 5px;
+}
+
+h2, .text-2xl {
+  font-size: 1.5rem;
+  color: #1565c0;
+}
+
+h1, .text-center {
+  text-align: center;
+}
+
+footer {
+  text-align: center;
+  margin-top: 30px;
+}
+
+footer a {
+  color: #1565c0;
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
 }
