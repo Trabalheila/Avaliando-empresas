@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FaStar } from 'react-icons/fa';
-import './index.css';  // Importação do CSS
-import LoginLinkedInButton from './components/LoginLinkedInButton'; // Importando o botão de login do LinkedIn
+import './index.css';
+import LoginLinkedInButton from './components/LoginLinkedInButton';
 
 function TrabalheiLa() {
   const [company, setCompany] = useState("");
@@ -19,7 +19,7 @@ function TrabalheiLa() {
     "Banco do Brasil", "Raízen Combustíveis", "Itaú Unibanco Holding", "Grupo Raízen",
     "Bradesco", "Vale", "Itaú Unibanco", "Caixa Econômica Federal", "Grupo Carrefour Brasil",
     "Magazine Luiza", "Ambev", "Embraer", "WEG", "Suzano Papel e Celulose", "XP Inc.",
-    "Rede D'Or São Luiz", "Gerdau", "CVC Brasil", "Braskem", "Infotec"
+    "Rede D'Or São Luiz", "Gerdau", "CVC Brasil", "Braskem", "Infotec", "Engemon"
   ];
 
   const handleSubmit = (e) => {
@@ -38,9 +38,13 @@ function TrabalheiLa() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-white to-blue-100 p-6">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h1 className="text-4xl font-bold text-center text-blue-700" style={{ fontFamily: 'Arial' }}>Trabalhei lá</h1>
-        <p className="text-center mt-2 mb-6">Compartilhe sua experiência nas empresas!</p>
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl">
+        {/* Logo adicionada aqui */}
+        <div className="flex flex-col items-center mb-4">
+          <img src="/logo.png" alt="Logo Trabalhei Lá" className="w-24 h-24 mb-2" />
+          <h1 className="text-5xl font-extrabold text-center text-blue-800" style={{ fontFamily: 'Segoe UI' }}>Trabalhei Lá</h1>
+          <p className="text-center mb-6 text-gray-600">Compartilhe sua experiência nas empresas!</p>
+        </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
@@ -53,114 +57,35 @@ function TrabalheiLa() {
             </select>
           </div>
 
-          <div>
-            <label>Avaliação Geral <span className="font-bold">{rating}/5</span></label>
-            <div className="flex gap-1 mt-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <FaStar key={star}
-                  size={24}
-                  className="cursor-pointer"
-                  color={star <= rating ? "#facc15" : "#d1d5db"}
-                  onClick={() => setRating(star)}
-                />
-              ))}
+          {[{
+            label: 'Avaliação Geral', value: rating, setter: setRating
+          }, {
+            label: 'Contato com RH', value: contatoRH, setter: setContatoRH
+          }, {
+            label: 'Salário mais benefícios', value: salarioBeneficios, setter: setSalarioBeneficios
+          }, {
+            label: 'Estrutura da empresa', value: estruturaEmpresa, setter: setEstruturaEmpresa
+          }, {
+            label: 'Acessibilidade com a liderança', value: acessibilidadeLideranca, setter: setAcessibilidadeLideranca
+          }, {
+            label: 'Plano de carreiras', value: planoCarreiras, setter: setPlanoCarreiras
+          }, {
+            label: 'Estímulo à organização e saúde do profissional', value: estimulacaoOrganizacao, setter: setEstimulacaoOrganizacao
+          }].map((item, idx) => (
+            <div key={idx}>
+              <label>{item.label} <span className="font-bold">{item.value}/5</span></label>
+              <div className="flex gap-1 mt-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <FaStar key={star}
+                    size={24}
+                    className="cursor-pointer"
+                    color={star <= item.value ? "#facc15" : "#d1d5db"}
+                    onClick={() => item.setter(star)}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-
-          {/* Outras avaliações */}
-          <div>
-            <label>Contato com RH <span className="font-bold">{contatoRH}/5</span></label>
-            <div className="flex gap-1 mt-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <FaStar key={star}
-                  size={24}
-                  className="cursor-pointer"
-                  color={star <= contatoRH ? "#facc15" : "#d1d5db"}
-                  onClick={() => setContatoRH(star)}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label>Salário mais benefícios <span className="font-bold">{salarioBeneficios}/5</span></label>
-            <div className="flex gap-1 mt-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <FaStar key={star}
-                  size={24}
-                  className="cursor-pointer"
-                  color={star <= salarioBeneficios ? "#facc15" : "#d1d5db"}
-                  onClick={() => setSalarioBeneficios(star)}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label>Estrutura da empresa <span className="font-bold">{estruturaEmpresa}/5</span></label>
-            <div className="flex gap-1 mt-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <FaStar key={star}
-                  size={24}
-                  className="cursor-pointer"
-                  color={star <= estruturaEmpresa ? "#facc15" : "#d1d5db"}
-                  onClick={() => setEstruturaEmpresa(star)}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label>Acessibilidade com a liderança <span className="font-bold">{acessibilidadeLideranca}/5</span></label>
-            <div className="flex gap-1 mt-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <FaStar key={star}
-                  size={24}
-                  className="cursor-pointer"
-                  color={star <= acessibilidadeLideranca ? "#facc15" : "#d1d5db"}
-                  onClick={() => setAcessibilidadeLideranca(star)}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label>Plano de carreiras <span className="font-bold">{planoCarreiras}/5</span></label>
-            <div className="flex gap-1 mt-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <FaStar key={star}
-                  size={24}
-                  className="cursor-pointer"
-                  color={star <= planoCarreiras ? "#facc15" : "#d1d5db"}
-                  onClick={() => setPlanoCarreiras(star)}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label>Estímulo à organização e saúde do profissional <span className="font-bold">{estimulacaoOrganizacao}/5</span></label>
-            <div className="flex gap-1 mt-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <FaStar key={star}
-                  size={24}
-                  className="cursor-pointer"
-                  color={star <= estimulacaoOrganizacao ? "#facc15" : "#d1d5db"}
-                  onClick={() => setEstimulacaoOrganizacao(star)}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Adicionando o botão LinkedIn */}
-          <div className="mt-4">
-            <LoginLinkedInButton 
-              clientId="77dv5urtc8ixj3"  // Substituindo pelo seu Client ID
-              redirectUri="https://seu-dominio.com/auth/linkedin"  // Substitua pela sua URL de redirecionamento
-              onLoginSuccess={(response) => console.log("Login com sucesso:", response)}  // Função para quando o login for bem-sucedido
-              onLoginFailure={(error) => console.log("Falha no login:", error)}  // Função para quando houver erro no login
-            />
-          </div>
+          ))}
 
           <div>
             <label>Comentário</label>
@@ -171,6 +96,15 @@ function TrabalheiLa() {
               className="border w-full p-2 rounded"
               placeholder="Descreva sua experiência"
             ></textarea>
+          </div>
+
+          <div className="mt-2">
+            <LoginLinkedInButton 
+              clientId="77dv5urtc8ixj3"
+              redirectUri="https://trabalheila.com.br/auth/linkedin"
+              onLoginSuccess={(response) => console.log("Login com sucesso:", response)}
+              onLoginFailure={(error) => console.log("Falha no login:", error)}
+            />
           </div>
 
           <button type="submit" className="bg-blue-700 text-white py-2 rounded hover:bg-blue-800">Enviar Avaliação</button>
@@ -184,13 +118,13 @@ function TrabalheiLa() {
               <p className="font-semibold">{emp.company}</p>
               <p>★ {emp.rating}/5 estrelas</p>
               <p>Contato com RH: ★ {emp.contatoRH}/5</p>
-              <p>Salário mais benefícios: ★ {emp.salarioBeneficios}/5</p>
+              <p>Salário e benefícios: ★ {emp.salarioBeneficios}/5</p>
               <p className="text-sm text-gray-600">{emp.comment}</p>
             </div>
           ))}
         </div>
 
-        <footer className="mt-6 text-center">
+        <footer className="mt-6 text-center text-sm text-gray-500">
           <a href="/politica-de-privacidade.html" className="text-blue-500 hover:underline">
             Política de Privacidade
           </a>
