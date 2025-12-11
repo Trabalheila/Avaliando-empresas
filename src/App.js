@@ -24,7 +24,7 @@ function TrabalheiLa() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setEmpresas([...empresas, { company, rating, contatoRH, salarioBeneficios, estruturaEmpresa, acessibilidadeLideranca, planoCarreiras, estimulacaoOrganizacao, comment }]);
+    setEmpresas([...empresas, { company, rating, contatoRH, salarioBeneficios, estruturaEmpresa, acessibilidadeLideranca, planoCarreiras, bemestar, estimulacaoOrganizacao, comment }]);
     setCompany("");
     setRating(0);
     setComment("");
@@ -33,6 +33,7 @@ function TrabalheiLa() {
     setEstruturaEmpresa(0);
     setAcessibilidadeLideranca(0);
     setPlanoCarreiras(0);
+    setBemestar(0);
     setEstimulacaoOrganizacao(0);
   };
 
