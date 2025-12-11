@@ -41,8 +41,7 @@ function TrabalheiLa() {
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl">
         {/* Logo adicionada aqui */}
         <div className="flex flex-col items-center mb-4">
-          <img src="/logo.png" alt="Logo Trabalhei Lá" className="w-24 h-24 mb-2" />
-          <h1 className="text-5xl font-extrabold text-center text-blue-800" style={{ fontFamily: 'Segoe UI' }}>Trabalhei Lá</h1>
+         <img src="/logo.png" alt="Logo Trabalhei Lá" className="w-15 h-10 mb-2 mx-auto" />
           <p className="text-center mb-6 text-gray-600">Compartilhe sua experiência nas empresas!</p>
         </div>
 
