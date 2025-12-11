@@ -59,17 +59,19 @@ function TrabalheiLa() {
           {[{
             label: 'Avaliação Geral', value: rating, setter: setRating
           }, {
-            label: 'Contato com RH', value: contatoRH, setter: setContatoRH
+            label: 'Contato do RH', value: contatoRH, setter: setContatoRH
           }, {
-            label: 'Salário mais benefícios', value: salarioBeneficios, setter: setSalarioBeneficios
+            label: 'Salário e benefícios', value: salarioBeneficios, setter: setSalarioBeneficios
           }, {
             label: 'Estrutura da empresa', value: estruturaEmpresa, setter: setEstruturaEmpresa
           }, {
-            label: 'Acessibilidade com a liderança', value: acessibilidadeLideranca, setter: setAcessibilidadeLideranca
+            label: 'Acessibilidade da liderança', value: acessibilidadeLideranca, setter: setAcessibilidadeLideranca
           }, {
             label: 'Plano de carreiras', value: planoCarreiras, setter: setPlanoCarreiras
           }, {
-            label: 'Estímulo à organização e saúde do profissional', value: estimulacaoOrganizacao, setter: setEstimulacaoOrganizacao
+             label: 'Preocupação com bem estar do empregado', value: bemestar, setter: setBemestar
+          }, {
+            label: 'Estímulo à organização', value: estimulacaoOrganizacao, setter: setEstimulacaoOrganizacao
           }].map((item, idx) => (
             <div key={idx}>
               <label>{item.label} <span className="font-bold">{item.value}/5</span></label>
