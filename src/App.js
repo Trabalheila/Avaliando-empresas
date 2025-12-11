@@ -42,7 +42,10 @@ function TrabalheiLa() {
         {/* Logo adicionada aqui */}
         <div className="flex flex-col items-center mb-4">
          <img src="/logo.png" alt="Logo Trabalhei Lá" className="w-15 h-10 mb-2 mx-auto" />
-          <p className="text-center mb-6 text-gray-600">Compartilhe sua experiência nas empresas!</p>
+          <p className="text-center mb-6 text-lg font-semibold text-gray-700 tracking-wide">
+  Compartilhe sua experiência nas empresas!
+</p>
+
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -69,10 +72,11 @@ function TrabalheiLa() {
           }, {
             label: 'Plano de carreiras', value: planoCarreiras, setter: setPlanoCarreiras
           }, {
-             label: 'Preocupação com bem estar do empregado', value: bemestar, setter: setBemestar
+             label: 'Preocupação com o seu bem estar', value: bemestar, setter: setBemestar
           }, {
             label: 'Estímulo à organização', value: estimulacaoOrganizacao, setter: setEstimulacaoOrganizacao
-          }].map((item, idx) => (
+          }
+          ].map((item, idx) => (
             <div key={idx}>
               <label>{item.label} <span className="font-bold">{item.value}/5</span></label>
               <div className="flex gap-1 mt-2">
