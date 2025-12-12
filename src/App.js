@@ -44,7 +44,7 @@ const [empresas, setEmpresas] = useState([]);
         {/* Logo adicionada aqui */}
         <div className="flex flex-col items-center mb-4">
          <img src="/logo.png" alt="Logo Trabalhei Lá" className="w-15 h-10 mb-2 mx-auto" />
-          <p className="text-center mb-6 text-lg font-semibold text-gray-700 tracking-wide">
+          <p className="text-center mb-6 text-2xl font-bold text-gray-700 tracking-wide">
   Compartilhe sua experiência nas empresas!
 </p>
 
