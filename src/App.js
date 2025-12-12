@@ -24,6 +24,35 @@ const [companies, setCompanies] = useState([
   "Rede D'Or São Luiz", "Gerdau", "CVC Brasil", "Braskem", "Infotec", "Engemon"
 ]);
 
+<div>
+  <label>Nome da Empresa</label>
+  <select value={company} onChange={(e) => setCompany(e.target.value)} className="border w-full p-2 rounded mb-2">
+    <option>Selecione uma empresa</option>
+    {companies.map((comp, idx) => (
+      <option key={idx} value={comp}>{comp}</option>
+    ))}
+  </select>
+
+  {/* Botão para adicionar nova empresa */}
+ <button
+  type="button"
+  onClick={() => {
+    const novaEmpresa = prompt("Digite o nome da nova empresa:");
+    if (novaEmpresa && !companies.includes(novaEmpresa)) {
+      setCompany(novaEmpresa);
+      setCompanies([...companies, novaEmpresa]);
+    } else if (companies.includes(novaEmpresa)) {
+      alert("Essa empresa já está na lista.");
+    }
+  }}
+  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2 mt-2"
+>
+  <span className="text-xl font-bold">+</span>
+  Adicionar empresa
+</button>
+
+</div>
+
 const handleAddCompany = () => {
   if (newCompany && !companies.includes(newCompany)) {
     setCompanies([...companies, newCompany]);
