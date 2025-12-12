@@ -4,16 +4,16 @@ import './index.css';
 import LoginLinkedInButton from './components/LoginLinkedInButton';
 
 function TrabalheiLa() {
-  const [company, setCompany] = useState("");
-  const [rating, setRating] = useState(0);
-  const [contatoRH, setContatoRH] = useState(0);
-  const [salarioBeneficios, setSalarioBeneficios] = useState(0);
-  const [estruturaEmpresa, setEstruturaEmpresa] = useState(0);
-  const [acessibilidadeLideranca, setAcessibilidadeLideranca] = useState(0);
-  const [planoCarreiras, setPlanoCarreiras] = useState(0);
-  const [estimulacaoOrganizacao, setEstimulacaoOrganizacao] = useState(0);
-  const [comment, setComment] = useState("");
-  const [empresas, setEmpresas] = useState([]);
+const [rating, setRating] = useState(0);
+const [contatoRH, setContatoRH] = useState(0);
+const [salarioBeneficios, setSalarioBeneficios] = useState(0);
+const [estruturaEmpresa, setEstruturaEmpresa] = useState(0);
+const [acessibilidadeLideranca, setAcessibilidadeLideranca] = useState(0);
+const [planoCarreiras, setPlanoCarreiras] = useState(0);
+const [bemestar, setBemestar] = useState(0);
+const [estimulacaoOrganizacao, setEstimulacaoOrganizacao] = useState(0);
+const [comment, setComment] = useState("");
+const [empresas, setEmpresas] = useState([]);
 
   const companies = [
     "Banco do Brasil", "Raízen Combustíveis", "Itaú Unibanco Holding", "Grupo Raízen",
