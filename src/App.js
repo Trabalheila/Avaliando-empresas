@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { FaStar } from 'react-icons/fa';
+import Select from 'react-select';
 import './index.css';
 import LoginLinkedInButton from './components/LoginLinkedInButton';
 
 function TrabalheiLa() {
-  const [company, setCompany] = useState("");
+  const [company, setCompany] = useState(null);
   const [newCompany, setNewCompany] = useState("");
   const [rating, setRating] = useState(0);
   const [contatoRH, setContatoRH] = useState(0);
@@ -24,21 +25,32 @@ function TrabalheiLa() {
     "Rede D'Or São Luiz", "Gerdau", "CVC Brasil", "Braskem", "Infotec", "Engemon"
   ]);
 
+  const companyOptions = companies.map((comp) => ({
+    label: (
+      <div className="flex items-center gap-2">
+        <img src={`https://logo.clearbit.com/${comp.toLowerCase().replace(/ /g, '')}.com`} alt="logo" className="w-5 h-5" />
+        {comp}
+      </div>
+    ),
+    value: comp
+  }));
+
   const handleAddCompany = () => {
     if (newCompany && !companies.includes(newCompany)) {
       setCompanies([...companies, newCompany]);
       setNewCompany("");
-      setCompany(newCompany);
+      setCompany({ label: newCompany, value: newCompany });
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setEmpresas([...empresas, {
-      company, rating, contatoRH, salarioBeneficios, estruturaEmpresa,
+      company: company?.value || "",
+      rating, contatoRH, salarioBeneficios, estruturaEmpresa,
       acessibilidadeLideranca, planoCarreiras, bemestar, estimulacaoOrganizacao, comment
     }]);
-    setCompany("");
+    setCompany(null);
     setRating(0);
     setComment("");
     setContatoRH(0);
@@ -63,31 +75,19 @@ function TrabalheiLa() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label>Nome da Empresa</label>
-            <select value={company} onChange={(e) => setCompany(e.target.value)} className="border w-full p-2 rounded">
-              <option>Selecione uma empresa</option>
-              {companies.map((comp, idx) => (
-                <option key={idx} value={comp}>{comp}</option>
-              ))}
-            </select>
+            <Select 
+              value={company} 
+              onChange={setCompany} 
+              options={companyOptions} 
+              className="mb-2" 
+            />
           </div>
 
           <div>
             <label>Adicionar nova empresa</label>
             <div className="flex gap-2">
-              <input
-                type="text"
-                value={newCompany}
-                onChange={(e) => setNewCompany(e.target.value)}
-                className="border p-2 rounded w-full"
-                placeholder="Digite o nome da empresa"
-              />
-              <button
-                type="button"
-                onClick={handleAddCompany}
-                className="bg-green-600 text-white px-4 rounded hover:bg-green-700"
-              >
-                Adicionar empresa
-              </button>
+              <input type="text" value={newCompany} onChange={(e) => setNewCompany(e.target.value)} className="border p-2 rounded w-full" placeholder="Digite o nome da nova empresa" />
+              <button type="button" onClick={handleAddCompany} className="bg-green-600 text-white px-4 rounded hover:bg-green-700">Adicionar</button>
             </div>
           </div>
 
@@ -129,13 +129,13 @@ function TrabalheiLa() {
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               rows="5"
-              className="border w-full p-2 rounded"
+              className="border w-[75%] p-2 rounded mb-2"
               placeholder="Descreva sua experiência"
             ></textarea>
           </div>
 
           <div className="mt-2">
-            <LoginLinkedInButton
+            <LoginLinkedInButton 
               clientId="77dv5urtc8ixj3"
               redirectUri="https://trabalheila.com.br/auth/linkedin"
               onLoginSuccess={(response) => console.log("Login com sucesso:", response)}
@@ -143,9 +143,7 @@ function TrabalheiLa() {
             />
           </div>
 
-          <button type="submit" className="bg-blue-700 text-white py-2 rounded hover:bg-blue-800">
-            Enviar Avaliação
-          </button>
+          <button type="submit" className="bg-blue-700 text-white py-2 rounded hover:bg-blue-800">Enviar Avaliação</button>
         </form>
 
         <h2 className="text-2xl font-bold mt-10 text-center text-blue-700">Ranking das Empresas</h2>
