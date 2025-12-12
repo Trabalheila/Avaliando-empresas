@@ -79,7 +79,7 @@ function TrabalheiLa() {
                 value={newCompany}
                 onChange={(e) => setNewCompany(e.target.value)}
                 className="border p-2 rounded w-full"
-                placeholder="Digite o nome da nova empresa"
+                placeholder="Digite o nome da empresa"
               />
               <button
                 type="button"
