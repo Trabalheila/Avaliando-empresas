@@ -26,14 +26,21 @@ function TrabalheiLa() {
   ]);
 
   const companyOptions = companies.map((comp) => ({
-    label: (
-      <div className="flex items-center gap-2">
-        <img src={`https://logo.clearbit.com/${comp.toLowerCase().replace(/ /g, '')}.com`} alt="logo" className="w-5 h-5" />
-        {comp}
-      </div>
-    ),
+    label: comp,
     value: comp
   }));
+
+  const formatOptionLabel = ({ label }) => (
+    <div className="flex items-center gap-2">
+      <img
+        src={`https://logo.clearbit.com/${label.toLowerCase().replace(/\s/g, '').replace(/[^a-z0-9]/g, '')}.com`}
+        onError={(e) => (e.target.style.display = "none")}
+        alt={`logo ${label}`}
+        className="w-5 h-5 rounded"
+      />
+      <span>{label}</span>
+    </div>
+  );
 
   const handleAddCompany = () => {
     if (newCompany && !companies.includes(newCompany)) {
@@ -76,18 +83,32 @@ function TrabalheiLa() {
           <div>
             <label>Nome da Empresa</label>
             <Select 
-              value={company} 
-              onChange={setCompany} 
-              options={companyOptions} 
-              className="mb-2" 
+              value={company}
+              onChange={setCompany}
+              options={companyOptions}
+              formatOptionLabel={formatOptionLabel}
+              className="mb-2"
+              placeholder="Selecione uma empresa"
             />
           </div>
 
           <div>
             <label>Adicionar nova empresa</label>
             <div className="flex gap-2">
-              <input type="text" value={newCompany} onChange={(e) => setNewCompany(e.target.value)} className="border p-2 rounded w-full" placeholder="Digite o nome da nova empresa" />
-              <button type="button" onClick={handleAddCompany} className="bg-green-600 text-white px-4 rounded hover:bg-green-700">Adicionar</button>
+              <input
+                type="text"
+                value={newCompany}
+                onChange={(e) => setNewCompany(e.target.value)}
+                className="border p-2 rounded w-full"
+                placeholder="Digite o nome da nova empresa"
+              />
+              <button
+                type="button"
+                onClick={handleAddCompany}
+                className="bg-green-600 text-white px-4 rounded hover:bg-green-700"
+              >
+                Adicionar
+              </button>
             </div>
           </div>
 
@@ -129,7 +150,7 @@ function TrabalheiLa() {
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               rows="5"
-              className="border w-[75%] p-2 rounded mb-2"
+              className="border w-[60%] p-2 rounded mb-2"
               placeholder="Descreva sua experiência"
             ></textarea>
           </div>
