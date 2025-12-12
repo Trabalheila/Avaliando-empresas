@@ -27,8 +27,8 @@ function TrabalheiLa() {
   const handleAddCompany = () => {
     if (newCompany && !companies.includes(newCompany)) {
       setCompanies([...companies, newCompany]);
-      setCompany(newCompany);
       setNewCompany("");
+      setCompany(newCompany);
     }
   };
 
@@ -40,6 +40,7 @@ function TrabalheiLa() {
     }]);
     setCompany("");
     setRating(0);
+    setComment("");
     setContatoRH(0);
     setSalarioBeneficios(0);
     setEstruturaEmpresa(0);
@@ -47,7 +48,6 @@ function TrabalheiLa() {
     setPlanoCarreiras(0);
     setBemestar(0);
     setEstimulacaoOrganizacao(0);
-    setComment("");
   };
 
   return (
@@ -86,7 +86,7 @@ function TrabalheiLa() {
                 onClick={handleAddCompany}
                 className="bg-green-600 text-white px-4 rounded hover:bg-green-700"
               >
-                + Adicionar empresa
+                Adicionar empresa
               </button>
             </div>
           </div>
@@ -112,8 +112,7 @@ function TrabalheiLa() {
               <label>{item.label} <span className="font-bold">{item.value}/5</span></label>
               <div className="flex gap-1 mt-2">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <FaStar
-                    key={star}
+                  <FaStar key={star}
                     size={24}
                     className="cursor-pointer"
                     color={star <= item.value ? "#facc15" : "#d1d5db"}
