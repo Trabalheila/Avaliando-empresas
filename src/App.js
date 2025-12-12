@@ -4,6 +4,7 @@ import './index.css';
 import LoginLinkedInButton from './components/LoginLinkedInButton';
 
 function TrabalheiLa() {
+const [company, setCompany] = useState("");
 const [rating, setRating] = useState(0);
 const [contatoRH, setContatoRH] = useState(0);
 const [salarioBeneficios, setSalarioBeneficios] = useState(0);
