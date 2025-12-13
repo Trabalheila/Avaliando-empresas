@@ -156,12 +156,12 @@ function TrabalheiLa() {
           </div>
 
           <div className="mt-2">
-            <LoginLinkedInButton 
-              clientId="77dv5urtc8ixj3"
-              redirectUri="https://trabalheila.com.br/auth/linkedin"
-              onLoginSuccess={(response) => console.log("Login com sucesso:", response)}
-              onLoginFailure={(error) => console.log("Falha no login:", error)}
-            />
+           <LoginLinkedInButton
+  clientId="77dv5urtc8ixj3"
+  redirectUri="https://www.trabalheila.com.br/auth/linkedin"
+  onLoginSuccess={(response) => console.log("Login com sucesso:", response)}
+  onLoginFailure={(error) => console.log("Falha no login:", error)}
+/>
           </div>
 
           <button type="submit" className="bg-blue-700 text-white py-2 rounded hover:bg-blue-800">Enviar Avaliação</button>
