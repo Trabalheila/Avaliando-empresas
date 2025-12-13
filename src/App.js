@@ -162,7 +162,13 @@ function TrabalheiLa() {
               onLoginSuccess={(response) => console.log("Login com sucesso:", response)}
               onLoginFailure={(error) => console.log("Falha no login:", error)}
             />
-          <div className="mt-4 grid gap-4">
+          </div>
+
+          <button type="submit" className="bg-blue-700 text-white py-2 rounded hover:bg-blue-800">Enviar Avaliação</button>
+        </form>
+
+        <h2 className="text-2xl font-bold mt-10 text-center text-blue-700">Ranking das Empresas</h2>
+<div className="mt-4 grid gap-4">
   {empresas.length === 0 && (
     <p className="text-center text-gray-500">Nenhuma avaliação ainda.</p>
   )}
