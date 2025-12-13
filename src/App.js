@@ -19,47 +19,104 @@ function TrabalheiLa() {
   const [empresas, setEmpresas] = useState([]);
 
   const [companies, setCompanies] = useState([
-    "Banco do Brasil", "Raízen Combustíveis", "Itaú Unibanco Holding", "Grupo Raízen",
-    "Bradesco", "Vale", "Itaú Unibanco", "Caixa Econômica Federal", "Grupo Carrefour Brasil",
-    "Magazine Luiza", "Ambev", "Embraer", "WEG", "Suzano Papel e Celulose", "XP Inc.",
-    "Rede D'Or São Luiz", "Gerdau", "CVC Brasil", "Braskem", "Infotec", "Engemon"
+    "Banco do Brasil",
+    "Raízen Combustíveis",
+    "Itaú Unibanco Holding",
+    "Grupo Raízen",
+    "Bradesco",
+    "Vale",
+    "Itaú Unibanco",
+    "Caixa Econômica Federal",
+    "Grupo Carrefour Brasil",
+    "Magazine Luiza",
+    "Ambev",
+    "Embraer",
+    "WEG",
+    "Suzano Papel e Celulose",
+    "XP Inc.",
+    "Rede D'Or São Luiz",
+    "Gerdau",
+    "CVC Brasil",
+    "Braskem",
+    "Infotec",
+    "Engemon"
   ]);
+
+  /* 🔹 MAPA REAL DE DOMÍNIOS (ESSENCIAL) */
+  const domainMap = {
+    "Banco do Brasil": "bb.com.br",
+    "Raízen Combustíveis": "raizen.com",
+    "Grupo Raízen": "raizen.com",
+    "Itaú Unibanco Holding": "itau.com.br",
+    "Itaú Unibanco": "itau.com.br",
+    "Bradesco": "bradesco.com.br",
+    "Vale": "vale.com",
+    "Caixa Econômica Federal": "caixa.gov.br",
+    "Grupo Carrefour Brasil": "carrefour.com.br",
+    "Magazine Luiza": "magazineluiza.com.br",
+    "Ambev": "ambev.com.br",
+    "Embraer": "embraer.com",
+    "WEG": "weg.net",
+    "Suzano Papel e Celulose": "suzano.com.br",
+    "XP Inc.": "xp.com.br",
+    "Rede D'Or São Luiz": "rededor.com.br",
+    "Gerdau": "gerdau.com.br",
+    "CVC Brasil": "cvc.com.br",
+    "Braskem": "braskem.com.br",
+    "Infotec": "infotec.com.br",
+    "Engemon": "engemon.com.br"
+  };
 
   const companyOptions = companies.map((comp) => ({
     label: comp,
     value: comp
   }));
 
-  const formatOptionLabel = ({ label }) => (
-    <div className="flex items-center gap-2">
-      <img
-        src={`https://logo.clearbit.com/${label.toLowerCase().replace(/\s/g, '').replace(/[^a-z0-9]/g, '')}.com`}
-        onError={(e) => (e.target.style.display = "none")}
-        alt={`logo ${label}`}
-        className="w-5 h-5 rounded"
-      />
-      <span>{label}</span>
-    </div>
-  );
+  const formatOptionLabel = ({ label }) => {
+    const domain = domainMap[label];
+    return (
+      <div className="flex items-center gap-2">
+        {domain && (
+          <img
+            src={`https://logo.clearbit.com/${domain}`}
+            alt={`logo ${label}`}
+            className="w-5 h-5 rounded"
+            onError={(e) => (e.target.style.display = "none")}
+          />
+        )}
+        <span>{label}</span>
+      </div>
+    );
+  };
 
   const handleAddCompany = () => {
     if (newCompany && !companies.includes(newCompany)) {
       setCompanies([...companies, newCompany]);
-      setNewCompany("");
       setCompany({ label: newCompany, value: newCompany });
+      setNewCompany("");
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setEmpresas([...empresas, {
-      company: company?.value || "",
-      rating, contatoRH, salarioBeneficios, estruturaEmpresa,
-      acessibilidadeLideranca, planoCarreiras, bemestar, estimulacaoOrganizacao, comment
-    }]);
+    setEmpresas([
+      ...empresas,
+      {
+        company: company?.value || "",
+        rating,
+        contatoRH,
+        salarioBeneficios,
+        estruturaEmpresa,
+        acessibilidadeLideranca,
+        planoCarreiras,
+        bemestar,
+        estimulacaoOrganizacao,
+        comment
+      }
+    ]);
+
     setCompany(null);
     setRating(0);
-    setComment("");
     setContatoRH(0);
     setSalarioBeneficios(0);
     setEstruturaEmpresa(0);
@@ -67,6 +124,7 @@ function TrabalheiLa() {
     setPlanoCarreiras(0);
     setBemestar(0);
     setEstimulacaoOrganizacao(0);
+    setComment("");
   };
 
   return (
@@ -82,12 +140,11 @@ function TrabalheiLa() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label>Nome da Empresa</label>
-            <Select 
+            <Select
               value={company}
               onChange={setCompany}
               options={companyOptions}
               formatOptionLabel={formatOptionLabel}
-              className="mb-2"
               placeholder="Selecione uma empresa"
             />
           </div>
@@ -130,10 +187,11 @@ function TrabalheiLa() {
             label: 'Estímulo à organização', value: estimulacaoOrganizacao, setter: setEstimulacaoOrganizacao
           }].map((item, idx) => (
             <div key={idx}>
-              <label>{item.label} <span className="font-bold">{item.value}/5</span></label>
+              <label>{item.label} <strong>{item.value}/5</strong></label>
               <div className="flex gap-1 mt-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <FaStar key={star}
+                {[1,2,3,4,5].map((star) => (
+                  <FaStar
+                    key={star}
                     size={24}
                     className="cursor-pointer"
                     color={star <= item.value ? "#facc15" : "#d1d5db"}
@@ -144,48 +202,23 @@ function TrabalheiLa() {
             </div>
           ))}
 
-          <div>
-            <label>Comentário</label>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows="5"
-              className="border w-[60%] p-2 rounded mb-2"
-              placeholder="Descreva sua experiência"
-            ></textarea>
-          </div>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            rows="4"
+            className="border p-2 rounded"
+            placeholder="Descreva sua experiência"
+          />
 
-          <div className="mt-2">
-            <LoginLinkedInButton 
-              clientId="77dv5urtc8ixj3"
-              redirectUri="https://trabalheila.com.br/auth/linkedin"
-              onLoginSuccess={(response) => console.log("Login com sucesso:", response)}
-              onLoginFailure={(error) => console.log("Falha no login:", error)}
-            />
-          </div>
+          <LoginLinkedInButton
+            clientId="77dv5urtc8ixj3"
+            redirectUri="https://trabalheila.com.br/auth/linkedin"
+          />
 
-          <button type="submit" className="bg-blue-700 text-white py-2 rounded hover:bg-blue-800">Enviar Avaliação</button>
+          <button className="bg-blue-700 text-white py-2 rounded hover:bg-blue-800">
+            Enviar Avaliação
+          </button>
         </form>
-
-        <h2 className="text-2xl font-bold mt-10 text-center text-blue-700">Ranking das Empresas</h2>
-        <div className="mt-4">
-          {empresas.length === 0 && <p className="text-center">Nenhuma avaliação ainda.</p>}
-          {empresas.map((emp, idx) => (
-            <div key={idx} className="border-b py-2">
-              <p className="font-semibold">{emp.company}</p>
-              <p>★ {emp.rating}/5 estrelas</p>
-              <p>Contato com RH: ★ {emp.contatoRH}/5</p>
-              <p>Salário e benefícios: ★ {emp.salarioBeneficios}/5</p>
-              <p className="text-sm text-gray-600">{emp.comment}</p>
-            </div>
-          ))}
-        </div>
-
-        <footer className="mt-6 text-center text-sm text-gray-500">
-          <a href="/politica-de-privacidade.html" className="text-blue-500 hover:underline">
-            Política de Privacidade
-          </a>
-        </footer>
       </div>
     </div>
   );
