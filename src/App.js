@@ -158,7 +158,7 @@ function TrabalheiLa() {
           <div className="mt-2">
             <LoginLinkedInButton 
               clientId="77dv5urtc8ixj3"
-              redirectUri="https://trabalheila.com.br/auth/linkedin"
+              redirectUri="https://www.trabalheila.com.br/auth/linkedin"
               onLoginSuccess={(response) => console.log("Login com sucesso:", response)}
               onLoginFailure={(error) => console.log("Falha no login:", error)}
             />
