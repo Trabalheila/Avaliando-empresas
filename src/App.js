@@ -169,17 +169,18 @@ function TrabalheiLa() {
 
         <h2 className="text-2xl font-bold mt-10 text-center text-blue-700">Ranking das Empresas</h2>
         <div className="mt-4">
-          {empresas.length === 0 && <p className="text-center">Nenhuma avaliação ainda.</p>}
-          {empresas.map((emp, idx) => (
-            <div key={idx} className="border-b py-2">
-              <p className="font-semibold">{emp.company}</p>
-              <p>★ {emp.rating}/5 estrelas</p>
-              <p>Contato com RH: ★ {emp.contatoRH}/5</p>
-              <p>Salário e benefícios: ★ {emp.salarioBeneficios}/5</p>
-              <p className="text-sm text-gray-600">{emp.comment}</p>
-            </div>
-          ))}
-        </div>
+  {empresas.length === 0 && <p className="text-center">Nenhuma avaliação ainda.</p>}
+  {empresas.map((emp, idx) => (
+    <div key={idx} className="border-b py-2">
+      <p className="font-semibold">{emp.company}</p>
+      <p>★ {emp.rating}/5 estrelas</p>
+      <p>Contato com RH: ★ {emp.contatoRH}/5</p>
+      <p>Salário e benefícios: ★ {emp.salarioBeneficios}/5</p>
+      <p className="text-sm text-gray-600">{emp.comment}</p>
+    </div>
+  ))}
+</div>
+
 
         <footer className="mt-6 text-center text-sm text-gray-500">
           <a href="/politica-de-privacidade.html" className="text-blue-500 hover:underline">
