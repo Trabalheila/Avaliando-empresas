@@ -162,24 +162,35 @@ function TrabalheiLa() {
               onLoginSuccess={(response) => console.log("Login com sucesso:", response)}
               onLoginFailure={(error) => console.log("Falha no login:", error)}
             />
-          </div>
-
-          <button type="submit" className="bg-blue-700 text-white py-2 rounded hover:bg-blue-800">Enviar Avaliação</button>
-        </form>
-
-        <h2 className="text-2xl font-bold mt-10 text-center text-blue-700">Ranking das Empresas</h2>
-        <div className="mt-4">
-  {empresas.length === 0 && <p className="text-center">Nenhuma avaliação ainda.</p>}
+          <div className="mt-4 grid gap-4">
+  {empresas.length === 0 && (
+    <p className="text-center text-gray-500">Nenhuma avaliação ainda.</p>
+  )}
   {empresas.map((emp, idx) => (
-    <div key={idx} className="border-b py-2">
-      <p className="font-semibold">{emp.company}</p>
-      <p>★ {emp.rating}/5 estrelas</p>
-      <p>Contato com RH: ★ {emp.contatoRH}/5</p>
-      <p>Salário e benefícios: ★ {emp.salarioBeneficios}/5</p>
-      <p className="text-sm text-gray-600">{emp.comment}</p>
+    <div
+      key={idx}
+      className="bg-white shadow-md rounded-lg p-4 border border-gray-200"
+    >
+      <h3 className="text-lg font-bold text-blue-700 mb-1">{emp.company}</h3>
+      <div className="text-sm text-gray-700 space-y-1">
+        <p>⭐ Avaliação Geral: <strong>{emp.rating}/5</strong></p>
+        <p>👥 Contato com RH: <strong>{emp.contatoRH}/5</strong></p>
+        <p>💰 Salário e Benefícios: <strong>{emp.salarioBeneficios}/5</strong></p>
+        <p>🏢 Estrutura da Empresa: <strong>{emp.estruturaEmpresa}/5</strong></p>
+        <p>🧠 Liderança Acessível: <strong>{emp.acessibilidadeLideranca}/5</strong></p>
+        <p>🚀 Plano de Carreira: <strong>{emp.planoCarreiras}/5</strong></p>
+        <p>🌱 Bem-estar: <strong>{emp.bemestar}/5</strong></p>
+        <p>📈 Estímulo à Organização: <strong>{emp.estimulacaoOrganizacao}/5</strong></p>
+        {emp.comment && (
+          <p className="text-gray-600 italic mt-2 border-t pt-2">
+            “{emp.comment}”
+          </p>
+        )}
+      </div>
     </div>
   ))}
 </div>
+
 
 
         <footer className="mt-6 text-center text-sm text-gray-500">
