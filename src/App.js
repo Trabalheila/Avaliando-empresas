@@ -177,8 +177,8 @@ function TrabalheiLa() {
       key={idx}
       className="bg-white shadow-md rounded-lg p-4 border border-gray-200"
     >
-      <h3 className="text-lg font-bold text-blue-700 mb-1">{emp.company}</h3>
-      <div className="text-sm text-gray-700 space-y-1">
+      <h3 className="text-lg font-extrabold text-blue-700 mb-1">{emp.company}</h3>
+      <div className="text-sm text-gray-800 space-y-1">
         <p>⭐ Avaliação Geral: <strong>{emp.rating}/5</strong></p>
         <p>👥 Contato com RH: <strong>{emp.contatoRH}/5</strong></p>
         <p>💰 Salário e Benefícios: <strong>{emp.salarioBeneficios}/5</strong></p>
