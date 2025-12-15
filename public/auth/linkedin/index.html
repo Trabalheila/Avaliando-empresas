@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>LinkedIn Auth - Trabalhei Lá</title>
+
+  <script>
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      const error = params.get("error");
+
+      // URL base do seu app React
+      const APP_URL = "https://www.trabalheila.com.br";
+
+      if (code) {
+        // Redireciona para o app com o código do LinkedIn
+        window.location.replace(`${APP_URL}/?linkedin_code=${code}`);
+      } else if (error) {
+        // Redireciona com erro (opcional)
+        window.location.replace(`${APP_URL}/?linkedin_error=${error}`);
+      } else {
+        // fallback de segurança
+        window.location.replace(APP_URL);
+      }
+    })();
+  </script>
+</head>
+
+<body style="font-family: Arial, sans-serif; text-align: center; padding: 40px;">
+  <h2>Conectando com o LinkedIn…</h2>
+  <p>Você será redirecionado automaticamente.</p>
+</body>
+</html>
