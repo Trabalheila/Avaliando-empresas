@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaStar } from 'react-icons/fa';
+import { FaStar, FaBuilding, FaTrophy, FaChartLine, FaUsers } from 'react-icons/fa';
 import Select from 'react-select';
 import './index.css';
 import LoginLinkedInButton from './components/LoginLinkedInButton';
@@ -107,7 +107,6 @@ function TrabalheiLa() {
 
     setEmpresas([novaAvaliacao, ...empresas]);
 
-    // Limpar formulário
     setCompany(null);
     setRating(0);
     setComment("");
@@ -122,187 +121,282 @@ function TrabalheiLa() {
     alert('Avaliação enviada com sucesso!');
   };
 
+  // Calcular média das avaliações
+  const calcularMedia = (emp) => {
+    return ((emp.rating + emp.contatoRH + emp.salarioBeneficios + emp.estruturaEmpresa + 
+             emp.acessibilidadeLideranca + emp.planoCarreiras + emp.bemestar + emp.estimulacaoOrganizacao) / 8).toFixed(1);
+  };
+
+  // Definir cor do badge baseado na nota
+  const getBadgeColor = (nota) => {
+    if (nota >= 4.5) return 'bg-gradient-to-r from-green-400 to-emerald-500';
+    if (nota >= 3.5) return 'bg-gradient-to-r from-blue-400 to-cyan-500';
+    if (nota >= 2.5) return 'bg-gradient-to-r from-yellow-400 to-orange-500';
+    return 'bg-gradient-to-r from-red-400 to-pink-500';
+  };
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-white to-blue-100 p-6">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-4 md:p-8">
 
-        {/* Header */}
-        <div className="flex flex-col items-center mb-6">
-          <img src="/logo.png" alt="Logo Trabalhei Lá" className="w-15 h-10 mb-2" />
-          <h1 className="text-center text-3xl font-extrabold text-gray-900 tracking-wide">
-            Compartilhe sua experiência nas empresas!
-          </h1>
+      {/* Hero Section */}
+      <div className="max-w-7xl mx-auto mb-8">
+        <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-white/20">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-4 rounded-2xl shadow-lg">
+                <FaBuilding className="text-white text-4xl" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Trabalhei Lá
+                </h1>
+                <p className="text-gray-600 font-medium">Avalie empresas de forma anônima</p>
+              </div>
+            </div>
+
+            {isAuthenticated && (
+              <div className="flex items-center gap-3 bg-gradient-to-r from-green-400 to-emerald-500 px-6 py-3 rounded-full shadow-lg">
+                <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                <span className="text-white font-semibold">Autenticado</span>
+              </div>
+            )}
+          </div>
         </div>
+      </div>
 
-        {/* Aviso de privacidade */}
-        {!isAuthenticated && (
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
-            <p className="text-sm text-blue-800">
-              <span role="img" aria-label="cadeado">🔒</span> <strong>Sua privacidade é garantida:</strong> Usamos o LinkedIn apenas para verificar 
-              seu vínculo profissional. Suas avaliações são <strong>100% anônimas</strong> — 
-              nome e perfil nunca são exibidos publicamente.
-            </p>
-          </div>
-        )}
+      <div className="max-w-7xl mx-auto grid lg:grid-cols-3 gap-8">
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {/* Formulário - 2 colunas */}
+        <div className="lg:col-span-2">
+          <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-white/20">
 
-          {/* Seleção de empresa */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nome da Empresa</label>
-            <Select 
-              value={company}
-              onChange={setCompany}
-              options={companyOptions}
-              formatOptionLabel={formatOptionLabel}
-              placeholder="Selecione uma empresa"
-            />
-          </div>
-
-          {/* Adicionar nova empresa */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Adicionar nova empresa</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newCompany}
-                onChange={(e) => setNewCompany(e.target.value)}
-                className="border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Digite o nome da nova empresa"
-              />
-              <button
-                type="button"
-                onClick={handleAddCompany}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 whitespace-nowrap"
-              >
-                Adicionar
-              </button>
-            </div>
-          </div>
-
-          {/* Avaliações com estrelas */}
-          {[
-            { label: 'Avaliação Geral', value: rating, setter: setRating },
-            { label: 'Contato do RH', value: contatoRH, setter: setContatoRH },
-            { label: 'Salário e benefícios', value: salarioBeneficios, setter: setSalarioBeneficios },
-            { label: 'Estrutura da empresa', value: estruturaEmpresa, setter: setEstruturaEmpresa },
-            { label: 'Acessibilidade da liderança', value: acessibilidadeLideranca, setter: setAcessibilidadeLideranca },
-            { label: 'Plano de carreiras', value: planoCarreiras, setter: setPlanoCarreiras },
-            { label: 'Preocupação com o seu bem estar', value: bemestar, setter: setBemestar },
-            { label: 'Estímulo à organização', value: estimulacaoOrganizacao, setter: setEstimulacaoOrganizacao }
-          ].map((item, idx) => (
-            <div key={idx}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {item.label} <span className="font-bold text-blue-600">{item.value}/5</span>
-              </label>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <FaStar 
-                    key={star}
-                    size={24}
-                    className="cursor-pointer transition-colors"
-                    color={star <= item.value ? "#facc15" : "#d1d5db"}
-                    onClick={() => item.setter(star)}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-
-          {/* Área de comentário + botões - container mais estreito */}
-          <div className="max-w-xl mx-auto w-full mt-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Comentário</label>
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                rows="5"
-                className="border border-gray-300 w-full p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                placeholder="Descreva sua experiência"
-              ></textarea>
-            </div>
-
-            {/* Botão LinkedIn ou mensagem de autenticado */}
-            {!isAuthenticated ? (
-              <div className="mt-4">
-                <LoginLinkedInButton
-                  clientId={process.env.REACT_APP_LINKEDIN_CLIENT_ID || "77dv5urtc8ixj3"}
-                  redirectUri="https://www.trabalheila.com.br/auth/linkedin"
-                  disabled={isLoading}
-                />
-                {isLoading && (
-                  <p className="text-sm text-gray-600 mt-2 text-center">Autenticando...</p>
-                )}
-              </div>
-            ) : (
-              <div className="bg-green-50 border border-green-200 p-3 rounded mt-4">
-                <p className="text-green-800 text-sm text-center">
-                  <span role="img" aria-label="check">✅</span> Você está autenticado! Pode enviar sua avaliação de forma anônima.
-                </p>
+            {/* Aviso de privacidade */}
+            {!isAuthenticated && (
+              <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-6 mb-8 text-white shadow-lg">
+                <div className="flex items-start gap-4">
+                  <div className="text-3xl">🔒</div>
+                  <div>
+                    <h3 className="font-bold text-lg mb-2">Sua privacidade é garantida</h3>
+                    <p className="text-sm text-blue-50">
+                      Usamos o LinkedIn apenas para verificar seu vínculo profissional. 
+                      Suas avaliações são <strong>100% anônimas</strong> — nome e perfil nunca são exibidos.
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* Botão de enviar */}
-            <div className="mt-4 flex justify-center">
-              <button 
-                type="submit" 
-                className={`
-                  px-8 py-2 rounded-full text-white font-semibold transition-colors
-                  ${isAuthenticated 
-                    ? 'bg-blue-700 hover:bg-blue-800' 
-                    : 'bg-gray-400 cursor-not-allowed'}
-                `}
-                disabled={!isAuthenticated}
-              >
-                {isAuthenticated ? 'Enviar avaliação' : 'Faça login para avaliar'}
-              </button>
-            </div>
-          </div>
+            <form onSubmit={handleSubmit} className="space-y-6">
 
-        </form>
+              {/* Seleção de empresa */}
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200">
+                <label className="block text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                  <FaBuilding className="text-blue-600" />
+                  Selecione a Empresa
+                </label>
+                <Select 
+                  value={company}
+                  onChange={setCompany}
+                  options={companyOptions}
+                  formatOptionLabel={formatOptionLabel}
+                  placeholder="Digite ou selecione..."
+                  className="mb-4"
+                />
 
-        {/* Ranking das empresas */}
-        <h2 className="text-2xl font-bold mt-10 mb-4 text-center text-blue-700">Ranking das Empresas</h2>
-        <div className="grid gap-4">
-          {empresas.length === 0 && (
-            <p className="text-center text-gray-500 py-8">Nenhuma avaliação ainda.</p>
-          )}
-          {empresas.map((emp, idx) => (
-            <div
-              key={idx}
-              className="bg-white shadow-md rounded-lg p-4 border border-gray-200 hover:shadow-lg transition-shadow"
-            >
-              <h3 className="text-lg font-extrabold text-blue-700 mb-2">{emp.company}</h3>
-              <div className="text-sm text-gray-800 space-y-1">
-                <p><span role="img" aria-label="estrela">⭐</span> Avaliação Geral: <strong>{emp.rating}/5</strong></p>
-                <p><span role="img" aria-label="pessoas">👥</span> Contato com RH: <strong>{emp.contatoRH}/5</strong></p>
-                <p><span role="img" aria-label="dinheiro">💰</span> Salário e Benefícios: <strong>{emp.salarioBeneficios}/5</strong></p>
-                <p><span role="img" aria-label="prédio">🏢</span> Estrutura da Empresa: <strong>{emp.estruturaEmpresa}/5</strong></p>
-                <p><span role="img" aria-label="cérebro">🧠</span> Liderança Acessível: <strong>{emp.acessibilidadeLideranca}/5</strong></p>
-                <p><span role="img" aria-label="foguete">🚀</span> Plano de Carreira: <strong>{emp.planoCarreiras}/5</strong></p>
-                <p><span role="img" aria-label="planta">🌱</span> Bem-estar: <strong>{emp.bemestar}/5</strong></p>
-                <p><span role="img" aria-label="gráfico">📈</span> Estímulo à Organização: <strong>{emp.estimulacaoOrganizacao}/5</strong></p>
-                {emp.comment && (
-                  <p className="text-gray-600 italic mt-2 pt-2 border-t border-gray-200">
-                    "{emp.comment}"
-                  </p>
-                )}
-                <p className="text-xs text-gray-400 mt-2">
-                  Avaliado por: Ex-funcionário • {emp.area} • {emp.periodo}
-                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newCompany}
+                    onChange={(e) => setNewCompany(e.target.value)}
+                    className="flex-1 border-2 border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Ou adicione uma nova empresa"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCompany}
+                    className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all font-semibold"
+                  >
+                    Adicionar
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+
+              {/* Grid de avaliações */}
+              <div className="grid md:grid-cols-2 gap-4">
+                {[
+                  { label: 'Avaliação Geral', value: rating, setter: setRating, icon: '⭐' },
+                  { label: 'Contato do RH', value: contatoRH, setter: setContatoRH, icon: '👥' },
+                  { label: 'Salário e Benefícios', value: salarioBeneficios, setter: setSalarioBeneficios, icon: '💰' },
+                  { label: 'Estrutura', value: estruturaEmpresa, setter: setEstruturaEmpresa, icon: '🏢' },
+                  { label: 'Liderança', value: acessibilidadeLideranca, setter: setAcessibilidadeLideranca, icon: '🧠' },
+                  { label: 'Plano de Carreira', value: planoCarreiras, setter: setPlanoCarreiras, icon: '🚀' },
+                  { label: 'Bem-estar', value: bemestar, setter: setBemestar, icon: '🌱' },
+                  { label: 'Organização', value: estimulacaoOrganizacao, setter: setEstimulacaoOrganizacao, icon: '📈' }
+                ].map((item, idx) => (
+                  <div key={idx} className="bg-white rounded-xl p-4 border-2 border-gray-200 hover:border-purple-400 transition-all">
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      <span role="img" aria-label={item.label}>{item.icon}</span> {item.label}
+                      <span className="ml-2 text-purple-600">{item.value}/5</span>
+                    </label>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <FaStar 
+                          key={star}
+                          size={28}
+                          className="cursor-pointer transition-all hover:scale-110"
+                          color={star <= item.value ? "#facc15" : "#e5e7eb"}
+                          onClick={() => item.setter(star)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Comentário */}
+              <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border-2 border-purple-200">
+                <label className="block text-sm font-bold text-gray-700 mb-3">
+                  💬 Conte sua experiência
+                </label>
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  rows="4"
+                  className="w-full border-2 border-purple-300 p-4 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                  placeholder="Compartilhe detalhes sobre sua experiência..."
+                ></textarea>
+              </div>
+
+              {/* Botões de ação */}
+              <div className="space-y-4">
+                {!isAuthenticated ? (
+                  <div>
+                    <LoginLinkedInButton
+                      clientId={process.env.REACT_APP_LINKEDIN_CLIENT_ID || "77dv5urtc8ixj3"}
+                      redirectUri="https://www.trabalheila.com.br/auth/linkedin"
+                      onLoginSuccess={handleLinkedInSuccess}
+                      onLoginFailure={handleLinkedInFailure}
+                      disabled={isLoading}
+                    />
+                    {isLoading && (
+                      <p className="text-sm text-gray-600 mt-3 text-center animate-pulse">
+                        Autenticando com o LinkedIn...
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-gradient-to-r from-green-400 to-emerald-500 rounded-2xl p-4 text-white text-center font-semibold shadow-lg">
+                    ✅ Pronto! Agora você pode enviar sua avaliação anônima
+                  </div>
+                )}
+
+                <button 
+                  type="submit" 
+                  className={`
+                    w-full py-4 rounded-2xl text-white font-bold text-lg transition-all transform
+                    ${isAuthenticated 
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:scale-105 hover:shadow-2xl' 
+                      : 'bg-gray-400 cursor-not-allowed opacity-60'}
+                  `}
+                  disabled={!isAuthenticated}
+                >
+                  {isAuthenticated ? '🚀 Enviar Avaliação' : '🔒 Faça login para avaliar'}
+                </button>
+              </div>
+
+            </form>
+          </div>
         </div>
 
-        {/* Footer */}
-        <footer className="mt-8 text-center text-sm text-gray-500">
-          <a href="/politica-de-privacidade.html" className="text-blue-500 hover:underline">
-            Política de Privacidade
-          </a>
-        </footer>
+        {/* Ranking - 1 coluna */}
+        <div className="lg:col-span-1">
+          <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-6 border border-white/20 sticky top-8">
+
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-3 rounded-xl">
+                <FaTrophy className="text-white text-2xl" />
+              </div>
+              <h2 className="text-2xl font-black bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent">
+                Ranking
+              </h2>
+            </div>
+
+            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+              {empresas.length === 0 ? (
+                <div className="text-center py-12">
+                  <FaChartLine className="text-gray-300 text-6xl mx-auto mb-4" />
+                  <p className="text-gray-500 font-medium">Nenhuma avaliação ainda</p>
+                  <p className="text-sm text-gray-400 mt-2">Seja o primeiro a avaliar!</p>
+                </div>
+              ) : (
+                empresas.map((emp, idx) => {
+                  const media = calcularMedia(emp);
+                  return (
+                    <div
+                      key={idx}
+                      className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-4 border-2 border-gray-200 hover:border-purple-400 hover:shadow-xl transition-all cursor-pointer group"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-gray-800 group-hover:text-purple-600 transition-colors">
+                            {emp.company}
+                          </h3>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {emp.area} • {emp.periodo}
+                          </p>
+                        </div>
+                        <div className={`${getBadgeColor(media)} px-3 py-1 rounded-full text-white font-bold text-sm shadow-md`}>
+                          {media} ⭐
+                        </div>
+                      </div>
+
+                      {emp.comment && (
+                        <p className="text-sm text-gray-600 italic border-t border-gray-200 pt-3 mt-3">
+                          "{emp.comment.substring(0, 80)}{emp.comment.length > 80 ? '...' : ''}"
+                        </p>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+          </div>
+        </div>
 
       </div>
+
+      {/* Footer */}
+      <footer className="max-w-7xl mx-auto mt-12 text-center">
+        <div className="bg-white/60 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+          <p className="text-gray-600 text-sm">
+            <a href="/politica-de-privacidade.html" className="text-purple-600 hover:text-purple-800 font-semibold underline">
+              Política de Privacidade
+            </a>
+            {' • '}
+            <span>© 2026 Trabalhei Lá - Todos os direitos reservados</span>
+          </p>
+        </div>
+      </footer>
+
+      {/* CSS customizado para scrollbar */}
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: linear-gradient(to bottom, #8b5cf6, #ec4899);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(to bottom, #7c3aed, #db2777);
+        }
+      `}</style>
+
     </div>
   );
 }
