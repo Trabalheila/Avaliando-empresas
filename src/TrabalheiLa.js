@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaStar, FaBuilding, FaTrophy, FaChartLine } from 'react-icons/fa';
+import { FaStar, FaTrophy, FaChartLine } from 'react-icons/fa';
 import Select from 'react-select';
 import './index.css';
 import LoginLinkedInButton from './components/LoginLinkedInButton';
@@ -121,13 +121,11 @@ function TrabalheiLa() {
     alert('Avaliação enviada com sucesso!');
   };
 
-  // Calcular média das avaliações
   const calcularMedia = (emp) => {
     return ((emp.rating + emp.contatoRH + emp.salarioBeneficios + emp.estruturaEmpresa + 
              emp.acessibilidadeLideranca + emp.planoCarreiras + emp.bemestar + emp.estimulacaoOrganizacao) / 8).toFixed(1);
   };
 
-  // Definir cor do badge baseado na nota
   const getBadgeColor = (nota) => {
     if (nota >= 4.5) return 'bg-gradient-to-r from-green-400 to-emerald-500';
     if (nota >= 3.5) return 'bg-gradient-to-r from-blue-400 to-cyan-500';
@@ -138,28 +136,35 @@ function TrabalheiLa() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-4 md:p-8">
 
-      {/* Hero Section */}
+      {/* Hero Section com fundo de prédio */}
       <div className="max-w-7xl mx-auto mb-8">
-        <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-white/20">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-4 rounded-2xl shadow-lg">
-                <FaBuilding className="text-white text-4xl" />
-              </div>
+        <div
+          className="rounded-3xl shadow-2xl border border-white/20 overflow-hidden relative"
+          style={{
+            backgroundImage: 'url("/header-building.jpg")',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
+          {/* Overlay escuro para contraste */}
+          <div className="bg-black/50 backdrop-blur-sm p-8 md:p-10">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <div>
-                <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <h1 className="text-4xl md:text-5xl font-black text-white drop-shadow-lg">
                   Trabalhei Lá
                 </h1>
-                <p className="text-gray-600 font-medium">Avalie empresas de forma anônima</p>
+                <p className="text-gray-100 font-medium mt-2 max-w-xl">
+                  Plataforma anônima para avaliar empresas, cultura e liderança.
+                </p>
               </div>
-            </div>
 
-            {isAuthenticated && (
-              <div className="flex items-center gap-3 bg-gradient-to-r from-green-400 to-emerald-500 px-6 py-3 rounded-full shadow-lg">
-                <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
-                <span className="text-white font-semibold">Autenticado</span>
-              </div>
-            )}
+              {isAuthenticated && (
+                <div className="flex items-center gap-3 bg-white/10 px-6 py-3 rounded-full shadow-lg border border-white/30 backdrop-blur-md">
+                  <div className="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
+                  <span className="text-white font-semibold">Autenticado</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -191,8 +196,7 @@ function TrabalheiLa() {
               {/* Seleção de empresa */}
               <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200">
                 <label className="block text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                  <FaBuilding className="text-blue-600" />
-                  Selecione a Empresa
+                  🏢 Selecione a Empresa
                 </label>
                 <Select 
                   value={company}
