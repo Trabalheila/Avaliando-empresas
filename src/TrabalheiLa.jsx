@@ -71,7 +71,7 @@ function TrabalheiLa() {
           placeholder="Nome da empresa"
           value={company}
           onChange={(e) => setCompany(e.target.value)}
-          className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-auto px-4 py-2 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
 
         {/* Avaliação */}
@@ -111,7 +111,7 @@ function TrabalheiLa() {
           placeholder="Comentário (opcional)"
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-auto px-4 py-2 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
 
         {/* Comprovante */}
@@ -121,7 +121,7 @@ function TrabalheiLa() {
             type="file"
             accept=".pdf,.jpg,.jpeg,.png"
             onChange={handleFileChange}
-            className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg"
+            className="w-auto px-4 py-2 border-2 border-gray-300 rounded-lg"
           />
         </div>
 
@@ -129,7 +129,7 @@ function TrabalheiLa() {
         <button
           onClick={submitForm}
           disabled={uploading}
-          className="w-full py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-auto py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           {uploading ? 'Enviando...' : 'Enviar Avaliação'}
         </button>
