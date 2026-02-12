@@ -18,7 +18,6 @@ function TrabalheiLa() {
   const [comment, setComment] = useState("");
   const [empresas, setEmpresas] = useState([]);
 
-  // NOVO: Estado de autenticação
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -29,7 +28,6 @@ function TrabalheiLa() {
     "Rede D'Or São Luiz", "Gerdau", "CVC Brasil", "Braskem", "Infotec", "Engemon"
   ]);
 
-  // NOVO: Verificar autenticação ao carregar
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
     if (token) {
@@ -62,11 +60,9 @@ function TrabalheiLa() {
     }
   };
 
-  // NOVO: Handler de sucesso do LinkedIn
   const handleLinkedInSuccess = async (response) => {
     setIsLoading(true);
 
-    // Por enquanto, simula autenticação (depois você conecta com backend)
     setTimeout(() => {
       const fakeToken = 'token_' + Math.random().toString(36).substr(2, 9);
       localStorage.setItem('auth_token', fakeToken);
@@ -76,7 +72,6 @@ function TrabalheiLa() {
     }, 1500);
   };
 
-  // NOVO: Handler de falha do LinkedIn
   const handleLinkedInFailure = (error) => {
     console.error('Erro no LinkedIn:', error);
     alert('❌ Falha ao conectar com o LinkedIn. Tente novamente.');
@@ -106,14 +101,12 @@ function TrabalheiLa() {
       bemestar,
       estimulacaoOrganizacao,
       comment,
-      // Dados anônimos do avaliador
-      area: 'Tecnologia', // Depois virá do backend
-      periodo: '2021-2024' // Depois virá do backend
+      area: 'Tecnologia',
+      periodo: '2021-2024'
     };
 
     setEmpresas([novaAvaliacao, ...empresas]);
 
-    // Limpa o formulário
     setCompany(null);
     setRating(0);
     setComment("");
@@ -138,11 +131,10 @@ function TrabalheiLa() {
           </p>
         </div>
 
-        {/* NOVO: Aviso de privacidade */}
         {!isAuthenticated && (
           <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
             <p className="text-sm text-blue-800">
-              🔒 <strong>Sua privacidade é garantida:</strong> Usamos o LinkedIn apenas para verificar 
+              <span role="img" aria-label="cadeado">🔒</span> <strong>Sua privacidade é garantida:</strong> Usamos o LinkedIn apenas para verificar 
               seu vínculo profissional. Suas avaliações são <strong>100% anônimas</strong> — 
               nome e perfil nunca são exibidos publicamente.
             </p>
@@ -225,7 +217,6 @@ function TrabalheiLa() {
             ></textarea>
           </div>
 
-          {/* MODIFICADO: Botão LinkedIn */}
           {!isAuthenticated ? (
             <div className="mt-2">
               <LoginLinkedInButton
@@ -242,7 +233,7 @@ function TrabalheiLa() {
           ) : (
             <div className="bg-green-50 border border-green-200 p-3 rounded">
               <p className="text-green-800 text-sm text-center">
-                ✅ Você está autenticado! Pode enviar sua avaliação de forma anônima.
+                <span role="img" aria-label="check">✅</span> Você está autenticado! Pode enviar sua avaliação de forma anônima.
               </p>
             </div>
           )}
@@ -272,20 +263,19 @@ function TrabalheiLa() {
             >
               <h3 className="text-lg font-extrabold text-blue-700 mb-1">{emp.company}</h3>
               <div className="text-sm text-gray-800 space-y-1">
-                <p>⭐ Avaliação Geral: <strong>{emp.rating}/5</strong></p>
-                <p>👥 Contato com RH: <strong>{emp.contatoRH}/5</strong></p>
-                <p>💰 Salário e Benefícios: <strong>{emp.salarioBeneficios}/5</strong></p>
-                <p>🏢 Estrutura da Empresa: <strong>{emp.estruturaEmpresa}/5</strong></p>
-                <p>🧠 Liderança Acessível: <strong>{emp.acessibilidadeLideranca}/5</strong></p>
-                <p>🚀 Plano de Carreira: <strong>{emp.planoCarreiras}/5</strong></p>
-                <p>🌱 Bem-estar: <strong>{emp.bemestar}/5</strong></p>
-                <p>📈 Estímulo à Organização: <strong>{emp.estimulacaoOrganizacao}/5</strong></p>
+                <p><span role="img" aria-label="estrela">⭐</span> Avaliação Geral: <strong>{emp.rating}/5</strong></p>
+                <p><span role="img" aria-label="pessoas">👥</span> Contato com RH: <strong>{emp.contatoRH}/5</strong></p>
+                <p><span role="img" aria-label="dinheiro">💰</span> Salário e Benefícios: <strong>{emp.salarioBeneficios}/5</strong></p>
+                <p><span role="img" aria-label="prédio">🏢</span> Estrutura da Empresa: <strong>{emp.estruturaEmpresa}/5</strong></p>
+                <p><span role="img" aria-label="cérebro">🧠</span> Liderança Acessível: <strong>{emp.acessibilidadeLideranca}/5</strong></p>
+                <p><span role="img" aria-label="foguete">🚀</span> Plano de Carreira: <strong>{emp.planoCarreiras}/5</strong></p>
+                <p><span role="img" aria-label="planta">🌱</span> Bem-estar: <strong>{emp.bemestar}/5</strong></p>
+                <p><span role="img" aria-label="gráfico">📈</span> Estímulo à Organização: <strong>{emp.estimulacaoOrganizacao}/5</strong></p>
                 {emp.comment && (
                   <p className="text-gray-600 italic mt-2 border-t pt-2">
                     "{emp.comment}"
                   </p>
                 )}
-                {/* NOVO: Info anônima */}
                 <p className="text-xs text-gray-400 mt-2">
                   Avaliado por: Ex-funcionário • {emp.area} • {emp.periodo}
                 </p>
