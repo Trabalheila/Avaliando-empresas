@@ -1,12 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import './index.css'; // Importa o CSS com o Tailwind
-import TrabalheiLa from './App'; // Importa o componente App
+import './index.css';
+import TrabalheiLa from './TrabalheiLa'; // ✅ Agora aponta pro arquivo correto
 
 const rootElement = document.getElementById('root');
 const root = ReactDOM.createRoot(rootElement);
 
-// Renderiza o componente App dentro do root
 root.render(
-  <TrabalheiLa />
+  <React.StrictMode>
+    <TrabalheiLa />
+  </React.StrictMode>
 );
