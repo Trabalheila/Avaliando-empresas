@@ -107,6 +107,7 @@ function TrabalheiLa() {
 
     setEmpresas([novaAvaliacao, ...empresas]);
 
+    // Limpar formulário
     setCompany(null);
     setRating(0);
     setComment("");
@@ -124,13 +125,16 @@ function TrabalheiLa() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-white to-blue-100 p-6">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl">
-        <div className="flex flex-col items-center mb-4">
-          <img src="/logo.png" alt="Logo Trabalhei Lá" className="w-15 h-10 mb-2 mx-auto" />
-          <p className="text-center mb-6 text-3xl font-extrabold text-gray-900 tracking-wide">
+
+        {/* Header */}
+        <div className="flex flex-col items-center mb-6">
+          <img src="/logo.png" alt="Logo Trabalhei Lá" className="w-15 h-10 mb-2" />
+          <h1 className="text-center text-3xl font-extrabold text-gray-900 tracking-wide">
             Compartilhe sua experiência nas empresas!
-          </p>
+          </h1>
         </div>
 
+        {/* Aviso de privacidade */}
         {!isAuthenticated && (
           <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
             <p className="text-sm text-blue-800">
@@ -142,62 +146,61 @@ function TrabalheiLa() {
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+
+          {/* Seleção de empresa */}
           <div>
-            <label>Nome da Empresa</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nome da Empresa</label>
             <Select 
               value={company}
               onChange={setCompany}
               options={companyOptions}
               formatOptionLabel={formatOptionLabel}
-              className="mb-2"
               placeholder="Selecione uma empresa"
             />
           </div>
 
+          {/* Adicionar nova empresa */}
           <div>
-            <label>Adicionar nova empresa</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Adicionar nova empresa</label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={newCompany}
                 onChange={(e) => setNewCompany(e.target.value)}
-                className="border p-2 rounded w-full"
+                className="border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Digite o nome da nova empresa"
               />
               <button
                 type="button"
                 onClick={handleAddCompany}
-                className="bg-green-600 text-white px-4 rounded hover:bg-green-700"
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 whitespace-nowrap"
               >
                 Adicionar
               </button>
             </div>
           </div>
 
-          {[{
-            label: 'Avaliação Geral', value: rating, setter: setRating
-          }, {
-            label: 'Contato do RH', value: contatoRH, setter: setContatoRH
-          }, {
-            label: 'Salário e benefícios', value: salarioBeneficios, setter: setSalarioBeneficios
-          }, {
-            label: 'Estrutura da empresa', value: estruturaEmpresa, setter: setEstruturaEmpresa
-          }, {
-            label: 'Acessibilidade da liderança', value: acessibilidadeLideranca, setter: setAcessibilidadeLideranca
-          }, {
-            label: 'Plano de carreiras', value: planoCarreiras, setter: setPlanoCarreiras
-          }, {
-            label: 'Preocupação com o seu bem estar', value: bemestar, setter: setBemestar
-          }, {
-            label: 'Estímulo à organização', value: estimulacaoOrganizacao, setter: setEstimulacaoOrganizacao
-          }].map((item, idx) => (
+          {/* Avaliações com estrelas */}
+          {[
+            { label: 'Avaliação Geral', value: rating, setter: setRating },
+            { label: 'Contato do RH', value: contatoRH, setter: setContatoRH },
+            { label: 'Salário e benefícios', value: salarioBeneficios, setter: setSalarioBeneficios },
+            { label: 'Estrutura da empresa', value: estruturaEmpresa, setter: setEstruturaEmpresa },
+            { label: 'Acessibilidade da liderança', value: acessibilidadeLideranca, setter: setAcessibilidadeLideranca },
+            { label: 'Plano de carreiras', value: planoCarreiras, setter: setPlanoCarreiras },
+            { label: 'Preocupação com o seu bem estar', value: bemestar, setter: setBemestar },
+            { label: 'Estímulo à organização', value: estimulacaoOrganizacao, setter: setEstimulacaoOrganizacao }
+          ].map((item, idx) => (
             <div key={idx}>
-              <label>{item.label} <span className="font-bold">{item.value}/5</span></label>
-              <div className="flex gap-1 mt-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {item.label} <span className="font-bold text-blue-600">{item.value}/5</span>
+              </label>
+              <div className="flex gap-1">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <FaStar key={star}
+                  <FaStar 
+                    key={star}
                     size={24}
-                    className="cursor-pointer"
+                    className="cursor-pointer transition-colors"
                     color={star <= item.value ? "#facc15" : "#d1d5db"}
                     onClick={() => item.setter(star)}
                   />
@@ -206,62 +209,70 @@ function TrabalheiLa() {
             </div>
           ))}
 
-          <div>
-            <label>Comentário</label>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows="5"
-              className="border w-full p-2 rounded mb-2"
-              placeholder="Descreva sua experiência"
-            ></textarea>
+          {/* Área de comentário + botões - container mais estreito */}
+          <div className="max-w-xl mx-auto w-full mt-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Comentário</label>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows="5"
+                className="border border-gray-300 w-full p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                placeholder="Descreva sua experiência"
+              ></textarea>
+            </div>
+
+            {/* Botão LinkedIn ou mensagem de autenticado */}
+            {!isAuthenticated ? (
+              <div className="mt-4">
+                <LoginLinkedInButton
+                  clientId={process.env.REACT_APP_LINKEDIN_CLIENT_ID || "77dv5urtc8ixj3"}
+                  redirectUri="https://www.trabalheila.com.br/auth/linkedin"
+                  disabled={isLoading}
+                />
+                {isLoading && (
+                  <p className="text-sm text-gray-600 mt-2 text-center">Autenticando...</p>
+                )}
+              </div>
+            ) : (
+              <div className="bg-green-50 border border-green-200 p-3 rounded mt-4">
+                <p className="text-green-800 text-sm text-center">
+                  <span role="img" aria-label="check">✅</span> Você está autenticado! Pode enviar sua avaliação de forma anônima.
+                </p>
+              </div>
+            )}
+
+            {/* Botão de enviar */}
+            <div className="mt-4 flex justify-center">
+              <button 
+                type="submit" 
+                className={`
+                  px-8 py-2 rounded-full text-white font-semibold transition-colors
+                  ${isAuthenticated 
+                    ? 'bg-blue-700 hover:bg-blue-800' 
+                    : 'bg-gray-400 cursor-not-allowed'}
+                `}
+                disabled={!isAuthenticated}
+              >
+                {isAuthenticated ? 'Enviar avaliação' : 'Faça login para avaliar'}
+              </button>
+            </div>
           </div>
 
-          {!isAuthenticated ? (
-            <div className="mt-2">
-              <LoginLinkedInButton
-                clientId={process.env.REACT_APP_LINKEDIN_CLIENT_ID || "77dv5urtc8ixj3"}
-                redirectUri="https://www.trabalheila.com.br/auth/linkedin"
-                onLoginSuccess={handleLinkedInSuccess}
-                onLoginFailure={handleLinkedInFailure}
-                disabled={isLoading}
-              />
-              {isLoading && (
-                <p className="text-sm text-gray-600 mt-2 text-center">Autenticando...</p>
-              )}
-            </div>
-          ) : (
-            <div className="bg-green-50 border border-green-200 p-3 rounded">
-              <p className="text-green-800 text-sm text-center">
-                <span role="img" aria-label="check">✅</span> Você está autenticado! Pode enviar sua avaliação de forma anônima.
-              </p>
-            </div>
-          )}
-
-          <button 
-            type="submit" 
-            className={`py-2 rounded text-white ${
-              isAuthenticated 
-                ? 'bg-blue-700 hover:bg-blue-800' 
-                : 'bg-gray-400 cursor-not-allowed'
-            }`}
-            disabled={!isAuthenticated}
-          >
-            {isAuthenticated ? 'Enviar Avaliação' : 'Faça login para avaliar'}
-          </button>
         </form>
 
-        <h2 className="text-2xl font-bold mt-10 text-center text-blue-700">Ranking das Empresas</h2>
-        <div className="mt-4 grid gap-4">
+        {/* Ranking das empresas */}
+        <h2 className="text-2xl font-bold mt-10 mb-4 text-center text-blue-700">Ranking das Empresas</h2>
+        <div className="grid gap-4">
           {empresas.length === 0 && (
-            <p className="text-center text-gray-500">Nenhuma avaliação ainda.</p>
+            <p className="text-center text-gray-500 py-8">Nenhuma avaliação ainda.</p>
           )}
           {empresas.map((emp, idx) => (
             <div
               key={idx}
-              className="bg-white shadow-md rounded-lg p-4 border border-gray-200"
+              className="bg-white shadow-md rounded-lg p-4 border border-gray-200 hover:shadow-lg transition-shadow"
             >
-              <h3 className="text-lg font-extrabold text-blue-700 mb-1">{emp.company}</h3>
+              <h3 className="text-lg font-extrabold text-blue-700 mb-2">{emp.company}</h3>
               <div className="text-sm text-gray-800 space-y-1">
                 <p><span role="img" aria-label="estrela">⭐</span> Avaliação Geral: <strong>{emp.rating}/5</strong></p>
                 <p><span role="img" aria-label="pessoas">👥</span> Contato com RH: <strong>{emp.contatoRH}/5</strong></p>
@@ -272,7 +283,7 @@ function TrabalheiLa() {
                 <p><span role="img" aria-label="planta">🌱</span> Bem-estar: <strong>{emp.bemestar}/5</strong></p>
                 <p><span role="img" aria-label="gráfico">📈</span> Estímulo à Organização: <strong>{emp.estimulacaoOrganizacao}/5</strong></p>
                 {emp.comment && (
-                  <p className="text-gray-600 italic mt-2 border-t pt-2">
+                  <p className="text-gray-600 italic mt-2 pt-2 border-t border-gray-200">
                     "{emp.comment}"
                   </p>
                 )}
@@ -284,11 +295,13 @@ function TrabalheiLa() {
           ))}
         </div>
 
-        <footer className="mt-6 text-center text-sm text-gray-500">
+        {/* Footer */}
+        <footer className="mt-8 text-center text-sm text-gray-500">
           <a href="/politica-de-privacidade.html" className="text-blue-500 hover:underline">
             Política de Privacidade
           </a>
         </footer>
+
       </div>
     </div>
   );
