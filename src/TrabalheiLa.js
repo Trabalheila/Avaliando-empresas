@@ -68,25 +68,25 @@ function TrabalheiLa() {
       localStorage.setItem('auth_token', fakeToken);
       setIsAuthenticated(true);
       setIsLoading(false);
-      alert('✅ Autenticação realizada! Suas avaliações serão anônimas.');
+      alert('Autenticação realizada! Suas avaliações serão anônimas.');
     }, 1500);
   };
 
   const handleLinkedInFailure = (error) => {
     console.error('Erro no LinkedIn:', error);
-    alert('❌ Falha ao conectar com o LinkedIn. Tente novamente.');
+    alert('Falha ao conectar com o LinkedIn. Tente novamente.');
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
     if (!isAuthenticated) {
-      alert('⚠️ Você precisa fazer login com o LinkedIn antes de avaliar.');
+      alert('Você precisa fazer login com o LinkedIn antes de avaliar.');
       return;
     }
 
     if (!company) {
-      alert('⚠️ Selecione uma empresa antes de enviar.');
+      alert('Selecione uma empresa antes de enviar.');
       return;
     }
 
@@ -118,7 +118,7 @@ function TrabalheiLa() {
     setBemestar(0);
     setEstimulacaoOrganizacao(0);
 
-    alert('✅ Avaliação enviada com sucesso!');
+    alert('Avaliação enviada com sucesso!');
   };
 
   return (
