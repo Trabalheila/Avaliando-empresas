@@ -2,18 +2,24 @@
   "name": "trabalhei-la",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": "18.x",
+    "npm": ">=8.0.0"
+  },
   "dependencies": {
     "@react-oauth/google": "^0.12.1",
-    "autoprefixer": "^10.0.0",
-    "postcss": "^8.4.31",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.5.2",
     "react-icons": "^5.5.0",
     "react-linkedin-login-oauth2": "^2.0.1",
-    "react-scripts": "^3.0.1",
-    "react-select": "^5.10.2",
-    "tailwindcss": "^3.0.0"
+    "react-select": "^5.10.2"
+  },
+  "devDependencies": {
+    "react-scripts": "5.0.1",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.5"
   },
   "scripts": {
     "start": "react-scripts start",
