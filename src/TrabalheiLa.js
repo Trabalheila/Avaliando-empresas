@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaStar, FaBuilding, FaTrophy, FaChartLine, FaUsers } from 'react-icons/fa';
+import { FaStar, FaBuilding, FaTrophy, FaChartLine } from 'react-icons/fa';
 import Select from 'react-select';
 import './index.css';
 import LoginLinkedInButton from './components/LoginLinkedInButton';
