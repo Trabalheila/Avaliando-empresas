@@ -15,6 +15,17 @@ function TrabalheiLa() {
   const [planoCarreiras, setPlanoCarreiras] = useState(0);
   const [bemestar, setBemestar] = useState(0);
   const [estimulacaoOrganizacao, setEstimulacaoOrganizacao] = useState(0);
+
+  // Comentários individuais para cada critério
+  const [commentRating, setCommentRating] = useState("");
+  const [commentContatoRH, setCommentContatoRH] = useState("");
+  const [commentSalarioBeneficios, setCommentSalarioBeneficios] = useState("");
+  const [commentEstruturaEmpresa, setCommentEstruturaEmpresa] = useState("");
+  const [commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca] = useState("");
+  const [commentPlanoCarreiras, setCommentPlanoCarreiras] = useState("");
+  const [commentBemestar, setCommentBemestar] = useState("");
+  const [commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao] = useState("");
+
   const [comment, setComment] = useState("");
   const [empresas, setEmpresas] = useState([]);
 
@@ -100,6 +111,16 @@ function TrabalheiLa() {
       planoCarreiras,
       bemestar,
       estimulacaoOrganizacao,
+      comments: {
+        rating: commentRating,
+        contatoRH: commentContatoRH,
+        salarioBeneficios: commentSalarioBeneficios,
+        estruturaEmpresa: commentEstruturaEmpresa,
+        acessibilidadeLideranca: commentAcessibilidadeLideranca,
+        planoCarreiras: commentPlanoCarreiras,
+        bemestar: commentBemestar,
+        estimulacaoOrganizacao: commentEstimulacaoOrganizacao,
+      },
       comment,
       area: 'Tecnologia',
       periodo: '2021-2024'
@@ -107,6 +128,7 @@ function TrabalheiLa() {
 
     setEmpresas([novaAvaliacao, ...empresas]);
 
+    // Limpar formulário
     setCompany(null);
     setRating(0);
     setComment("");
@@ -117,6 +139,14 @@ function TrabalheiLa() {
     setPlanoCarreiras(0);
     setBemestar(0);
     setEstimulacaoOrganizacao(0);
+    setCommentRating("");
+    setCommentContatoRH("");
+    setCommentSalarioBeneficios("");
+    setCommentEstruturaEmpresa("");
+    setCommentAcessibilidadeLideranca("");
+    setCommentPlanoCarreiras("");
+    setCommentBemestar("");
+    setCommentEstimulacaoOrganizacao("");
 
     alert('Avaliação enviada com sucesso!');
   };
@@ -154,7 +184,7 @@ function TrabalheiLa() {
                   Trabalhei Lá
                 </h1>
                 <p className="text-gray-100 font-medium mt-2 max-w-xl">
-                  Plataforma anônima para avaliar empresas, cultura e liderança.
+                  Avaliações reais, anônimas e confiáveis.
                 </p>
               </div>
 
@@ -225,24 +255,24 @@ function TrabalheiLa() {
                 </div>
               </div>
 
-              {/* Grid de avaliações */}
+              {/* Grid de avaliações com comentários individuais */}
               <div className="grid md:grid-cols-2 gap-4">
                 {[
-                  { label: 'Avaliação Geral', value: rating, setter: setRating, icon: '⭐' },
-                  { label: 'Contato do RH', value: contatoRH, setter: setContatoRH, icon: '👥' },
-                  { label: 'Salário e Benefícios', value: salarioBeneficios, setter: setSalarioBeneficios, icon: '💰' },
-                  { label: 'Estrutura', value: estruturaEmpresa, setter: setEstruturaEmpresa, icon: '🏢' },
-                  { label: 'Liderança', value: acessibilidadeLideranca, setter: setAcessibilidadeLideranca, icon: '🧠' },
-                  { label: 'Plano de Carreira', value: planoCarreiras, setter: setPlanoCarreiras, icon: '🚀' },
-                  { label: 'Bem-estar', value: bemestar, setter: setBemestar, icon: '🌱' },
-                  { label: 'Organização', value: estimulacaoOrganizacao, setter: setEstimulacaoOrganizacao, icon: '📈' }
+                  { label: 'Avaliação Geral', value: rating, setter: setRating, icon: '⭐', comment: commentRating, setComment: setCommentRating },
+                  { label: 'Contato do RH', value: contatoRH, setter: setContatoRH, icon: '👥', comment: commentContatoRH, setComment: setCommentContatoRH },
+                  { label: 'Salário e Benefícios', value: salarioBeneficios, setter: setSalarioBeneficios, icon: '💰', comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios },
+                  { label: 'Estrutura', value: estruturaEmpresa, setter: setEstruturaEmpresa, icon: '🏢', comment: commentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa },
+                  { label: 'Liderança', value: acessibilidadeLideranca, setter: setAcessibilidadeLideranca, icon: '🧠', comment: commentAcessibilidadeLideranca, setComment: setCommentAcessibilidadeLideranca },
+                  { label: 'Plano de Carreira', value: planoCarreiras, setter: setPlanoCarreiras, icon: '🚀', comment: commentPlanoCarreiras, setComment: setCommentPlanoCarreiras },
+                  { label: 'Bem-estar', value: bemestar, setter: setBemestar, icon: '🌱', comment: commentBemestar, setComment: setCommentBemestar },
+                  { label: 'Organização', value: estimulacaoOrganizacao, setter: setEstimulacaoOrganizacao, icon: '📈', comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao }
                 ].map((item, idx) => (
                   <div key={idx} className="bg-white rounded-xl p-4 border-2 border-gray-200 hover:border-purple-400 transition-all">
                     <label className="block text-sm font-bold text-gray-700 mb-2">
                       <span role="img" aria-label={item.label}>{item.icon}</span> {item.label}
                       <span className="ml-2 text-purple-600">{item.value}/5</span>
                     </label>
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 mb-3">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <FaStar 
                           key={star}
@@ -253,21 +283,28 @@ function TrabalheiLa() {
                         />
                       ))}
                     </div>
+                    <textarea
+                      value={item.comment}
+                      onChange={(e) => item.setComment(e.target.value)}
+                      rows="2"
+                      className="w-full border border-gray-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                      placeholder={`Comente sobre ${item.label.toLowerCase()}...`}
+                    ></textarea>
                   </div>
                 ))}
               </div>
 
-              {/* Comentário */}
+              {/* Comentário geral */}
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border-2 border-purple-200">
                 <label className="block text-sm font-bold text-gray-700 mb-3">
-                  💬 Conte sua experiência
+                  💬 Comentário Geral (opcional)
                 </label>
                 <textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   rows="4"
                   className="w-full border-2 border-purple-300 p-4 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                  placeholder="Compartilhe detalhes sobre sua experiência..."
+                  placeholder="Compartilhe uma visão geral sobre sua experiência na empresa..."
                 ></textarea>
               </div>
 
