@@ -178,6 +178,7 @@ function TrabalheiLa() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-4 md:p-8">
 
+      {/* Header melhorado */}
       <div className="max-w-7xl mx-auto mb-8">
         <div
           className="rounded-3xl shadow-2xl border border-white/20 overflow-hidden relative"
@@ -187,21 +188,25 @@ function TrabalheiLa() {
             backgroundPosition: 'center',
           }}
         >
-          <div className="bg-black/60 backdrop-blur-sm p-8 md:p-10">
+          {/* Overlay em degradê para melhorar contraste */}
+          <div className="bg-gradient-to-r from-black/80 via-black/60 to-black/30 p-6 md:p-10">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <div>
-                <h1 className="text-5xl md:text-6xl font-black text-white drop-shadow-2xl" style={{ fontWeight: 900 }}>
-                  Trabalhei Lá
+              <div className="text-center md:text-left">
+                <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight drop-shadow-[0_4px_10px_rgba(0,0,0,0.7)]">
+                  Trabalhei <span className="text-sky-300">Lá</span>
                 </h1>
-                <p className="text-yellow-300 font-bold mt-2 max-w-xl text-lg drop-shadow-lg">
+
+                <p className="mt-3 text-sm md:text-base font-bold text-white">
                   Avaliações reais, anônimas e confiáveis.
                 </p>
               </div>
 
               {isAuthenticated && (
-                <div className="flex items-center gap-3 bg-white/10 px-6 py-3 rounded-full shadow-lg border border-white/30 backdrop-blur-md">
-                  <div className="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
-                  <span className="text-white font-semibold">Autenticado</span>
+                <div className="flex items-center gap-3 bg-white/10 px-4 py-2 md:px-6 md:py-3 rounded-full shadow-lg border border-white/30 backdrop-blur-md">
+                  <div className="w-2 h-2 md:w-3 md:h-3 bg-emerald-400 rounded-full animate-pulse"></div>
+                  <span className="text-xs md:text-sm text-white font-semibold">
+                    Autenticado
+                  </span>
                 </div>
               )}
             </div>
@@ -256,7 +261,7 @@ function TrabalheiLa() {
                   <button
                     type="button"
                     onClick={handleAddCompany}
-                    className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all font-semibold"
+                    className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-semibold whitespace-nowrap"
                   >
                     Adicionar
                   </button>
@@ -318,9 +323,9 @@ function TrabalheiLa() {
                 ></textarea>
               </div>
 
-              <div className="space-y-4">
+              <div className="flex flex-col items-center space-y-4">
                 {!isAuthenticated ? (
-                  <div>
+                  <div className="w-full max-w-xs">
                     <LoginLinkedInButton
                       clientId={process.env.REACT_APP_LINKEDIN_CLIENT_ID || "77dv5urtc8ixj3"}
                       redirectUri="https://www.trabalheila.com.br/auth/linkedin"
@@ -335,7 +340,7 @@ function TrabalheiLa() {
                     )}
                   </div>
                 ) : (
-                  <div className="bg-gradient-to-r from-green-400 to-emerald-500 rounded-2xl p-4 text-white text-center font-semibold shadow-lg">
+                  <div className="bg-gradient-to-r from-green-400 to-emerald-500 rounded-2xl p-4 text-white text-center font-semibold shadow-lg max-w-md">
                     ✅ Pronto! Agora você pode enviar sua avaliação anônima
                   </div>
                 )}
@@ -343,7 +348,7 @@ function TrabalheiLa() {
                 <button 
                   type="submit" 
                   className={`
-                    px-6 py-3 rounded-xl text-white font-semibold text-sm md:text-base transition-all
+                    px-8 py-3 rounded-xl text-white font-semibold text-sm md:text-base transition-all max-w-xs
                     ${isAuthenticated 
                       ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg' 
                       : 'bg-gray-400 cursor-not-allowed opacity-60'}
@@ -355,6 +360,19 @@ function TrabalheiLa() {
               </div>
 
             </form>
+
+            {/* Troféu centralizado após o formulário */}
+            <div className="flex flex-col items-center justify-center mt-12 mb-6">
+              <img
+                src="/trofeu.png"
+                alt="Troféu Trabalhei Lá"
+                className="w-40 md:w-48 object-contain mb-3 drop-shadow-[0_0_8px_rgba(56,189,248,0.75)]"
+              />
+              <h2 className="text-lg font-bold text-slate-700 text-center">
+                Top Empresas Avaliadas
+              </h2>
+            </div>
+
           </div>
         </div>
 
@@ -362,16 +380,8 @@ function TrabalheiLa() {
           <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-6 border border-white/20 sticky top-8">
 
             <div className="flex flex-col items-center mb-4">
-              <img
-                src="/trofeu.png"
-                alt="Troféu Trabalhei Lá"
-                width={160}
-                height={192}
-                className="w-40 md:w-48 object-contain mb-2 drop-shadow-[0_0_8px_rgba(56,189,248,0.75)] mx-auto self-center"
-                style={{ height: 192, display: 'block', marginLeft: 'auto', marginRight: 'auto' }}
-              />
               <h2 className="text-sm font-bold text-slate-700 text-center">
-                Top Empresas
+                Ranking
               </h2>
             </div>
 
