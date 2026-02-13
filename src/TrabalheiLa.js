@@ -302,7 +302,7 @@ function TrabalheiLa() {
                   { label: 'Avaliação Geral', value: rating, setter: setRating, icon: FaStar, color: 'text-yellow-500', comment: commentRating, setComment: setCommentRating },
                   { label: 'Contato do RH', value: contatoRH, setter: setContatoRH, icon: FaHandshake, color: 'text-blue-500', comment: commentContatoRH, setComment: setCommentContatoRH },
                   { label: 'Salário e Benefícios', value: salarioBeneficios, setter: setSalarioBeneficios, icon: FaMoneyBillWave, color: 'text-green-500', comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios },
-                  { label: 'Estrutura', value: estruturaEmpresa, setter: setEstruturaEmpresa, icon: FaBuilding, color: 'text-gray-600', comment: comentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa },
+                  { label: 'Estrutura', value: estruturaEmpresa, setter: setEstruturaEmpresa, icon: FaBuilding, color: 'text-gray-600', comment: commentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa },
                   { label: 'Liderança', value: acessibilidadeLideranca, setter: setAcessibilidadeLideranca, icon: FaUserTie, color: 'text-purple-500', comment: commentAcessibilidadeLideranca, setComment: setCommentAcessibilidadeLideranca },
                   { label: 'Plano de Carreira', value: planoCarreiras, setter: setPlanoCarreiras, icon: FaRocket, color: 'text-red-500', comment: commentPlanoCarreiras, setComment: setCommentPlanoCarreiras },
                   { label: 'Bem-estar', value: bemestar, setter: setBemestar, icon: FaHeart, color: 'text-pink-500', comment: commentBemestar, setComment: setCommentBemestar },
