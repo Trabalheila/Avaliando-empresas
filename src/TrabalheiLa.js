@@ -377,7 +377,7 @@ function TrabalheiLa() {
             {/* Troféu personalizado */}
         <div className="flex flex-col items-center mb-6">
   <img
-    src="/trofeu.png"
+    src="/troféu.png"
     alt="Troféu Trabalhei Lá"
     className="w-20 h-20 md:w-24 md:h-24 object-contain mb-3 drop-shadow-[0_0_14px_rgba(56,189,248,0.9)]"
   />
