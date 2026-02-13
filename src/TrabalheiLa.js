@@ -16,7 +16,6 @@ function TrabalheiLa() {
   const [bemestar, setBemestar] = useState(0);
   const [estimulacaoOrganizacao, setEstimulacaoOrganizacao] = useState(0);
 
-  // Comentários individuais para cada critério
   const [commentRating, setCommentRating] = useState("");
   const [commentContatoRH, setCommentContatoRH] = useState("");
   const [commentSalarioBeneficios, setCommentSalarioBeneficios] = useState("");
@@ -73,7 +72,6 @@ function TrabalheiLa() {
 
   const handleLinkedInSuccess = async (response) => {
     setIsLoading(true);
-
     setTimeout(() => {
       const fakeToken = 'token_' + Math.random().toString(36).substr(2, 9);
       localStorage.setItem('auth_token', fakeToken);
@@ -128,7 +126,6 @@ function TrabalheiLa() {
 
     setEmpresas([novaAvaliacao, ...empresas]);
 
-    // Limpar formulário
     setCompany(null);
     setRating(0);
     setComment("");
@@ -163,14 +160,13 @@ function TrabalheiLa() {
     return 'bg-gradient-to-r from-red-400 to-pink-500';
   };
 
-  // Ordenar empresas por média para o pódio
   const empresasOrdenadas = [...empresas].sort((a, b) => calcularMedia(b) - calcularMedia(a));
   const top3 = empresasOrdenadas.slice(0, 3);
 
   const getMedalColor = (position) => {
-    if (position === 0) return 'from-yellow-400 to-yellow-600'; // Ouro
-    if (position === 1) return 'from-gray-300 to-gray-500'; // Prata
-    if (position === 2) return 'from-orange-400 to-orange-600'; // Bronze
+    if (position === 0) return 'from-yellow-400 to-yellow-600';
+    if (position === 1) return 'from-gray-300 to-gray-500';
+    if (position === 2) return 'from-orange-400 to-orange-600';
   };
 
   const getMedalEmoji = (position) => {
@@ -182,7 +178,6 @@ function TrabalheiLa() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-4 md:p-8">
 
-      {/* Hero Section com fundo de prédio */}
       <div className="max-w-7xl mx-auto mb-8">
         <div
           className="rounded-3xl shadow-2xl border border-white/20 overflow-hidden relative"
@@ -192,7 +187,6 @@ function TrabalheiLa() {
             backgroundPosition: 'center',
           }}
         >
-          {/* Overlay escuro para contraste */}
           <div className="bg-black/60 backdrop-blur-sm p-8 md:p-10">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <div>
@@ -217,11 +211,9 @@ function TrabalheiLa() {
 
       <div className="max-w-7xl mx-auto grid lg:grid-cols-3 gap-8">
 
-        {/* Formulário - 2 colunas */}
         <div className="lg:col-span-2">
           <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-white/20">
 
-            {/* Aviso de privacidade */}
             {!isAuthenticated && (
               <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-6 mb-8 text-white shadow-lg">
                 <div className="flex items-start gap-4">
@@ -239,7 +231,6 @@ function TrabalheiLa() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
 
-              {/* Seleção de empresa */}
               <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200">
                 <label className="block text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
                   <FaBuilding className="text-blue-600" />
@@ -272,7 +263,6 @@ function TrabalheiLa() {
                 </div>
               </div>
 
-              {/* Grid de avaliações com ícones profissionais */}
               <div className="grid md:grid-cols-2 gap-4">
                 {[
                   { label: 'Avaliação Geral', value: rating, setter: setRating, icon: FaStar, color: 'text-yellow-500', comment: commentRating, setComment: setCommentRating },
@@ -315,7 +305,6 @@ function TrabalheiLa() {
                 })}
               </div>
 
-              {/* Comentário geral */}
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border-2 border-purple-200">
                 <label className="block text-sm font-bold text-gray-700 mb-3">
                   💬 Comentário Geral (opcional)
@@ -329,7 +318,6 @@ function TrabalheiLa() {
                 ></textarea>
               </div>
 
-              {/* Botões de ação */}
               <div className="space-y-4">
                 {!isAuthenticated ? (
                   <div>
@@ -370,11 +358,9 @@ function TrabalheiLa() {
           </div>
         </div>
 
-        {/* Ranking com Pódio - 1 coluna */}
         <div className="lg:col-span-1">
           <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-6 border border-white/20 sticky top-8">
 
-            {/* Troféu personalizado - TAMANHO REDUZIDO */}
             <div className="flex flex-col items-center mb-4">
               <img
                 src="/trofeu.png"
@@ -386,7 +372,6 @@ function TrabalheiLa() {
               </h2>
             </div>
 
-            {/* Pódio Top 3 */}
             {top3.length > 0 && (
               <div className="mb-6 space-y-3">
                 {top3.map((emp, idx) => {
@@ -414,7 +399,6 @@ function TrabalheiLa() {
               </div>
             )}
 
-            {/* Lista de todas as avaliações */}
             <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
               {empresas.length === 0 ? (
                 <div className="text-center py-12">
@@ -460,7 +444,6 @@ function TrabalheiLa() {
 
       </div>
 
-      {/* Footer */}
       <footer className="max-w-7xl mx-auto mt-12 text-center">
         <div className="bg-white/60 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
           <p className="text-gray-600 text-sm">
@@ -468,5 +451,30 @@ function TrabalheiLa() {
               Política de Privacidade
             </a>
             {' • '}
-            <span>© 2026 Trabalhei Lá -
+            <span>© 2026 Trabalhei Lá - Todos os direitos reservados</span>
+          </p>
+        </div>
+      </footer>
 
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: linear-gradient(to bottom, #8b5cf6, #ec4899);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(to bottom, #7c3aed, #db2777);
+        }
+      `}</style>
+
+    </div>
+  );
+}
+
+export default TrabalheiLa;
