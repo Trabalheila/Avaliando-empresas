@@ -178,14 +178,15 @@ function TrabalheiLa() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-4 md:p-8">
 
-      {/* Header melhorado */}
+      {/* Header melhorado com fundo.png */}
       <div className="max-w-7xl mx-auto mb-8">
         <div
           className="rounded-3xl shadow-2xl border border-white/20 overflow-hidden relative"
           style={{
-            backgroundImage: 'url("/header-building.jpg")',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
+            backgroundImage: 'url("/header-building.jpg"), url("/fundo.png")',
+            backgroundSize: 'cover, 100px auto',
+            backgroundPosition: 'center, right 5% center',
+            backgroundRepeat: 'no-repeat, no-repeat',
           }}
         >
           {/* Overlay em degradê para melhorar contraste */}
@@ -217,7 +218,7 @@ function TrabalheiLa() {
       <div className="max-w-7xl mx-auto grid lg:grid-cols-3 gap-8">
 
         <div className="lg:col-span-2">
-          <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-white/20">
+          <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-4 md:p-8 border border-white/20">
 
             {!isAuthenticated && (
               <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-6 mb-8 text-white shadow-lg">
@@ -361,14 +362,14 @@ function TrabalheiLa() {
 
             </form>
 
-            {/* Troféu centralizado após o formulário */}
-            <div className="flex flex-col items-center justify-center mt-12 mb-6">
+            {/* Troféu centralizado após o formulário - TAMANHO AUMENTADO */}
+            <div className="flex flex-col items-center justify-center mt-8 mb-6">
               <img
                 src="/trofeu.png"
                 alt="Troféu Trabalhei Lá"
-                className="w-40 md:w-48 object-contain mb-3 drop-shadow-[0_0_8px_rgba(56,189,248,0.75)]"
+                className="w-32 h-32 md:w-40 md:h-40 object-contain mb-3 drop-shadow-[0_0_10px_rgba(56,189,248,0.8)]"
               />
-              <h2 className="text-lg font-bold text-slate-700 text-center">
+              <h2 className="text-base md:text-lg font-bold text-slate-700 text-center">
                 Top Empresas Avaliadas
               </h2>
             </div>
