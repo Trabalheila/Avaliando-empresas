@@ -7,8 +7,8 @@ body {
   min-height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: flex-start; /* flex-start usado para garantir alinhamento correto */
-  padding-top: 40px;
+  align-items: center; /* centraliza verticalmente a página */
+  padding-top: 0;
 }
 
 .container {
