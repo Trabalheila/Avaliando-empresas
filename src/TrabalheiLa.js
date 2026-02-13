@@ -221,18 +221,19 @@ function TrabalheiLa() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-2 md:p-8">
-      {/* Header com fundo.jpg */}
+    <div 
+      className="min-h-screen p-2 md:p-8"
+      style={{
+        backgroundImage: 'url("/fundo.png")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+      }}
+    >
+      {/* HEADER */}
       <div className="max-w-7xl mx-auto mb-6 md:mb-8">
-        <div
-          className="rounded-3xl shadow-2xl border border-white/20 overflow-hidden relative"
-          style={{
-            backgroundImage: 'url("/fundo.png")',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }}
-        >
-          <div className="bg-black/50 md:bg-black/40 backdrop-blur-sm p-4 md:p-10">
+        <div className="rounded-3xl shadow-2xl border border-white/20 overflow-hidden relative bg-black/50 md:bg-black/40 backdrop-blur-sm">
+          <div className="p-4 md:p-10">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
               <div className="text-center md:text-left">
                 <h1 className="text-2xl md:text-5xl font-black text-white tracking-tight drop-shadow-[0_4px_10px_rgba(0,0,0,0.7)]">
@@ -257,11 +258,11 @@ function TrabalheiLa() {
         </div>
       </div>
 
-      {/* Conteúdo principal */}
+      {/* CONTEÚDO PRINCIPAL */}
       <div className="max-w-7xl mx-auto grid lg:grid-cols-3 gap-6 md:gap-8">
-        {/* Formulário */}
+        {/* FORMULÁRIO */}
         <div className="lg:col-span-2">
-          <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-3 md:p-8 border border-white/20">
+          <div className="bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl p-3 md:p-8 border border-white/20">
             {!isAuthenticated && (
               <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-4 md:p-6 mb-6 md:mb-8 text-white shadow-lg">
                 <div className="flex items-start gap-3 md:gap-4">
@@ -282,7 +283,7 @@ function TrabalheiLa() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
-              {/* Empresa */}
+              {/* EMPRESA */}
               <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4 md:p-6 border border-gray-200">
                 <label className="block text-xs md:text-sm font-bold text-gray-700 mb-2 md:mb-3 flex items-center gap-2">
                   <FaBuilding className="text-blue-600" />
@@ -315,7 +316,7 @@ function TrabalheiLa() {
                 </div>
               </div>
 
-              {/* Blocos de avaliação */}
+              {/* BLOCOS DE AVALIAÇÃO */}
               <div className="grid md:grid-cols-2 gap-3 md:gap-4">
                 {[
                   {
@@ -429,7 +430,7 @@ function TrabalheiLa() {
                 })}
               </div>
 
-              {/* Comentário geral */}
+              {/* COMENTÁRIO GERAL */}
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 md:p-6 border-2 border-purple-200">
                 <label className="block text-xs md:text-sm font-bold text-gray-700 mb-2 md:mb-3">
                   💬 Comentário Geral (opcional)
@@ -443,7 +444,7 @@ function TrabalheiLa() {
                 />
               </div>
 
-              {/* Login + botão enviar */}
+              {/* LOGIN + BOTÃO ENVIAR */}
               <div className="flex flex-col items-center space-y-3 md:space-y-4">
                 {!isAuthenticated ? (
                   <div className="w-full max-w-xs">
@@ -486,23 +487,23 @@ function TrabalheiLa() {
               </div>
             </form>
 
-            {/* Troféu centralizado - MENOR */}
-            <div className="flex flex-col items-center justify-center mt-6 md:mt-8 mb-4 md:mb-6">
+            {/* TROFÉU (tamanho ideal: 48px mobile, 64px desktop) */}
+            <div className="flex flex-col items-center justify-center mt-4 md:mt-6 mb-3 md:mb-4">
               <img
                 src="/trofeu.png"
                 alt="Troféu Trabalhei Lá"
-                className="w-16 h-16 md:w-20 md:h-20 object-contain mb-2 drop-shadow-[0_0_8px_rgba(56,189,248,0.7)]"
+                className="w-12 h-12 md:w-16 md:h-16 object-contain mb-2 drop-shadow-lg"
               />
-              <h2 className="text-sm md:text-base font-bold text-slate-700 text-center">
+              <h2 className="text-xs md:text-sm font-bold text-slate-700 text-center">
                 Top Empresas Avaliadas
               </h2>
             </div>
           </div>
         </div>
 
-        {/* Ranking */}
+        {/* RANKING */}
         <div className="lg:col-span-1">
-          <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-4 md:p-6 border border-white/20 lg:sticky lg:top-8">
+          <div className="bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl p-4 md:p-6 border border-white/20 lg:sticky lg:top-8">
             <div className="flex flex-col items-center mb-3 md:mb-4">
               <h2 className="text-xs md:text-sm font-bold text-slate-700 text-center">
                 Ranking
@@ -584,10 +585,7 @@ function TrabalheiLa() {
                       {emp.comment && (
                         <p className="text-xs md:text-sm text-gray-600 italic border-t border-gray-200 pt-2 md:pt-3 mt-2 md:mt-3">
                           "
-                          {emp.comment.substring(
-                            0,
-                            80,
-                          )}
+                          {emp.comment.substring(0, 80)}
                           {emp.comment.length > 80 ? '...' : ''}"
                         </p>
                       )}
@@ -600,9 +598,9 @@ function TrabalheiLa() {
         </div>
       </div>
 
-      {/* Footer */}
+      {/* FOOTER */}
       <footer className="max-w-7xl mx-auto mt-8 md:mt-12 text-center">
-        <div className="bg-white/60 backdrop-blur-lg rounded-2xl p-4 md:p-6 border border-white/20">
+        <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-4 md:p-6 border border-white/20">
           <p className="text-gray-600 text-xs md:text-sm">
             <a
               href="/politica-de-privacidade.html"
