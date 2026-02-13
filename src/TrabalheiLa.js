@@ -308,7 +308,7 @@ function TrabalheiLa() {
                         onChange={(e) => item.setComment(e.target.value)}
                         rows="2"
                         className="w-full border border-gray-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                        placeholder={`Comente sobre ${item.label.toLowerCase()} (opcional)...`}
+                        placeholder={`Comente sobre ${item.label.toLowerCase()} (opcional)`}
                       ></textarea>
                     </div>
                   );
@@ -325,7 +325,7 @@ function TrabalheiLa() {
                   onChange={(e) => setComment(e.target.value)}
                   rows="4"
                   className="w-full border-2 border-purple-300 p-4 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                  placeholder="Compartilhe uma visão geral sobre sua experiência na empresa (opcional)..."
+                  placeholder="Compartilhe uma visão geral sobre sua experiência (opcional)"
                 ></textarea>
               </div>
 
@@ -355,9 +355,9 @@ function TrabalheiLa() {
                 <button 
                   type="submit" 
                   className={`
-                    w-full py-4 rounded-2xl text-white font-bold text-lg transition-all transform
+                    px-6 py-3 rounded-xl text-white font-semibold text-sm md:text-base transition-all
                     ${isAuthenticated 
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:scale-105 hover:shadow-2xl' 
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg' 
                       : 'bg-gray-400 cursor-not-allowed opacity-60'}
                   `}
                   disabled={!isAuthenticated}
@@ -374,17 +374,17 @@ function TrabalheiLa() {
         <div className="lg:col-span-1">
           <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-6 border border-white/20 sticky top-8">
 
-            {/* Troféu personalizado */}
-        <div className="flex flex-col items-center mb-6">
-  <img
-    src="/troféu.png"
-    alt="Troféu Trabalhei Lá"
-    className="w-20 h-20 md:w-24 md:h-24 object-contain mb-3 drop-shadow-[0_0_14px_rgba(56,189,248,0.9)]"
-  />
-  <h2 className="text-2xl font-black bg-gradient-to-r from-sky-400 to-blue-600 bg-clip-text text-transparent text-center">
-    Top Empresas
-  </h2>
-</div>
+            {/* Troféu personalizado - TAMANHO REDUZIDO */}
+            <div className="flex flex-col items-center mb-4">
+              <img
+                src="/trofeu.png"
+                alt="Troféu Trabalhei Lá"
+                className="w-8 h-8 md:w-10 md:h-10 object-contain mb-2 drop-shadow-[0_0_6px_rgba(56,189,248,0.7)]"
+              />
+              <h2 className="text-sm font-bold text-slate-700 text-center">
+                Top Empresas
+              </h2>
+            </div>
 
             {/* Pódio Top 3 */}
             {top3.length > 0 && (
@@ -468,31 +468,5 @@ function TrabalheiLa() {
               Política de Privacidade
             </a>
             {' • '}
-            <span>© 2026 Trabalhei Lá - Todos os direitos reservados</span>
-          </p>
-        </div>
-      </footer>
+            <span>© 2026 Trabalhei Lá -
 
-      {/* CSS customizado para scrollbar */}
-      <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: linear-gradient(to bottom, #8b5cf6, #ec4899);
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(to bottom, #7c3aed, #db2777);
-        }
-      `}</style>
-
-    </div>
-  );
-}
-
-export default TrabalheiLa;
