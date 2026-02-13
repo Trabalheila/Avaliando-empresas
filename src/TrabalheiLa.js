@@ -365,9 +365,9 @@ function TrabalheiLa() {
               <img
                 src="/trofeu.png"
                 alt="Troféu Trabalhei Lá"
-                width={32}
-                height={32}
-                className="w-6 h-6 md:w-8 md:h-8 object-contain mb-2 drop-shadow-[0_0_4px_rgba(56,189,248,0.6)]"
+                width={160}
+                height={160}
+                className="w-40 h-40 md:w-48 md:h-48 object-contain mb-2 drop-shadow-[0_0_8px_rgba(56,189,248,0.75)]"
               />
               <h2 className="text-sm font-bold text-slate-700 text-center">
                 Top Empresas
