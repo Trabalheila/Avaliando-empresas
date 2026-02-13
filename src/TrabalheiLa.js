@@ -221,9 +221,9 @@ function TrabalheiLa() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-4 md:p-8">
-      {/* Header com fundo.png */}
-      <div className="max-w-7xl mx-auto mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-2 md:p-8">
+      {/* Header com fundo.jpg */}
+      <div className="max-w-7xl mx-auto mb-6 md:mb-8">
         <div
           className="rounded-3xl shadow-2xl border border-white/20 overflow-hidden relative"
           style={{
@@ -232,20 +232,20 @@ function TrabalheiLa() {
             backgroundPosition: 'center',
           }}
         >
-          <div className="bg-black/50 md:bg-black/40 backdrop-blur-sm p-6 md:p-10">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="bg-black/50 md:bg-black/40 backdrop-blur-sm p-4 md:p-10">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
               <div className="text-center md:text-left">
-                <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight drop-shadow-[0_4px_10px_rgba(0,0,0,0.7)]">
+                <h1 className="text-2xl md:text-5xl font-black text-white tracking-tight drop-shadow-[0_4px_10px_rgba(0,0,0,0.7)]">
                   Trabalhei <span className="text-sky-300">Lá</span>
                 </h1>
 
-                <p className="mt-3 text-sm md:text-base font-bold text-white">
+                <p className="mt-2 md:mt-3 text-xs md:text-base font-bold text-white">
                   Avaliações reais, anônimas e confiáveis.
                 </p>
               </div>
 
               {isAuthenticated && (
-                <div className="flex items-center gap-3 bg-white/10 px-4 py-2 md:px-6 md:py-3 rounded-full shadow-lg border border-white/30 backdrop-blur-md">
+                <div className="flex items-center gap-2 md:gap-3 bg-white/10 px-3 py-1.5 md:px-6 md:py-3 rounded-full shadow-lg border border-white/30 backdrop-blur-md">
                   <div className="w-2 h-2 md:w-3 md:h-3 bg-emerald-400 rounded-full animate-pulse" />
                   <span className="text-xs md:text-sm text-white font-semibold">
                     Autenticado
@@ -258,19 +258,19 @@ function TrabalheiLa() {
       </div>
 
       {/* Conteúdo principal */}
-      <div className="max-w-7xl mx-auto grid lg:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto grid lg:grid-cols-3 gap-6 md:gap-8">
         {/* Formulário */}
         <div className="lg:col-span-2">
-          <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-4 md:p-8 border border-white/20">
+          <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-3 md:p-8 border border-white/20">
             {!isAuthenticated && (
-              <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-6 mb-8 text-white shadow-lg">
-                <div className="flex items-start gap-4">
-                  <div className="text-3xl">🔒</div>
+              <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-4 md:p-6 mb-6 md:mb-8 text-white shadow-lg">
+                <div className="flex items-start gap-3 md:gap-4">
+                  <div className="text-2xl md:text-3xl">🔒</div>
                   <div>
-                    <h3 className="font-bold text-lg mb-2">
+                    <h3 className="font-bold text-base md:text-lg mb-1 md:mb-2">
                       Sua privacidade é garantida
                     </h3>
-                    <p className="text-sm text-blue-50">
+                    <p className="text-xs md:text-sm text-blue-50">
                       Usamos o LinkedIn apenas para verificar seu vínculo
                       profissional. Suas avaliações são{' '}
                       <strong>100% anônimas</strong> — nome e perfil nunca são
@@ -281,10 +281,10 @@ function TrabalheiLa() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
               {/* Empresa */}
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200">
-                <label className="block text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4 md:p-6 border border-gray-200">
+                <label className="block text-xs md:text-sm font-bold text-gray-700 mb-2 md:mb-3 flex items-center gap-2">
                   <FaBuilding className="text-blue-600" />
                   Selecione a Empresa
                 </label>
@@ -294,7 +294,7 @@ function TrabalheiLa() {
                   options={companyOptions}
                   formatOptionLabel={formatOptionLabel}
                   placeholder="Digite ou selecione..."
-                  className="mb-4"
+                  className="mb-3 md:mb-4 text-sm"
                 />
 
                 <div className="flex gap-2">
@@ -302,13 +302,13 @@ function TrabalheiLa() {
                     type="text"
                     value={newCompany}
                     onChange={(e) => setNewCompany(e.target.value)}
-                    className="flex-1 border-2 border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="flex-1 border-2 border-gray-300 p-2 md:p-3 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
                     placeholder="Ou adicione uma nova empresa"
                   />
                   <button
                     type="button"
                     onClick={handleAddCompany}
-                    className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-semibold whitespace-nowrap"
+                    className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 md:px-4 py-2 rounded-xl hover:shadow-lg transition-all font-semibold whitespace-nowrap text-xs md:text-sm"
                   >
                     Adicionar
                   </button>
@@ -316,7 +316,7 @@ function TrabalheiLa() {
               </div>
 
               {/* Blocos de avaliação */}
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-2 gap-3 md:gap-4">
                 {[
                   {
                     label: 'Avaliação Geral',
@@ -395,20 +395,20 @@ function TrabalheiLa() {
                   return (
                     <div
                       key={idx}
-                      className="bg-white rounded-xl p-4 border-2 border-gray-200 hover:border-purple-400 transition-all"
+                      className="bg-white rounded-xl p-3 md:p-4 border-2 border-gray-200 hover:border-purple-400 transition-all"
                     >
-                      <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                      <label className="block text-xs md:text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
                         <IconComponent className={item.color} />
                         {item.label}
                         <span className="ml-auto text-purple-600">
                           {item.value}/5
                         </span>
                       </label>
-                      <div className="flex gap-1 mb-3">
+                      <div className="flex gap-1 mb-2 md:mb-3">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <FaStar
                             key={star}
-                            size={24}
+                            size={20}
                             className="cursor-pointer transition-all hover:scale-110"
                             color={
                               star <= item.value ? '#facc15' : '#e5e7eb'
@@ -421,7 +421,7 @@ function TrabalheiLa() {
                         value={item.comment}
                         onChange={(e) => item.setComment(e.target.value)}
                         rows={2}
-                        className="w-full border border-gray-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                        className="w-full border border-gray-300 p-2 rounded-lg text-xs md:text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                         placeholder={`Comente sobre ${item.label.toLowerCase()} (opcional)`}
                       />
                     </div>
@@ -430,21 +430,21 @@ function TrabalheiLa() {
               </div>
 
               {/* Comentário geral */}
-              <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border-2 border-purple-200">
-                <label className="block text-sm font-bold text-gray-700 mb-3">
+              <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 md:p-6 border-2 border-purple-200">
+                <label className="block text-xs md:text-sm font-bold text-gray-700 mb-2 md:mb-3">
                   💬 Comentário Geral (opcional)
                 </label>
                 <textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   rows={4}
-                  className="w-full border-2 border-purple-300 p-4 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                  className="w-full border-2 border-purple-300 p-3 md:p-4 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-xs md:text-sm"
                   placeholder="Compartilhe uma visão geral sobre sua experiência (opcional)"
                 />
               </div>
 
               {/* Login + botão enviar */}
-              <div className="flex flex-col items-center space-y-4">
+              <div className="flex flex-col items-center space-y-3 md:space-y-4">
                 {!isAuthenticated ? (
                   <div className="w-full max-w-xs">
                     <LoginLinkedInButton
@@ -458,20 +458,20 @@ function TrabalheiLa() {
                       disabled={isLoading}
                     />
                     {isLoading && (
-                      <p className="text-sm text-gray-600 mt-3 text-center animate-pulse">
+                      <p className="text-xs md:text-sm text-gray-600 mt-2 md:mt-3 text-center animate-pulse">
                         Autenticando com o LinkedIn...
                       </p>
                     )}
                   </div>
                 ) : (
-                  <div className="bg-gradient-to-r from-green-400 to-emerald-500 rounded-2xl p-4 text-white text-center font-semibold shadow-lg max-w-md">
+                  <div className="bg-gradient-to-r from-green-400 to-emerald-500 rounded-2xl p-3 md:p-4 text-white text-center font-semibold shadow-lg max-w-md text-xs md:text-sm">
                     ✅ Pronto! Agora você pode enviar sua avaliação anônima
                   </div>
                 )}
 
                 <button
                   type="submit"
-                  className={`px-8 py-3 rounded-xl text-white font-semibold text-sm md:text-base transition-all max-w-xs
+                  className={`px-6 md:px-8 py-2.5 md:py-3 rounded-xl text-white font-semibold text-xs md:text-base transition-all max-w-xs w-full
                     ${
                       isAuthenticated
                         ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg'
@@ -486,14 +486,14 @@ function TrabalheiLa() {
               </div>
             </form>
 
-            {/* Troféu centralizado */}
-            <div className="flex flex-col items-center justify-center mt-8 mb-6">
+            {/* Troféu centralizado - MENOR */}
+            <div className="flex flex-col items-center justify-center mt-6 md:mt-8 mb-4 md:mb-6">
               <img
                 src="/trofeu.png"
                 alt="Troféu Trabalhei Lá"
-                className="w-32 h-32 md:w-40 md:h-40 object-contain mb-3 drop-shadow-[0_0_10px_rgba(56,189,248,0.8)]"
+                className="w-16 h-16 md:w-20 md:h-20 object-contain mb-2 drop-shadow-[0_0_8px_rgba(56,189,248,0.7)]"
               />
-              <h2 className="text-base md:text-lg font-bold text-slate-700 text-center">
+              <h2 className="text-sm md:text-base font-bold text-slate-700 text-center">
                 Top Empresas Avaliadas
               </h2>
             </div>
@@ -502,15 +502,15 @@ function TrabalheiLa() {
 
         {/* Ranking */}
         <div className="lg:col-span-1">
-          <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-6 border border-white/20 sticky top-8">
-            <div className="flex flex-col items-center mb-4">
-              <h2 className="text-sm font-bold text-slate-700 text-center">
+          <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-4 md:p-6 border border-white/20 lg:sticky lg:top-8">
+            <div className="flex flex-col items-center mb-3 md:mb-4">
+              <h2 className="text-xs md:text-sm font-bold text-slate-700 text-center">
                 Ranking
               </h2>
             </div>
 
             {top3.length > 0 && (
-              <div className="mb-6 space-y-3">
+              <div className="mb-4 md:mb-6 space-y-2 md:space-y-3">
                 {top3.map((emp, idx) => {
                   const media = calcularMedia(emp);
                   return (
@@ -518,15 +518,15 @@ function TrabalheiLa() {
                       key={idx}
                       className={`bg-gradient-to-r ${getMedalColor(
                         idx,
-                      )} rounded-2xl p-4 text-white shadow-lg transform hover:scale-105 transition-all`}
+                      )} rounded-2xl p-3 md:p-4 text-white shadow-lg transform hover:scale-105 transition-all`}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-4xl">
+                        <div className="flex items-center gap-2 md:gap-3">
+                          <span className="text-2xl md:text-4xl">
                             {getMedalEmoji(idx)}
                           </span>
                           <div>
-                            <h3 className="font-bold text-lg">
+                            <h3 className="font-bold text-sm md:text-lg">
                               {emp.company}
                             </h3>
                             <p className="text-xs opacity-90">
@@ -534,7 +534,7 @@ function TrabalheiLa() {
                             </p>
                           </div>
                         </div>
-                        <div className="bg-white/20 px-3 py-1 rounded-full font-bold">
+                        <div className="bg-white/20 px-2 md:px-3 py-1 rounded-full font-bold text-xs md:text-sm">
                           {media} ⭐
                         </div>
                       </div>
@@ -544,14 +544,14 @@ function TrabalheiLa() {
               </div>
             )}
 
-            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-3 md:space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
               {empresas.length === 0 ? (
-                <div className="text-center py-12">
-                  <FaChartBar className="text-gray-300 text-6xl mx-auto mb-4" />
-                  <p className="text-gray-500 font-medium">
+                <div className="text-center py-8 md:py-12">
+                  <FaChartBar className="text-gray-300 text-4xl md:text-6xl mx-auto mb-3 md:mb-4" />
+                  <p className="text-gray-500 font-medium text-sm md:text-base">
                     Nenhuma avaliação ainda
                   </p>
-                  <p className="text-sm text-gray-400 mt-2">
+                  <p className="text-xs md:text-sm text-gray-400 mt-2">
                     Seja o primeiro a avaliar!
                   </p>
                 </div>
@@ -561,11 +561,11 @@ function TrabalheiLa() {
                   return (
                     <div
                       key={idx}
-                      className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-4 border-2 border-gray-200 hover:border-purple-400 hover:shadow-xl transition-all cursor-pointer group"
+                      className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-3 md:p-4 border-2 border-gray-200 hover:border-purple-400 hover:shadow-xl transition-all cursor-pointer group"
                     >
-                      <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-start justify-between mb-2 md:mb-3">
                         <div className="flex-1">
-                          <h3 className="font-bold text-gray-800 group-hover:text-purple-600 transition-colors">
+                          <h3 className="font-bold text-gray-800 group-hover:text-purple-600 transition-colors text-sm md:text-base">
                             {emp.company}
                           </h3>
                           <p className="text-xs text-gray-500 mt-1">
@@ -575,14 +575,14 @@ function TrabalheiLa() {
                         <div
                           className={`${getBadgeColor(
                             media,
-                          )} px-3 py-1 rounded-full text-white font-bold text-sm shadow-md`}
+                          )} px-2 md:px-3 py-1 rounded-full text-white font-bold text-xs md:text-sm shadow-md`}
                         >
                           {media} ⭐
                         </div>
                       </div>
 
                       {emp.comment && (
-                        <p className="text-sm text-gray-600 italic border-t border-gray-200 pt-3 mt-3">
+                        <p className="text-xs md:text-sm text-gray-600 italic border-t border-gray-200 pt-2 md:pt-3 mt-2 md:mt-3">
                           "
                           {emp.comment.substring(
                             0,
@@ -601,9 +601,9 @@ function TrabalheiLa() {
       </div>
 
       {/* Footer */}
-      <footer className="max-w-7xl mx-auto mt-12 text-center">
-        <div className="bg-white/60 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
-          <p className="text-gray-600 text-sm">
+      <footer className="max-w-7xl mx-auto mt-8 md:mt-12 text-center">
+        <div className="bg-white/60 backdrop-blur-lg rounded-2xl p-4 md:p-6 border border-white/20">
+          <p className="text-gray-600 text-xs md:text-sm">
             <a
               href="/politica-de-privacidade.html"
               className="text-purple-600 hover:text-purple-800 font-semibold underline"
