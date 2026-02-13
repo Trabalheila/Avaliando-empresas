@@ -488,18 +488,16 @@ function TrabalheiLa() {
             </form>
 
             {/* TROFÉU (tamanho ideal: 48px mobile, 64px desktop) */}
-            <div className="flex flex-col items-center justify-center mt-4 md:mt-6 mb-3 md:mb-4">
-              <img
-                src="/trofeu.png"
-                alt="Troféu Trabalhei Lá"
-                className="w-12 h-12 md:w-16 md:h-16 object-contain mb-2 drop-shadow-lg"
-              />
-              <h2 className="text-xs md:text-sm font-bold text-slate-700 text-center">
-                Top Empresas Avaliadas
-              </h2>
-            </div>
-          </div>
-        </div>
+          <div className="flex flex-col items-center justify-center mt-4 md:mt-6 mb-3 md:mb-4">
+  <img
+    src="/trofeu.png"
+    alt="Troféu Trabalhei Lá"
+    className="w-8 h-8 md:w-10 md:h-10 object-contain mb-1 drop-shadow-lg"
+  />
+  <h2 className="text-xs md:text-sm font-bold text-slate-700 text-center">
+    Top Empresas Avaliadas
+  </h2>
+</div>
 
         {/* RANKING */}
         <div className="lg:col-span-1">
