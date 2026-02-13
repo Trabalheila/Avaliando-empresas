@@ -29,12 +29,10 @@ function TrabalheiLa() {
   const [commentContatoRH, setCommentContatoRH] = useState('');
   const [commentSalarioBeneficios, setCommentSalarioBeneficios] = useState('');
   const [commentEstruturaEmpresa, setCommentEstruturaEmpresa] = useState('');
-  const [commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca] =
-    useState('');
+  const [commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca] = useState('');
   const [commentPlanoCarreiras, setCommentPlanoCarreiras] = useState('');
   const [commentBemestar, setCommentBemestar] = useState('');
-  const [commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao] =
-    useState('');
+  const [commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao] = useState('');
 
   const [comment, setComment] = useState('');
   const [empresas, setEmpresas] = useState([]);
@@ -81,10 +79,7 @@ function TrabalheiLa() {
   const formatOptionLabel = ({ label }) => (
     <div className="flex items-center gap-2">
       <img
-        src={`https://logo.clearbit.com/${label
-          .toLowerCase()
-          .replace(/\s/g, '')
-          .replace(/[^a-z0-9]/g, '')}.com`}
+        src={`https://logo.clearbit.com/${label.toLowerCase().replace(/\s/g, '').replace(/[^a-z0-9]/g, '')}.com`}
         onError={(e) => {
           e.target.style.display = 'none';
         }}
@@ -230,7 +225,6 @@ function TrabalheiLa() {
         backgroundAttachment: 'fixed',
       }}
     >
-      {/* HEADER */}
       <div className="max-w-7xl mx-auto mb-6 md:mb-8">
         <div className="rounded-3xl shadow-2xl border border-white/20 overflow-hidden relative bg-black/50 md:bg-black/40 backdrop-blur-sm">
           <div className="p-4 md:p-10">
@@ -239,18 +233,14 @@ function TrabalheiLa() {
                 <h1 className="text-2xl md:text-5xl font-black text-white tracking-tight drop-shadow-[0_4px_10px_rgba(0,0,0,0.7)]">
                   Trabalhei <span className="text-sky-300">Lá</span>
                 </h1>
-
                 <p className="mt-2 md:mt-3 text-xs md:text-base font-bold text-white">
                   Avaliações reais, anônimas e confiáveis.
                 </p>
               </div>
-
               {isAuthenticated && (
                 <div className="flex items-center gap-2 md:gap-3 bg-white/10 px-3 py-1.5 md:px-6 md:py-3 rounded-full shadow-lg border border-white/30 backdrop-blur-md">
                   <div className="w-2 h-2 md:w-3 md:h-3 bg-emerald-400 rounded-full animate-pulse" />
-                  <span className="text-xs md:text-sm text-white font-semibold">
-                    Autenticado
-                  </span>
+                  <span className="text-xs md:text-sm text-white font-semibold">Autenticado</span>
                 </div>
               )}
             </div>
@@ -258,9 +248,7 @@ function TrabalheiLa() {
         </div>
       </div>
 
-      {/* CONTEÚDO PRINCIPAL */}
       <div className="max-w-7xl mx-auto grid lg:grid-cols-3 gap-6 md:gap-8">
-        {/* FORMULÁRIO */}
         <div className="lg:col-span-2">
           <div className="bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl p-3 md:p-8 border border-white/20">
             {!isAuthenticated && (
@@ -268,14 +256,9 @@ function TrabalheiLa() {
                 <div className="flex items-start gap-3 md:gap-4">
                   <div className="text-2xl md:text-3xl">🔒</div>
                   <div>
-                    <h3 className="font-bold text-base md:text-lg mb-1 md:mb-2">
-                      Sua privacidade é garantida
-                    </h3>
+                    <h3 className="font-bold text-base md:text-lg mb-1 md:mb-2">Sua privacidade é garantida</h3>
                     <p className="text-xs md:text-sm text-blue-50">
-                      Usamos o LinkedIn apenas para verificar seu vínculo
-                      profissional. Suas avaliações são{' '}
-                      <strong>100% anônimas</strong> — nome e perfil nunca são
-                      exibidos.
+                      Usamos o LinkedIn apenas para verificar seu vínculo profissional. Suas avaliações são <strong>100% anônimas</strong> — nome e perfil nunca são exibidos.
                     </p>
                   </div>
                 </div>
@@ -283,7 +266,6 @@ function TrabalheiLa() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
-              {/* EMPRESA */}
               <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4 md:p-6 border border-gray-200">
                 <label className="block text-xs md:text-sm font-bold text-gray-700 mb-2 md:mb-3 flex items-center gap-2">
                   <FaBuilding className="text-blue-600" />
@@ -297,7 +279,6 @@ function TrabalheiLa() {
                   placeholder="Digite ou selecione..."
                   className="mb-3 md:mb-4 text-sm"
                 />
-
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -316,94 +297,24 @@ function TrabalheiLa() {
                 </div>
               </div>
 
-              {/* BLOCOS DE AVALIAÇÃO */}
               <div className="grid md:grid-cols-2 gap-3 md:gap-4">
                 {[
-                  {
-                    label: 'Avaliação Geral',
-                    value: rating,
-                    setter: setRating,
-                    icon: FaStar,
-                    color: 'text-yellow-500',
-                    comment: commentRating,
-                    setComment: setCommentRating,
-                  },
-                  {
-                    label: 'Contato do RH',
-                    value: contatoRH,
-                    setter: setContatoRH,
-                    icon: FaHandshake,
-                    color: 'text-blue-500',
-                    comment: commentContatoRH,
-                    setComment: setCommentContatoRH,
-                  },
-                  {
-                    label: 'Salário e Benefícios',
-                    value: salarioBeneficios,
-                    setter: setSalarioBeneficios,
-                    icon: FaMoneyBillWave,
-                    color: 'text-green-500',
-                    comment: commentSalarioBeneficios,
-                    setComment: setCommentSalarioBeneficios,
-                  },
-                  {
-                    label: 'Estrutura',
-                    value: estruturaEmpresa,
-                    setter: setEstruturaEmpresa,
-                    icon: FaBuilding,
-                    color: 'text-gray-600',
-                    comment: commentEstruturaEmpresa,
-                    setComment: setCommentEstruturaEmpresa,
-                  },
-                  {
-                    label: 'Liderança',
-                    value: acessibilidadeLideranca,
-                    setter: setAcessibilidadeLideranca,
-                    icon: FaUserTie,
-                    color: 'text-purple-500',
-                    comment: commentAcessibilidadeLideranca,
-                    setComment: setCommentAcessibilidadeLideranca,
-                  },
-                  {
-                    label: 'Plano de Carreira',
-                    value: planoCarreiras,
-                    setter: setPlanoCarreiras,
-                    icon: FaRocket,
-                    color: 'text-red-500',
-                    comment: commentPlanoCarreiras,
-                    setComment: setCommentPlanoCarreiras,
-                  },
-                  {
-                    label: 'Bem-estar',
-                    value: bemestar,
-                    setter: setBemestar,
-                    icon: FaHeart,
-                    color: 'text-pink-500',
-                    comment: commentBemestar,
-                    setComment: setCommentBemestar,
-                  },
-                  {
-                    label: 'Organização',
-                    value: estimulacaoOrganizacao,
-                    setter: setEstimulacaoOrganizacao,
-                    icon: FaChartBar,
-                    color: 'text-indigo-500',
-                    comment: commentEstimulacaoOrganizacao,
-                    setComment: setCommentEstimulacaoOrganizacao,
-                  },
+                  { label: 'Avaliação Geral', value: rating, setter: setRating, icon: FaStar, color: 'text-yellow-500', comment: commentRating, setComment: setCommentRating },
+                  { label: 'Contato do RH', value: contatoRH, setter: setContatoRH, icon: FaHandshake, color: 'text-blue-500', comment: commentContatoRH, setComment: setCommentContatoRH },
+                  { label: 'Salário e Benefícios', value: salarioBeneficios, setter: setSalarioBeneficios, icon: FaMoneyBillWave, color: 'text-green-500', comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios },
+                  { label: 'Estrutura', value: estruturaEmpresa, setter: setEstruturaEmpresa, icon: FaBuilding, color: 'text-gray-600', comment: comentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa },
+                  { label: 'Liderança', value: acessibilidadeLideranca, setter: setAcessibilidadeLideranca, icon: FaUserTie, color: 'text-purple-500', comment: commentAcessibilidadeLideranca, setComment: setCommentAcessibilidadeLideranca },
+                  { label: 'Plano de Carreira', value: planoCarreiras, setter: setPlanoCarreiras, icon: FaRocket, color: 'text-red-500', comment: commentPlanoCarreiras, setComment: setCommentPlanoCarreiras },
+                  { label: 'Bem-estar', value: bemestar, setter: setBemestar, icon: FaHeart, color: 'text-pink-500', comment: commentBemestar, setComment: setCommentBemestar },
+                  { label: 'Organização', value: estimulacaoOrganizacao, setter: setEstimulacaoOrganizacao, icon: FaChartBar, color: 'text-indigo-500', comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao },
                 ].map((item, idx) => {
                   const IconComponent = item.icon;
                   return (
-                    <div
-                      key={idx}
-                      className="bg-white rounded-xl p-3 md:p-4 border-2 border-gray-200 hover:border-purple-400 transition-all"
-                    >
+                    <div key={idx} className="bg-white rounded-xl p-3 md:p-4 border-2 border-gray-200 hover:border-purple-400 transition-all">
                       <label className="block text-xs md:text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
                         <IconComponent className={item.color} />
                         {item.label}
-                        <span className="ml-auto text-purple-600">
-                          {item.value}/5
-                        </span>
+                        <span className="ml-auto text-purple-600">{item.value}/5</span>
                       </label>
                       <div className="flex gap-1 mb-2 md:mb-3">
                         {[1, 2, 3, 4, 5].map((star) => (
@@ -411,9 +322,7 @@ function TrabalheiLa() {
                             key={star}
                             size={20}
                             className="cursor-pointer transition-all hover:scale-110"
-                            color={
-                              star <= item.value ? '#facc15' : '#e5e7eb'
-                            }
+                            color={star <= item.value ? '#facc15' : '#e5e7eb'}
                             onClick={() => item.setter(star)}
                           />
                         ))}
@@ -430,11 +339,8 @@ function TrabalheiLa() {
                 })}
               </div>
 
-              {/* COMENTÁRIO GERAL */}
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 md:p-6 border-2 border-purple-200">
-                <label className="block text-xs md:text-sm font-bold text-gray-700 mb-2 md:mb-3">
-                  💬 Comentário Geral (opcional)
-                </label>
+                <label className="block text-xs md:text-sm font-bold text-gray-700 mb-2 md:mb-3">💬 Comentário Geral (opcional)</label>
                 <textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
@@ -444,24 +350,18 @@ function TrabalheiLa() {
                 />
               </div>
 
-              {/* LOGIN + BOTÃO ENVIAR */}
               <div className="flex flex-col items-center space-y-3 md:space-y-4">
                 {!isAuthenticated ? (
                   <div className="w-full max-w-xs">
                     <LoginLinkedInButton
-                      clientId={
-                        process.env.REACT_APP_LINKEDIN_CLIENT_ID ||
-                        '77dv5urtc8ixj3'
-                      }
+                      clientId={process.env.REACT_APP_LINKEDIN_CLIENT_ID || '77dv5urtc8ixj3'}
                       redirectUri="https://www.trabalheila.com.br/auth/linkedin"
                       onLoginSuccess={handleLinkedInSuccess}
                       onLoginFailure={handleLinkedInFailure}
                       disabled={isLoading}
                     />
                     {isLoading && (
-                      <p className="text-xs md:text-sm text-gray-600 mt-2 md:mt-3 text-center animate-pulse">
-                        Autenticando com o LinkedIn...
-                      </p>
+                      <p className="text-xs md:text-sm text-gray-600 mt-2 md:mt-3 text-center animate-pulse">Autenticando com o LinkedIn...</p>
                     )}
                   </div>
                 ) : (
@@ -469,122 +369,79 @@ function TrabalheiLa() {
                     ✅ Pronto! Agora você pode enviar sua avaliação anônima
                   </div>
                 )}
-
                 <button
                   type="submit"
-                  className={`px-6 md:px-8 py-2.5 md:py-3 rounded-xl text-white font-semibold text-xs md:text-base transition-all max-w-xs w-full
-                    ${
-                      isAuthenticated
-                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg'
-                        : 'bg-gray-400 cursor-not-allowed opacity-60'
-                    }`}
+                  className={`px-6 md:px-8 py-2.5 md:py-3 rounded-xl text-white font-semibold text-xs md:text-base transition-all max-w-xs w-full ${
+                    isAuthenticated ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg' : 'bg-gray-400 cursor-not-allowed opacity-60'
+                  }`}
                   disabled={!isAuthenticated}
                 >
-                  {isAuthenticated
-                    ? '🚀 Enviar Avaliação'
-                    : '🔒 Faça login para avaliar'}
+                  {isAuthenticated ? '🚀 Enviar Avaliação' : '🔒 Faça login para avaliar'}
                 </button>
               </div>
             </form>
 
-            {/* TROFÉU (tamanho ideal: 48px mobile, 64px desktop) */}
-          <div className="flex flex-col items-center justify-center mt-4 md:mt-6 mb-3 md:mb-4">
-  <img
-    src="/trofeu.png"
-    alt="Troféu Trabalhei Lá"
-    className="w-8 h-8 md:w-10 md:h-10 object-contain mb-1 drop-shadow-lg"
-  />
-  <h2 className="text-xs md:text-sm font-bold text-slate-700 text-center">
-    Top Empresas Avaliadas
-  </h2>
-</div>
+            <div className="flex flex-col items-center justify-center mt-4 md:mt-6 mb-3 md:mb-4">
+              <img
+                src="/trofeu.png"
+                alt="Troféu Trabalhei Lá"
+                className="w-8 h-8 md:w-10 md:h-10 object-contain mb-1 drop-shadow-lg"
+              />
+              <h2 className="text-xs md:text-sm font-bold text-slate-700 text-center">Top Empresas Avaliadas</h2>
+            </div>
+          </div>
+        </div>
 
-        {/* RANKING */}
         <div className="lg:col-span-1">
           <div className="bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl p-4 md:p-6 border border-white/20 lg:sticky lg:top-8">
             <div className="flex flex-col items-center mb-3 md:mb-4">
-              <h2 className="text-xs md:text-sm font-bold text-slate-700 text-center">
-                Ranking
-              </h2>
+              <h2 className="text-xs md:text-sm font-bold text-slate-700 text-center">Ranking</h2>
             </div>
-
             {top3.length > 0 && (
               <div className="mb-4 md:mb-6 space-y-2 md:space-y-3">
                 {top3.map((emp, idx) => {
                   const media = calcularMedia(emp);
                   return (
-                    <div
-                      key={idx}
-                      className={`bg-gradient-to-r ${getMedalColor(
-                        idx,
-                      )} rounded-2xl p-3 md:p-4 text-white shadow-lg transform hover:scale-105 transition-all`}
-                    >
+                    <div key={idx} className={`bg-gradient-to-r ${getMedalColor(idx)} rounded-2xl p-3 md:p-4 text-white shadow-lg transform hover:scale-105 transition-all`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 md:gap-3">
-                          <span className="text-2xl md:text-4xl">
-                            {getMedalEmoji(idx)}
-                          </span>
+                          <span className="text-2xl md:text-4xl">{getMedalEmoji(idx)}</span>
                           <div>
-                            <h3 className="font-bold text-sm md:text-lg">
-                              {emp.company}
-                            </h3>
-                            <p className="text-xs opacity-90">
-                              {emp.area} • {emp.periodo}
-                            </p>
+                            <h3 className="font-bold text-sm md:text-lg">{emp.company}</h3>
+                            <p className="text-xs opacity-90">{emp.area} • {emp.periodo}</p>
                           </div>
                         </div>
-                        <div className="bg-white/20 px-2 md:px-3 py-1 rounded-full font-bold text-xs md:text-sm">
-                          {media} ⭐
-                        </div>
+                        <div className="bg-white/20 px-2 md:px-3 py-1 rounded-full font-bold text-xs md:text-sm">{media} ⭐</div>
                       </div>
                     </div>
                   );
                 })}
               </div>
             )}
-
             <div className="space-y-3 md:space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
               {empresas.length === 0 ? (
                 <div className="text-center py-8 md:py-12">
                   <FaChartBar className="text-gray-300 text-4xl md:text-6xl mx-auto mb-3 md:mb-4" />
-                  <p className="text-gray-500 font-medium text-sm md:text-base">
-                    Nenhuma avaliação ainda
-                  </p>
-                  <p className="text-xs md:text-sm text-gray-400 mt-2">
-                    Seja o primeiro a avaliar!
-                  </p>
+                  <p className="text-gray-500 font-medium text-sm md:text-base">Nenhuma avaliação ainda</p>
+                  <p className="text-xs md:text-sm text-gray-400 mt-2">Seja o primeiro a avaliar!</p>
                 </div>
               ) : (
                 empresas.slice(3).map((emp, idx) => {
                   const media = calcularMedia(emp);
                   return (
-                    <div
-                      key={idx}
-                      className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-3 md:p-4 border-2 border-gray-200 hover:border-purple-400 hover:shadow-xl transition-all cursor-pointer group"
-                    >
+                    <div key={idx} className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-3 md:p-4 border-2 border-gray-200 hover:border-purple-400 hover:shadow-xl transition-all cursor-pointer group">
                       <div className="flex items-start justify-between mb-2 md:mb-3">
                         <div className="flex-1">
-                          <h3 className="font-bold text-gray-800 group-hover:text-purple-600 transition-colors text-sm md:text-base">
-                            {emp.company}
-                          </h3>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {emp.area} • {emp.periodo}
-                          </p>
+                          <h3 className="font-bold text-gray-800 group-hover:text-purple-600 transition-colors text-sm md:text-base">{emp.company}</h3>
+                          <p className="text-xs text-gray-500 mt-1">{emp.area} • {emp.periodo}</p>
                         </div>
-                        <div
-                          className={`${getBadgeColor(
-                            media,
-                          )} px-2 md:px-3 py-1 rounded-full text-white font-bold text-xs md:text-sm shadow-md`}
-                        >
+                        <div className={`${getBadgeColor(media)} px-2 md:px-3 py-1 rounded-full text-white font-bold text-xs md:text-sm shadow-md`}>
                           {media} ⭐
                         </div>
                       </div>
-
                       {emp.comment && (
                         <p className="text-xs md:text-sm text-gray-600 italic border-t border-gray-200 pt-2 md:pt-3 mt-2 md:mt-3">
-                          "
-                          {emp.comment.substring(0, 80)}
-                          {emp.comment.length > 80 ? '...' : ''}"
+                          "{emp.comment.substring(0, 80)}{emp.comment.length > 80 ? '...' : ''}"
                         </p>
                       )}
                     </div>
@@ -596,16 +453,10 @@ function TrabalheiLa() {
         </div>
       </div>
 
-      {/* FOOTER */}
       <footer className="max-w-7xl mx-auto mt-8 md:mt-12 text-center">
         <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-4 md:p-6 border border-white/20">
           <p className="text-gray-600 text-xs md:text-sm">
-            <a
-              href="/politica-de-privacidade.html"
-              className="text-purple-600 hover:text-purple-800 font-semibold underline"
-            >
-              Política de Privacidade
-            </a>
+            <a href="/politica-de-privacidade.html" className="text-purple-600 hover:text-purple-800 font-semibold underline">Política de Privacidade</a>
             {' • '}
             <span>© 2026 Trabalhei Lá - Todos os direitos reservados</span>
           </p>
