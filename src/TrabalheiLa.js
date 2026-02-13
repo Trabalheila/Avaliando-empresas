@@ -367,8 +367,8 @@ function TrabalheiLa() {
                 alt="Troféu Trabalhei Lá"
                 width={160}
                 height={192}
-                className="w-40 md:w-48 object-contain mb-2 drop-shadow-[0_0_8px_rgba(56,189,248,0.75)]"
-                style={{ height: 192 }}
+                className="w-40 md:w-48 object-contain mb-2 drop-shadow-[0_0_8px_rgba(56,189,248,0.75)] mx-auto self-center"
+                style={{ height: 192, display: 'block', marginLeft: 'auto', marginRight: 'auto' }}
               />
               <h2 className="text-sm font-bold text-slate-700 text-center">
                 Top Empresas
