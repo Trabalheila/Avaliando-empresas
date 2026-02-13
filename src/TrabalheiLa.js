@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaStar, FaTrophy, FaChartLine } from 'react-icons/fa';
+import { FaStar, FaHandshake, FaMoneyBillWave, FaBuilding, FaUserTie, FaRocket, FaHeart, FaChartBar } from 'react-icons/fa';
 import Select from 'react-select';
 import './index.css';
 import LoginLinkedInButton from './components/LoginLinkedInButton';
@@ -163,6 +163,22 @@ function TrabalheiLa() {
     return 'bg-gradient-to-r from-red-400 to-pink-500';
   };
 
+  // Ordenar empresas por média para o pódio
+  const empresasOrdenadas = [...empresas].sort((a, b) => calcularMedia(b) - calcularMedia(a));
+  const top3 = empresasOrdenadas.slice(0, 3);
+
+  const getMedalColor = (position) => {
+    if (position === 0) return 'from-yellow-400 to-yellow-600'; // Ouro
+    if (position === 1) return 'from-gray-300 to-gray-500'; // Prata
+    if (position === 2) return 'from-orange-400 to-orange-600'; // Bronze
+  };
+
+  const getMedalEmoji = (position) => {
+    if (position === 0) return '🥇';
+    if (position === 1) return '🥈';
+    if (position === 2) return '🥉';
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-4 md:p-8">
 
@@ -177,13 +193,13 @@ function TrabalheiLa() {
           }}
         >
           {/* Overlay escuro para contraste */}
-          <div className="bg-black/50 backdrop-blur-sm p-8 md:p-10">
+          <div className="bg-black/60 backdrop-blur-sm p-8 md:p-10">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <div>
-                <h1 className="text-4xl md:text-5xl font-black text-white drop-shadow-lg">
+                <h1 className="text-5xl md:text-6xl font-black text-white drop-shadow-2xl" style={{ fontWeight: 900 }}>
                   Trabalhei Lá
                 </h1>
-                <p className="text-gray-100 font-medium mt-2 max-w-xl">
+                <p className="text-yellow-300 font-bold mt-2 max-w-xl text-lg drop-shadow-lg">
                   Avaliações reais, anônimas e confiáveis.
                 </p>
               </div>
@@ -226,7 +242,8 @@ function TrabalheiLa() {
               {/* Seleção de empresa */}
               <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200">
                 <label className="block text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                  🏢 Selecione a Empresa
+                  <FaBuilding className="text-blue-600" />
+                  Selecione a Empresa
                 </label>
                 <Select 
                   value={company}
@@ -255,43 +272,47 @@ function TrabalheiLa() {
                 </div>
               </div>
 
-              {/* Grid de avaliações com comentários individuais */}
+              {/* Grid de avaliações com ícones profissionais */}
               <div className="grid md:grid-cols-2 gap-4">
                 {[
-                  { label: 'Avaliação Geral', value: rating, setter: setRating, icon: '⭐', comment: commentRating, setComment: setCommentRating },
-                  { label: 'Contato do RH', value: contatoRH, setter: setContatoRH, icon: '👥', comment: commentContatoRH, setComment: setCommentContatoRH },
-                  { label: 'Salário e Benefícios', value: salarioBeneficios, setter: setSalarioBeneficios, icon: '💰', comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios },
-                  { label: 'Estrutura', value: estruturaEmpresa, setter: setEstruturaEmpresa, icon: '🏢', comment: commentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa },
-                  { label: 'Liderança', value: acessibilidadeLideranca, setter: setAcessibilidadeLideranca, icon: '🧠', comment: commentAcessibilidadeLideranca, setComment: setCommentAcessibilidadeLideranca },
-                  { label: 'Plano de Carreira', value: planoCarreiras, setter: setPlanoCarreiras, icon: '🚀', comment: commentPlanoCarreiras, setComment: setCommentPlanoCarreiras },
-                  { label: 'Bem-estar', value: bemestar, setter: setBemestar, icon: '🌱', comment: commentBemestar, setComment: setCommentBemestar },
-                  { label: 'Organização', value: estimulacaoOrganizacao, setter: setEstimulacaoOrganizacao, icon: '📈', comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao }
-                ].map((item, idx) => (
-                  <div key={idx} className="bg-white rounded-xl p-4 border-2 border-gray-200 hover:border-purple-400 transition-all">
-                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                      <span role="img" aria-label={item.label}>{item.icon}</span> {item.label}
-                      <span className="ml-2 text-purple-600">{item.value}/5</span>
-                    </label>
-                    <div className="flex gap-1 mb-3">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <FaStar 
-                          key={star}
-                          size={28}
-                          className="cursor-pointer transition-all hover:scale-110"
-                          color={star <= item.value ? "#facc15" : "#e5e7eb"}
-                          onClick={() => item.setter(star)}
-                        />
-                      ))}
+                  { label: 'Avaliação Geral', value: rating, setter: setRating, icon: FaStar, color: 'text-yellow-500', comment: commentRating, setComment: setCommentRating },
+                  { label: 'Contato do RH', value: contatoRH, setter: setContatoRH, icon: FaHandshake, color: 'text-blue-500', comment: commentContatoRH, setComment: setCommentContatoRH },
+                  { label: 'Salário e Benefícios', value: salarioBeneficios, setter: setSalarioBeneficios, icon: FaMoneyBillWave, color: 'text-green-500', comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios },
+                  { label: 'Estrutura', value: estruturaEmpresa, setter: setEstruturaEmpresa, icon: FaBuilding, color: 'text-gray-600', comment: commentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa },
+                  { label: 'Liderança', value: acessibilidadeLideranca, setter: setAcessibilidadeLideranca, icon: FaUserTie, color: 'text-purple-500', comment: commentAcessibilidadeLideranca, setComment: setCommentAcessibilidadeLideranca },
+                  { label: 'Plano de Carreira', value: planoCarreiras, setter: setPlanoCarreiras, icon: FaRocket, color: 'text-red-500', comment: commentPlanoCarreiras, setComment: setCommentPlanoCarreiras },
+                  { label: 'Bem-estar', value: bemestar, setter: setBemestar, icon: FaHeart, color: 'text-pink-500', comment: commentBemestar, setComment: setCommentBemestar },
+                  { label: 'Organização', value: estimulacaoOrganizacao, setter: setEstimulacaoOrganizacao, icon: FaChartBar, color: 'text-indigo-500', comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao }
+                ].map((item, idx) => {
+                  const IconComponent = item.icon;
+                  return (
+                    <div key={idx} className="bg-white rounded-xl p-4 border-2 border-gray-200 hover:border-purple-400 transition-all">
+                      <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                        <IconComponent className={item.color} />
+                        {item.label}
+                        <span className="ml-auto text-purple-600">{item.value}/5</span>
+                      </label>
+                      <div className="flex gap-1 mb-3">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <FaStar 
+                            key={star}
+                            size={28}
+                            className="cursor-pointer transition-all hover:scale-110"
+                            color={star <= item.value ? "#facc15" : "#e5e7eb"}
+                            onClick={() => item.setter(star)}
+                          />
+                        ))}
+                      </div>
+                      <textarea
+                        value={item.comment}
+                        onChange={(e) => item.setComment(e.target.value)}
+                        rows="2"
+                        className="w-full border border-gray-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                        placeholder={`Comente sobre ${item.label.toLowerCase()} (opcional)...`}
+                      ></textarea>
                     </div>
-                    <textarea
-                      value={item.comment}
-                      onChange={(e) => item.setComment(e.target.value)}
-                      rows="2"
-                      className="w-full border border-gray-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                      placeholder={`Comente sobre ${item.label.toLowerCase()}...`}
-                    ></textarea>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Comentário geral */}
@@ -304,7 +325,7 @@ function TrabalheiLa() {
                   onChange={(e) => setComment(e.target.value)}
                   rows="4"
                   className="w-full border-2 border-purple-300 p-4 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                  placeholder="Compartilhe uma visão geral sobre sua experiência na empresa..."
+                  placeholder="Compartilhe uma visão geral sobre sua experiência na empresa (opcional)..."
                 ></textarea>
               </div>
 
@@ -349,28 +370,60 @@ function TrabalheiLa() {
           </div>
         </div>
 
-        {/* Ranking - 1 coluna */}
+        {/* Ranking com Pódio - 1 coluna */}
         <div className="lg:col-span-1">
           <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-6 border border-white/20 sticky top-8">
 
-            <div className="flex items-center gap-3 mb-6">
-              <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-3 rounded-xl">
-                <FaTrophy className="text-white text-2xl" />
-              </div>
-              <h2 className="text-2xl font-black bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent">
-                Ranking
-              </h2>
-            </div>
+            {/* Troféu personalizado */}
+        <div className="flex flex-col items-center mb-6">
+  <img
+    src="/trofeu.png"
+    alt="Troféu Trabalhei Lá"
+    className="w-20 h-20 md:w-24 md:h-24 object-contain mb-3 drop-shadow-[0_0_14px_rgba(56,189,248,0.9)]"
+  />
+  <h2 className="text-2xl font-black bg-gradient-to-r from-sky-400 to-blue-600 bg-clip-text text-transparent text-center">
+    Top Empresas
+  </h2>
+</div>
 
-            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+            {/* Pódio Top 3 */}
+            {top3.length > 0 && (
+              <div className="mb-6 space-y-3">
+                {top3.map((emp, idx) => {
+                  const media = calcularMedia(emp);
+                  return (
+                    <div
+                      key={idx}
+                      className={`bg-gradient-to-r ${getMedalColor(idx)} rounded-2xl p-4 text-white shadow-lg transform hover:scale-105 transition-all`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-4xl">{getMedalEmoji(idx)}</span>
+                          <div>
+                            <h3 className="font-bold text-lg">{emp.company}</h3>
+                            <p className="text-xs opacity-90">{emp.area} • {emp.periodo}</p>
+                          </div>
+                        </div>
+                        <div className="bg-white/20 px-3 py-1 rounded-full font-bold">
+                          {media} ⭐
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Lista de todas as avaliações */}
+            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
               {empresas.length === 0 ? (
                 <div className="text-center py-12">
-                  <FaChartLine className="text-gray-300 text-6xl mx-auto mb-4" />
+                  <FaChartBar className="text-gray-300 text-6xl mx-auto mb-4" />
                   <p className="text-gray-500 font-medium">Nenhuma avaliação ainda</p>
                   <p className="text-sm text-gray-400 mt-2">Seja o primeiro a avaliar!</p>
                 </div>
               ) : (
-                empresas.map((emp, idx) => {
+                empresas.slice(3).map((emp, idx) => {
                   const media = calcularMedia(emp);
                   return (
                     <div
