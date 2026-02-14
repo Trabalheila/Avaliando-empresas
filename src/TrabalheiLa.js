@@ -225,13 +225,17 @@ function TrabalheiLa() {
         backgroundAttachment: 'fixed',
       }}
     >
+      {/* HEADER */}
       <div className="max-w-7xl mx-auto mb-6 md:mb-8">
         <div className="rounded-3xl shadow-2xl border border-white/20 overflow-hidden relative bg-black/50 md:bg-black/40 backdrop-blur-sm">
           <div className="p-4 md:p-10">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
               <div className="text-center md:text-left">
-                <h1 className="text-2xl md:text-5xl font-black text-white tracking-tight drop-shadow-[0_4px_10px_rgba(0,0,0,0.7)]">
-                  Trabalhei <span className="text-sky-300">Lá</span>
+                <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight drop-shadow-[0_0_10px_rgba(0,0,0,0.9)]">
+                  Trabalhei{' '}
+                  <span className="text-[#4FC3F7] drop-shadow-[0_0_8px_rgba(0,0,0,1)]">
+                    Lá
+                  </span>
                 </h1>
                 <p className="mt-2 md:mt-3 text-xs md:text-base font-bold text-white">
                   Avaliações reais, anônimas e confiáveis.
@@ -248,7 +252,9 @@ function TrabalheiLa() {
         </div>
       </div>
 
+      {/* CONTEÚDO PRINCIPAL */}
       <div className="max-w-7xl mx-auto grid lg:grid-cols-3 gap-6 md:gap-8">
+        {/* FORMULÁRIO */}
         <div className="lg:col-span-2">
           <div className="bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl p-3 md:p-8 border border-white/20">
             {!isAuthenticated && (
@@ -266,6 +272,7 @@ function TrabalheiLa() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
+              {/* EMPRESA */}
               <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4 md:p-6 border border-gray-200">
                 <label className="block text-xs md:text-sm font-bold text-gray-700 mb-2 md:mb-3 flex items-center gap-2">
                   <FaBuilding className="text-blue-600" />
@@ -297,6 +304,7 @@ function TrabalheiLa() {
                 </div>
               </div>
 
+              {/* BLOCOS DE AVALIAÇÃO COM GLOSS AZUL NOS LABELS */}
               <div className="grid md:grid-cols-2 gap-3 md:gap-4">
                 {[
                   { label: 'Avaliação Geral', value: rating, setter: setRating, icon: FaStar, color: 'text-yellow-500', comment: commentRating, setComment: setCommentRating },
@@ -311,7 +319,7 @@ function TrabalheiLa() {
                   const IconComponent = item.icon;
                   return (
                     <div key={idx} className="bg-white rounded-xl p-3 md:p-4 border-2 border-gray-200 hover:border-purple-400 transition-all">
-                      <label className="block text-xs md:text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                      <label className="block text-xs md:text-sm font-extrabold text-[#1E3A8A] mb-2 flex items-center gap-2 drop-shadow-[0_0_4px_rgba(255,255,255,0.9)]">
                         <IconComponent className={item.color} />
                         {item.label}
                         <span className="ml-auto text-purple-600">{item.value}/5</span>
@@ -339,6 +347,7 @@ function TrabalheiLa() {
                 })}
               </div>
 
+              {/* COMENTÁRIO GERAL */}
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 md:p-6 border-2 border-purple-200">
                 <label className="block text-xs md:text-sm font-bold text-gray-700 mb-2 md:mb-3">💬 Comentário Geral (opcional)</label>
                 <textarea
@@ -350,6 +359,7 @@ function TrabalheiLa() {
                 />
               </div>
 
+              {/* LOGIN + BOTÃO ENVIAR */}
               <div className="flex flex-col items-center space-y-3 md:space-y-4">
                 {!isAuthenticated ? (
                   <div className="w-full max-w-xs">
@@ -380,23 +390,23 @@ function TrabalheiLa() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
 
-            <div className="flex flex-col items-center justify-center mt-4 md:mt-6 mb-3 md:mb-4">
+        {/* RANKING COM TROFÉU CENTRALIZADO */}
+        <div className="lg:col-span-1">
+          <div className="bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl p-4 md:p-6 border border-white/20 lg:sticky lg:top-8">
+            <div className="flex flex-col items-center mb-3 md:mb-4">
               <img
                 src="/trofeu.png"
                 alt="Troféu Trabalhei Lá"
                 className="w-8 h-8 md:w-10 md:h-10 object-contain mb-1 drop-shadow-lg"
               />
-              <h2 className="text-xs md:text-sm font-bold text-slate-700 text-center">Top Empresas Avaliadas</h2>
+              <h2 className="text-xs md:text-sm font-bold text-slate-700 text-center">
+                Ranking - Top Empresas Avaliadas
+              </h2>
             </div>
-          </div>
-        </div>
 
-        <div className="lg:col-span-1">
-          <div className="bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl p-4 md:p-6 border border-white/20 lg:sticky lg:top-8">
-            <div className="flex flex-col items-center mb-3 md:mb-4">
-              <h2 className="text-xs md:text-sm font-bold text-slate-700 text-center">Ranking</h2>
-            </div>
             {top3.length > 0 && (
               <div className="mb-4 md:mb-6 space-y-2 md:space-y-3">
                 {top3.map((emp, idx) => {
@@ -418,6 +428,7 @@ function TrabalheiLa() {
                 })}
               </div>
             )}
+
             <div className="space-y-3 md:space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
               {empresas.length === 0 ? (
                 <div className="text-center py-8 md:py-12">
@@ -453,6 +464,7 @@ function TrabalheiLa() {
         </div>
       </div>
 
+      {/* FOOTER */}
       <footer className="max-w-7xl mx-auto mt-8 md:mt-12 text-center">
         <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-4 md:p-6 border border-white/20">
           <p className="text-gray-600 text-xs md:text-sm">
