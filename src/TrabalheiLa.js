@@ -268,10 +268,8 @@ function TrabalheiLa() {
         <div className="lg:col-span-1">
           <div className="bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl p-4 md:p-6 border border-white/20 lg:sticky lg:top-8">
             <div className="flex flex-col items-center mb-3 md:mb-4">
-              <img src="/trofeu-new.png" 
-              alt="Troféu Trabalhei Lá" 
-              className="w-8 h-8 md:w-10 md:h-10 object-contain mb-1 drop-shadow-lg" />
-              <h2 className="text-xs md:text-sm font-bold text-slate-700 text-center">Ranking - Top Empresas Avaliadas</h2>
+              <img src="/trofeu-new.png" alt="Troféu Trabalhei Lá" className="w-12 h-12 md:w-16 md:h-16 object-contain mb-2 drop-shadow-lg" />
+              <h2 className="text-sm md:text-base font-bold text-slate-700 text-center">Ranking - Top Empresas Avaliadas</h2>
             </div>
 
             {top3.length > 0 && (
