@@ -8,7 +8,6 @@ import {
   FaRocket,
   FaHeart,
   FaChartBar,
-  FaTrophy,
   FaExternalLinkAlt,
 } from 'react-icons/fa';
 import { FcGoogle } from 'react-icons/fc';
