@@ -82,65 +82,72 @@ function TrabalheiLaDesktop({
       }}
     >
       {/* Header fixo com título maior */}
-      <header className="text-4xl md:text-5xl font-black tracking-tight">
-
+      
+    <header className="relative overflow-hidden bg-slate-950/70 backdrop-blur-md border-b border-white/10 sticky top-0 z-50">
   {/* glow decorativo */}
-  <div className="absolute inset-0 opacity-30 pointer-events-none">
-    <div className="absolute -top-20 -left-20 w-72 h-72 bg-cyan-400 rounded-full blur-3xl" />
-    <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-indigo-500 rounded-full blur-3xl" />
+  <div className="absolute inset-0 opacity-35 pointer-events-none">
+    <div className="absolute -top-24 -left-24 w-80 h-80 bg-cyan-400 rounded-full blur-3xl" />
+    <div className="absolute -bottom-28 -right-28 w-96 h-96 bg-indigo-500 rounded-full blur-3xl" />
   </div>
 
-  <div className="relative max-w-7xl mx-auto px-6 md:px-8 py-8 md:py-10 flex flex-col md:flex-row items-center justify-between gap-6">
+  <div className="relative max-w-6xl mx-auto px-6 md:px-8 py-6">
+    <div className="grid grid-cols-3 items-center gap-4">
+      {/* Esquerda: selos */}
+      <div className="hidden md:flex items-center gap-3 text-white/70 text-xs font-semibold">
+        <span>✓ Anônimo</span>
+        <span>✓ Verificado</span>
+        <span>✓ Confiável</span>
+      </div>
 
-    {/* LADO ESQUERDO */}
-    <div className="text-center md:text-left">
-      <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
-        Trabalhei{" "}
-        <span className="text-[#4FC3F7] drop-shadow-[0_0_20px_rgba(79,195,247,0.6)]">
-          Lá
-        </span>
-      </h1>
+      {/* Centro: marca */}
+      <div className="text-center">
+        <h1 className="font-display text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-none">
+          Trabalhei{" "}
+          <span className="text-[#4FC3F7] drop-shadow-[0_0_18px_rgba(79,195,247,0.55)]">
+            Lá
+          </span>
+        </h1>
 
-      <p className="text-white/90 text-sm md:text-base mt-2 font-semibold">
-        Descubra como as empresas realmente são por dentro.
-      </p>
+        <p className="text-white/90 text-sm md:text-base mt-2 font-bold">
+          Descubra como as empresas realmente são por dentro.
+        </p>
+        <p className="text-white/60 text-xs md:text-sm mt-1 font-bold">
+          Avaliações anônimas feitas por profissionais verificados.
+        </p>
+      </div>
 
-      <p className="text-white/60 text-xs md:text-sm mt-1">
-        Avaliações anônimas feitas por profissionais verificados.
-      </p>
-
-      {/* CTA */}
-      <div className="mt-4 flex flex-wrap items-center justify-center md:justify-start gap-3">
-        <button
-          onClick={() =>
-            document
-              .getElementById("avaliacao")
-              ?.scrollIntoView({ behavior: "smooth" })
-          }
-          className="bg-gradient-to-r from-cyan-400 to-blue-500 hover:shadow-lg hover:scale-[1.02] transition-all text-white font-semibold px-5 py-2.5 rounded-xl text-sm"
-        >
-          Avaliar uma empresa
-        </button>
-
-        <div className="hidden md:flex items-center gap-4 text-white/70 text-xs">
-          <span>✓ Anônimo</span>
-          <span>✓ Verificado</span>
-          <span>✓ Confiável</span>
-        </div>
+      {/* Direita: status */}
+      <div className="flex justify-end">
+        {isAuthenticated ? (
+          <div className="flex items-center gap-2 bg-emerald-500/15 px-4 py-2 rounded-full border border-emerald-400/40">
+            <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse" />
+            <span className="text-xs md:text-sm text-white font-semibold">
+              Autenticado
+            </span>
+          </div>
+        ) : (
+          <div className="hidden md:block text-white/50 text-xs">
+            Login para avaliar
+          </div>
+        )}
       </div>
     </div>
 
-    {/* LADO DIREITO */}
-    {isAuthenticated && (
-      <div className="flex items-center gap-2 bg-emerald-500/20 px-5 py-2.5 rounded-full border border-emerald-400/50 backdrop-blur-md">
-        <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse" />
-        <span className="text-sm text-white font-semibold">
-          Autenticado
-        </span>
-      </div>
-    )}
+    {/* CTA */}
+    <div className="mt-5 flex items-center justify-center">
+      <button
+        type="button"
+        onClick={() =>
+          document.getElementById("avaliacao")?.scrollIntoView({ behavior: "smooth" })
+        }
+        className="bg-gradient-to-r from-cyan-400 to-blue-500 hover:shadow-xl hover:scale-[1.02] transition-all text-white font-bold px-6 py-3 rounded-2xl text-sm md:text-base"
+      >
+        Consulte a empresa e veja suas avaliações 
+      </button>
+    </div>
   </div>
 </header>
+
 
 
       {/* Formulário centralizado e compacto */}
