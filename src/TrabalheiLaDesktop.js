@@ -82,29 +82,66 @@ function TrabalheiLaDesktop({
       }}
     >
       {/* Header fixo com título maior */}
-      <header className="bg-black/70 backdrop-blur-md border-b border-white/20 sticky top-0 z-50 shadow-2xl">
-        <div className="max-w-6xl mx-auto px-8 py-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-5xl font-black text-white tracking-tight drop-shadow-2xl">
-              Trabalhei{' '}
-              <span className="text-[#4FC3F7] drop-shadow-[0_0_15px_rgba(79,195,247,0.8)]">
-                Lá
-              </span>
-            </h1>
-            <p className="text-white/80 text-sm mt-1 font-semibold">
-              Avaliações reais, anônimas e confiáveis
-            </p>
-          </div>
-          {isAuthenticated && (
-            <div className="flex items-center gap-2 bg-emerald-500/20 px-5 py-2.5 rounded-full border border-emerald-400/50">
-              <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse" />
-              <span className="text-sm text-white font-semibold">
-                Autenticado
-              </span>
-            </div>
-          )}
+      <header className="relative bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 border-b border-white/10 sticky top-0 z-50 shadow-2xl overflow-hidden">
+
+  {/* glow decorativo */}
+  <div className="absolute inset-0 opacity-30 pointer-events-none">
+    <div className="absolute -top-20 -left-20 w-72 h-72 bg-cyan-400 rounded-full blur-3xl" />
+    <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-indigo-500 rounded-full blur-3xl" />
+  </div>
+
+  <div className="relative max-w-7xl mx-auto px-6 md:px-8 py-8 md:py-10 flex flex-col md:flex-row items-center justify-between gap-6">
+
+    {/* LADO ESQUERDO */}
+    <div className="text-center md:text-left">
+      <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
+        Trabalhei{" "}
+        <span className="text-[#4FC3F7] drop-shadow-[0_0_20px_rgba(79,195,247,0.6)]">
+          Lá
+        </span>
+      </h1>
+
+      <p className="text-white/90 text-sm md:text-base mt-2 font-semibold">
+        Descubra como as empresas realmente são por dentro.
+      </p>
+
+      <p className="text-white/60 text-xs md:text-sm mt-1">
+        Avaliações anônimas feitas por profissionais verificados.
+      </p>
+
+      {/* CTA */}
+      <div className="mt-4 flex flex-wrap items-center justify-center md:justify-start gap-3">
+        <button
+          onClick={() =>
+            document
+              .getElementById("avaliacao")
+              ?.scrollIntoView({ behavior: "smooth" })
+          }
+          className="bg-gradient-to-r from-cyan-400 to-blue-500 hover:shadow-lg hover:scale-[1.02] transition-all text-white font-semibold px-5 py-2.5 rounded-xl text-sm"
+        >
+          Avaliar uma empresa
+        </button>
+
+        <div className="hidden md:flex items-center gap-4 text-white/70 text-xs">
+          <span>✓ Anônimo</span>
+          <span>✓ Verificado</span>
+          <span>✓ Confiável</span>
         </div>
-      </header>
+      </div>
+    </div>
+
+    {/* LADO DIREITO */}
+    {isAuthenticated && (
+      <div className="flex items-center gap-2 bg-emerald-500/20 px-5 py-2.5 rounded-full border border-emerald-400/50 backdrop-blur-md">
+        <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse" />
+        <span className="text-sm text-white font-semibold">
+          Autenticado
+        </span>
+      </div>
+    )}
+  </div>
+</header>
+
 
       {/* Formulário centralizado e compacto */}
       <section className="max-w-5xl mx-auto px-8 py-10">
