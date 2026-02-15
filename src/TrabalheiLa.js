@@ -1,18 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import {
-  FaStar,
-  FaHandshake,
-  FaMoneyBillWave,
-  FaBuilding,
-  FaUserTie,
-  FaRocket,
-  FaHeart,
-  FaChartBar,
-} from 'react-icons/fa';
-import { FcGoogle } from 'react-icons/fc';
-import Select from 'react-select';
-import './index.css';
-import LoginLinkedInButton from './components/LoginLinkedInButton';
 import TrabalheiLaMobile from './TrabalheiLaMobile';
 import TrabalheiLaDesktop from './TrabalheiLaDesktop';
 
