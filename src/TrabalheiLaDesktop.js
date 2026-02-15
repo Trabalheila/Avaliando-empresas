@@ -82,7 +82,7 @@ function TrabalheiLaDesktop({
       }}
     >
       {/* Header fixo com título maior */}
-      <header className="relative bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 border-b border-white/10 sticky top-0 z-50 shadow-2xl overflow-hidden">
+      <header className="text-4xl md:text-5xl font-black tracking-tight">
 
   {/* glow decorativo */}
   <div className="absolute inset-0 opacity-30 pointer-events-none">

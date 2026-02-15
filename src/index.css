@@ -184,8 +184,10 @@ footer a:hover {
 /* Mobile: ajustes responsivos */
 @media (max-width: 768px) {
   body {
-    padding: 0.5rem;
-  }
+    font-family: 'Inter', sans-serif;
+}
+  
+
 
   .container {
     padding: 1rem;
