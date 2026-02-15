@@ -1,208 +1,140 @@
-/* Reset e configuração global */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-body {
-  font-family: 'Poppins', sans-serif;
-  margin: 0;
-  padding: 0;
-  min-height: 100vh;
-  overflow-x: hidden;
-  max-width: 100vw;
-}
+/* =========================================================
+   BASE (mínimo necessário — sem “esticar” tudo)
+   ========================================================= */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
 
-.container {
-  background: white;
-  padding: 2rem;
-  border-radius: 20px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  max-width: 600px;
-  width: 100%;
-  text-align: center;
-  margin: 0 auto;
-}
-
-h1 {
-  font-size: 2.5rem;
-  color: #0d47a1;
-  margin-bottom: 0.5rem;
-  font-weight: bold;
-}
-
-h2, h3 {
-  font-size: 1.5rem;
-  color: #1565c0;
-  margin-top: 2rem;
-}
-
-p, label, select, textarea, button {
-  font-size: 1rem;
-  margin-top: 0.5rem;
-  color: #333;
-}
-
-select, textarea, button {
-  width: 100%;
-  padding: 0.8rem;
-  margin-top: 0.5rem;
-  border-radius: 12px;
-  border: 1px solid #ccc;
-  box-sizing: border-box;
-}
-
-textarea {
-  resize: vertical;
-  min-height: 120px;
-}
-
-button {
-  background-color: #0d47a1;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-button:hover {
-  background-color: #1565c0;
-}
-
-.star-button {
-  font-size: 1.5rem;
-  color: #ccc;
-  background: none;
-  border: none;
-  cursor: pointer;
-  margin: 0 3px;
-}
-
-.star-button.active {
-  color: gold;
-}
-
-.star-rating {
-  display: flex;
-  gap: 5px;
-  margin-top: 10px;
-}
-
-/* Estilos para as estrelas de avaliação */
-.avaliacao-item {
-  margin-top: 20px;
-}
-
-.avaliacao-stars input[type="radio"] {
-  display: none;
-}
-
-.avaliacao-stars label {
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #ffcc00;
-}
-
-.avaliacao-stars input[type="radio"]:checked ~ label {
-  color: #ffcc00;
-}
-
-button[type="submit"] {
-  background-color: #0d47a1;
-  color: #fff;
-  padding: 10px 20px;
-  border-radius: 5px;
-  width: 100%;
-  border: none;
-  font-weight: bold;
-}
-
-button[type="submit"]:hover {
-  background-color: #1565c0;
-}
-
-footer {
-  margin-top: 30px;
-}
-
-footer a {
-  color: #0077cc;
-  text-decoration: none;
-}
-
-footer a:hover {
-  text-decoration: underline;
-}
-
-/* Estilo para exibir as estrelas de avaliação e o texto das categorias */
-label {
-  font-weight: bold;
-  display: block;
-  margin-top: 10px;
-}
-
-textarea {
-  margin-top: 10px;
-}
-
-/* Estilização do formulário de avaliação */
-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-form .flex {
-  display: flex;
-  gap: 5px;
-}
-
-h2, .text-2xl {
-  font-size: 1.5rem;
-  color: #1565c0;
-}
-
-h1, .text-center {
-  text-align: center;
-}
-
-footer {
-  text-align: center;
-  margin-top: 30px;
-}
-
-footer a {
-  color: #1565c0;
-  text-decoration: none;
-}
-
-footer a:hover {
-  text-decoration: underline;
-}
-
-/* Mobile: ajustes responsivos */
-@media (max-width: 768px) {
+  html,
   body {
-    font-family: 'Inter', sans-serif;
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    overflow-x: hidden;
+    max-width: 100vw;
+
+    /* Fonte do app (você já colocou no index.html: Inter/Plus Jakarta) */
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    line-height: 1.5;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Evita imagens estourarem containers */
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* Links mais consistentes */
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  /* IMPORTANTÍSSIMO:
+     NÃO estilize button/select/textarea globalmente com width:100%
+     (isso causa os “campos esticados” e quebra botões pequenos como estrelas) */
 }
-  
 
-
-  .container {
-    padding: 1rem;
+/* =========================================================
+   COMPONENTES REUTILIZÁVEIS (classes)
+   ========================================================= */
+@layer components {
+  .tl-glass {
+    @apply bg-white/90 backdrop-blur-xl border border-white/25 shadow-2xl;
   }
 
-  h1 {
-    font-size: 1.8rem;
+  .tl-card {
+    @apply bg-white rounded-2xl border border-slate-200/70 shadow-sm;
   }
 
-  h2, h3 {
-    font-size: 1.2rem;
+  .tl-card-hover {
+    @apply hover:shadow-lg hover:-translate-y-[1px] transition-all;
   }
 
-  select, textarea, button {
-    font-size: 0.9rem;
-    padding: 0.6rem;
+  .tl-label {
+    @apply block text-sm font-extrabold text-slate-800;
   }
+
+  .tl-input {
+    @apply w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm
+           focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent;
+  }
+
+  .tl-textarea {
+    @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm
+           focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent;
+  }
+
+  .tl-btn {
+    @apply inline-flex items-center justify-center rounded-xl font-extrabold transition-all;
+  }
+
+  .tl-btn-primary {
+    @apply tl-btn text-white px-6 py-3
+           bg-gradient-to-r from-cyan-500 to-blue-600
+           hover:shadow-xl hover:scale-[1.02];
+  }
+
+  .tl-btn-secondary {
+    @apply tl-btn text-slate-800 px-5 py-2.5 bg-white border-2 border-slate-200
+           hover:border-slate-300 hover:shadow-md;
+  }
+}
+
+/* =========================================================
+   ESTRELAS (contorno preto em SVG)
+   - Funciona com react-icons (SVG)
+   - Aplica um “outline” via múltiplos drop-shadows
+   ========================================================= */
+.tl-star-outline {
+  filter:
+    drop-shadow( 1px  0   0 #000)
+    drop-shadow(-1px  0   0 #000)
+    drop-shadow( 0    1px 0 #000)
+    drop-shadow( 0   -1px 0 #000);
+}
+
+/* Se quiser aplicar automaticamente só dentro do bloco de rating: 
+   Basta colocar className="tl-rating-stars" no container das estrelas */
+.tl-rating-stars svg {
+  filter:
+    drop-shadow( 1px  0   0 #000)
+    drop-shadow(-1px  0   0 #000)
+    drop-shadow( 0    1px 0 #000)
+    drop-shadow( 0   -1px 0 #000);
+}
+
+/* =========================================================
+   REACT-SELECT (ajuste leve: não deixa “quadradão” e harmoniza)
+   OBS: você já está usando styles={} no componente; isso aqui é só “fallback”
+   ========================================================= */
+.react-select__control {
+  border-radius: 14px !important;
+}
+
+.react-select__menu {
+  border-radius: 14px !important;
+  overflow: hidden;
+}
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+footer a {
+  font-weight: 800;
 }

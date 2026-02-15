@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   FaStar,
   FaHandshake,
@@ -9,17 +9,15 @@ import {
   FaHeart,
   FaChartBar,
   FaExternalLinkAlt,
+  FaMedal,
 } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import Select from "react-select";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
 
-/**
- * Estrela com contorno preto (não depende de Tailwind).
- * Usa overlay com posicionamento inline pra garantir o contorno.
- */
+/** ⭐ Estrela com contorno preto (overlay 100% confiável via inline style) */
 function OutlinedStar({ active, onClick, size = 18, label }) {
-  const outlineScale = 1.22;
+  const outlineScale = 1.24;
 
   return (
     <button
@@ -45,7 +43,7 @@ function OutlinedStar({ active, onClick, size = 18, label }) {
           verticalAlign: "middle",
         }}
       >
-        {/* Contorno (preto, ligeiramente maior) */}
+        {/* contorno */}
         <span
           style={{
             position: "absolute",
@@ -56,16 +54,55 @@ function OutlinedStar({ active, onClick, size = 18, label }) {
           }}
           aria-hidden="true"
         >
-          <FaStar size={size} color="#000000" />
+          <FaStar size={size} color="#000" />
         </span>
 
-        {/* Estrela principal */}
+        {/* estrela principal */}
         <span style={{ position: "relative" }} aria-hidden="true">
           <FaStar size={size} color={active ? "#facc15" : "#e5e7eb"} />
         </span>
       </span>
     </button>
   );
+}
+
+function medalColor(idx) {
+  if (idx === 0) return "#fbbf24"; // gold
+  if (idx === 1) return "#cbd5e1"; // silver
+  return "#f59e0b"; // bronze-ish
+}
+
+function getScoreColor(score) {
+  // score 0..5
+  if (score >= 4.3) return { className: "text-emerald-600", hex: "#059669" };
+  if (score >= 3.6) return { className: "text-lime-600", hex: "#65a30d" };
+  if (score >= 2.8) return { className: "text-yellow-600", hex: "#ca8a04" };
+  if (score >= 2.0) return { className: "text-orange-600", hex: "#ea580c" };
+  return { className: "text-rose-600", hex: "#e11d48" };
+}
+
+function safeCompanyName(company) {
+  if (!company) return "";
+  if (typeof company === "string") return company;
+  // react-select costuma usar { value, label }
+  return company.label || company.value || "";
+}
+
+function getCompanyLogo(company) {
+  if (!company || typeof company === "string") return "";
+  // compatível com vários formatos possíveis
+  return company.logoUrl || company.logo || company.imageUrl || company.image || "";
+}
+
+/** Converte calcularMedia(emp) em número de forma robusta */
+function mediaToNumber(m) {
+  if (typeof m === "number") return m;
+  if (typeof m === "string") {
+    const cleaned = m.replace(",", ".").match(/[\d.]+/g)?.[0];
+    const n = cleaned ? Number(cleaned) : NaN;
+    return Number.isFinite(n) ? n : NaN;
+  }
+  return NaN;
 }
 
 function TrabalheiLaDesktop({
@@ -127,8 +164,8 @@ function TrabalheiLaDesktop({
   calcularMedia,
   getBadgeColor,
   top3,
-  getMedalColor,
-  getMedalEmoji,
+  getMedalColor, // pode continuar existindo (não atrapalha)
+  getMedalEmoji, // pode continuar existindo (não atrapalha)
 }) {
   const selectStyles = {
     control: (base, state) => ({
@@ -137,7 +174,7 @@ function TrabalheiLaDesktop({
       borderColor: state.isFocused ? "#22d3ee" : "#e2e8f0",
       boxShadow: state.isFocused ? "0 0 0 3px rgba(34,211,238,.25)" : "none",
       padding: "2px 6px",
-      minHeight: 46,
+      minHeight: 44,
     }),
     menu: (base) => ({
       ...base,
@@ -222,6 +259,35 @@ function TrabalheiLaDesktop({
     },
   ];
 
+  const selectedCompanyName = safeCompanyName(company);
+  const selectedCompanyLogo = getCompanyLogo(company);
+
+  const selectedCompanyScore = useMemo(() => {
+    if (!selectedCompanyName) return null;
+    const list = (empresas || []).filter((e) => e?.company === selectedCompanyName);
+    if (list.length === 0) return null;
+
+    // média da média (robusta, sem conhecer campos internos)
+    const medias = list
+      .map((e) => mediaToNumber(calcularMedia(e)))
+      .filter((n) => Number.isFinite(n));
+
+    if (medias.length === 0) return null;
+
+    const avg = medias.reduce((a, b) => a + b, 0) / medias.length;
+    return Math.round(avg * 10) / 10;
+  }, [empresas, selectedCompanyName, calcularMedia]);
+
+  const scoreColor = selectedCompanyScore == null ? null : getScoreColor(selectedCompanyScore);
+
+  function goToCompanyPage() {
+    if (!selectedCompanyName) {
+      document.getElementById("avaliacao")?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+    window.location.href = `/empresa/${encodeURIComponent(selectedCompanyName)}`;
+  }
+
   return (
     <div
       className="min-h-screen font-sans"
@@ -234,73 +300,151 @@ function TrabalheiLaDesktop({
     >
       {/* HEADER */}
       <header className="relative overflow-hidden bg-slate-950/70 backdrop-blur-md border-b border-white/10 sticky top-0 z-50">
+        {/* glow */}
         <div className="absolute inset-0 opacity-35 pointer-events-none">
           <div className="absolute -top-24 -left-24 w-80 h-80 bg-cyan-400 rounded-full blur-3xl" />
           <div className="absolute -bottom-28 -right-28 w-96 h-96 bg-indigo-500 rounded-full blur-3xl" />
         </div>
 
-        <div className="relative max-w-6xl mx-auto px-6 md:px-8 py-6">
-          {/* Status no topo à direita */}
-          <div className="flex justify-end">
-            {isAuthenticated ? (
-              <div className="flex items-center gap-2 bg-emerald-500/15 px-4 py-2 rounded-full border border-emerald-400/40">
-                <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse" />
-                <span className="text-xs md:text-sm text-white font-semibold">
-                  Autenticado
-                </span>
+        <div
+          className="relative mx-auto px-6 md:px-8 py-6"
+          style={{ maxWidth: 1120 }}
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
+            {/* ESQUERDA: marca + empresa selecionada */}
+            <div>
+              <div className="flex items-start justify-between">
+                <div className="text-white/60 text-xs font-bold hidden md:block">
+                  Avaliações anônimas • Profissionais verificados
+                </div>
+
+                {isAuthenticated ? (
+                  <div className="flex items-center gap-2 bg-emerald-500/15 px-4 py-2 rounded-full border border-emerald-400/40">
+                    <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse" />
+                    <span className="text-xs md:text-sm text-white font-semibold">
+                      Autenticado
+                    </span>
+                  </div>
+                ) : (
+                  <div className="hidden md:block text-white/50 text-xs">
+                    Login para avaliar
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="hidden md:block text-white/50 text-xs">
-                Login para avaliar
+
+              {/* Marca em CAIXA ALTA */}
+              <div className="text-center lg:text-left mt-3">
+                <h1 className="font-display text-4xl md:text-5xl font-extrabold text-white tracking-[0.12em]">
+                  TRABALHEI{" "}
+                  <span className="text-[#4FC3F7] drop-shadow-[0_0_18px_rgba(79,195,247,0.55)]">
+                    LÁ
+                  </span>
+                </h1>
+
+                <p className="text-white/90 text-sm md:text-base mt-2 font-extrabold">
+                  Descubra como as empresas realmente são por dentro.
+                </p>
+                <p className="text-white/60 text-xs md:text-sm mt-1 font-extrabold">
+                  Avaliações anônimas feitas por profissionais verificados.
+                </p>
+
+                {/* selos abaixo do título */}
+                <div className="mt-3 flex flex-wrap items-center justify-center lg:justify-start gap-4 text-white/75 text-xs font-semibold">
+                  <span>✓ Anônimo</span>
+                  <span>✓ Verificado</span>
+                  <span>✓ Confiável</span>
+                </div>
+
+                {/* Empresa selecionada + logo + nota geral */}
+                <div className="mt-5 flex items-center justify-center lg:justify-start gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
+                    {selectedCompanyLogo ? (
+                      <img
+                        src={selectedCompanyLogo}
+                        alt={`Logo de ${selectedCompanyName}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-white font-extrabold">
+                        {selectedCompanyName ? selectedCompanyName[0]?.toUpperCase() : "?"}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="text-white font-extrabold truncate">
+                      {selectedCompanyName || "Selecione uma empresa abaixo"}
+                    </div>
+
+                    <div className="text-xs font-extrabold">
+                      {selectedCompanyScore == null ? (
+                        <span className="text-white/70">Sem nota ainda</span>
+                      ) : (
+                        <span
+                          className={scoreColor?.className || ""}
+                          style={{ color: scoreColor?.hex }}
+                        >
+                          Nota geral: {selectedCompanyScore.toFixed(1)} / 5
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Botão menor */}
+                  <button
+                    type="button"
+                    onClick={goToCompanyPage}
+                    className="shrink-0 bg-white/10 hover:bg-white/15 border border-white/20 text-white font-extrabold px-4 py-2 rounded-xl text-xs tracking-wide"
+                    style={{ textTransform: "uppercase" }}
+                  >
+                    CLIQUE E SAIBA MAIS
+                  </button>
+                </div>
               </div>
-            )}
-          </div>
-
-          {/* Marca central */}
-          <div className="text-center -mt-2">
-            <h1 className="font-display text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-none">
-              Trabalhei{" "}
-              <span className="text-[#4FC3F7] drop-shadow-[0_0_18px_rgba(79,195,247,0.55)]">
-                Lá
-              </span>
-            </h1>
-
-            <p className="text-white/90 text-sm md:text-base mt-2 font-bold">
-              Descubra como as empresas realmente são por dentro.
-            </p>
-            <p className="text-white/60 text-xs md:text-sm mt-1 font-bold">
-              Avaliações anônimas feitas por profissionais verificados.
-            </p>
-
-            {/* Selos abaixo do título, centralizados */}
-            <div className="mt-3 flex items-center justify-center gap-4 text-white/75 text-xs font-semibold">
-              <span>✓ Anônimo</span>
-              <span>✓ Verificado</span>
-              <span>✓ Confiável</span>
             </div>
 
-            <div className="mt-5 flex items-center justify-center">
-              <button
-                type="button"
-                onClick={() =>
-                  document
-                    .getElementById("avaliacao")
-                    ?.scrollIntoView({ behavior: "smooth" })
-                }
-                className="bg-gradient-to-r from-cyan-400 to-blue-500 hover:shadow-xl hover:scale-[1.02] transition-all text-white font-extrabold px-6 py-3 rounded-2xl text-sm md:text-base"
-              >
-                Avaliar uma empresa
-              </button>
-            </div>
+            {/* DIREITA: ranking top 3 */}
+            <aside className="bg-white/10 border border-white/15 rounded-2xl p-4 backdrop-blur-md">
+              <div className="text-white font-extrabold text-sm mb-3">
+                Ranking • Top 3
+              </div>
+
+              <div className="space-y-3">
+                {(top3 || []).slice(0, 3).map((emp, idx) => {
+                  const media = calcularMedia(emp);
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() =>
+                        (window.location.href = `/empresa/${encodeURIComponent(emp.company)}`)
+                      }
+                      className="w-full text-left flex items-center gap-3 bg-white/10 hover:bg-white/15 border border-white/10 rounded-xl px-3 py-2 transition"
+                    >
+                      <FaMedal size={18} color={medalColor(idx)} />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-white font-bold text-sm truncate">
+                          {emp.company}
+                        </div>
+                        <div className="text-white/70 text-xs">
+                          {media} ⭐
+                        </div>
+                      </div>
+                      <FaExternalLinkAlt className="text-white/60" size={12} />
+                    </button>
+                  );
+                })}
+              </div>
+            </aside>
           </div>
         </div>
       </header>
 
-      {/* FORM (maxWidth inline como fallback anti-“esticado”) */}
+      {/* FORM */}
       <section
         id="avaliacao"
-        className="max-w-5xl mx-auto px-6 md:px-8 py-10"
-        style={{ maxWidth: 980, marginLeft: "auto", marginRight: "auto" }}
+        className="mx-auto px-6 md:px-8 py-10"
+        style={{ maxWidth: 1120 }}
       >
         <div className="bg-white/95 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-white/20">
           <div className="text-center mb-6">
@@ -322,8 +466,7 @@ function TrabalheiLaDesktop({
                   </h3>
                   <p className="text-sm text-white/90">
                     Usamos o LinkedIn ou Google apenas para verificar seu vínculo
-                    profissional. Suas avaliações são{" "}
-                    <strong>100% anônimas</strong>.
+                    profissional. Suas avaliações são <strong>100% anônimas</strong>.
                   </p>
                 </div>
               </div>
@@ -430,9 +573,7 @@ function TrabalheiLaDesktop({
               {!isAuthenticated ? (
                 <div className="w-full max-w-md space-y-3">
                   <LoginLinkedInButton
-                    clientId={
-                      process.env.REACT_APP_LINKEDIN_CLIENT_ID || "77dv5urtc8ixj3"
-                    }
+                    clientId={process.env.REACT_APP_LINKEDIN_CLIENT_ID || "77dv5urtc8ixj3"}
                     redirectUri="https://www.trabalheila.com.br/auth/linkedin"
                     onLoginSuccess={handleLinkedInSuccess}
                     onLoginFailure={handleLinkedInFailure}
@@ -477,131 +618,10 @@ function TrabalheiLaDesktop({
         </div>
       </section>
 
-      {/* Ranking */}
-      {top3.length > 0 && (
-        <section
-          className="max-w-5xl mx-auto px-6 md:px-8 py-10"
-          style={{ maxWidth: 980, marginLeft: "auto", marginRight: "auto" }}
-        >
-          <div className="bg-white/95 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-white/20">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <img
-                src="/trofeu-new.png"
-                alt="Troféu"
-                className="w-16 h-16 object-contain drop-shadow-lg"
-              />
-              <h2 className="font-display text-3xl font-extrabold text-slate-900">
-                Top 3 Empresas Mais Bem Avaliadas
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {top3.map((emp, idx) => {
-                const media = calcularMedia(emp);
-                return (
-                  <div
-                    key={idx}
-                    className={`bg-gradient-to-br ${getMedalColor(
-                      idx
-                    )} rounded-2xl p-5 text-white shadow-xl transform hover:scale-[1.02] transition-all cursor-pointer`}
-                    onClick={() =>
-                      (window.location.href = `/empresa/${encodeURIComponent(
-                        emp.company
-                      )}`)
-                    }
-                  >
-                    <div className="text-center">
-                      <div className="text-5xl mb-2">{getMedalEmoji(idx)}</div>
-                      <h3 className="font-bold text-lg mb-1 flex items-center justify-center gap-2">
-                        {emp.company}
-                        <FaExternalLinkAlt size={14} />
-                      </h3>
-                      <p className="text-xs opacity-90 mb-2">
-                        {emp.area} • {emp.periodo}
-                      </p>
-                      <div className="bg-white/30 px-3 py-1.5 rounded-full font-bold text-base inline-block">
-                        {media} ⭐
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {empresas.length === 0 && (
-              <div className="text-center text-slate-600 mt-6">
-                Nenhuma avaliação ainda.
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Últimas avaliações */}
-      {empresas.length > 3 && (
-        <section
-          className="max-w-5xl mx-auto px-6 md:px-8 py-10"
-          style={{ maxWidth: 980, marginLeft: "auto", marginRight: "auto" }}
-        >
-          <div className="bg-white/95 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-white/20">
-            <h2 className="font-display text-2xl font-extrabold text-slate-900 mb-5">
-              Últimas Avaliações
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {empresas.slice(3, 9).map((emp, idx) => {
-                const media = calcularMedia(emp);
-                return (
-                  <div
-                    key={idx}
-                    className="bg-gradient-to-br from-white to-slate-50 rounded-2xl p-4 border-2 border-slate-200 hover:border-violet-400 hover:shadow-xl transition-all cursor-pointer group"
-                    onClick={() =>
-                      (window.location.href = `/empresa/${encodeURIComponent(
-                        emp.company
-                      )}`)
-                    }
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-slate-900 group-hover:text-indigo-700 transition-colors text-sm flex items-center gap-2 truncate">
-                          {emp.company}
-                          <FaExternalLinkAlt
-                            size={11}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity"
-                          />
-                        </h3>
-                        <p className="text-xs text-slate-500 mt-1">
-                          {emp.area} • {emp.periodo}
-                        </p>
-                      </div>
-
-                      <div
-                        className={`${getBadgeColor(
-                          media
-                        )} px-2.5 py-1 rounded-full text-white font-bold text-xs shadow-md`}
-                      >
-                        {media} ⭐
-                      </div>
-                    </div>
-
-                    {emp.comment && (
-                      <p className="text-xs text-slate-600 italic border-t border-slate-200 pt-2 mt-2">
-                        "{emp.comment.substring(0, 80)}
-                        {emp.comment.length > 80 ? "..." : ""}"
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* Footer */}
       <footer
-        className="max-w-5xl mx-auto px-6 md:px-8 py-8 text-center"
-        style={{ maxWidth: 980, marginLeft: "auto", marginRight: "auto" }}
+        className="mx-auto px-6 md:px-8 py-8 text-center"
+        style={{ maxWidth: 1120 }}
       >
         <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-5 border border-white/20">
           <p className="text-slate-700 text-sm">
