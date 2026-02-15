@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FaStar,
   FaHandshake,
@@ -67,13 +68,12 @@ function OutlinedStar({ active, onClick, size = 18, label }) {
 }
 
 function medalColor(idx) {
-  if (idx === 0) return "#fbbf24"; // gold
-  if (idx === 1) return "#cbd5e1"; // silver
-  return "#f59e0b"; // bronze-ish
+  if (idx === 0) return "#fbbf24"; // ouro
+  if (idx === 1) return "#cbd5e1"; // prata
+  return "#f59e0b"; // bronze
 }
 
 function getScoreColor(score) {
-  // score 0..5
   if (score >= 4.3) return { className: "text-emerald-600", hex: "#059669" };
   if (score >= 3.6) return { className: "text-lime-600", hex: "#65a30d" };
   if (score >= 2.8) return { className: "text-yellow-600", hex: "#ca8a04" };
@@ -84,17 +84,14 @@ function getScoreColor(score) {
 function safeCompanyName(company) {
   if (!company) return "";
   if (typeof company === "string") return company;
-  // react-select costuma usar { value, label }
   return company.label || company.value || "";
 }
 
 function getCompanyLogo(company) {
   if (!company || typeof company === "string") return "";
-  // compatível com vários formatos possíveis
   return company.logoUrl || company.logo || company.imageUrl || company.image || "";
 }
 
-/** Converte calcularMedia(emp) em número de forma robusta */
 function mediaToNumber(m) {
   if (typeof m === "number") return m;
   if (typeof m === "string") {
@@ -162,11 +159,10 @@ function TrabalheiLaDesktop({
   handleSubmit,
 
   calcularMedia,
-  getBadgeColor,
   top3,
-  getMedalColor, // pode continuar existindo (não atrapalha)
-  getMedalEmoji, // pode continuar existindo (não atrapalha)
 }) {
+  const navigate = useNavigate();
+
   const selectStyles = {
     control: (base, state) => ({
       ...base,
@@ -267,7 +263,6 @@ function TrabalheiLaDesktop({
     const list = (empresas || []).filter((e) => e?.company === selectedCompanyName);
     if (list.length === 0) return null;
 
-    // média da média (robusta, sem conhecer campos internos)
     const medias = list
       .map((e) => mediaToNumber(calcularMedia(e)))
       .filter((n) => Number.isFinite(n));
@@ -278,14 +273,16 @@ function TrabalheiLaDesktop({
     return Math.round(avg * 10) / 10;
   }, [empresas, selectedCompanyName, calcularMedia]);
 
-  const scoreColor = selectedCompanyScore == null ? null : getScoreColor(selectedCompanyScore);
+  const scoreColor =
+    selectedCompanyScore == null ? null : getScoreColor(selectedCompanyScore);
 
   function goToCompanyPage() {
     if (!selectedCompanyName) {
       document.getElementById("avaliacao")?.scrollIntoView({ behavior: "smooth" });
       return;
     }
-    window.location.href = `/empresa/${encodeURIComponent(selectedCompanyName)}`;
+    // SPA navigation (sem reload)
+    navigate(`/empresa/${encodeURIComponent(selectedCompanyName)}`);
   }
 
   return (
@@ -306,12 +303,9 @@ function TrabalheiLaDesktop({
           <div className="absolute -bottom-28 -right-28 w-96 h-96 bg-indigo-500 rounded-full blur-3xl" />
         </div>
 
-        <div
-          className="relative mx-auto px-6 md:px-8 py-6"
-          style={{ maxWidth: 1120 }}
-        >
+        <div className="relative mx-auto px-6 md:px-8 py-6" style={{ maxWidth: 1120 }}>
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
-            {/* ESQUERDA: marca + empresa selecionada */}
+            {/* ESQUERDA */}
             <div>
               <div className="flex items-start justify-between">
                 <div className="text-white/60 text-xs font-bold hidden md:block">
@@ -332,7 +326,6 @@ function TrabalheiLaDesktop({
                 )}
               </div>
 
-              {/* Marca em CAIXA ALTA */}
               <div className="text-center lg:text-left mt-3">
                 <h1 className="font-display text-4xl md:text-5xl font-extrabold text-white tracking-[0.12em]">
                   TRABALHEI{" "}
@@ -348,14 +341,12 @@ function TrabalheiLaDesktop({
                   Avaliações anônimas feitas por profissionais verificados.
                 </p>
 
-                {/* selos abaixo do título */}
                 <div className="mt-3 flex flex-wrap items-center justify-center lg:justify-start gap-4 text-white/75 text-xs font-semibold">
                   <span>✓ Anônimo</span>
                   <span>✓ Verificado</span>
                   <span>✓ Confiável</span>
                 </div>
 
-                {/* Empresa selecionada + logo + nota geral */}
                 <div className="mt-5 flex items-center justify-center lg:justify-start gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
                     {selectedCompanyLogo ? (
@@ -366,7 +357,9 @@ function TrabalheiLaDesktop({
                       />
                     ) : (
                       <span className="text-white font-extrabold">
-                        {selectedCompanyName ? selectedCompanyName[0]?.toUpperCase() : "?"}
+                        {selectedCompanyName
+                          ? selectedCompanyName[0]?.toUpperCase()
+                          : "?"}
                       </span>
                     )}
                   </div>
@@ -390,7 +383,6 @@ function TrabalheiLaDesktop({
                     </div>
                   </div>
 
-                  {/* Botão menor */}
                   <button
                     type="button"
                     onClick={goToCompanyPage}
@@ -403,7 +395,7 @@ function TrabalheiLaDesktop({
               </div>
             </div>
 
-            {/* DIREITA: ranking top 3 */}
+            {/* DIREITA: ranking */}
             <aside className="bg-white/10 border border-white/15 rounded-2xl p-4 backdrop-blur-md">
               <div className="text-white font-extrabold text-sm mb-3">
                 Ranking • Top 3
@@ -417,7 +409,7 @@ function TrabalheiLaDesktop({
                       key={idx}
                       type="button"
                       onClick={() =>
-                        (window.location.href = `/empresa/${encodeURIComponent(emp.company)}`)
+                        navigate(`/empresa/${encodeURIComponent(emp.company)}`)
                       }
                       className="w-full text-left flex items-center gap-3 bg-white/10 hover:bg-white/15 border border-white/10 rounded-xl px-3 py-2 transition"
                     >
@@ -426,9 +418,7 @@ function TrabalheiLaDesktop({
                         <div className="text-white font-bold text-sm truncate">
                           {emp.company}
                         </div>
-                        <div className="text-white/70 text-xs">
-                          {media} ⭐
-                        </div>
+                        <div className="text-white/70 text-xs">{media} ⭐</div>
                       </div>
                       <FaExternalLinkAlt className="text-white/60" size={12} />
                     </button>
@@ -466,7 +456,8 @@ function TrabalheiLaDesktop({
                   </h3>
                   <p className="text-sm text-white/90">
                     Usamos o LinkedIn ou Google apenas para verificar seu vínculo
-                    profissional. Suas avaliações são <strong>100% anônimas</strong>.
+                    profissional. Suas avaliações são{" "}
+                    <strong>100% anônimas</strong>.
                   </p>
                 </div>
               </div>
@@ -573,7 +564,9 @@ function TrabalheiLaDesktop({
               {!isAuthenticated ? (
                 <div className="w-full max-w-md space-y-3">
                   <LoginLinkedInButton
-                    clientId={process.env.REACT_APP_LINKEDIN_CLIENT_ID || "77dv5urtc8ixj3"}
+                    clientId={
+                      process.env.REACT_APP_LINKEDIN_CLIENT_ID || "77dv5urtc8ixj3"
+                    }
                     redirectUri="https://www.trabalheila.com.br/auth/linkedin"
                     onLoginSuccess={handleLinkedInSuccess}
                     onLoginFailure={handleLinkedInFailure}
