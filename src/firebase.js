@@ -11,9 +11,17 @@ const firebaseConfig = {
   appId: (process.env.REACT_APP_FIREBASE_APP_ID || "").trim(),
 };
 
-// Se já existir app inicializado, reutiliza (evita erro em dev/HMR)
-export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+// Diagnóstico seguro (não vaza a key)
+console.log("[firebase] apiKey length:", firebaseConfig.apiKey.length);
 
+// Falha com mensagem clara se env não chegou no build
+if (!firebaseConfig.apiKey) {
+  throw new Error(
+    "Firebase apiKey ausente. Verifique as variáveis REACT_APP_FIREBASE_* no ambiente de build/deploy."
+  );
+}
+
+export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
