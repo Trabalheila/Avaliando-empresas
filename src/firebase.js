@@ -1,28 +1,43 @@
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getAnalytics, isSupported } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: (process.env.REACT_APP_FIREBASE_API_KEY || "").trim(),
-  authDomain: (process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "").trim(),
-  projectId: (process.env.REACT_APP_FIREBASE_PROJECT_ID || "").trim(),
-  storageBucket: (process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "").trim(),
-  messagingSenderId: (process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "").trim(),
-  appId: (process.env.REACT_APP_FIREBASE_APP_ID || "").trim(),
+  apiKey: "AIzaSyCA4gSq_TLazbEMBSN_87aUKP9LA9AvsFk",
+  authDomain: "trabalheila.firebaseapp.com",
+  projectId: "trabalheila",
+  storageBucket: "trabalheila.firebasestorage.app",
+  messagingSenderId: "338684255438",
+  appId: "1:338684255438:web:88a03cf43a04adfe23449f",
+  measurementId: "G-3H8CY15WLE",
 };
 
-// Inicializa (ou reutiliza) o app
+// Reutiliza o app se já existir (evita erro de "app already exists")
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Falha rápida e com mensagem boa se o deploy não injetou as env vars
-if (!firebaseConfig.apiKey) {
-  throw new Error(
-    "Firebase apiKey ausente. Defina REACT_APP_FIREBASE_API_KEY no ambiente de build/deploy (ou use firebaseConfig hardcoded)."
-  );
-}
-
-// Ordem segura: Auth primeiro, depois Firestore
+// Serviços que você já usa
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-
 export const googleProvider = new GoogleAuthProvider();
+
+// Analytics (opcional): inicializa só se o ambiente suportar
+let analyticsInstance = null;
+
+/**
+ * Chame initAnalytics() apenas se você realmente for usar Analytics.
+ * (Isso evita crash em alguns ambientes e mantém o bundle mais previsível.)
+ */
+export async function initAnalytics() {
+  if (analyticsInstance) return analyticsInstance;
+
+  try {
+    const supported = await isSupported();
+    if (!supported) return null;
+
+    analyticsInstance = getAnalytics(app);
+    return analyticsInstance;
+  } catch {
+    return null;
+  }
+}
