@@ -1,6 +1,6 @@
 import { initializeApp, getApp, getApps } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: (process.env.REACT_APP_FIREBASE_API_KEY || "").trim(),
@@ -11,10 +11,18 @@ const firebaseConfig = {
   appId: (process.env.REACT_APP_FIREBASE_APP_ID || "").trim(),
 };
 
-// Debug opcional (fora do objeto) — pode remover depois
-console.log("[firebase] apiKey length:", firebaseConfig.apiKey.length);
-
+// Inicializa (ou reutiliza) o app
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+
+// Falha rápida e com mensagem boa se o deploy não injetou as env vars
+if (!firebaseConfig.apiKey) {
+  throw new Error(
+    "Firebase apiKey ausente. Defina REACT_APP_FIREBASE_API_KEY no ambiente de build/deploy (ou use firebaseConfig hardcoded)."
+  );
+}
+
+// Ordem segura: Auth primeiro, depois Firestore
 export const auth = getAuth(app);
+export const db = getFirestore(app);
+
 export const googleProvider = new GoogleAuthProvider();
