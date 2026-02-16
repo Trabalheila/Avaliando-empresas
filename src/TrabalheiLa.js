@@ -7,6 +7,7 @@ function TrabalheiLa() {
   // Estados compartilhados
   const [company, setCompany] = useState(null);
   const [newCompany, setNewCompany] = useState("");
+
   const [rating, setRating] = useState(0);
   const [contatoRH, setContatoRH] = useState(0);
   const [salarioBeneficios, setSalarioBeneficios] = useState(0);
@@ -20,10 +21,12 @@ function TrabalheiLa() {
   const [commentContatoRH, setCommentContatoRH] = useState("");
   const [commentSalarioBeneficios, setCommentSalarioBeneficios] = useState("");
   const [commentEstruturaEmpresa, setCommentEstruturaEmpresa] = useState("");
-  const [commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca] = useState("");
+  const [commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca] =
+    useState("");
   const [commentPlanoCarreiras, setCommentPlanoCarreiras] = useState("");
   const [commentBemestar, setCommentBemestar] = useState("");
-  const [commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao] = useState("");
+  const [commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao] =
+    useState("");
 
   const [comment, setComment] = useState("");
   const [empresas, setEmpresas] = useState([]);
@@ -35,29 +38,34 @@ function TrabalheiLa() {
   const [companies, setCompanies] = useState(() => {
     const base = Array.isArray(featuredCompanies) ? featuredCompanies : [];
 
-    const saved = localStorage.getItem("companies_custom");
-    const custom = saved ? JSON.parse(saved) : [];
+    let custom = [];
+    try {
+      const saved = localStorage.getItem("companies_custom");
+      custom = saved ? JSON.parse(saved) : [];
+      if (!Array.isArray(custom)) custom = [];
+    } catch {
+      custom = [];
+    }
 
     const merged = [...base];
     for (const name of custom) {
-      if (typeof name === "string" && name.trim() && !merged.includes(name.trim())) {
-        merged.push(name.trim());
-      }
+      const n = typeof name === "string" ? name.trim() : "";
+      if (n && !merged.includes(n)) merged.push(n);
     }
     return merged;
   });
 
-  // ✅ Detector de tela (desktop >= 1024)
-  const [isDesktop, setIsDesktop] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return window.matchMedia("(min-width: 1024px)").matches;
+  // ✅ Detector: decida por MOBILE (fica menos sujeito a “desktop fantasma”)
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(max-width: 1023px)").matches;
   });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const onChange = () => setIsDesktop(mq.matches);
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const onChange = () => setIsMobile(mq.matches);
 
     onChange();
 
@@ -68,7 +76,7 @@ function TrabalheiLa() {
       mq.addListener(onChange);
       return () => mq.removeListener(onChange);
     }
-  }, []);
+  }, []); // listener com cleanup <sources>[1]</sources>
 
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
@@ -76,9 +84,9 @@ function TrabalheiLa() {
   }, []);
 
   const companyOptions = useMemo(
-    () => companies.map((comp) => ({ label: comp, value: comp })),
+    () => (companies || []).map((c) => ({ label: c, value: c })),
     [companies]
-  );
+  ); // memo só pra não recriar array toda hora <sources>[2]</sources>
 
   const formatOptionLabel = ({ label }) => (
     <div className="flex items-center gap-2">
@@ -102,9 +110,10 @@ function TrabalheiLa() {
     if (!name) return;
 
     setCompanies((prev) => {
-      if (prev.includes(name)) return prev;
+      const current = Array.isArray(prev) ? prev : [];
+      if (current.includes(name)) return current;
 
-      const next = [...prev, name];
+      const next = [...current, name];
 
       // persiste só as custom (as que não estão no featured)
       const base = Array.isArray(featuredCompanies) ? featuredCompanies : [];
@@ -137,7 +146,8 @@ function TrabalheiLa() {
   const handleGoogleLogin = () => {
     setIsLoading(true);
     setTimeout(() => {
-      const fakeToken = "google_token_" + Math.random().toString(36).substr(2, 9);
+      const fakeToken =
+        "google_token_" + Math.random().toString(36).substr(2, 9);
       localStorage.setItem("auth_token", fakeToken);
       setIsAuthenticated(true);
       setIsLoading(false);
@@ -185,6 +195,7 @@ function TrabalheiLa() {
     setEmpresas((prev) => [novaAvaliacao, ...prev]);
 
     setCompany(null);
+    setNewCompany("");
     setRating(0);
     setComment("");
     setContatoRH(0);
@@ -249,7 +260,6 @@ function TrabalheiLa() {
     return "🏅";
   };
 
-  // Props compartilhadas
   const sharedProps = {
     company,
     setCompany,
@@ -314,10 +324,10 @@ function TrabalheiLa() {
     getMedalEmoji,
   };
 
-  return isDesktop ? (
-    <TrabalheiLaDesktop {...sharedProps} />
-  ) : (
+  return isMobile ? (
     <TrabalheiLaMobile {...sharedProps} />
+  ) : (
+    <TrabalheiLaDesktop {...sharedProps} />
   );
 }
 
