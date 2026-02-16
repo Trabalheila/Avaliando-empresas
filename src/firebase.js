@@ -13,18 +13,16 @@ const firebaseConfig = {
   measurementId: "G-3H8CY15WLE",
 };
 
-// diagnóstico leve (não imprime a chave, só o tamanho)
+// Só pra confirmar no deploy (não expõe a chave, só o tamanho)
 console.log("[firebase] apiKey length:", (firebaseConfig.apiKey || "").length);
 
-// inicializa uma vez
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// serviços
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// analytics opcional (não quebra se não suportar)
+// Analytics opcional (não deixa a app quebrar se não suportar)
 export let analytics = null;
 isSupported()
   .then((ok) => {

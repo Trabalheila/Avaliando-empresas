@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import TrabalheiLaMobile from './TrabalheiLaMobile';
-import TrabalheiLaDesktop from './TrabalheiLaDesktop';
+import React, { useEffect, useMemo, useState } from "react";
+import TrabalheiLaMobile from "./TrabalheiLaMobile";
+import TrabalheiLaDesktop from "./TrabalheiLaDesktop";
+import { featuredCompanies } from "./data/featuredCompanies";
 
 function TrabalheiLa() {
   // Estados compartilhados
   const [company, setCompany] = useState(null);
-  const [newCompany, setNewCompany] = useState('');
+  const [newCompany, setNewCompany] = useState("");
   const [rating, setRating] = useState(0);
   const [contatoRH, setContatoRH] = useState(0);
   const [salarioBeneficios, setSalarioBeneficios] = useState(0);
@@ -15,75 +16,79 @@ function TrabalheiLa() {
   const [bemestar, setBemestar] = useState(0);
   const [estimulacaoOrganizacao, setEstimulacaoOrganizacao] = useState(0);
 
-  const [commentRating, setCommentRating] = useState('');
-  const [commentContatoRH, setCommentContatoRH] = useState('');
-  const [commentSalarioBeneficios, setCommentSalarioBeneficios] = useState('');
-  const [commentEstruturaEmpresa, setCommentEstruturaEmpresa] = useState('');
-  const [commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca] = useState('');
-  const [commentPlanoCarreiras, setCommentPlanoCarreiras] = useState('');
-  const [commentBemestar, setCommentBemestar] = useState('');
-  const [commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao] = useState('');
+  const [commentRating, setCommentRating] = useState("");
+  const [commentContatoRH, setCommentContatoRH] = useState("");
+  const [commentSalarioBeneficios, setCommentSalarioBeneficios] = useState("");
+  const [commentEstruturaEmpresa, setCommentEstruturaEmpresa] = useState("");
+  const [commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca] = useState("");
+  const [commentPlanoCarreiras, setCommentPlanoCarreiras] = useState("");
+  const [commentBemestar, setCommentBemestar] = useState("");
+  const [commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao] = useState("");
 
-  const [comment, setComment] = useState('');
+  const [comment, setComment] = useState("");
   const [empresas, setEmpresas] = useState([]);
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [companies, setCompanies] = useState([
-    'Banco do Brasil',
-    'Raízen Combustíveis',
-    'Itaú Unibanco Holding',
-    'Grupo Raízen',
-    'Bradesco',
-    'Vale',
-    'Itaú Unibanco',
-    'Caixa Econômica Federal',
-    'Grupo Carrefour Brasil',
-    'Magazine Luiza',
-    'Ambev',
-    'Embraer',
-    'WEG',
-    'Suzano Papel e Celulose',
-    'XP Inc.',
-    "Rede D'Or São Luiz",
-    'Gerdau',
-    'CVC Brasil',
-    'Braskem',
-    'Infotec',
-    'Engemon',
-  ]);
+  // ✅ Companies: fonte = featuredCompanies + custom do localStorage
+  const [companies, setCompanies] = useState(() => {
+    const base = Array.isArray(featuredCompanies) ? featuredCompanies : [];
 
-  // Detector de tela
-  const [isDesktop, setIsDesktop] = useState(false);
+    const saved = localStorage.getItem("companies_custom");
+    const custom = saved ? JSON.parse(saved) : [];
+
+    const merged = [...base];
+    for (const name of custom) {
+      if (typeof name === "string" && name.trim() && !merged.includes(name.trim())) {
+        merged.push(name.trim());
+      }
+    }
+    return merged;
+  });
+
+  // ✅ Detector de tela (desktop >= 1024)
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.matchMedia("(min-width: 1024px)").matches;
+  });
 
   useEffect(() => {
-    const checkScreen = () => {
-      setIsDesktop(window.innerWidth >= 1024);
-    };
-    checkScreen();
-    window.addEventListener('resize', checkScreen);
-    return () => window.removeEventListener('resize', checkScreen);
-  }, []);
+    if (typeof window === "undefined") return;
 
-  useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      setIsAuthenticated(true);
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => setIsDesktop(mq.matches);
+
+    onChange();
+
+    if (mq.addEventListener) {
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    } else {
+      mq.addListener(onChange);
+      return () => mq.removeListener(onChange);
     }
   }, []);
 
-  const companyOptions = companies.map((comp) => ({ label: comp, value: comp }));
+  useEffect(() => {
+    const token = localStorage.getItem("auth_token");
+    if (token) setIsAuthenticated(true);
+  }, []);
+
+  const companyOptions = useMemo(
+    () => companies.map((comp) => ({ label: comp, value: comp })),
+    [companies]
+  );
 
   const formatOptionLabel = ({ label }) => (
     <div className="flex items-center gap-2">
       <img
         src={`https://logo.clearbit.com/${label
           .toLowerCase()
-          .replace(/\s/g, '')
-          .replace(/[^a-z0-9]/g, '')}.com`}
+          .replace(/\s/g, "")
+          .replace(/[^a-z0-9]/g, "")}.com`}
         onError={(e) => {
-          e.target.style.display = 'none';
+          e.target.style.display = "none";
         }}
         alt={`logo ${label}`}
         className="w-5 h-5 rounded"
@@ -93,48 +98,62 @@ function TrabalheiLa() {
   );
 
   const handleAddCompany = () => {
-    if (newCompany && !companies.includes(newCompany)) {
-      setCompanies([...companies, newCompany]);
-      setNewCompany('');
-      setCompany({ label: newCompany, value: newCompany });
-    }
+    const name = String(newCompany || "").trim();
+    if (!name) return;
+
+    setCompanies((prev) => {
+      if (prev.includes(name)) return prev;
+
+      const next = [...prev, name];
+
+      // persiste só as custom (as que não estão no featured)
+      const base = Array.isArray(featuredCompanies) ? featuredCompanies : [];
+      const customOnly = next.filter((n) => !base.includes(n));
+      localStorage.setItem("companies_custom", JSON.stringify(customOnly));
+
+      return next;
+    });
+
+    setNewCompany("");
+    setCompany({ label: name, value: name });
   };
 
   const handleLinkedInSuccess = async () => {
     setIsLoading(true);
     setTimeout(() => {
-      const fakeToken = 'token_' + Math.random().toString(36).substr(2, 9);
-      localStorage.setItem('auth_token', fakeToken);
+      const fakeToken = "token_" + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem("auth_token", fakeToken);
       setIsAuthenticated(true);
       setIsLoading(false);
-      alert('Autenticação realizada! Suas avaliações serão anônimas.');
+      alert("Autenticação realizada! Suas avaliações serão anônimas.");
     }, 1500);
   };
 
   const handleLinkedInFailure = (error) => {
-    console.error('Erro no LinkedIn:', error);
-    alert('Falha ao conectar com o LinkedIn. Tente novamente.');
+    console.error("Erro no LinkedIn:", error);
+    alert("Falha ao conectar com o LinkedIn. Tente novamente.");
   };
 
   const handleGoogleLogin = () => {
     setIsLoading(true);
     setTimeout(() => {
-      const fakeToken = 'google_token_' + Math.random().toString(36).substr(2, 9);
-      localStorage.setItem('auth_token', fakeToken);
+      const fakeToken = "google_token_" + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem("auth_token", fakeToken);
       setIsAuthenticated(true);
       setIsLoading(false);
-      alert('Login com Google realizado! Suas avaliações serão anônimas.');
+      alert("Login com Google realizado! Suas avaliações serão anônimas.");
     }, 1500);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
     if (!isAuthenticated) {
-      alert('Você precisa fazer login antes de avaliar.');
+      alert("Você precisa fazer login antes de avaliar.");
       return;
     }
     if (!company) {
-      alert('Selecione uma empresa antes de enviar.');
+      alert("Selecione uma empresa antes de enviar.");
       return;
     }
 
@@ -159,14 +178,15 @@ function TrabalheiLa() {
         estimulacaoOrganizacao: commentEstimulacaoOrganizacao,
       },
       comment,
-      area: 'Tecnologia',
-      periodo: '2021-2024',
+      area: "Tecnologia",
+      periodo: "2021-2024",
     };
 
-    setEmpresas([novaAvaliacao, ...empresas]);
+    setEmpresas((prev) => [novaAvaliacao, ...prev]);
+
     setCompany(null);
     setRating(0);
-    setComment('');
+    setComment("");
     setContatoRH(0);
     setSalarioBeneficios(0);
     setEstruturaEmpresa(0);
@@ -174,15 +194,17 @@ function TrabalheiLa() {
     setPlanoCarreiras(0);
     setBemestar(0);
     setEstimulacaoOrganizacao(0);
-    setCommentRating('');
-    setCommentContatoRH('');
-    setCommentSalarioBeneficios('');
-    setCommentEstruturaEmpresa('');
-    setCommentAcessibilidadeLideranca('');
-    setCommentPlanoCarreiras('');
-    setCommentBemestar('');
-    setCommentEstimulacaoOrganizacao('');
-    alert('Avaliação enviada com sucesso!');
+
+    setCommentRating("");
+    setCommentContatoRH("");
+    setCommentSalarioBeneficios("");
+    setCommentEstruturaEmpresa("");
+    setCommentAcessibilidadeLideranca("");
+    setCommentPlanoCarreiras("");
+    setCommentBemestar("");
+    setCommentEstimulacaoOrganizacao("");
+
+    alert("Avaliação enviada com sucesso!");
   };
 
   const calcularMedia = (emp) =>
@@ -199,29 +221,32 @@ function TrabalheiLa() {
     ).toFixed(1);
 
   const getBadgeColor = (nota) => {
-    if (nota >= 4.5) return 'bg-gradient-to-r from-green-400 to-emerald-500';
-    if (nota >= 3.5) return 'bg-gradient-to-r from-blue-400 to-cyan-500';
-    if (nota >= 2.5) return 'bg-gradient-to-r from-yellow-400 to-orange-500';
-    return 'bg-gradient-to-r from-red-400 to-pink-500';
+    if (nota >= 4.5) return "bg-gradient-to-r from-green-400 to-emerald-500";
+    if (nota >= 3.5) return "bg-gradient-to-r from-blue-400 to-cyan-500";
+    if (nota >= 2.5) return "bg-gradient-to-r from-yellow-400 to-orange-500";
+    return "bg-gradient-to-r from-red-400 to-pink-500";
   };
 
-  const empresasOrdenadas = [...empresas].sort(
-    (a, b) => calcularMedia(b) - calcularMedia(a)
-  );
+  const empresasOrdenadas = useMemo(() => {
+    const arr = [...empresas];
+    arr.sort((a, b) => calcularMedia(b) - calcularMedia(a));
+    return arr;
+  }, [empresas]);
+
   const top3 = empresasOrdenadas.slice(0, 3);
 
   const getMedalColor = (position) => {
-    if (position === 0) return 'from-yellow-400 to-yellow-600';
-    if (position === 1) return 'from-gray-300 to-gray-500';
-    if (position === 2) return 'from-orange-400 to-orange-600';
-    return 'from-gray-300 to-gray-500';
+    if (position === 0) return "from-yellow-400 to-yellow-600";
+    if (position === 1) return "from-gray-300 to-gray-500";
+    if (position === 2) return "from-orange-400 to-orange-600";
+    return "from-gray-300 to-gray-500";
   };
 
   const getMedalEmoji = (position) => {
-    if (position === 0) return '🥇';
-    if (position === 1) return '🥈';
-    if (position === 2) return '🥉';
-    return '🏅';
+    if (position === 0) return "🥇";
+    if (position === 1) return "🥈";
+    if (position === 2) return "🥉";
+    return "🏅";
   };
 
   // Props compartilhadas
@@ -230,6 +255,7 @@ function TrabalheiLa() {
     setCompany,
     newCompany,
     setNewCompany,
+
     rating,
     setRating,
     contatoRH,
@@ -246,6 +272,7 @@ function TrabalheiLa() {
     setBemestar,
     estimulacaoOrganizacao,
     setEstimulacaoOrganizacao,
+
     commentRating,
     setCommentRating,
     commentContatoRH,
@@ -262,19 +289,24 @@ function TrabalheiLa() {
     setCommentBemestar,
     commentEstimulacaoOrganizacao,
     setCommentEstimulacaoOrganizacao,
+
     comment,
     setComment,
     empresas,
+
     isAuthenticated,
     isLoading,
+
     companies,
     companyOptions,
     formatOptionLabel,
+
     handleAddCompany,
     handleLinkedInSuccess,
     handleLinkedInFailure,
     handleGoogleLogin,
     handleSubmit,
+
     calcularMedia,
     getBadgeColor,
     top3,
@@ -282,12 +314,11 @@ function TrabalheiLa() {
     getMedalEmoji,
   };
 
-  // Renderiza Mobile ou Desktop
-  if (isDesktop) {
-    return <TrabalheiLaDesktop {...sharedProps} />;
-  }
-
-  return <TrabalheiLaMobile {...sharedProps} />;
+  return isDesktop ? (
+    <TrabalheiLaDesktop {...sharedProps} />
+  ) : (
+    <TrabalheiLaMobile {...sharedProps} />
+  );
 }
 
 export default TrabalheiLa;

@@ -1,0 +1,23 @@
+// src/data/featuredCompanies.js
+export const featuredCompanies = [
+  "Banco do Brasil",
+  "Itaú Unibanco",
+  "Bradesco",
+  "Caixa Econômica Federal",
+  "Santander Brasil",
+  "Petrobras",
+  "Vale",
+  "Ambev",
+  "Embraer",
+  "WEG",
+  "Suzano",
+  "Gerdau",
+  "Magazine Luiza",
+  "Mercado Livre",
+  "Grupo Carrefour Brasil",
+  "Assaí Atacadista",
+  "Natura",
+  "Raia Drogasil (RD Saúde)",
+  "B3",
+  "Nubank",
+];
