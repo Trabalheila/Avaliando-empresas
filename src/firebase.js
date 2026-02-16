@@ -13,31 +13,21 @@ const firebaseConfig = {
   measurementId: "G-3H8CY15WLE",
 };
 
-// Reutiliza o app se já existir (evita erro de "app already exists")
+// diagnóstico leve (não imprime a chave, só o tamanho)
+console.log("[firebase] apiKey length:", (firebaseConfig.apiKey || "").length);
+
+// inicializa uma vez
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Serviços que você já usa
+// serviços
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Analytics (opcional): inicializa só se o ambiente suportar
-let analyticsInstance = null;
-
-/**
- * Chame initAnalytics() apenas se você realmente for usar Analytics.
- * (Isso evita crash em alguns ambientes e mantém o bundle mais previsível.)
- */
-export async function initAnalytics() {
-  if (analyticsInstance) return analyticsInstance;
-
-  try {
-    const supported = await isSupported();
-    if (!supported) return null;
-
-    analyticsInstance = getAnalytics(app);
-    return analyticsInstance;
-  } catch {
-    return null;
-  }
-}
+// analytics opcional (não quebra se não suportar)
+export let analytics = null;
+isSupported()
+  .then((ok) => {
+    if (ok) analytics = getAnalytics(app);
+  })
+  .catch(() => {});
