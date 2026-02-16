@@ -14,9 +14,11 @@ import {
 } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import Select from "react-select";
+
+// ⚠️ GARANTA que o nome do arquivo no disco bate com esse import (maiúsculas/minúsculas).
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
 
-/** ⭐ Estrela com contorno preto (overlay 100% confiável via inline style) */
+/** ⭐ Estrela com contorno preto */
 function OutlinedStar({ active, onClick, size = 18, label }) {
   const outlineScale = 1.24;
 
@@ -89,7 +91,13 @@ function safeCompanyName(company) {
 
 function getCompanyLogo(company) {
   if (!company || typeof company === "string") return "";
-  return company.logoUrl || company.logo || company.imageUrl || company.image || "";
+  return (
+    company.logoUrl ||
+    company.logo ||
+    company.imageUrl ||
+    company.image ||
+    ""
+  );
 }
 
 function mediaToNumber(m) {
@@ -161,7 +169,20 @@ function TrabalheiLaDesktop({
   calcularMedia,
   top3,
 }) {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // navegação programática <sources>[1]</sources>
+
+  // ✅ evita "No options" por options undefined/null
+  const safeCompanyOptions = Array.isArray(companyOptions) ? companyOptions : [];
+
+  // ✅ NÃO mascarar clientId: fallback fake causa "client_id inválido"
+  const linkedInClientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID;
+  const linkedInDisabled = Boolean(isLoading || !linkedInClientId);
+
+  // 🔎 debug rápido: remove depois
+  const debug = useMemo(() => {
+    const w = typeof window !== "undefined" ? window.innerWidth : null;
+    return { w, optCount: safeCompanyOptions.length };
+  }, [safeCompanyOptions.length]);
 
   const selectStyles = {
     control: (base, state) => ({
@@ -260,7 +281,10 @@ function TrabalheiLaDesktop({
 
   const selectedCompanyScore = useMemo(() => {
     if (!selectedCompanyName) return null;
-    const list = (empresas || []).filter((e) => e?.company === selectedCompanyName);
+
+    const list = (empresas || []).filter(
+      (e) => e?.company === selectedCompanyName
+    );
     if (list.length === 0) return null;
 
     const medias = list
@@ -278,10 +302,11 @@ function TrabalheiLaDesktop({
 
   function goToCompanyPage() {
     if (!selectedCompanyName) {
-      document.getElementById("avaliacao")?.scrollIntoView({ behavior: "smooth" });
+      document
+        .getElementById("avaliacao")
+        ?.scrollIntoView({ behavior: "smooth" });
       return;
     }
-    // SPA navigation (sem reload)
     navigate(`/empresa/${encodeURIComponent(selectedCompanyName)}`);
   }
 
@@ -295,6 +320,14 @@ function TrabalheiLaDesktop({
         backgroundAttachment: "fixed",
       }}
     >
+      {/* DEBUG BAR (remover depois) */}
+      <div className="mx-auto px-6 md:px-8 pt-3" style={{ maxWidth: 1120 }}>
+        <div className="bg-black/50 text-white text-[11px] px-3 py-2 rounded-xl border border-white/10">
+          viewport: <b>{debug.w ?? "?"}</b>px • companyOptions:{" "}
+          <b>{debug.optCount}</b>
+        </div>
+      </div>
+
       {/* HEADER */}
       <header className="relative overflow-hidden bg-slate-950/70 backdrop-blur-md border-b border-white/10 sticky top-0 z-50">
         {/* glow */}
@@ -303,7 +336,10 @@ function TrabalheiLaDesktop({
           <div className="absolute -bottom-28 -right-28 w-96 h-96 bg-indigo-500 rounded-full blur-3xl" />
         </div>
 
-        <div className="relative mx-auto px-6 md:px-8 py-6" style={{ maxWidth: 1120 }}>
+        <div
+          className="relative mx-auto px-6 md:px-8 py-6"
+          style={{ maxWidth: 1120 }}
+        >
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
             {/* ESQUERDA */}
             <div>
@@ -475,11 +511,16 @@ function TrabalheiLaDesktop({
               <Select
                 value={company}
                 onChange={setCompany}
-                options={companyOptions}
+                options={safeCompanyOptions}
                 formatOptionLabel={formatOptionLabel}
                 placeholder="Digite ou selecione..."
                 styles={selectStyles}
                 classNamePrefix="react-select"
+                noOptionsMessage={() =>
+                  safeCompanyOptions.length === 0
+                    ? "Sem empresas (options vazio)"
+                    : "Nenhuma opção"
+                }
               />
 
               <div className="flex gap-2 mt-3">
@@ -564,14 +605,18 @@ function TrabalheiLaDesktop({
               {!isAuthenticated ? (
                 <div className="w-full max-w-md space-y-3">
                   <LoginLinkedInButton
-                    clientId={
-                      process.env.REACT_APP_LINKEDIN_CLIENT_ID || "77dv5urtc8ixj3"
-                    }
+                    clientId={linkedInClientId}
                     redirectUri="https://www.trabalheila.com.br/auth/linkedin"
                     onLoginSuccess={handleLinkedInSuccess}
                     onLoginFailure={handleLinkedInFailure}
-                    disabled={isLoading}
+                    disabled={linkedInDisabled}
                   />
+
+                  {!linkedInClientId && (
+                    <div className="text-xs text-rose-700 font-bold">
+                      REACT_APP_LINKEDIN_CLIENT_ID não está definido no build.
+                    </div>
+                  )}
 
                   <button
                     type="button"
@@ -611,7 +656,6 @@ function TrabalheiLaDesktop({
         </div>
       </section>
 
-      {/* Footer */}
       <footer
         className="mx-auto px-6 md:px-8 py-8 text-center"
         style={{ maxWidth: 1120 }}

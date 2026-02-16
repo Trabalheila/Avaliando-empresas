@@ -1,10 +1,43 @@
 import React, { useEffect, useMemo, useState } from "react";
 import TrabalheiLaMobile from "./TrabalheiLaMobile";
 import TrabalheiLaDesktop from "./TrabalheiLaDesktop";
-import { featuredCompanies } from "./data/featuredCompanies";
+import * as featuredModule from "./data/featuredCompanies";
+
+const featuredSeed = featuredModule.featuredCompanies ?? featuredModule.default ?? [];
+
+function normalizeCompanyName(item) {
+  if (typeof item === "string") return item.trim();
+
+  if (item && typeof item === "object") {
+    // tenta achar um "nome" em formatos comuns
+    const candidate =
+      item.name ??
+      item.company ??
+      item.nome ??
+      item.label ??
+      item.value;
+
+    if (typeof candidate === "string") return candidate.trim();
+  }
+
+  return "";
+}
+
+function uniqueStrings(list) {
+  const out = [];
+  const seen = new Set();
+  for (const x of list) {
+    const s = typeof x === "string" ? x.trim() : "";
+    if (!s) continue;
+    const key = s.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(s);
+  }
+  return out;
+}
 
 function TrabalheiLa() {
-  // Estados compartilhados
   const [company, setCompany] = useState(null);
   const [newCompany, setNewCompany] = useState("");
 
@@ -34,9 +67,13 @@ function TrabalheiLa() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // ✅ Companies: fonte = featuredCompanies + custom do localStorage
+  // ✅ Companies: featured + custom do localStorage (robusto)
   const [companies, setCompanies] = useState(() => {
-    const base = Array.isArray(featuredCompanies) ? featuredCompanies : [];
+    const baseRaw = Array.isArray(featuredSeed) ? featuredSeed : [];
+    const base = uniqueStrings(baseRaw.map(normalizeCompanyName));
+
+    // SSR/ambiente sem window
+    if (typeof window === "undefined") return base;
 
     let custom = [];
     try {
@@ -47,15 +84,11 @@ function TrabalheiLa() {
       custom = [];
     }
 
-    const merged = [...base];
-    for (const name of custom) {
-      const n = typeof name === "string" ? name.trim() : "";
-      if (n && !merged.includes(n)) merged.push(n);
-    }
+    const merged = uniqueStrings([...base, ...custom.map((x) => String(x))]);
     return merged;
   });
 
-  // ✅ Detector: decida por MOBILE (fica menos sujeito a “desktop fantasma”)
+  // ✅ Detector de tela (mobile <= 1023)
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.matchMedia("(max-width: 1023px)").matches;
@@ -76,17 +109,37 @@ function TrabalheiLa() {
       mq.addListener(onChange);
       return () => mq.removeListener(onChange);
     }
-  }, []); // listener com cleanup <sources>[1]</sources>
+  }, []); // listener + cleanup <sources>[1]</sources>
 
+  // ✅ Auth inicial
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const token = localStorage.getItem("auth_token");
-    if (token) setIsAuthenticated(true);
+    setIsAuthenticated(Boolean(token));
   }, []);
 
+  // ✅ Mantém auth em sync se localStorage mudar (útil p/ popup/callback real)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const onStorage = (e) => {
+      if (e.key === "auth_token") {
+        setIsAuthenticated(Boolean(e.newValue));
+      }
+    };
+
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []); // padrão de event listener com cleanup <sources>[1,9]</sources>
+
   const companyOptions = useMemo(
-    () => (companies || []).map((c) => ({ label: c, value: c })),
+    () =>
+      (Array.isArray(companies) ? companies : []).map((c) => ({
+        label: c,
+        value: c,
+      })),
     [companies]
-  ); // memo só pra não recriar array toda hora <sources>[2]</sources>
+  );
 
   const formatOptionLabel = ({ label }) => (
     <div className="flex items-center gap-2">
@@ -111,14 +164,20 @@ function TrabalheiLa() {
 
     setCompanies((prev) => {
       const current = Array.isArray(prev) ? prev : [];
-      if (current.includes(name)) return current;
+      const next = uniqueStrings([...current, name]);
 
-      const next = [...current, name];
+      // persiste só as custom (as que não estão no featured normalizado)
+      const baseRaw = Array.isArray(featuredSeed) ? featuredSeed : [];
+      const base = uniqueStrings(baseRaw.map(normalizeCompanyName));
+      const customOnly = next.filter(
+        (n) => !base.some((b) => b.toLowerCase() === n.toLowerCase())
+      );
 
-      // persiste só as custom (as que não estão no featured)
-      const base = Array.isArray(featuredCompanies) ? featuredCompanies : [];
-      const customOnly = next.filter((n) => !base.includes(n));
-      localStorage.setItem("companies_custom", JSON.stringify(customOnly));
+      try {
+        localStorage.setItem("companies_custom", JSON.stringify(customOnly));
+      } catch {
+        // ignore
+      }
 
       return next;
     });
@@ -218,23 +277,32 @@ function TrabalheiLa() {
     alert("Avaliação enviada com sucesso!");
   };
 
-  const calcularMedia = (emp) =>
-    (
-      (emp.rating +
-        emp.contatoRH +
-        emp.salarioBeneficios +
-        emp.estruturaEmpresa +
-        emp.acessibilidadeLideranca +
-        emp.planoCarreiras +
-        emp.bemestar +
-        emp.estimulacaoOrganizacao) /
-      8
-    ).toFixed(1);
+  // ✅ agora retorna NUMBER (melhor p/ sort e cálculos)
+  const calcularMedia = (emp) => {
+    const values = [
+      emp?.rating,
+      emp?.contatoRH,
+      emp?.salarioBeneficios,
+      emp?.estruturaEmpresa,
+      emp?.acessibilidadeLideranca,
+      emp?.planoCarreiras,
+      emp?.bemestar,
+      emp?.estimulacaoOrganizacao,
+    ]
+      .map((v) => Number(v))
+      .filter((n) => Number.isFinite(n));
+
+    if (values.length === 0) return 0;
+
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    return Math.round(avg * 10) / 10;
+  };
 
   const getBadgeColor = (nota) => {
-    if (nota >= 4.5) return "bg-gradient-to-r from-green-400 to-emerald-500";
-    if (nota >= 3.5) return "bg-gradient-to-r from-blue-400 to-cyan-500";
-    if (nota >= 2.5) return "bg-gradient-to-r from-yellow-400 to-orange-500";
+    const n = Number(nota);
+    if (n >= 4.5) return "bg-gradient-to-r from-green-400 to-emerald-500";
+    if (n >= 3.5) return "bg-gradient-to-r from-blue-400 to-cyan-500";
+    if (n >= 2.5) return "bg-gradient-to-r from-yellow-400 to-orange-500";
     return "bg-gradient-to-r from-red-400 to-pink-500";
   };
 
