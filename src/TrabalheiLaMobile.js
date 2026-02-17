@@ -13,7 +13,7 @@ import { FcGoogle } from "react-icons/fc";
 import Select from "react-select";
 
 // ⚠️ IMPORTANTE: esse import precisa bater EXATAMENTE com o nome do arquivo no disco.
-// Se o arquivo for LoginLinkedinButton.js, então importe LoginLinkedinButton (sem "In" maiúsculo).
+// Se o arquivo for LoginLinkedInButton.js, então importe LoginLinkedInButton (sem "In" maiúsculo).
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
 
 // Se você realmente precisa desse CSS aqui, ok. Se já estiver no index.js, pode remover para evitar duplicidade.
