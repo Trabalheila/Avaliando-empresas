@@ -8,6 +8,7 @@ import {
   // FaRocket, // Removido: 'FaRocket' não é usado
   FaHeart,
   FaChartBar,
+  // FaMedal, // Removido: 'FaMedal' é importado em TrabalheiLa.js
   FaBriefcase,
   FaLightbulb,
 } from "react-icons/fa";
@@ -51,7 +52,7 @@ function OutlinedStar({ active, onClick, size = 18, label }) {
             left: 0,
             top: 0,
             transform: `scale(${outlineScale})`,
-            transformOrigin: "center",
+            transformOrigin: "center", // Acessibilidade: CORREÇÃO DA STRING LITERAL
           }}
           aria-hidden="true"
         >
@@ -102,8 +103,8 @@ function TrabalheiLaMobile({
   setCommentPlanoCarreiras,
   commentBemestar,
   setCommentBemestar,
-  commentEstimulacaoOrganizacao, // Corrigido: Agora está sendo passado como prop
-  setCommentEstimulacaoOrganizacao, // Corrigido: Agora está sendo passado como prop
+  commentEstimulacaoOrganizacao,
+  setCommentEstimulacaoOrganizacao,
   comment,
   setComment,
   empresas,
@@ -123,19 +124,6 @@ function TrabalheiLaMobile({
   getMedalColor,
   getMedalEmoji,
 }) {
-  // O estado isMobile foi movido para TrabalheiLa.js, então não é mais necessário aqui.
-  // const [isMobile, setIsMobile] = useState(
-  //   () => typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches
-  // );
-
-  // useEffect(() => {
-  //   if (typeof window === "undefined") return;
-  //   const mediaQuery = window.matchMedia("(max-width: 768px)");
-  //   const handler = (e) => setIsMobile(e.matches);
-  //   mediaQuery.addEventListener("change", handler);
-  //   return () => mediaQuery.removeEventListener("change", handler);
-  // }, []);
-
   const safeCompanyOptions = Array.isArray(companyOptions) ? companyOptions : [];
 
   const linkedInClientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID || "";
@@ -150,8 +138,8 @@ function TrabalheiLaMobile({
     control: (base, state) => ({
       ...base,
       borderRadius: 14,
-      borderColor: state.isFocused ? "#8b5cf6" : "#e2e8f0",
-      boxShadow: state.isFocused ? "0 0 0 3px rgba(139,92,246,.25)" : "none",
+      borderColor: state.isFocused ? "#22d3ee" : "#e2e8f0",
+      boxShadow: state.isFocused ? "0 0 0 3px rgba(34,211,238,.25)" : "none",
       padding: "2px 6px",
       minHeight: 44,
     }),
@@ -176,8 +164,8 @@ function TrabalheiLaMobile({
       setComment: setCommentRating,
     },
     {
-      id: "contato-rh",
-      label: "Contato do RH",
+      id: "contato-rh", // Acessibilidade: ID único
+      label: "Contato com RH",
       value: contatoRH,
       setter: setContatoRH,
       icon: FaHandshake,
@@ -186,7 +174,7 @@ function TrabalheiLaMobile({
       setComment: setCommentContatoRH,
     },
     {
-      id: "salario-beneficios",
+      id: "salario-beneficios", // Acessibilidade: ID único
       label: "Salário e Benefícios",
       value: salarioBeneficios,
       setter: setSalarioBeneficios,
@@ -196,28 +184,28 @@ function TrabalheiLaMobile({
       setComment: setCommentSalarioBeneficios,
     },
     {
-      id: "estrutura-empresa",
+      id: "estrutura-empresa", // Acessibilidade: ID único
       label: "Estrutura da Empresa",
       value: estruturaEmpresa,
       setter: setEstruturaEmpresa,
       icon: FaBuilding,
-      color: "text-gray-500",
+      color: "text-purple-500",
       comment: commentEstruturaEmpresa,
       setComment: setCommentEstruturaEmpresa,
     },
     {
-      id: "acessibilidade-lideranca",
+      id: "acessibilidade-lideranca", // Acessibilidade: ID único
       label: "Acessibilidade à Liderança",
       value: acessibilidadeLideranca,
       setter: setAcessibilidadeLideranca,
       icon: FaUserTie,
-      color: "text-purple-500",
+      color: "text-indigo-500",
       comment: commentAcessibilidadeLideranca,
       setComment: setCommentAcessibilidadeLideranca,
     },
     {
-      id: "plano-carreiras",
-      label: "Plano de Carreiras",
+      id: "plano-carreiras", // Acessibilidade: ID único
+      label: "Plano de Carreira",
       value: planoCarreiras,
       setter: setPlanoCarreiras,
       icon: FaBriefcase,
@@ -226,8 +214,8 @@ function TrabalheiLaMobile({
       setComment: setCommentPlanoCarreiras,
     },
     {
-      id: "bem-estar",
-      label: "Bem-estar e Ambiente",
+      id: "bem-estar", // Acessibilidade: ID único
+      label: "Bem-estar",
       value: bemestar,
       setter: setBemestar,
       icon: FaHeart,
@@ -236,7 +224,7 @@ function TrabalheiLaMobile({
       setComment: setCommentBemestar,
     },
     {
-      id: "estimulacao-organizacao",
+      id: "estimulacao-organizacao", // Acessibilidade: ID único
       label: "Estímulo e Organização",
       value: estimulacaoOrganizacao,
       setter: setEstimulacaoOrganizacao,
@@ -260,133 +248,104 @@ function TrabalheiLaMobile({
       {/* DEBUG BAR (remova depois) */}
       <div className="max-w-7xl mx-auto mb-4">
         <div className="bg-black/50 text-white text-[11px] px-4 py-2 rounded-xl border border-white/10">
-          viewport: <b>{debug.w ?? "?"}</b>px • companyOptions:{" "}
-          <b>{debug.optCount}</b>
+          DEBUG: {JSON.stringify(debug)}
         </div>
       </div>
 
-      <div className="max-w-xl mx-auto px-4">
-        <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200">
-          <div className="flex items-center justify-between gap-4 mb-6">
-            <div className="text-left">
-              <h1 className="text-4xl font-black text-slate-900 tracking-tight drop-shadow-[0_0_10px_rgba(0,0,0,0.1)]">
-                Trabalhei{" "}
-                <span className="text-purple-600 drop-shadow-[0_0_8px_rgba(0,0,0,0.1)]">
-                  Lá
-                </span>
-              </h1>
-              <p className="text-slate-600 mt-1 text-sm">
-                Avalie empresas de forma anônima e ajude a comunidade!
-              </p>
-            </div>
-            <img
-              src="/logo.svg"
-              alt="Logo Trabalhei Lá"
-              className="w-16 h-16 object-contain drop-shadow-lg"
-            />
-          </div>
+      <div className="max-w-md mx-auto px-4">
+        <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 mt-8">
+          <h1 className="text-3xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-6">
+            Avalie uma Empresa
+          </h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Nome da Empresa */}
+            {/* Seleção de Empresa */}
             <div>
               <label
                 htmlFor="company-select-mobile"
                 className="block text-sm font-extrabold text-slate-800 mb-2"
               >
-                🏢 Nome da Empresa
+                🏢 Empresa
               </label>
               <Select
                 id="company-select-mobile"
                 options={companyOptions}
                 value={company}
                 onChange={setCompany}
+                onCreateOption={handleAddCompany}
                 formatOptionLabel={formatOptionLabel}
                 isClearable
-                placeholder="Selecione ou digite o nome da empresa"
+                isSearchable
+                placeholder="Selecione ou digite uma empresa"
                 styles={selectStyles}
+                className="react-select-container"
                 classNamePrefix="react-select"
               />
-            </div>
-
-            {/* Adicionar Nova Empresa */}
-            <div className="flex items-end gap-2">
-              <div className="flex-1">
-                <label
-                  htmlFor="new-company-input-mobile"
-                  className="block text-sm font-extrabold text-slate-800 mb-2"
-                >
-                  ➕ Ou adicione uma nova empresa
-                </label>
+              {company && company.value === "add-new" && (
                 <input
-                  id="new-company-input-mobile"
                   type="text"
                   value={newCompany}
                   onChange={(e) => setNewCompany(e.target.value)}
-                  className="w-full border-2 border-slate-200 p-3 rounded-2xl focus:ring-2 focus:ring-purple-400 focus:border-transparent text-sm bg-white/80"
-                  placeholder="Digite o nome da nova empresa"
+                  placeholder="Nome da nova empresa"
+                  className="mt-2 w-full border-2 border-slate-200 p-3 rounded-2xl focus:ring-2 focus:ring-cyan-400 focus:border-transparent text-sm bg-white/80"
                 />
-              </div>
-              <button
-                type="button"
-                onClick={handleAddCompany}
-                disabled={!newCompany.trim()}
-                className="px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white font-extrabold rounded-xl text-sm transition-colors"
-              >
-                Adicionar
-              </button>
+              )}
             </div>
 
             {/* Critérios de Avaliação */}
-            <div className="grid grid-cols-1 gap-4">
-              {criteria.map((item, idx) => {
-                const Icon = item.icon;
-                return (
-                  <div
-                    key={idx}
-                    className="bg-white rounded-2xl p-4 border-2 border-slate-200 hover:border-purple-400 hover:shadow-lg transition-all"
+            <div className="space-y-5">
+              {criteria.map((criterion) => (
+                <div
+                  key={criterion.id}
+                  className="bg-white rounded-2xl p-5 border-2 border-slate-200"
+                >
+                  <label
+                    htmlFor={`${criterion.id}-stars-mobile`}
+                    className="block text-sm font-extrabold text-slate-800 mb-2"
                   >
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Icon className={item.color} size={14} />
-                        <span className="truncate text-[12px] font-extrabold text-slate-900">
-                          {item.label}
-                        </span>
-                      </div>
-                      <span className="text-xs font-extrabold text-purple-700 whitespace-nowrap">
-                        {item.value}/5
-                      </span>
-                    </div>
-
-                    <div className="flex justify-center gap-2 mb-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <OutlinedStar
-                          key={star}
-                          size={18}
-                          active={star <= item.value}
-                          onClick={() => item.setter(star)}
-                          label={`${item.label}: dar nota ${star} de 5`}
-                        />
-                      ))}
-                    </div>
-
-                    <label htmlFor={`${item.id}-comment-mobile`} className="sr-only">
-                      Comentário sobre {item.label.toLowerCase()}
-                    </label>
-                    <textarea
-                      id={`${item.id}-comment-mobile`}
-                      value={item.comment}
-                      onChange={(e) => item.setComment(e.target.value)}
-                      rows={2}
-                      className="w-full border-2 border-slate-200 p-2 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-transparent resize-y text-xs bg-white/80"
-                      placeholder={`Comentário sobre ${item.label.toLowerCase()} (opcional)`}
+                    <criterion.icon
+                      className={`${criterion.color} inline-block mr-2`}
                     />
+                    {criterion.label}
+                  </label>
+                  <div
+                    id={`${criterion.id}-stars-mobile`}
+                    className="flex items-center gap-1 mb-3"
+                    role="radiogroup"
+                    aria-label={`Avaliação de ${criterion.label}`}
+                  >
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <OutlinedStar
+                        key={star}
+                        active={star <= criterion.value}
+                        onClick={() => criterion.setter(star)}
+                        label={`Avaliar ${criterion.label} com ${star} de 5 estrelas`}
+                      />
+                    ))}
+                    <span className="ml-2 text-sm font-semibold text-slate-600">
+                      {criterion.value} de 5
+                    </span>
                   </div>
-                );
-              })}
+                  <label
+                    htmlFor={`${criterion.id}-comment-mobile`}
+                    className="block text-xs font-semibold text-slate-700 mb-1"
+                  >
+                    Comentário (opcional)
+                  </label>
+                  <textarea
+                    id={`${criterion.id}-comment-mobile`}
+                    value={criterion.comment}
+                    onChange={(e) => criterion.setComment(e.target.value)}
+                    rows={2}
+                    className="w-full border-2 border-slate-200 p-2 rounded-xl focus:ring-2 focus:ring-cyan-400 focus:border-transparent resize-y text-xs bg-white/80"
+                    placeholder={`Detalhes sobre ${criterion.label.toLowerCase()}`}
+                  />
+                </div>
+              ))}
             </div>
 
             {/* Comentário Geral */}
-            <div className="bg-white rounded-2xl p-5 border-2 border-purple-200">
+            <div className="bg-white rounded-2xl p-5 border-2 border-violet-200">
               <label
                 htmlFor="general-comment-mobile"
                 className="block text-sm font-extrabold text-slate-800 mb-2"
@@ -398,7 +357,7 @@ function TrabalheiLaMobile({
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 rows={3}
-                className="w-full border-2 border-purple-200 p-3 rounded-2xl focus:ring-2 focus:ring-purple-400 focus:border-transparent resize-y text-sm bg-white/80"
+                className="w-full border-2 border-violet-200 p-3 rounded-2xl focus:ring-2 focus:ring-cyan-400 focus:border-transparent resize-y text-sm bg-white/80"
                 placeholder="Compartilhe uma visão geral sobre sua experiência"
               />
             </div>
@@ -458,8 +417,8 @@ function TrabalheiLaMobile({
           </form>
         </div>
 
-        {/* Ranking e Outras Avaliações (Mobile) */}
-        <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 mt-6">
+        {/* Ranking e Outras Avaliações */}
+        <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 mt-8">
           <div className="flex flex-col items-center mb-4">
             <h2 className="text-xl font-bold text-slate-700 text-center mb-3">
               Ranking - Top Empresas Avaliadas
