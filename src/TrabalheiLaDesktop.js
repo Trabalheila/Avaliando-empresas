@@ -91,27 +91,6 @@ function safeCompanyName(company) {
   return company.label || company.value || "";
 }
 
-function getCompanyLogo(company) {
-  if (!company || typeof company === "string") return "";
-  return (
-    company.logoUrl ||
-    company.logo ||
-    company.imageUrl ||
-    company.image ||
-    ""
-  );
-}
-
-function mediaToNumber(m) {
-  if (typeof m === "number") return m;
-  if (typeof m === "string") {
-    const cleaned = m.replace(",", ".").match(/[\d.]+/g)?.[0];
-    const n = cleaned ? Number(cleaned) : NaN;
-    return Number.isFinite(n) ? n : NaN;
-  }
-  return NaN;
-}
-
 function TrabalheiLaDesktop({
   company,
   setCompany,
@@ -154,6 +133,7 @@ function TrabalheiLaDesktop({
   empresas,
   isAuthenticated,
   isLoading,
+  companies,
   companyOptions,
   formatOptionLabel,
   handleAddCompany,
@@ -162,13 +142,16 @@ function TrabalheiLaDesktop({
   handleGoogleLogin,
   handleSubmit,
   calcularMedia,
+  getBadgeColor,
   top3,
+  getMedalColor,
+  getMedalEmoji,
 }) {
   const navigate = useNavigate();
 
   const safeCompanyOptions = Array.isArray(companyOptions) ? companyOptions : [];
 
-  const linkedInClientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID || ""; // Acessibilidade: Garante que seja string
+  const linkedInClientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID || "";
   const linkedInDisabled = Boolean(isLoading || !linkedInClientId);
 
   const debug = useMemo(() => {
@@ -211,37 +194,37 @@ function TrabalheiLaDesktop({
       value: contatoRH,
       setter: setContatoRH,
       icon: FaHandshake,
-      color: "text-blue-600",
+      color: "text-blue-500",
       comment: commentContatoRH,
       setComment: setCommentContatoRH,
     },
     {
       id: "salario-beneficios", // Acessibilidade: ID único
-      label: "Salário",
+      label: "Salário e Benefícios",
       value: salarioBeneficios,
       setter: setSalarioBeneficios,
       icon: FaMoneyBillWave,
-      color: "text-emerald-600",
+      color: "text-green-500",
       comment: commentSalarioBeneficios,
       setComment: setCommentSalarioBeneficios,
     },
     {
       id: "estrutura-empresa", // Acessibilidade: ID único
-      label: "Estrutura",
+      label: "Estrutura da Empresa",
       value: estruturaEmpresa,
       setter: setEstruturaEmpresa,
       icon: FaBuilding,
-      color: "text-slate-700",
+      color: "text-purple-500",
       comment: commentEstruturaEmpresa,
       setComment: setCommentEstruturaEmpresa,
     },
     {
       id: "acessibilidade-lideranca", // Acessibilidade: ID único
-      label: "Liderança",
+      label: "Acessibilidade à Liderança",
       value: acessibilidadeLideranca,
       setter: setAcessibilidadeLideranca,
       icon: FaUserTie,
-      color: "text-violet-700",
+      color: "text-cyan-500",
       comment: commentAcessibilidadeLideranca,
       setComment: setCommentAcessibilidadeLideranca,
     },
@@ -250,8 +233,8 @@ function TrabalheiLaDesktop({
       label: "Plano de Carreira",
       value: planoCarreiras,
       setter: setPlanoCarreiras,
-      icon: FaBriefcase, // Ícone atualizado
-      color: "text-rose-700",
+      icon: FaBriefcase,
+      color: "text-indigo-500",
       comment: commentPlanoCarreiras,
       setComment: setCommentPlanoCarreiras,
     },
@@ -261,138 +244,101 @@ function TrabalheiLaDesktop({
       value: bemestar,
       setter: setBemestar,
       icon: FaHeart,
-      color: "text-pink-700",
+      color: "text-rose-500",
       comment: commentBemestar,
       setComment: setCommentBemestar,
     },
     {
       id: "estimulacao-organizacao", // Acessibilidade: ID único
-      label: "Organização",
+      label: "Estímulo e Organização",
       value: estimulacaoOrganizacao,
       setter: setEstimulacaoOrganizacao,
-      icon: FaLightbulb, // Ícone atualizado
-      color: "text-indigo-700",
+      icon: FaLightbulb,
+      color: "text-orange-500",
       comment: commentEstimulacaoOrganizacao,
       setComment: setCommentEstimulacaoOrganizacao,
     },
   ];
 
-  const selectedCompanyName = safeCompanyName(company);
-  const selectedCompanyLogo = getCompanyLogo(company);
-
-  const selectedCompanyScore = useMemo(() => {
-    if (!selectedCompanyName) return null;
-
-    const list = (empresas || []).filter(
-      (e) => e?.company === selectedCompanyName
-    );
-    if (list.length === 0) return null;
-
-    const medias = list
-      .map((e) => mediaToNumber(calcularMedia(e)))
-      .filter((n) => Number.isFinite(n));
-
-    if (med..          <div className="flex items-center justify-between gap-4">
-              <div className="text-left">
-                <h1 className="text-4xl font-black text-slate-900 tracking-tight drop-shadow-[0_0_10px_rgba(0,0,0,0.1)]">
-                  Trabalhei{" "}
-                  <span className="text-cyan-500 drop-shadow-[0_0_8px_rgba(0,0,0,0.1)]">
-                    Lá
-                  </span>
-                </h1>
-                <p className="mt-2 text-sm font-bold text-slate-700">
-                  Avaliações reais, anônimas e confiáveis.
-                </p>
-              </div>
-
-              {isAuthenticated && (
-                <div className="flex items-center gap-2 bg-emerald-500/10 px-4 py-2 rounded-full shadow-lg border border-emerald-500/30 backdrop-blur-md">
-                  <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm text-emerald-700 font-semibold">
-                    Autenticado
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
+  return (
+    <div
+      className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 text-slate-800"
+      style={{
+        backgroundImage: 'url("/fundo-new.png")',
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      }}
+    >
+      {/* DEBUG BAR (remova depois) */}
+      <div className="max-w-7xl mx-auto mb-4">
+        <div className="bg-black/50 text-white text-[11px] px-4 py-2 rounded-xl border border-white/10">
+          viewport: <b>{debug.w ?? "?"}</b>px • companyOptions:{" "}
+          <b>{debug.optCount}</b>
         </div>
-      </header>
+      </div>
 
-      <section className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+      <section
+        className="grid grid-cols-1 lg:grid-cols-2 gap-6 mx-auto px-4"
+        style={{ maxWidth: 1120 }}
+      >
         {/* Formulário de Avaliação */}
         <div>
           <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200">
-            <div className="text-center mb-6">
-              <h2 className="text-3xl font-extrabold text-slate-800 mb-2">
-                Sua Avaliação Faz a Diferença!
-              </h2>
-              <p className="text-slate-600">
-                Sua opinião é anônima e ajuda outros profissionais
-              </p>
-            </div>
-
-            {/* Mensagem de privacidade */}
-            {!isAuthenticated && (
-              <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-5 mb-6 text-white shadow-lg">
-                <div className="flex items-start gap-3">
-                  <div className="text-2xl">🔒</div>
-                  <div>
-                    <h3 className="font-bold text-lg mb-1">
-                      Sua privacidade é garantida
-                    </h3>
-                    <p className="text-sm text-white/90">
-                      Usamos o LinkedIn ou Google apenas para verificar seu
-                      vínculo profissional. Suas avaliações são{" "}
-                      <strong>100% anônimas</strong>.
-                    </p>
-                  </div>
-                </div>
+            <div className="flex items-center justify-between gap-4 mb-6">
+              <div className="text-left">
+                <h1 className="text-4xl font-black text-slate-900 tracking-tight drop-shadow-[0_0_10px_rgba(0,0,0,0.1)]">
+                  Trabalhei{" "}
+                  <span className="text-indigo-600 drop-shadow-[0_0_8px_rgba(0,0,0,0.1)]">
+                    Lá
+                  </span>
+                </h1>
+                <p className="text-slate-600 mt-1 text-sm">
+                  Avalie empresas de forma anônima e ajude a comunidade!
+                </p>
               </div>
-            )}
+              <img
+                src="/logo.svg"
+                alt="Logo Trabalhei Lá"
+                className="w-16 h-16 object-contain drop-shadow-lg"
+              />
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Seleção de Empresa */}
-              <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-5 border border-slate-200">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 border-2 border-blue-200">
                 <label
                   htmlFor="company-select-desktop" // Acessibilidade: htmlFor
-                  className="block text-sm font-extrabold text-slate-800 mb-3 flex items-center gap-2"
+                  className="block text-sm font-extrabold text-slate-800 mb-2"
                 >
-                  <FaBuilding className="text-indigo-700" /> Selecione a Empresa
+                  Selecione a Empresa
                 </label>
-
                 <Select
                   id="company-select-desktop" // Acessibilidade: id
+                  options={safeCompanyOptions}
                   value={company}
                   onChange={setCompany}
-                  options={safeCompanyOptions}
                   formatOptionLabel={formatOptionLabel}
-                  placeholder="Digite ou selecione..."
+                  placeholder="Buscar ou selecionar empresa..."
+                  isClearable
                   styles={selectStyles}
-                  classNamePrefix="react-select"
-                  noOptionsMessage={() =>
-                    safeCompanyOptions.length === 0
-                      ? "Sem empresas (options vazio)"
-                      : "Nenhuma opção"
-                  }
                 />
-
-                <div className="flex gap-2 mt-3">
+                <div className="flex items-center gap-2 mt-3">
                   <label htmlFor="new-company-input-desktop" className="sr-only">
                     Adicionar nova empresa
-                  </label>{" "}
-                  {/* Acessibilidade: label para screen readers */}
+                  </label>
                   <input
-                    id="new-company-input-desktop" // Acessibilidade: id
+                    id="new-company-input-desktop"
                     type="text"
                     value={newCompany}
                     onChange={(e) => setNewCompany(e.target.value)}
-                    className="flex-1 border-2 border-slate-200 p-2.5 rounded-xl focus:ring-2 focus:ring-cyan-400 focus:border-transparent text-sm bg-white"
+                    className="flex-1 border-2 border-blue-200 p-3 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white/80"
                     placeholder="Ou adicione uma nova empresa"
                   />
                   <button
                     type="button"
                     onClick={handleAddCompany}
-                    className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-5 py-2.5 rounded-xl hover:shadow-lg transition-all font-extrabold whitespace-nowrap text-sm"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-xl text-sm transition-colors"
                   >
                     Adicionar
                   </button>
@@ -427,38 +373,37 @@ function TrabalheiLaDesktop({
                             size={18}
                             active={star <= item.value}
                             onClick={() => item.setter(star)}
-                            label={`${item.label}: dar nota ${star} de 5`} // Acessibilidade: label para estrela
+                            label={`${item.label}: dar nota ${star} de 5`}
                           />
                         ))}
                       </div>
 
                       <label htmlFor={`${item.id}-comment-desktop`} className="sr-only">
                         Comentário sobre {item.label.toLowerCase()}
-                      </label>{" "}
-                      {/* Acessibilidade: label para screen readers */}
+                      </label>
                       <textarea
-                        id={`${item.id}-comment-desktop`} // Acessibilidade: id
+                        id={`${item.id}-comment-desktop`}
                         value={item.comment}
                         onChange={(e) => item.setComment(e.target.value)}
                         rows={2}
-                        className="w-full mt-2 border border-slate-300 p-2 rounded-xl text-xs focus:ring-2 focus:ring-cyan-400 focus:border-transparent resize-none"
-                        placeholder="Comente (opcional)"
+                        className="w-full border-2 border-slate-200 p-2 rounded-xl focus:ring-2 focus:ring-violet-400 focus:border-transparent resize-y text-xs bg-white/80"
+                        placeholder={`Comentário sobre ${item.label.toLowerCase()} (opcional)`}
                       />
                     </div>
                   );
                 })}
               </div>
 
-              {/* Comentário geral */}
-              <div className="bg-gradient-to-br from-violet-50 to-cyan-50 rounded-2xl p-5 border-2 border-violet-200">
+              {/* Comentário Geral */}
+              <div className="bg-white rounded-2xl p-5 border-2 border-violet-200">
                 <label
-                  htmlFor="general-comment-desktop" // Acessibilidade: htmlFor
+                  htmlFor="general-comment-desktop"
                   className="block text-sm font-extrabold text-slate-800 mb-2"
                 >
                   💬 Comentário Geral (opcional)
                 </label>
                 <textarea
-                  id="general-comment-desktop" // Acessibilidade: id
+                  id="general-comment-desktop"
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   rows={3}
@@ -521,7 +466,7 @@ function TrabalheiLaDesktop({
               </div>
             </form>
           </div>
-        </section>
+        </div>
 
         {/* Ranking e Outras Avaliações */}
         <section>
