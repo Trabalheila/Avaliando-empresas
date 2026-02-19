@@ -73,9 +73,14 @@ const LoginLinkedInButton = ({
     // Você PRECISA que sua página de callback faça postMessage para o opener.
     // Exemplo de payload esperado: { type: "linkedin_oauth", code, state }
     const onMessage = (event) => {
-      // Segurança: restrinja o origin ao seu domínio do app (ajuste se necessário).
-      // Se você não souber o origin exato agora, deixe assim e depois trave.
-      // if (event.origin !== window.location.origin) return;
+      // ⚠️ SEGURANÇA CRÍTICA: Restrinja o origin ao seu domínio do app.
+      // Em produção, substitua window.location.origin pelo seu domínio exato:
+      // Ex: if (event.origin !== "https://www.trabalheila.com.br") return;
+      // Para desenvolvimento, pode ser window.location.origin ou http://localhost:3000
+      if (event.origin !== window.location.origin) {
+        console.warn("Mensagem de origem desconhecida bloqueada:", event.origin);
+        return;
+      }
 
       const data = event.data;
       if (!data || data.type !== "linkedin_oauth") return;

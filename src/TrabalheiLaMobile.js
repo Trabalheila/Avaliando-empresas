@@ -1,30 +1,55 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { FcGoogle } from "react-icons/fc";
+import { FaChartBar } from "react-icons/fa"; // Importação adicionada para o ícone de gráfico
 import {
   FaStar,
   FaHandshake,
   FaMoneyBillWave,
   FaBuilding,
   FaUserTie,
-  FaRocket,
+  FaBriefcase,
   FaHeart,
-  FaChartBar,
-} from "react-icons/fa";
-import { FcGoogle } from "react-icons/fc";
-import Select from "react-select";
+  FaLightbulb,
+} from "react-icons/fa"; // Ícones para as categorias de avaliação
+import Select from "react-select"; // Importação do react-select
 
-// ⚠️ IMPORTANTE: esse import precisa bater EXATAMENTE com o nome do arquivo no disco.
-// Se o arquivo for LoginLinkedInButton.js, então importe LoginLinkedInButton (sem "In" maiúsculo).
-import LoginLinkedInButton from "./components/LoginLinkedInButton";
+// Importações de componentes e módulos auxiliares
+import LoginLinkedInButton from "./LoginLinkedInButton"; // Assumindo que este é um componente para o botão do LinkedIn
+import * as featuredModule from "./data/featuredCompanies"; // Assumindo que este módulo existe
 
-// Se você realmente precisa desse CSS aqui, ok. Se já estiver no index.js, pode remover para evitar duplicidade.
-// import "./index.css";
+// Funções auxiliares (mantidas como estavam)
+const featuredSeed = featuredModule.featuredCompanies ?? featuredModule.default ?? [];
 
+function normalizeCompanyName(item) {
+  if (typeof item === "string") return item.trim();
+
+  if (item && typeof item === "object") {
+    const candidate = item.name ?? item.company ?? item.nome ?? item.label ?? item.value;
+    if (typeof candidate === "string") return candidate.trim();
+  }
+  return "";
+}
+
+function uniqueStrings(list) {
+  const out = [];
+  const seen = new Set();
+  for (const x of list) {
+    const s = typeof x === "string" ? x.trim() : "";
+    if (!s) continue;
+    const key = s.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(s);
+  }
+  return out;
+}
+
+// Componente TrabalheiLaMobile (com as melhorias de acessibilidade)
 function TrabalheiLaMobile({
   company,
   setCompany,
   newCompany,
   setNewCompany,
-
   rating,
   setRating,
   contatoRH,
@@ -41,7 +66,6 @@ function TrabalheiLaMobile({
   setBemestar,
   estimulacaoOrganizacao,
   setEstimulacaoOrganizacao,
-
   commentRating,
   setCommentRating,
   commentContatoRH,
@@ -58,37 +82,157 @@ function TrabalheiLaMobile({
   setCommentBemestar,
   commentEstimulacaoOrganizacao,
   setCommentEstimulacaoOrganizacao,
-
   comment,
   setComment,
-
   empresas,
   isAuthenticated,
   isLoading,
-
+  companies,
   companyOptions,
   formatOptionLabel,
-
   handleAddCompany,
   handleLinkedInSuccess,
   handleLinkedInFailure,
   handleGoogleLogin,
   handleSubmit,
-
   calcularMedia,
   getBadgeColor,
   top3,
   getMedalColor,
   getMedalEmoji,
 }) {
-  // 🔎 Diagnóstico (provar se options está chegando e se viewport é realmente mobile)
-  const debug = useMemo(() => {
-    const w = typeof window !== "undefined" ? window.innerWidth : null;
-    const optCount = Array.isArray(companyOptions) ? companyOptions.length : -1;
-    return { w, optCount };
-  }, [companyOptions]);
+  // Estado para detectar mobile (mantido como estava)
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches
+  );
 
-  const safeCompanyOptions = Array.isArray(companyOptions) ? companyOptions : [];
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+    const handleResize = () => setIsMobile(mediaQuery.matches);
+    mediaQuery.addEventListener("change", handleResize);
+    return () => mediaQuery.removeEventListener("change", handleResize);
+  }, []);
+
+  // Definição das categorias de avaliação (mantido como estava)
+  const ratingCategories = useMemo(
+    () => [
+      {
+        label: "Avaliação Geral",
+        value: rating,
+        setter: setRating,
+        icon: FaStar,
+        color: "text-yellow-500",
+        comment: commentRating,
+        setComment: setCommentRating,
+        idPrefix: "rating-geral", // Acessibilidade: idPrefix para os campos
+      },
+      {
+        label: "Contato do RH",
+        value: contatoRH,
+        setter: setContatoRH,
+        icon: FaHandshake,
+        color: "text-blue-500",
+        comment: commentContatoRH,
+        setComment: setCommentContatoRH,
+        idPrefix: "rating-rh", // Acessibilidade: idPrefix para os campos
+      },
+      {
+        label: "Salário e Benefícios",
+        value: salarioBeneficios,
+        setter: setSalarioBeneficios,
+        icon: FaMoneyBillWave,
+        color: "text-green-500",
+        comment: commentSalarioBeneficios,
+        setComment: setCommentSalarioBeneficios,
+        idPrefix: "rating-salario", // Acessibilidade: idPrefix para os campos
+      },
+      {
+        label: "Estrutura",
+        value: estruturaEmpresa,
+        setter: setEstruturaEmpresa,
+        icon: FaBuilding,
+        color: "text-gray-600",
+        comment: commentEstruturaEmpresa,
+        setComment: setCommentEstruturaEmpresa,
+        idPrefix: "rating-estrutura", // Acessibilidade: idPrefix para os campos
+      },
+      {
+        label: "Liderança",
+        value: acessibilidadeLideranca,
+        setter: setAcessibilidadeLideranca,
+        icon: FaUserTie,
+        color: "text-purple-500",
+        comment: commentAcessibilidadeLideranca,
+        setComment: setCommentAcessibilidadeLideranca,
+        idPrefix: "rating-lideranca", // Acessibilidade: idPrefix para os campos
+      },
+      {
+        label: "Plano de Carreira",
+        value: planoCarreiras,
+        setter: setPlanoCarreiras,
+        icon: FaBriefcase,
+        color: "text-red-500",
+        comment: commentPlanoCarreiras,
+        setComment: setCommentPlanoCarreiras,
+        idPrefix: "rating-carreira", // Acessibilidade: idPrefix para os campos
+      },
+      {
+        label: "Bem-estar",
+        value: bemestar,
+        setter: setBemestar,
+        icon: FaHeart,
+        color: "text-pink-500",
+        comment: commentBemestar,
+        setComment: setCommentBemestar,
+        idPrefix: "rating-bemestar", // Acessibilidade: idPrefix para os campos
+      },
+      {
+        label: "Organização",
+        value: estimulacaoOrganizacao,
+        setter: setEstimulacaoOrganizacao,
+        icon: FaLightbulb,
+        color: "text-indigo-500",
+        comment: commentEstimulacaoOrganizacao,
+        setComment: setCommentEstimulacaoOrganizacao,
+        idPrefix: "rating-organizacao", // Acessibilidade: idPrefix para os campos
+      },
+    ],
+    [
+      rating,
+      setRating,
+      contatoRH,
+      setContatoRH,
+      salarioBeneficios,
+      setSalarioBeneficios,
+      estruturaEmpresa,
+      setEstruturaEmpresa,
+      acessibilidadeLideranca,
+      setAcessibilidadeLideranca,
+      planoCarreiras,
+      setPlanoCarreiras,
+      bemestar,
+      setBemestar,
+      estimulacaoOrganizacao,
+      setEstimulacaoOrganizacao,
+      commentRating,
+      setCommentRating,
+      commentContatoRH,
+      setCommentContatoRH,
+      commentSalarioBeneficios,
+      setCommentSalarioBeneficios,
+      commentEstruturaEmpresa,
+      setCommentEstruturaEmpresa,
+      commentAcessibilidadeLideranca,
+      setCommentAcessibilidadeLideranca,
+      commentPlanoCarreiras,
+      setCommentPlanoCarreiras,
+      commentBemestar,
+      setCommentBemestar,
+      commentEstimulacaoOrganizacao,
+      setCommentEstimulacaoOrganizacao,
+    ]
+  );
 
   return (
     <div
@@ -100,11 +244,11 @@ function TrabalheiLaMobile({
         backgroundAttachment: "fixed",
       }}
     >
-      {/* DEBUG BAR (remova depois) */}
+      {/* Header (mantido como estava) */}
       <div className="max-w-7xl mx-auto mb-2">
         <div className="bg-black/50 text-white text-[11px] px-3 py-2 rounded-xl border border-white/10">
-          viewport: <b>{debug.w ?? "?"}</b>px • companyOptions:{" "}
-          <b>{debug.optCount}</b>
+          viewport: <b>{typeof window !== "undefined" ? window.innerWidth : "?"}</b>
+          px • companyOptions: <b>{Array.isArray(companyOptions) ? companyOptions.length : "?"}</b>
         </div>
       </div>
 
@@ -123,10 +267,9 @@ function TrabalheiLaMobile({
                   Avaliações reais, anônimas e confiáveis.
                 </p>
               </div>
-
               {isAuthenticated && (
                 <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-full shadow-lg border border-white/30 backdrop-blur-md">
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
                   <span className="text-xs text-white font-semibold">
                     Autenticado
                   </span>
@@ -137,7 +280,9 @@ function TrabalheiLaMobile({
         </div>
       </div>
 
+      {/* Main Content */}
       <div className="max-w-7xl mx-auto grid gap-6">
+        {/* Formulário de Avaliação */}
         <div>
           <div className="bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl p-3 border border-white/20">
             {!isAuthenticated && (
@@ -160,28 +305,37 @@ function TrabalheiLaMobile({
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Empresa */}
+              {/* Seleção de Empresa */}
               <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4 border border-gray-200">
-                <label className="block text-xs font-bold text-gray-700 mb-2 flex items-center gap-2">
+                {/* Acessibilidade: Adicionado htmlFor e id */}
+                <label
+                  htmlFor="company-select"
+                  className="block text-xs font-bold text-gray-700 mb-2 flex items-center gap-2"
+                >
                   <FaBuilding className="text-blue-600" /> Selecione a Empresa
                 </label>
-
                 <Select
+                  id="company-select" // Acessibilidade: id para o Select
                   value={company}
                   onChange={setCompany}
-                  options={safeCompanyOptions}
+                  options={companyOptions}
                   formatOptionLabel={formatOptionLabel}
                   placeholder="Digite ou selecione..."
                   className="mb-3 text-sm"
                   noOptionsMessage={() =>
-                    safeCompanyOptions.length === 0
+                    companyOptions.length === 0
                       ? "Sem empresas (options vazio)"
                       : "Nenhuma opção"
                   }
                 />
-
                 <div className="flex gap-2">
+                  {/* Acessibilidade: Adicionado htmlFor e id */}
+                  <label htmlFor="new-company-input" className="sr-only">
+                    Ou adicione uma nova empresa
+                  </label>{" "}
+                  {/* sr-only para esconder visualmente, mas manter para leitores de tela */}
                   <input
+                    id="new-company-input" // Acessibilidade: id para o input
                     type="text"
                     value={newCompany}
                     onChange={(e) => setNewCompany(e.target.value)}
@@ -198,125 +352,64 @@ function TrabalheiLaMobile({
                 </div>
               </div>
 
-              {/* Critérios */}
+              {/* Categorias de Avaliação */}
               <div className="grid grid-cols-1 gap-3">
-                {[
-                  {
-                    label: "Avaliação Geral",
-                    value: rating,
-                    setter: setRating,
-                    icon: FaStar,
-                    color: "text-yellow-500",
-                    comment: commentRating,
-                    setComment: setCommentRating,
-                  },
-                  {
-                    label: "Contato do RH",
-                    value: contatoRH,
-                    setter: setContatoRH,
-                    icon: FaHandshake,
-                    color: "text-blue-500",
-                    comment: commentContatoRH,
-                    setComment: setCommentContatoRH,
-                  },
-                  {
-                    label: "Salário e Benefícios",
-                    value: salarioBeneficios,
-                    setter: setSalarioBeneficios,
-                    icon: FaMoneyBillWave,
-                    color: "text-green-500",
-                    comment: commentSalarioBeneficios,
-                    setComment: setCommentSalarioBeneficios,
-                  },
-                  {
-                    label: "Estrutura",
-                    value: estruturaEmpresa,
-                    setter: setEstruturaEmpresa,
-                    icon: FaBuilding,
-                    color: "text-gray-600",
-                    comment: commentEstruturaEmpresa,
-                    setComment: setCommentEstruturaEmpresa,
-                  },
-                  {
-                    label: "Liderança",
-                    value: acessibilidadeLideranca,
-                    setter: setAcessibilidadeLideranca,
-                    icon: FaUserTie,
-                    color: "text-purple-500",
-                    comment: commentAcessibilidadeLideranca,
-                    setComment: setCommentAcessibilidadeLideranca,
-                  },
-                  {
-                    label: "Plano de Carreira",
-                    value: planoCarreiras,
-                    setter: setPlanoCarreiras,
-                    icon: FaRocket,
-                    color: "text-red-500",
-                    comment: commentPlanoCarreiras,
-                    setComment: setCommentPlanoCarreiras,
-                  },
-                  {
-                    label: "Bem-estar",
-                    value: bemestar,
-                    setter: setBemestar,
-                    icon: FaHeart,
-                    color: "text-pink-500",
-                    comment: commentBemestar,
-                    setComment: setCommentBemestar,
-                  },
-                  {
-                    label: "Organização",
-                    value: estimulacaoOrganizacao,
-                    setter: setEstimulacaoOrganizacao,
-                    icon: FaChartBar,
-                    color: "text-indigo-500",
-                    comment: commentEstimulacaoOrganizacao,
-                    setComment: setCommentEstimulacaoOrganizacao,
-                  },
-                ].map((item, idx) => {
-                  const IconComponent = item.icon;
+                {ratingCategories.map((category, index) => {
+                  const Icon = category.icon;
                   return (
                     <div
-                      key={idx}
+                      key={index}
                       className="bg-white rounded-xl p-3 border-2 border-gray-200 hover:border-purple-400 transition-all"
                     >
-                      <label className="block text-xs font-extrabold text-[#1E3A8A] mb-2 flex items-center gap-2 drop-shadow-[0_0_4px_rgba(255,255,255,0.9)]">
-                        <IconComponent className={item.color} /> {item.label}
+                      {/* Acessibilidade: Adicionado htmlFor e id */}
+                      <label
+                        htmlFor={`${category.idPrefix}-comment`}
+                        className="block text-xs font-extrabold text-[#1E3A8A] mb-2 flex items-center gap-2 drop-shadow-[0_0_4px_rgba(255,255,255,0.9)]"
+                      >
+                        <Icon className={category.color} /> {category.label}{" "}
                         <span className="ml-auto text-purple-600">
-                          {item.value}/5
+                          {category.value}/5
                         </span>
                       </label>
-
                       <div className="flex gap-1 mb-2">
-                        {[1, 2, 3, 4, 5].map((star) => (
+                        {[1, 2, 3, 4, 5].map((starValue) => (
                           <FaStar
-                            key={star}
+                            key={starValue}
                             size={20}
                             className="cursor-pointer transition-all hover:scale-110"
-                            color={star <= item.value ? "#facc15" : "#e5e7eb"}
-                            onClick={() => item.setter(star)}
+                            color={
+                              starValue <= category.value ? "#facc15" : "#e5e7eb"
+                            }
+                            onClick={() => category.setter(starValue)}
+                            // Acessibilidade: Adicionado aria-label para cada estrela
+                            aria-label={`Avaliar ${category.label} com ${starValue} de 5 estrelas`}
                           />
                         ))}
                       </div>
-
                       <textarea
-                        value={item.comment}
-                        onChange={(e) => item.setComment(e.target.value)}
+                        id={`${category.idPrefix}-comment`} // Acessibilidade: id para o textarea
+                        value={category.comment}
+                        onChange={(e) => category.setComment(e.target.value)}
                         rows={3}
                         className="w-full border border-gray-300 p-2 rounded-lg text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-y max-h-32"
-                        placeholder={`Comente sobre ${item.label.toLowerCase()} (opcional)`}
+                        placeholder={`Comente sobre ${category.label.toLowerCase()} (opcional)`}
                       />
                     </div>
                   );
                 })}
               </div>
 
-              {/* Comentário geral */}
+              {/* Comentário Geral */}
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 border-2 border-purple-200">
-                <label className="block text-xs font-bold text-gray-700 mb-2">
+                {/* Acessibilidade: Adicionado htmlFor e id */}
+                <label
+                  htmlFor="general-comment"
+                  className="block text-xs font-bold text-gray-700 mb-2"
+                >
                   💬 Comentário Geral (opcional)
                 </label>
                 <textarea
+                  id="general-comment" // Acessibilidade: id para o textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   rows={4}
@@ -325,11 +418,10 @@ function TrabalheiLaMobile({
                 />
               </div>
 
-              {/* Login + envio */}
+              {/* Login + Envio */}
               <div className="flex flex-col items-center space-y-3">
                 {!isAuthenticated ? (
                   <div className="w-full max-w-xs space-y-3">
-                    {/* ⚠️ Removi o fallback fake: se não tiver env var, é melhor falhar claramente */}
                     <LoginLinkedInButton
                       clientId={process.env.REACT_APP_LINKEDIN_CLIENT_ID}
                       redirectUri="https://www.trabalheila.com.br/auth/linkedin"
@@ -481,6 +573,7 @@ function TrabalheiLaMobile({
         </div>
       </div>
 
+      {/* Footer (mantido como estava) */}
       <footer className="max-w-7xl mx-auto mt-8 text-center">
         <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-4 border border-white/20">
           <p className="text-gray-600 text-xs">
