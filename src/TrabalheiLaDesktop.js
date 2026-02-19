@@ -1,16 +1,12 @@
 import React, { useMemo } from "react";
-// import { useNavigate } from "react-router-dom"; // Removido: 'navigate' não é usado
 import {
   FaStar,
   FaHandshake,
   FaMoneyBillWave,
   FaBuilding,
   FaUserTie,
-  // FaRocket, // Removido: 'FaRocket' não é usado
   FaHeart,
   FaChartBar,
-  // FaExternalLinkAlt, // Removido: 'FaExternalLinkAlt' não é usado
-  // FaMedal, // Removido: 'FaMedal' é importado em TrabalheiLa.js
   FaBriefcase,
   FaLightbulb,
 } from "react-icons/fa";
@@ -107,21 +103,21 @@ function TrabalheiLaDesktop({
   setCommentBemestar,
   commentEstimulacaoOrganizacao,
   setCommentEstimulacaoOrganizacao,
-  comment,
-  setComment,
-  empresas,
-  setEmpresas,
   isAuthenticated,
-  isLoading,
+  setIsAuthenticated,
+  user,
+  setUser,
   companyOptions,
+  handleSubmit,
+  isLoading,
+  error,
+  empresas,
   calcularMedia,
   top3,
   getMedalColor,
   getMedalEmoji,
   getBadgeColor,
 }) {
-  // const navigate = useNavigate(); // Removido: 'navigate' não é usado
-
   const safeCompanyOptions = Array.isArray(companyOptions) ? companyOptions : [];
 
   const linkedInClientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID || "";
@@ -135,202 +131,93 @@ function TrabalheiLaDesktop({
   const selectStyles = {
     control: (base, state) => ({
       ...base,
-      borderRadius: 14,
-      borderColor: state.isFocused ? "#22d3ee" : "#e2e8f0",
-      boxShadow: state.isFocused ? "0 0 0 3px rgba(34,211,238,.25)" : "none",
-      padding: "2px 6px",
-      minHeight: 44,
-    }),
-    menu: (base) => ({
-      ...base,
-      borderRadius: 14,
-      overflow: "hidden",
+      borderRadius: "0.75rem", // rounded-xl
+      padding: "0.25rem", // p-1
+      borderColor: state.isFocused ? "#8b5cf6" : "#e5e7eb", // focus:border-purple-500
+      boxShadow: state.isFocused ? "0 0 0 1px #8b5cf6" : "none", // focus:ring-1 focus:ring-purple-500
+      "&:hover": {
+        borderColor: state.isFocused ? "#8b5cf6" : "#d1d5db",
+      },
     }),
     option: (base, state) => ({
       ...base,
-      backgroundColor: state.isFocused ? "#e0f7fa" : "white",
-      color: "#333",
+      backgroundColor: state.isSelected
+        ? "#8b5cf6"
+        : state.isFocused
+          ? "#f3e8ff"
+          : null,
+      color: state.isSelected ? "white" : "#4b5563",
       "&:active": {
-        backgroundColor: "#b2ebf2",
+        backgroundColor: "#a78bfa",
       },
     }),
     singleValue: (base) => ({
       ...base,
-      color: "#333",
-      fontWeight: "bold",
+      color: "#1f2937", // text-gray-900
+      fontWeight: "500", // font-medium
     }),
     placeholder: (base) => ({
       ...base,
-      color: "#9ca3af",
+      color: "#9ca3af", // text-gray-400
     }),
   };
 
-  const criteria = [
-    {
-      id: "rating",
-      label: "Avaliação Geral",
-      icon: FaStar,
-      value: rating,
-      setValue: setRating,
-      comment: commentRating,
-      setComment: setCommentRating,
-    },
-    {
-      id: "contatoRH",
-      label: "Contato com RH",
-      icon: FaHandshake,
-      value: contatoRH,
-      setValue: setContatoRH,
-      comment: commentContatoRH,
-      setComment: setCommentContatoRH,
-    },
-    {
-      id: "salarioBeneficios",
-      label: "Salário e Benefícios",
-      icon: FaMoneyBillWave,
-      value: salarioBeneficios,
-      setValue: setSalarioBeneficios,
-      comment: commentSalarioBeneficios,
-      setComment: setCommentSalarioBeneficios,
-    },
-    {
-      id: "estruturaEmpresa",
-      label: "Estrutura da Empresa",
-      icon: FaBuilding,
-      value: estruturaEmpresa,
-      setValue: setEstruturaEmpresa,
-      comment: commentEstruturaEmpresa,
-      setComment: setCommentEstruturaEmpresa,
-    },
-    {
-      id: "acessibilidadeLideranca",
-      label: "Acessibilidade à Liderança",
-      icon: FaUserTie,
-      value: acessibilidadeLideranca,
-      setValue: setAcessibilidadeLideranca,
-      comment: commentAcessibilidadeLideranca,
-      setComment: setCommentAcessibilidadeLideranca,
-    },
-    {
-      id: "planoCarreiras",
-      label: "Plano de Carreira",
-      icon: FaBriefcase,
-      value: planoCarreiras,
-      setValue: setPlanoCarreiras,
-      comment: commentPlanoCarreiras,
-      setComment: setCommentPlanoCarreiras,
-    },
-    {
-      id: "bemestar",
-      label: "Bem-estar e Qualidade de Vida",
-      icon: FaHeart,
-      value: bemestar,
-      setValue: setBemestar,
-      comment: commentBemestar,
-      setComment: setCommentBemestar,
-    },
-    {
-      id: "estimulacaoOrganizacao",
-      label: "Estímulo à Organização",
-      icon: FaLightbulb,
-      value: estimulacaoOrganizacao,
-      setValue: setEstimulacaoOrganizacao,
-      comment: commentEstimulacaoOrganizacao,
-      setComment: setCommentEstimulacaoOrganizacao,
-    },
-  ];
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!isAuthenticated) {
-      alert("Por favor, faça login para enviar sua avaliação.");
-      return;
-    }
-    if (!company && !newCompany) {
-      alert("Por favor, selecione ou digite o nome da empresa.");
-      return;
-    }
-
-    const companyName = company ? company.value : newCompany;
-    if (!companyName) {
-      alert("O nome da empresa não pode ser vazio.");
-      return;
-    }
-
-    const newEvaluation = {
-      company: companyName,
-      rating,
-      contatoRH,
-      salarioBeneficios,
-      estruturaEmpresa,
-      acessibilidadeLideranca,
-      planoCarreiras,
-      bemestar,
-      estimulacaoOrganizacao,
-      commentRating,
-      commentContatoRH,
-      commentSalarioBeneficios,
-      commentEstruturaEmpresa,
-      commentAcessibilidadeLideranca,
-      commentPlanoCarreiras,
-      commentBemestar,
-      commentEstimulacaoOrganizacao,
-      comment,
-      // Outros campos como área e período seriam adicionados aqui
-      // Ex: area: "Desenvolvimento", periodo: "2023-2024"
-    };
-
-    console.log("Nova Avaliação:", newEvaluation);
-    setEmpresas((prev) => [...prev, newEvaluation]);
-
-    // Resetar formulário
-    setCompany(null);
-    setNewCompany("");
-    setRating(0);
-    setContatoRH(0);
-    setSalarioBeneficios(0);
-    setEstruturaEmpresa(0);
-    setAcessibilidadeLideranca(0);
-    setPlanoCarreiras(0);
-    setBemestar(0);
-    setEstimulacaoOrganizacao(0);
-    setCommentRating("");
-    setCommentContatoRH("");
-    setCommentSalarioBeneficios("");
-    setCommentEstruturaEmpresa("");
-    setCommentAcessibilidadeLideranca("");
-    setCommentPlanoCarreiras("");
-    setCommentBemestar("");
-    setCommentEstimulacaoOrganizacao("");
-    setComment("");
-
-    alert("Avaliação enviada com sucesso!");
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-100 to-indigo-200 flex flex-col items-center py-10 px-4 sm:px-6 lg:px-8">
-      <header className="text-center mb-10">
-        <h1 className="text-5xl font-extrabold text-indigo-800 drop-shadow-lg mb-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-100 p-4 md:p-8">
+      <header className="max-w-7xl mx-auto text-center mb-8">
+        <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 drop-shadow-lg mb-3">
           Trabalhei Lá
         </h1>
-        <p className="text-xl text-indigo-600 font-medium max-w-2xl mx-auto">
-          Sua plataforma para avaliar empresas de forma anônima e transparente.
-          Compartilhe sua experiência e ajude outros profissionais!
+        <p className="text-xl text-slate-700 font-medium">
+          Sua plataforma para avaliar empresas e encontrar o lugar ideal para
+          trabalhar.
         </p>
+        <div className="mt-4 flex justify-center items-center gap-4">
+          <LoginLinkedInButton
+            clientId={linkedInClientId}
+            onLoginSuccess={(userData) => {
+              setIsAuthenticated(true);
+              setUser(userData);
+              console.log("Login LinkedIn bem-sucedido:", userData);
+            }}
+            onLoginFailure={(error) => {
+              setIsAuthenticated(false);
+              setUser(null);
+              console.error("Login LinkedIn falhou:", error);
+            }}
+            disabled={linkedInDisabled}
+          />
+          <button
+            type="button"
+            className="flex items-center gap-2 px-6 py-3 bg-white text-gray-700 font-semibold rounded-full shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+            aria-label="Entrar com Google"
+          >
+            <FcGoogle className="text-2xl" />
+            Entrar com Google
+          </button>
+        </div>
+        {isAuthenticated && user && (
+          <p className="mt-4 text-green-700 font-semibold">
+            Bem-vindo(a), {user.name}!
+          </p>
+        )}
       </header>
 
       <section
-        className="grid grid-cols-1 lg:grid-cols-2 gap-6 mx-auto"
+        className="grid grid-cols-1 lg:grid-cols-2 gap-6 mx-auto px-4"
         style={{ maxWidth: 1120 }}
       >
         {/* Formulário de Avaliação */}
-        <div className="bg-white rounded-3xl shadow-2xl p-8 border border-slate-200">
-          <h2 className="text-3xl font-bold text-slate-700 text-center mb-6">
+        <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200">
+          <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">
             Avalie uma Empresa
           </h2>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="company-select" className="block text-lg font-semibold text-gray-700 mb-2">
+              <label
+                htmlFor="company-select"
+                className="block text-gray-700 text-sm font-medium mb-2"
+              >
                 Empresa:
               </label>
               <Select
@@ -338,216 +225,376 @@ function TrabalheiLaDesktop({
                 options={safeCompanyOptions}
                 value={company}
                 onChange={setCompany}
-                placeholder="Selecione uma empresa existente..."
+                placeholder="Selecione uma empresa existente"
                 isClearable
-                isSearchable
                 styles={selectStyles}
-                className="mb-4"
-              />
-              <input
-                type="text"
-                id="new-company-input"
-                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="Ou digite o nome de uma nova empresa"
-                value={newCompany}
-                onChange={(e) => setNewCompany(e.target.value)}
-                aria-label="Nome da nova empresa"
+                aria-label="Selecione uma empresa"
               />
             </div>
 
-            <div className="space-y-5">
-              {criteria.map((c) => (
-                <div key={c.id} className="bg-gray-50 p-5 rounded-2xl border border-gray-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <label htmlFor={`rating-${c.id}`} className="flex items-center text-lg font-medium text-gray-800 cursor-pointer">
-                      <c.icon className="text-indigo-500 mr-3 text-2xl" />
-                      {c.label}:
-                    </label>
-                    <div className="flex space-x-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <OutlinedStar
-                          key={star}
-                          active={star <= c.value}
-                          onClick={() => c.setValue(star)}
-                          label={`${star} estrelas para ${c.label}`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <textarea
-                    id={`comment-${c.id}`}
-                    className="mt-2 block w-full px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    placeholder={`Comentário sobre ${c.label} (opcional)`}
-                    value={c.comment}
-                    onChange={(e) => c.setComment(e.target.value)}
-                    rows="2"
-                    aria-label={`Comentário sobre ${c.label}`}
-                  ></textarea>
-                </div>
-              ))}
+            <div className="flex items-center gap-3 text-gray-500">
+              <hr className="flex-grow border-gray-300" />
+              OU
+              <hr className="flex-grow border-gray-300" />
             </div>
 
             <div>
-              <label htmlFor="overall-comment" className="block text-lg font-semibold text-gray-700 mb-2">
-                Comentário Geral (opcional):
+              <label
+                htmlFor="new-company-input"
+                className="block text-gray-700 text-sm font-medium mb-2"
+              >
+                Nova Empresa:
               </label>
-              <textarea
-                id="overall-comment"
-                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="Adicione um comentário geral sobre sua experiência na empresa..."
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                rows="4"
-                aria-label="Comentário geral sobre a empresa"
-              ></textarea>
+              <input
+                id="new-company-input"
+                type="text"
+                className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                placeholder="Digite o nome da nova empresa"
+                value={newCompany}
+                onChange={(e) => setNewCompany(e.target.value)}
+                aria-label="Digite o nome da nova empresa"
+              />
             </div>
 
-            <div className="flex flex-col items-center space-y-4 pt-4">
-              {!isAuthenticated && (
-                <div className="flex flex-col items-center space-y-3">
-                  <p className="text-sm text-gray-600 font-medium">
-                    Faça login para enviar sua avaliação:
-                  </p>
-                  <LoginLinkedInButton
-                    clientId={linkedInClientId}
-                    disabled={linkedInDisabled}
-                    onLoginSuccess={() => console.log("Login LinkedIn Sucesso!")}
-                    onLoginFailure={(error) => console.error("Login LinkedIn Falha:", error)}
-                  />
-                  <button
-                    type="button"
-                    className="flex items-center justify-center px-6 py-2.5 border border-gray-300 rounded-xl shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-                    aria-label="Login com Google"
-                  >
-                    <FcGoogle className="mr-2 text-xl" />
-                    Login com Google
-                  </button>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Categoria: Avaliação Geral */}
+              <div className="bg-purple-50 p-4 rounded-xl border border-purple-200">
+                <label className="block text-purple-800 text-sm font-semibold mb-2 flex items-center gap-2">
+                  <FaStar className="text-purple-600" /> Avaliação Geral:
+                </label>
+                <div className="flex justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <OutlinedStar
+                      key={star}
+                      active={star <= rating}
+                      onClick={() => setRating(star)}
+                      label={`${star} estrelas de avaliação geral`}
+                    />
+                  ))}
                 </div>
-              )}
+                <textarea
+                  className="w-full p-2 mt-3 border border-purple-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400 text-sm"
+                  placeholder="Comentário sobre a avaliação geral (opcional)"
+                  value={commentRating}
+                  onChange={(e) => setCommentRating(e.target.value)}
+                  rows="2"
+                  aria-label="Comentário sobre a avaliação geral"
+                ></textarea>
+              </div>
 
-              {isAuthenticated && (
-                <div className="bg-gradient-to-r from-emerald-500 to-green-500 rounded-2xl p-3 text-white text-center font-extrabold shadow-lg max-w-md text-sm">
-                  ✅ Pronto! Agora você pode enviar sua avaliação anônima
+              {/* Categoria: Contato com RH */}
+              <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                <label className="block text-blue-800 text-sm font-semibold mb-2 flex items-center gap-2">
+                  <FaHandshake className="text-blue-600" /> Contato com RH:
+                </label>
+                <div className="flex justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <OutlinedStar
+                      key={star}
+                      active={star <= contatoRH}
+                      onClick={() => setContatoRH(star)}
+                      label={`${star} estrelas para contato com RH`}
+                    />
+                  ))}
                 </div>
-              )}
+                <textarea
+                  className="w-full p-2 mt-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 text-sm"
+                  placeholder="Comentário sobre o contato com RH (opcional)"
+                  value={commentContatoRH}
+                  onChange={(e) => setCommentContatoRH(e.target.value)}
+                  rows="2"
+                  aria-label="Comentário sobre o contato com RH"
+                ></textarea>
+              </div>
 
+              {/* Categoria: Salário e Benefícios */}
+              <div className="bg-green-50 p-4 rounded-xl border border-green-200">
+                <label className="block text-green-800 text-sm font-semibold mb-2 flex items-center gap-2">
+                  <FaMoneyBillWave className="text-green-600" /> Salário e
+                  Benefícios:
+                </label>
+                <div className="flex justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <OutlinedStar
+                      key={star}
+                      active={star <= salarioBeneficios}
+                      onClick={() => setSalarioBeneficios(star)}
+                      label={`${star} estrelas para salário e benefícios`}
+                    />
+                  ))}
+                </div>
+                <textarea
+                  className="w-full p-2 mt-3 border border-green-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-400 text-sm"
+                  placeholder="Comentário sobre salário e benefícios (opcional)"
+                  value={commentSalarioBeneficios}
+                  onChange={(e) => setCommentSalarioBeneficios(e.target.value)}
+                  rows="2"
+                  aria-label="Comentário sobre salário e benefícios"
+                ></textarea>
+              </div>
+
+              {/* Categoria: Estrutura da Empresa */}
+              <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
+                <label className="block text-yellow-800 text-sm font-semibold mb-2 flex items-center gap-2">
+                  <FaBuilding className="text-yellow-600" /> Estrutura da
+                  Empresa:
+                </label>
+                <div className="flex justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <OutlinedStar
+                      key={star}
+                      active={star <= estruturaEmpresa}
+                      onClick={() => setEstruturaEmpresa(star)}
+                      label={`${star} estrelas para estrutura da empresa`}
+                    />
+                  ))}
+                </div>
+                <textarea
+                  className="w-full p-2 mt-3 border border-yellow-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-yellow-400 text-sm"
+                  placeholder="Comentário sobre a estrutura da empresa (opcional)"
+                  value={commentEstruturaEmpresa}
+                  onChange={(e) => setCommentEstruturaEmpresa(e.target.value)}
+                  rows="2"
+                  aria-label="Comentário sobre a estrutura da empresa"
+                ></textarea>
+              </div>
+
+              {/* Categoria: Acessibilidade à Liderança */}
+              <div className="bg-red-50 p-4 rounded-xl border border-red-200">
+                <label className="block text-red-800 text-sm font-semibold mb-2 flex items-center gap-2">
+                  <FaUserTie className="text-red-600" /> Acessibilidade à
+                  Liderança:
+                </label>
+                <div className="flex justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <OutlinedStar
+                      key={star}
+                      active={star <= acessibilidadeLideranca}
+                      onClick={() => setAcessibilidadeLideranca(star)}
+                      label={`${star} estrelas para acessibilidade à liderança`}
+                    />
+                  ))}
+                </div>
+                <textarea
+                  className="w-full p-2 mt-3 border border-red-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-400 text-sm"
+                  placeholder="Comentário sobre acessibilidade à liderança (opcional)"
+                  value={commentAcessibilidadeLideranca}
+                  onChange={(e) =>
+                    setCommentAcessibilidadeLideranca(e.target.value)
+                  }
+                  rows="2"
+                  aria-label="Comentário sobre acessibilidade à liderança"
+                ></textarea>
+              </div>
+
+              {/* Categoria: Plano de Carreira */}
+              <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-200">
+                <label className="block text-indigo-800 text-sm font-semibold mb-2 flex items-center gap-2">
+                  <FaBriefcase className="text-indigo-600" /> Plano de Carreira:
+                </label>
+                <div className="flex justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <OutlinedStar
+                      key={star}
+                      active={star <= planoCarreiras}
+                      onClick={() => setPlanoCarreiras(star)}
+                      label={`${star} estrelas para plano de carreira`}
+                    />
+                  ))}
+                </div>
+                <textarea
+                  className="w-full p-2 mt-3 border border-indigo-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400 text-sm"
+                  placeholder="Comentário sobre plano de carreira (opcional)"
+                  value={commentPlanoCarreiras}
+                  onChange={(e) => setCommentPlanoCarreiras(e.target.value)}
+                  rows="2"
+                  aria-label="Comentário sobre plano de carreira"
+                ></textarea>
+              </div>
+
+              {/* Categoria: Bem-estar e Qualidade de Vida */}
+              <div className="bg-pink-50 p-4 rounded-xl border border-pink-200">
+                <label className="block text-pink-800 text-sm font-semibold mb-2 flex items-center gap-2">
+                  <FaHeart className="text-pink-600" /> Bem-estar e Qualidade de
+                  Vida:
+                </label>
+                <div className="flex justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <OutlinedStar
+                      key={star}
+                      active={star <= bemestar}
+                      onClick={() => setBemestar(star)}
+                      label={`${star} estrelas para bem-estar e qualidade de vida`}
+                    />
+                  ))}
+                </div>
+                <textarea
+                  className="w-full p-2 mt-3 border border-pink-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-pink-400 text-sm"
+                  placeholder="Comentário sobre bem-estar e qualidade de vida (opcional)"
+                  value={commentBemestar}
+                  onChange={(e) => setCommentBemestar(e.target.value)}
+                  rows="2"
+                  aria-label="Comentário sobre bem-estar e qualidade de vida"
+                ></textarea>
+              </div>
+
+              {/* Categoria: Estímulo à Inovação e Organização */}
+              <div className="bg-teal-50 p-4 rounded-xl border border-teal-200">
+                <label className="block text-teal-800 text-sm font-semibold mb-2 flex items-center gap-2">
+                  <FaLightbulb className="text-teal-600" /> Estímulo à Inovação e
+                  Organização:
+                </label>
+                <div className="flex justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <OutlinedStar
+                      key={star}
+                      active={star <= estimulacaoOrganizacao}
+                      onClick={() => setEstimulacaoOrganizacao(star)}
+                      label={`${star} estrelas para estímulo à inovação e organização`}
+                    />
+                  ))}
+                </div>
+                <textarea
+                  className="w-full p-2 mt-3 border border-teal-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-400 text-sm"
+                  placeholder="Comentário sobre estímulo à inovação e organização (opcional)"
+                  value={commentEstimulacaoOrganizacao}
+                  onChange={(e) =>
+                    setCommentEstimulacaoOrganizacao(e.target.value)
+                  }
+                  rows="2"
+                  aria-label="Comentário sobre estímulo à inovação e organização"
+                ></textarea>
+              </div>
+            </div>
+
+            {error && (
+              <p className="text-red-600 text-center font-medium">{error}</p>
+            )}
+
+            <div className="text-center">
               <button
                 type="submit"
-                className={`px-10 py-3.5 rounded-2xl text-white font-extrabold text-base transition-all ${
+                className={`px-8 py-4 rounded-full font-extrabold text-white text-lg transition-all transform ${
                   isAuthenticated
-                    ? "bg-gradient-to-r from-indigo-600 to-violet-600 hover:shadow-2xl hover:scale-[1.02]"
+                    ? "bg-gradient-to-r from-purple-600 to-violet-600 hover:shadow-2xl hover:scale-[1.02]"
                     : "bg-slate-400 cursor-not-allowed opacity-60"
                 }`}
-                disabled={!isAuthenticated}
+                disabled={!isAuthenticated || isLoading}
               >
-                {isAuthenticated ? "Enviar avaliação" : "Faça login para avaliar"}
+                {isLoading
+                  ? "Enviando..."
+                  : isAuthenticated
+                    ? "Enviar avaliação"
+                    : "Faça login para avaliar"}
               </button>
             </div>
           </form>
         </div>
 
         {/* Ranking e Outras Avaliações */}
-        <section className="bg-white rounded-3xl shadow-2xl p-8 border border-slate-200">
-          <div className="flex flex-col items-center mb-6">
-            <h2 className="text-3xl font-bold text-slate-700 text-center mb-3">
-              Ranking - Top Empresas Avaliadas
-            </h2>
-            <img
-              src="/trofeu-new.png"
-              alt="Troféu Trabalhei Lá"
-              className="w-24 h-24 object-contain drop-shadow-lg"
-            />
-          </div>
-          {Array.isArray(top3) && top3.length > 0 && (
-            <div className="mb-6 space-y-4">
-              {top3.map((emp, t) => {
-                const media = calcularMedia(emp);
-                return (
-                  <div
-                    key={t}
-                    className={`bg-gradient-to-r ${getMedalColor(
-                      t
-                    )} rounded-2xl p-5 text-white shadow-lg`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <span className="text-4xl">{getMedalEmoji(t)}</span>
-                        <div>
-                          <h3 className="font-bold text-lg">{emp.company}</h3>
-                          <p className="text-sm opacity-90">
+        <section>
+          <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200">
+            <div className="flex flex-col items-center mb-4">
+              <h2 className="text-2xl font-bold text-slate-700 text-center mb-3">
+                Ranking - Top Empresas Avaliadas
+              </h2>
+              <img
+                src="/trofeu-new.png"
+                alt="Troféu Trabalhei Lá"
+                className="w-20 h-20 object-contain drop-shadow-lg"
+              />
+            </div>
+            {Array.isArray(top3) && top3.length > 0 && (
+              <div className="mb-4 space-y-3">
+                {top3.map((emp, t) => {
+                  const media = calcularMedia(emp);
+                  return (
+                    <div
+                      key={t}
+                      className={`bg-gradient-to-r ${getMedalColor(
+                        t
+                      )} rounded-2xl p-4 text-white shadow-lg`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-3xl">{getMedalEmoji(t)}</span>
+                          <div>
+                            <h3 className="font-bold text-base">{emp.company}</h3>
+                            <p className="text-xs opacity-90">
+                              {emp.area} • {emp.periodo}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="bg-white/20 px-3 py-1.5 rounded-full font-bold text-sm">
+                          {media} ⭐
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              {Array.isArray(empresas) && empresas.length === 0 ? (
+                <div className="text-center py-8">
+                  <FaChartBar className="text-gray-300 text-5xl mx-auto mb-3" />
+                  <p className="text-gray-500 font-medium text-lg">
+                    Nenhuma avaliação ainda
+                  </p>
+                  <p className="text-sm text-gray-400 mt-2">
+                    Seja o primeiro a avaliar!
+                  </p>
+                </div>
+              ) : (
+                (empresas || []).slice(3).map((emp, t) => {
+                  const media = calcularMedia(emp);
+                  return (
+                    <div
+                      key={t}
+                      className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-4 border-2 border-gray-200 hover:border-purple-400 hover:shadow-xl transition-all cursor-pointer group"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-gray-800 group-hover:text-purple-600 transition-colors text-base">
+                            {emp.company}
+                          </h3>
+                          <p className="text-xs text-gray-500 mt-1">
                             {emp.area} • {emp.periodo}
                           </p>
                         </div>
+                        <div
+                          className={`${getBadgeColor(
+                            media
+                          )} px-3 py-1.5 rounded-full text-white font-bold text-sm shadow-md`}
+                        >
+                          {media} ⭐
+                        </div>
                       </div>
-                      <div className="bg-white/20 px-4 py-2 rounded-full font-bold text-base">
-                        {media} ⭐
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-3 custom-scrollbar">
-            {Array.isArray(empresas) && empresas.length === 0 ? (
-              <div className="text-center py-10">
-                <FaChartBar className="text-gray-300 text-6xl mx-auto mb-4" />
-                <p className="text-gray-500 font-medium text-xl">
-                  Nenhuma avaliação ainda
-                </p>
-                <p className="text-base text-gray-400 mt-2">
-                  Seja o primeiro a avaliar!
-                </p>
-              </div>
-            ) : (
-              (empresas || []).slice(3).map((emp, t) => {
-                const media = calcularMedia(emp);
-                return (
-                  <div
-                    key={t}
-                    className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-5 border-2 border-gray-200 hover:border-purple-400 hover:shadow-xl transition-all cursor-pointer group"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className="font-bold text-gray-800 group-hover:text-purple-600 transition-colors text-lg">
-                          {emp.company}
-                        </h3>
-                        <p className="text-sm text-gray-500 mt-1">
-                          {emp.area} • {emp.periodo}
+
+                      {emp.comment && (
+                        <p className="text-sm text-gray-600 italic border-t border-gray-200 pt-2 mt-2">
+                          "{emp.comment.substring(0, 100)}
+                          {emp.comment.length > 100 ? "..." : ""}"
                         </p>
-                      </div>
-                      <div
-                        className={`${getBadgeColor(
-                          media
-                        )} px-4 py-2 rounded-full text-white font-bold text-base shadow-md`}
-                      >
-                        {media} ⭐
-                      </div>
+                      )}
                     </div>
+                  );
+                })
+              )}
+            </div>
 
-                    {emp.comment && (
-                      <p className="text-sm text-gray-600 italic border-t border-gray-200 pt-3 mt-3">
-                        "{emp.comment.substring(0, 100)}
-                        {emp.comment.length > 100 ? "..." : ""}"
-                      </p>
-                    )}
-                  </div>
-                );
-              })
-            )}
+            <style>{`
+              .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+              .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+              .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: linear-gradient(to bottom, #8b5cf6, #ec4899);
+                border-radius: 10px;
+              }
+              .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: linear-gradient(to bottom, #7c3aed, #db2777);
+              }
+            `}</style>
           </div>
-
-          <style>{`
-            .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-            .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-            .custom-scrollbar::-webkit-scrollbar-thumb {
-              background: linear-gradient(to bottom, #8b5cf6, #ec4899);
-              border-radius: 10px;
-            }
-            .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-              background: linear-gradient(to bottom, #7c3aed, #db2777);
-            }
-          `}</style>
         </section>
       </section>
 
