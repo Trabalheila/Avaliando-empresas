@@ -10,7 +10,7 @@ import {
   FaHeart,
   FaChartBar,
   // FaExternalLinkAlt, // Removido: 'FaExternalLinkAlt' não é usado
-  FaMedal, // Mantido: Usado por getMedalEmoji e getMedalColor
+  // FaMedal, // Removido: 'FaMedal' é importado em TrabalheiLa.js
   FaBriefcase,
   FaLightbulb,
 } from "react-icons/fa";
@@ -70,29 +70,6 @@ function OutlinedStar({ active, onClick, size = 18, label }) {
   );
 }
 
-// Removido: 'medalColor' não é usado diretamente, 'getMedalColor' é usado
-// function medalColor(idx) {
-//   if (idx === 0) return "#fbbf24"; // ouro
-//   if (idx === 1) return "#cbd5e1"; // prata
-//   return "#f59e0b"; // bronze
-// }
-
-// Removido: 'getScoreColor' não é usado
-// function getScoreColor(score) {
-//   if (score >= 4.3) return { className: "text-emerald-600", hex: "#059669" };
-//   if (score >= 3.6) return { className: "text-lime-600", hex: "#65a30d" };
-//   if (score >= 2.8) return { className: "text-yellow-600", hex: "#ca8a04" };
-//   if (score >= 2.0) return { className: "text-orange-600", hex: "#ea580c" };
-//   return { className: "text-rose-600", hex: "#e11d48" };
-// }
-
-// Removido: 'safeCompanyName' não é usado
-// function safeCompanyName(company) {
-//   if (!company) return "";
-//   if (typeof company === "string") return company;
-//   return company.label || company.value || "";
-// }
-
 function TrabalheiLaDesktop({
   company,
   setCompany,
@@ -133,21 +110,15 @@ function TrabalheiLaDesktop({
   comment,
   setComment,
   empresas,
+  setEmpresas,
   isAuthenticated,
   isLoading,
-  companies,
   companyOptions,
-  formatOptionLabel,
-  handleAddCompany,
-  handleLinkedInSuccess,
-  handleLinkedInFailure,
-  handleGoogleLogin,
-  handleSubmit,
   calcularMedia,
-  getBadgeColor,
   top3,
   getMedalColor,
   getMedalEmoji,
+  getBadgeColor,
 }) {
   // const navigate = useNavigate(); // Removido: 'navigate' não é usado
 
@@ -174,401 +145,409 @@ function TrabalheiLaDesktop({
       ...base,
       borderRadius: 14,
       overflow: "hidden",
-      zIndex: 60,
+    }),
+    option: (base, state) => ({
+      ...base,
+      backgroundColor: state.isFocused ? "#e0f7fa" : "white",
+      color: "#333",
+      "&:active": {
+        backgroundColor: "#b2ebf2",
+      },
+    }),
+    singleValue: (base) => ({
+      ...base,
+      color: "#333",
+      fontWeight: "bold",
+    }),
+    placeholder: (base) => ({
+      ...base,
+      color: "#9ca3af",
     }),
   };
 
-  // Acessibilidade: Definição dos critérios com IDs únicos
   const criteria = [
     {
-      id: "rating-geral-desktop", // Acessibilidade: ID único
+      id: "rating",
       label: "Avaliação Geral",
-      value: rating,
-      setter: setRating,
       icon: FaStar,
-      color: "text-yellow-500",
+      value: rating,
+      setValue: setRating,
       comment: commentRating,
       setComment: setCommentRating,
     },
     {
-      id: "contato-rh-desktop", // Acessibilidade: ID único
-      label: "Contato do RH",
-      value: contatoRH,
-      setter: setContatoRH,
+      id: "contatoRH",
+      label: "Contato com RH",
       icon: FaHandshake,
-      color: "text-blue-500",
+      value: contatoRH,
+      setValue: setContatoRH,
       comment: commentContatoRH,
       setComment: setCommentContatoRH,
     },
     {
-      id: "salario-beneficios-desktop", // Acessibilidade: ID único
+      id: "salarioBeneficios",
       label: "Salário e Benefícios",
-      value: salarioBeneficios,
-      setter: setSalarioBeneficios,
       icon: FaMoneyBillWave,
-      color: "text-green-500",
+      value: salarioBeneficios,
+      setValue: setSalarioBeneficios,
       comment: commentSalarioBeneficios,
       setComment: setCommentSalarioBeneficios,
     },
     {
-      id: "estrutura-empresa-desktop", // Acessibilidade: ID único
+      id: "estruturaEmpresa",
       label: "Estrutura da Empresa",
-      value: estruturaEmpresa,
-      setter: setEstruturaEmpresa,
       icon: FaBuilding,
-      color: "text-indigo-500",
+      value: estruturaEmpresa,
+      setValue: setEstruturaEmpresa,
       comment: commentEstruturaEmpresa,
       setComment: setCommentEstruturaEmpresa,
     },
     {
-      id: "acessibilidade-lideranca-desktop", // Acessibilidade: ID único
-      label: "Acessibilidade e Liderança",
-      value: acessibilidadeLideranca,
-      setter: setAcessibilidadeLideranca,
+      id: "acessibilidadeLideranca",
+      label: "Acessibilidade à Liderança",
       icon: FaUserTie,
-      color: "text-purple-500",
+      value: acessibilidadeLideranca,
+      setValue: setAcessibilidadeLideranca,
       comment: commentAcessibilidadeLideranca,
       setComment: setCommentAcessibilidadeLideranca,
     },
     {
-      id: "plano-carreiras-desktop", // Acessibilidade: ID único
+      id: "planoCarreiras",
       label: "Plano de Carreira",
-      value: planoCarreiras,
-      setter: setPlanoCarreiras,
       icon: FaBriefcase,
-      color: "text-cyan-500",
+      value: planoCarreiras,
+      setValue: setPlanoCarreiras,
       comment: commentPlanoCarreiras,
       setComment: setCommentPlanoCarreiras,
     },
     {
-      id: "bem-estar-desktop", // Acessibilidade: ID único
-      label: "Bem-estar e Ambiente",
-      value: bemestar,
-      setter: setBemestar,
+      id: "bemestar",
+      label: "Bem-estar e Qualidade de Vida",
       icon: FaHeart,
-      color: "text-rose-500",
+      value: bemestar,
+      setValue: setBemestar,
       comment: commentBemestar,
       setComment: setCommentBemestar,
     },
     {
-      id: "estimulacao-organizacao-desktop", // Acessibilidade: ID único
-      label: "Estímulo e Organização",
-      value: estimulacaoOrganizacao,
-      setter: setEstimulacaoOrganizacao,
+      id: "estimulacaoOrganizacao",
+      label: "Estímulo à Organização",
       icon: FaLightbulb,
-      color: "text-orange-500",
+      value: estimulacaoOrganizacao,
+      setValue: setEstimulacaoOrganizacao,
       comment: commentEstimulacaoOrganizacao,
       setComment: setCommentEstimulacaoOrganizacao,
     },
   ];
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!isAuthenticated) {
+      alert("Por favor, faça login para enviar sua avaliação.");
+      return;
+    }
+    if (!company && !newCompany) {
+      alert("Por favor, selecione ou digite o nome da empresa.");
+      return;
+    }
+
+    const companyName = company ? company.value : newCompany;
+    if (!companyName) {
+      alert("O nome da empresa não pode ser vazio.");
+      return;
+    }
+
+    const newEvaluation = {
+      company: companyName,
+      rating,
+      contatoRH,
+      salarioBeneficios,
+      estruturaEmpresa,
+      acessibilidadeLideranca,
+      planoCarreiras,
+      bemestar,
+      estimulacaoOrganizacao,
+      commentRating,
+      commentContatoRH,
+      commentSalarioBeneficios,
+      commentEstruturaEmpresa,
+      commentAcessibilidadeLideranca,
+      commentPlanoCarreiras,
+      commentBemestar,
+      commentEstimulacaoOrganizacao,
+      comment,
+      // Outros campos como área e período seriam adicionados aqui
+      // Ex: area: "Desenvolvimento", periodo: "2023-2024"
+    };
+
+    console.log("Nova Avaliação:", newEvaluation);
+    setEmpresas((prev) => [...prev, newEvaluation]);
+
+    // Resetar formulário
+    setCompany(null);
+    setNewCompany("");
+    setRating(0);
+    setContatoRH(0);
+    setSalarioBeneficios(0);
+    setEstruturaEmpresa(0);
+    setAcessibilidadeLideranca(0);
+    setPlanoCarreiras(0);
+    setBemestar(0);
+    setEstimulacaoOrganizacao(0);
+    setCommentRating("");
+    setCommentContatoRH("");
+    setCommentSalarioBeneficios("");
+    setCommentEstruturaEmpresa("");
+    setCommentAcessibilidadeLideranca("");
+    setCommentPlanoCarreiras("");
+    setCommentBemestar("");
+    setCommentEstimulacaoOrganizacao("");
+    setComment("");
+
+    alert("Avaliação enviada com sucesso!");
+  };
+
   return (
-    <div
-      className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 text-slate-800"
-      style={{
-        backgroundImage: 'url("/fundo-new.png")',
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundAttachment: "fixed",
-      }}
-    >
-      {/* DEBUG BAR (remova depois) */}
-      <div className="max-w-7xl mx-auto mb-4">
-        <div className="bg-black/50 text-white text-[11px] px-4 py-2 rounded-xl border border-white/10">
-          viewport: <b>{debug.w ?? "?"}</b>px • companyOptions:{" "}
-          <b>{debug.optCount}</b>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-purple-100 to-indigo-200 flex flex-col items-center py-10 px-4 sm:px-6 lg:px-8">
+      <header className="text-center mb-10">
+        <h1 className="text-5xl font-extrabold text-indigo-800 drop-shadow-lg mb-4">
+          Trabalhei Lá
+        </h1>
+        <p className="text-xl text-indigo-600 font-medium max-w-2xl mx-auto">
+          Sua plataforma para avaliar empresas de forma anônima e transparente.
+          Compartilhe sua experiência e ajude outros profissionais!
+        </p>
+      </header>
 
       <section
-        className="grid grid-cols-1 lg:grid-cols-2 gap-6 mx-auto px-4"
+        className="grid grid-cols-1 lg:grid-cols-2 gap-6 mx-auto"
         style={{ maxWidth: 1120 }}
       >
         {/* Formulário de Avaliação */}
-        <div>
-          <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200">
-            <h1 className="text-3xl font-extrabold text-center text-violet-700 mb-6">
-              Avalie sua Experiência na Empresa
-            </h1>
+        <div className="bg-white rounded-3xl shadow-2xl p-8 border border-slate-200">
+          <h2 className="text-3xl font-bold text-slate-700 text-center mb-6">
+            Avalie uma Empresa
+          </h2>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="company-select" className="block text-lg font-semibold text-gray-700 mb-2">
+                Empresa:
+              </label>
+              <Select
+                id="company-select"
+                options={safeCompanyOptions}
+                value={company}
+                onChange={setCompany}
+                placeholder="Selecione uma empresa existente..."
+                isClearable
+                isSearchable
+                styles={selectStyles}
+                className="mb-4"
+              />
+              <input
+                type="text"
+                id="new-company-input"
+                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                placeholder="Ou digite o nome de uma nova empresa"
+                value={newCompany}
+                onChange={(e) => setNewCompany(e.target.value)}
+                aria-label="Nome da nova empresa"
+              />
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Seleção de Empresa */}
-              <div>
-                <label
-                  htmlFor="company-select-desktop"
-                  className="block text-sm font-extrabold text-slate-800 mb-2"
-                >
-                  🏢 Empresa
-                </label>
-                <Select
-                  id="company-select-desktop"
-                  options={companyOptions}
-                  value={company}
-                  onChange={setCompany}
-                  formatOptionLabel={formatOptionLabel}
-                  isClearable
-                  placeholder="Selecione ou digite o nome da empresa"
-                  styles={selectStyles}
-                  className="text-sm"
-                />
-              </div>
+            <div className="space-y-5">
+              {criteria.map((c) => (
+                <div key={c.id} className="bg-gray-50 p-5 rounded-2xl border border-gray-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <label htmlFor={`rating-${c.id}`} className="flex items-center text-lg font-medium text-gray-800 cursor-pointer">
+                      <c.icon className="text-indigo-500 mr-3 text-2xl" />
+                      {c.label}:
+                    </label>
+                    <div className="flex space-x-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <OutlinedStar
+                          key={star}
+                          active={star <= c.value}
+                          onClick={() => c.setValue(star)}
+                          label={`${star} estrelas para ${c.label}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <textarea
+                    id={`comment-${c.id}`}
+                    className="mt-2 block w-full px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder={`Comentário sobre ${c.label} (opcional)`}
+                    value={c.comment}
+                    onChange={(e) => c.setComment(e.target.value)}
+                    rows="2"
+                    aria-label={`Comentário sobre ${c.label}`}
+                  ></textarea>
+                </div>
+              ))}
+            </div>
 
-              {/* Nova Empresa */}
-              {company && company.value === "add_new" && (
-                <div>
-                  <label
-                    htmlFor="new-company-name-desktop"
-                    className="block text-sm font-extrabold text-slate-800 mb-2"
-                  >
-                    Nome da Nova Empresa
-                  </label>
-                  <input
-                    id="new-company-name-desktop"
-                    type="text"
-                    value={newCompany}
-                    onChange={(e) => setNewCompany(e.target.value)}
-                    className="w-full border-2 border-slate-200 p-3 rounded-2xl focus:ring-2 focus:ring-cyan-400 focus:border-transparent text-sm bg-white/80"
-                    placeholder="Digite o nome da nova empresa"
-                    required
+            <div>
+              <label htmlFor="overall-comment" className="block text-lg font-semibold text-gray-700 mb-2">
+                Comentário Geral (opcional):
+              </label>
+              <textarea
+                id="overall-comment"
+                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                placeholder="Adicione um comentário geral sobre sua experiência na empresa..."
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows="4"
+                aria-label="Comentário geral sobre a empresa"
+              ></textarea>
+            </div>
+
+            <div className="flex flex-col items-center space-y-4 pt-4">
+              {!isAuthenticated && (
+                <div className="flex flex-col items-center space-y-3">
+                  <p className="text-sm text-gray-600 font-medium">
+                    Faça login para enviar sua avaliação:
+                  </p>
+                  <LoginLinkedInButton
+                    clientId={linkedInClientId}
+                    disabled={linkedInDisabled}
+                    onLoginSuccess={() => console.log("Login LinkedIn Sucesso!")}
+                    onLoginFailure={(error) => console.error("Login LinkedIn Falha:", error)}
                   />
                   <button
                     type="button"
-                    onClick={handleAddCompany}
-                    className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors"
+                    className="flex items-center justify-center px-6 py-2.5 border border-gray-300 rounded-xl shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                    aria-label="Login com Google"
                   >
-                    Adicionar Empresa
+                    <FcGoogle className="mr-2 text-xl" />
+                    Login com Google
                   </button>
                 </div>
               )}
 
-              {/* Critérios de Avaliação */}
-              <div className="space-y-5">
-                {criteria.map((item) => {
-                  const idPrefix = item.id; // Usar o id já definido
-                  return (
-                    <div
-                      key={item.id}
-                      className="bg-white rounded-2xl p-5 border-2 border-violet-200"
-                    >
-                      <label
-                        htmlFor={`${idPrefix}-stars-desktop`} // Acessibilidade: htmlFor para o grupo de estrelas
-                        className="block text-sm font-extrabold text-slate-800 mb-2 flex items-center gap-2"
-                      >
-                        <item.icon className={item.color} size={20} />
-                        {item.label}
-                        <span className="ml-auto text-violet-600 font-bold text-base">
-                          {item.value} ⭐
-                        </span>
-                      </label>
-                      <div
-                        id={`${idPrefix}-stars-desktop`} // Acessibilidade: ID para o grupo de estrelas
-                        className="flex items-center gap-1 mb-3"
-                        role="radiogroup" // Acessibilidade: Indica que é um grupo de rádio
-                        aria-labelledby={`${idPrefix}-stars-desktop`} // Acessibilidade: Associa ao label
-                      >
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <OutlinedStar
-                            key={star}
-                            active={star <= item.value}
-                            onClick={() => item.setter(star)}
-                            size={24}
-                            label={`Avaliar ${item.label} com ${star} de 5 estrelas`} // Acessibilidade: Label para cada estrela
-                          />
-                        ))}
-                      </div>
+              {isAuthenticated && (
+                <div className="bg-gradient-to-r from-emerald-500 to-green-500 rounded-2xl p-3 text-white text-center font-extrabold shadow-lg max-w-md text-sm">
+                  ✅ Pronto! Agora você pode enviar sua avaliação anônima
+                </div>
+              )}
 
-                      <label htmlFor={`${item.id}-comment-desktop`} className="sr-only">
-                        Comentário sobre {item.label.toLowerCase()}
-                      </label>
-                      <textarea
-                        id={`${item.id}-comment-desktop`}
-                        value={item.comment}
-                        onChange={(e) => item.setComment(e.target.value)}
-                        rows={2}
-                        className="w-full border-2 border-slate-200 p-2 rounded-xl focus:ring-2 focus:ring-violet-400 focus:border-transparent resize-y text-xs bg-white/80"
-                        placeholder={`Comentário sobre ${item.label.toLowerCase()} (opcional)`}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Comentário Geral */}
-              <div className="bg-white rounded-2xl p-5 border-2 border-violet-200">
-                <label
-                  htmlFor="general-comment-desktop"
-                  className="block text-sm font-extrabold text-slate-800 mb-2"
-                >
-                  💬 Comentário Geral (opcional)
-                </label>
-                <textarea
-                  id="general-comment-desktop"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  rows={3}
-                  className="w-full border-2 border-violet-200 p-3 rounded-2xl focus:ring-2 focus:ring-cyan-400 focus:border-transparent resize-y text-sm bg-white/80"
-                  placeholder="Compartilhe uma visão geral sobre sua experiência"
-                />
-              </div>
-
-              {/* Login + envio */}
-              <div className="flex flex-col items-center space-y-3">
-                {!isAuthenticated ? (
-                  <div className="w-full max-w-md space-y-3">
-                    <LoginLinkedInButton
-                      clientId={linkedInClientId}
-                      redirectUri="https://www.trabalheila.com.br/auth/linkedin"
-                      onLoginSuccess={handleLinkedInSuccess}
-                      onLoginFailure={handleLinkedInFailure}
-                      disabled={linkedInDisabled}
-                    />
-
-                    {!linkedInClientId && (
-                      <div className="text-xs text-rose-700 font-bold">
-                        REACT_APP_LINKEDIN_CLIENT_ID não está definido no build.
-                      </div>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={handleGoogleLogin}
-                      disabled={isLoading}
-                      className="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-200 hover:border-slate-300 hover:shadow-lg px-6 py-3 rounded-2xl transition-all font-extrabold text-slate-700 text-sm"
-                    >
-                      <FcGoogle size={22} />
-                      Entrar com Google
-                    </button>
-
-                    {isLoading && (
-                      <p className="text-sm text-slate-600 text-center animate-pulse">
-                        Autenticando...
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="bg-gradient-to-r from-emerald-500 to-green-500 rounded-2xl p-3 text-white text-center font-extrabold shadow-lg max-w-md text-sm">
-                    ✅ Pronto! Agora você pode enviar sua avaliação anônima
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  className={`px-10 py-3.5 rounded-2xl text-white font-extrabold text-base transition-all ${
-                    isAuthenticated
-                      ? "bg-gradient-to-r from-indigo-600 to-violet-600 hover:shadow-2xl hover:scale-[1.02]"
-                      : "bg-slate-400 cursor-not-allowed opacity-60"
-                  }`}
-                  disabled={!isAuthenticated}
-                >
-                  {isAuthenticated ? "Enviar avaliação" : "Faça login para avaliar"}
-                </button>
-              </div>
-            </form>
-          </div>
+              <button
+                type="submit"
+                className={`px-10 py-3.5 rounded-2xl text-white font-extrabold text-base transition-all ${
+                  isAuthenticated
+                    ? "bg-gradient-to-r from-indigo-600 to-violet-600 hover:shadow-2xl hover:scale-[1.02]"
+                    : "bg-slate-400 cursor-not-allowed opacity-60"
+                }`}
+                disabled={!isAuthenticated}
+              >
+                {isAuthenticated ? "Enviar avaliação" : "Faça login para avaliar"}
+              </button>
+            </div>
+          </form>
         </div>
 
         {/* Ranking e Outras Avaliações */}
-        <section>
-          <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200">
-            <div className="flex flex-col items-center mb-4">
-              <h2 className="text-xl font-bold text-slate-700 text-center mb-3">
-                Ranking - Top Empresas Avaliadas
-              </h2>
-              <img
-                src="/trofeu-new.png"
-                alt="Troféu Trabalhei Lá"
-                className="w-20 h-20 object-contain drop-shadow-lg"
-              />
-            </div>
-            {Array.isArray(top3) && top3.length > 0 && (
-              <div className="mb-4 space-y-3">
-                {top3.map((emp, t) => {
-                  const media = calcularMedia(emp);
-                  return (
-                    <div
-                      key={t}
-                      className={`bg-gradient-to-r ${getMedalColor(
-                        t
-                      )} rounded-2xl p-3 text-white shadow-lg`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">{getMedalEmoji(t)}</span>
-                          <div>
-                            <h3 className="font-bold text-sm">{emp.company}</h3>
-                            <p className="text-xs opacity-90">
-                              {emp.area} • {emp.periodo}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="bg-white/20 px-2 py-1 rounded-full font-bold text-xs">
-                          {media} ⭐
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-              {Array.isArray(empresas) && empresas.length === 0 ? (
-                <div className="text-center py-8">
-                  <FaChartBar className="text-gray-300 text-4xl mx-auto mb-3" />
-                  <p className="text-gray-500 font-medium text-sm">
-                    Nenhuma avaliação ainda
-                  </p>
-                  <p className="text-xs text-gray-400 mt-2">
-                    Seja o primeiro a avaliar!
-                  </p>
-                </div>
-              ) : (
-                (empresas || []).slice(3).map((emp, idx) => {
-                  const media = calcularMedia(emp);
-                  return (
-                    <div
-                      key={idx}
-                      className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-3 border-2 border-gray-200 hover:border-purple-400 hover:shadow-xl transition-all cursor-pointer group"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <h3 className="font-bold text-gray-800 group-hover:text-purple-600 transition-colors text-sm">
-                            {emp.company}
-                          </h3>
-                          <p className="text-xs text-gray-500 mt-1">
+        <section className="bg-white rounded-3xl shadow-2xl p-8 border border-slate-200">
+          <div className="flex flex-col items-center mb-6">
+            <h2 className="text-3xl font-bold text-slate-700 text-center mb-3">
+              Ranking - Top Empresas Avaliadas
+            </h2>
+            <img
+              src="/trofeu-new.png"
+              alt="Troféu Trabalhei Lá"
+              className="w-24 h-24 object-contain drop-shadow-lg"
+            />
+          </div>
+          {Array.isArray(top3) && top3.length > 0 && (
+            <div className="mb-6 space-y-4">
+              {top3.map((emp, t) => {
+                const media = calcularMedia(emp);
+                return (
+                  <div
+                    key={t}
+                    className={`bg-gradient-to-r ${getMedalColor(
+                      t
+                    )} rounded-2xl p-5 text-white shadow-lg`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <span className="text-4xl">{getMedalEmoji(t)}</span>
+                        <div>
+                          <h3 className="font-bold text-lg">{emp.company}</h3>
+                          <p className="text-sm opacity-90">
                             {emp.area} • {emp.periodo}
                           </p>
                         </div>
-                        <div
-                          className={`${getBadgeColor(media)} px-2 py-1 rounded-full text-white font-bold text-xs shadow-md`}
-                        >
-                          {media} ⭐
-                        </div>
                       </div>
-
-                      {emp.comment && (
-                        <p className="text-xs text-gray-600 italic border-t border-gray-200 pt-2 mt-2">
-                          "{emp.comment.substring(0, 80)}
-                          {emp.comment.length > 80 ? "..." : ""}"
-                        </p>
-                      )}
+                      <div className="bg-white/20 px-4 py-2 rounded-full font-bold text-base">
+                        {media} ⭐
+                      </div>
                     </div>
-                  );
-                })
-              )}
+                  </div>
+                );
+              })}
             </div>
+          )}
+          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-3 custom-scrollbar">
+            {Array.isArray(empresas) && empresas.length === 0 ? (
+              <div className="text-center py-10">
+                <FaChartBar className="text-gray-300 text-6xl mx-auto mb-4" />
+                <p className="text-gray-500 font-medium text-xl">
+                  Nenhuma avaliação ainda
+                </p>
+                <p className="text-base text-gray-400 mt-2">
+                  Seja o primeiro a avaliar!
+                </p>
+              </div>
+            ) : (
+              (empresas || []).slice(3).map((emp, t) => {
+                const media = calcularMedia(emp);
+                return (
+                  <div
+                    key={t}
+                    className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-5 border-2 border-gray-200 hover:border-purple-400 hover:shadow-xl transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h3 className="font-bold text-gray-800 group-hover:text-purple-600 transition-colors text-lg">
+                          {emp.company}
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {emp.area} • {emp.periodo}
+                        </p>
+                      </div>
+                      <div
+                        className={`${getBadgeColor(
+                          media
+                        )} px-4 py-2 rounded-full text-white font-bold text-base shadow-md`}
+                      >
+                        {media} ⭐
+                      </div>
+                    </div>
 
-            <style>{`
-              .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-              .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-              .custom-scrollbar::-webkit-scrollbar-thumb {
-                background: linear-gradient(to bottom, #8b5cf6, #ec4899);
-                border-radius: 10px;
-              }
-              .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                background: linear-gradient(to bottom, #7c3aed, #db2777);
-              }
-            `}</style>
+                    {emp.comment && (
+                      <p className="text-sm text-gray-600 italic border-t border-gray-200 pt-3 mt-3">
+                        "{emp.comment.substring(0, 100)}
+                        {emp.comment.length > 100 ? "..." : ""}"
+                      </p>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
+
+          <style>{`
+            .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+            .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+              background: linear-gradient(to bottom, #8b5cf6, #ec4899);
+              border-radius: 10px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+              background: linear-gradient(to bottom, #7c3aed, #db2777);
+            }
+          `}</style>
         </section>
       </section>
 
