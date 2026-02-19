@@ -1,23 +1,22 @@
 import React, { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom"; // Removido: 'navigate' não é usado
 import {
   FaStar,
   FaHandshake,
   FaMoneyBillWave,
   FaBuilding,
   FaUserTie,
-  FaRocket,
+  // FaRocket, // Removido: 'FaRocket' não é usado
   FaHeart,
   FaChartBar,
-  FaExternalLinkAlt,
-  FaMedal,
-  FaBriefcase, // Adicionado para "Plano de Carreira"
-  FaLightbulb, // Adicionado para "Organização"
+  // FaExternalLinkAlt, // Removido: 'FaExternalLinkAlt' não é usado
+  FaMedal, // Mantido: Usado por getMedalEmoji e getMedalColor
+  FaBriefcase,
+  FaLightbulb,
 } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import Select from "react-select";
 
-// Acessibilidade: CORREÇÃO DO CAMINHO DE IMPORTAÇÃO
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
 
 /** ⭐ Estrela com contorno preto */
@@ -71,25 +70,28 @@ function OutlinedStar({ active, onClick, size = 18, label }) {
   );
 }
 
-function medalColor(idx) {
-  if (idx === 0) return "#fbbf24"; // ouro
-  if (idx === 1) return "#cbd5e1"; // prata
-  return "#f59e0b"; // bronze
-}
+// Removido: 'medalColor' não é usado diretamente, 'getMedalColor' é usado
+// function medalColor(idx) {
+//   if (idx === 0) return "#fbbf24"; // ouro
+//   if (idx === 1) return "#cbd5e1"; // prata
+//   return "#f59e0b"; // bronze
+// }
 
-function getScoreColor(score) {
-  if (score >= 4.3) return { className: "text-emerald-600", hex: "#059669" };
-  if (score >= 3.6) return { className: "text-lime-600", hex: "#65a30d" };
-  if (score >= 2.8) return { className: "text-yellow-600", hex: "#ca8a04" };
-  if (score >= 2.0) return { className: "text-orange-600", hex: "#ea580c" };
-  return { className: "text-rose-600", hex: "#e11d48" };
-}
+// Removido: 'getScoreColor' não é usado
+// function getScoreColor(score) {
+//   if (score >= 4.3) return { className: "text-emerald-600", hex: "#059669" };
+//   if (score >= 3.6) return { className: "text-lime-600", hex: "#65a30d" };
+//   if (score >= 2.8) return { className: "text-yellow-600", hex: "#ca8a04" };
+//   if (score >= 2.0) return { className: "text-orange-600", hex: "#ea580c" };
+//   return { className: "text-rose-600", hex: "#e11d48" };
+// }
 
-function safeCompanyName(company) {
-  if (!company) return "";
-  if (typeof company === "string") return company;
-  return company.label || company.value || "";
-}
+// Removido: 'safeCompanyName' não é usado
+// function safeCompanyName(company) {
+//   if (!company) return "";
+//   if (typeof company === "string") return company;
+//   return company.label || company.value || "";
+// }
 
 function TrabalheiLaDesktop({
   company,
@@ -147,7 +149,7 @@ function TrabalheiLaDesktop({
   getMedalColor,
   getMedalEmoji,
 }) {
-  const navigate = useNavigate();
+  // const navigate = useNavigate(); // Removido: 'navigate' não é usado
 
   const safeCompanyOptions = Array.isArray(companyOptions) ? companyOptions : [];
 
@@ -179,7 +181,7 @@ function TrabalheiLaDesktop({
   // Acessibilidade: Definição dos critérios com IDs únicos
   const criteria = [
     {
-      id: "rating-geral", // Acessibilidade: ID único
+      id: "rating-geral-desktop", // Acessibilidade: ID único
       label: "Avaliação Geral",
       value: rating,
       setter: setRating,
@@ -189,7 +191,7 @@ function TrabalheiLaDesktop({
       setComment: setCommentRating,
     },
     {
-      id: "contato-rh", // Acessibilidade: ID único
+      id: "contato-rh-desktop", // Acessibilidade: ID único
       label: "Contato do RH",
       value: contatoRH,
       setter: setContatoRH,
@@ -199,7 +201,7 @@ function TrabalheiLaDesktop({
       setComment: setCommentContatoRH,
     },
     {
-      id: "salario-beneficios", // Acessibilidade: ID único
+      id: "salario-beneficios-desktop", // Acessibilidade: ID único
       label: "Salário e Benefícios",
       value: salarioBeneficios,
       setter: setSalarioBeneficios,
@@ -209,38 +211,38 @@ function TrabalheiLaDesktop({
       setComment: setCommentSalarioBeneficios,
     },
     {
-      id: "estrutura-empresa", // Acessibilidade: ID único
+      id: "estrutura-empresa-desktop", // Acessibilidade: ID único
       label: "Estrutura da Empresa",
       value: estruturaEmpresa,
       setter: setEstruturaEmpresa,
       icon: FaBuilding,
-      color: "text-purple-500",
+      color: "text-indigo-500",
       comment: commentEstruturaEmpresa,
       setComment: setCommentEstruturaEmpresa,
     },
     {
-      id: "acessibilidade-lideranca", // Acessibilidade: ID único
-      label: "Acessibilidade à Liderança",
+      id: "acessibilidade-lideranca-desktop", // Acessibilidade: ID único
+      label: "Acessibilidade e Liderança",
       value: acessibilidadeLideranca,
       setter: setAcessibilidadeLideranca,
       icon: FaUserTie,
-      color: "text-cyan-500",
+      color: "text-purple-500",
       comment: commentAcessibilidadeLideranca,
       setComment: setCommentAcessibilidadeLideranca,
     },
     {
-      id: "plano-carreiras", // Acessibilidade: ID único
+      id: "plano-carreiras-desktop", // Acessibilidade: ID único
       label: "Plano de Carreira",
       value: planoCarreiras,
       setter: setPlanoCarreiras,
       icon: FaBriefcase,
-      color: "text-indigo-500",
+      color: "text-cyan-500",
       comment: commentPlanoCarreiras,
       setComment: setCommentPlanoCarreiras,
     },
     {
-      id: "bem-estar", // Acessibilidade: ID único
-      label: "Bem-estar",
+      id: "bem-estar-desktop", // Acessibilidade: ID único
+      label: "Bem-estar e Ambiente",
       value: bemestar,
       setter: setBemestar,
       icon: FaHeart,
@@ -249,7 +251,7 @@ function TrabalheiLaDesktop({
       setComment: setCommentBemestar,
     },
     {
-      id: "estimulacao-organizacao", // Acessibilidade: ID único
+      id: "estimulacao-organizacao-desktop", // Acessibilidade: ID único
       label: "Estímulo e Organização",
       value: estimulacaoOrganizacao,
       setter: setEstimulacaoOrganizacao,
@@ -285,95 +287,92 @@ function TrabalheiLaDesktop({
         {/* Formulário de Avaliação */}
         <div>
           <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200">
-            <div className="flex items-center justify-between gap-4 mb-6">
-              <div className="text-left">
-                <h1 className="text-4xl font-black text-slate-900 tracking-tight drop-shadow-[0_0_10px_rgba(0,0,0,0.1)]">
-                  Trabalhei{" "}
-                  <span className="text-indigo-600 drop-shadow-[0_0_8px_rgba(0,0,0,0.1)]">
-                    Lá
-                  </span>
-                </h1>
-                <p className="text-slate-600 mt-1 text-sm">
-                  Avalie empresas de forma anônima e ajude a comunidade!
-                </p>
-              </div>
-              <img
-                src="/logo.svg"
-                alt="Logo Trabalhei Lá"
-                className="w-16 h-16 object-contain drop-shadow-lg"
-              />
-            </div>
+            <h1 className="text-3xl font-extrabold text-center text-violet-700 mb-6">
+              Avalie sua Experiência na Empresa
+            </h1>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Seleção de Empresa */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 border-2 border-blue-200">
+              <div>
                 <label
-                  htmlFor="company-select-desktop" // Acessibilidade: htmlFor
+                  htmlFor="company-select-desktop"
                   className="block text-sm font-extrabold text-slate-800 mb-2"
                 >
-                  Selecione a Empresa
+                  🏢 Empresa
                 </label>
                 <Select
-                  id="company-select-desktop" // Acessibilidade: id
-                  options={safeCompanyOptions}
+                  id="company-select-desktop"
+                  options={companyOptions}
                   value={company}
                   onChange={setCompany}
                   formatOptionLabel={formatOptionLabel}
-                  placeholder="Buscar ou selecionar empresa..."
                   isClearable
+                  placeholder="Selecione ou digite o nome da empresa"
                   styles={selectStyles}
+                  className="text-sm"
                 />
-                <div className="flex items-center gap-2 mt-3">
-                  <label htmlFor="new-company-input-desktop" className="sr-only">
-                    Adicionar nova empresa
+              </div>
+
+              {/* Nova Empresa */}
+              {company && company.value === "add_new" && (
+                <div>
+                  <label
+                    htmlFor="new-company-name-desktop"
+                    className="block text-sm font-extrabold text-slate-800 mb-2"
+                  >
+                    Nome da Nova Empresa
                   </label>
                   <input
-                    id="new-company-input-desktop"
+                    id="new-company-name-desktop"
                     type="text"
                     value={newCompany}
                     onChange={(e) => setNewCompany(e.target.value)}
-                    className="flex-1 border-2 border-blue-200 p-3 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white/80"
-                    placeholder="Ou adicione uma nova empresa"
+                    className="w-full border-2 border-slate-200 p-3 rounded-2xl focus:ring-2 focus:ring-cyan-400 focus:border-transparent text-sm bg-white/80"
+                    placeholder="Digite o nome da nova empresa"
+                    required
                   />
                   <button
                     type="button"
                     onClick={handleAddCompany}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-xl text-sm transition-colors"
+                    className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors"
                   >
-                    Adicionar
+                    Adicionar Empresa
                   </button>
                 </div>
-              </div>
+              )}
 
               {/* Critérios de Avaliação */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {criteria.map((item, idx) => {
-                  const Icon = item.icon;
+              <div className="space-y-5">
+                {criteria.map((item) => {
+                  const idPrefix = item.id; // Usar o id já definido
                   return (
                     <div
-                      key={idx}
-                      className="bg-white rounded-2xl p-4 border-2 border-slate-200 hover:border-violet-400 hover:shadow-lg transition-all"
+                      key={item.id}
+                      className="bg-white rounded-2xl p-5 border-2 border-violet-200"
                     >
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Icon className={item.color} size={14} />
-                          <span className="truncate text-[12px] font-extrabold text-slate-900">
-                            {item.label}
-                          </span>
-                        </div>
-                        <span className="text-xs font-extrabold text-indigo-700 whitespace-nowrap">
-                          {item.value}/5
+                      <label
+                        htmlFor={`${idPrefix}-stars-desktop`} // Acessibilidade: htmlFor para o grupo de estrelas
+                        className="block text-sm font-extrabold text-slate-800 mb-2 flex items-center gap-2"
+                      >
+                        <item.icon className={item.color} size={20} />
+                        {item.label}
+                        <span className="ml-auto text-violet-600 font-bold text-base">
+                          {item.value} ⭐
                         </span>
-                      </div>
-
-                      <div className="flex justify-center gap-2 mb-2">
+                      </label>
+                      <div
+                        id={`${idPrefix}-stars-desktop`} // Acessibilidade: ID para o grupo de estrelas
+                        className="flex items-center gap-1 mb-3"
+                        role="radiogroup" // Acessibilidade: Indica que é um grupo de rádio
+                        aria-labelledby={`${idPrefix}-stars-desktop`} // Acessibilidade: Associa ao label
+                      >
                         {[1, 2, 3, 4, 5].map((star) => (
                           <OutlinedStar
                             key={star}
-                            size={18}
                             active={star <= item.value}
                             onClick={() => item.setter(star)}
-                            label={`${item.label}: dar nota ${star} de 5`}
+                            size={24}
+                            label={`Avaliar ${item.label} com ${star} de 5 estrelas`} // Acessibilidade: Label para cada estrela
                           />
                         ))}
                       </div>
@@ -490,19 +489,19 @@ function TrabalheiLaDesktop({
                       key={t}
                       className={`bg-gradient-to-r ${getMedalColor(
                         t
-                      )} rounded-2xl p-4 text-white shadow-lg`}
+                      )} rounded-2xl p-3 text-white shadow-lg`}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-3xl">{getMedalEmoji(t)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">{getMedalEmoji(t)}</span>
                           <div>
-                            <h3 className="font-bold text-base">{emp.company}</h3>
+                            <h3 className="font-bold text-sm">{emp.company}</h3>
                             <p className="text-xs opacity-90">
                               {emp.area} • {emp.periodo}
                             </p>
                           </div>
                         </div>
-                        <div className="bg-white/20 px-3 py-1.5 rounded-full font-bold text-sm">
+                        <div className="bg-white/20 px-2 py-1 rounded-full font-bold text-xs">
                           {media} ⭐
                         </div>
                       </div>
@@ -514,25 +513,25 @@ function TrabalheiLaDesktop({
             <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
               {Array.isArray(empresas) && empresas.length === 0 ? (
                 <div className="text-center py-8">
-                  <FaChartBar className="text-gray-300 text-5xl mx-auto mb-3" />
-                  <p className="text-gray-500 font-medium text-lg">
+                  <FaChartBar className="text-gray-300 text-4xl mx-auto mb-3" />
+                  <p className="text-gray-500 font-medium text-sm">
                     Nenhuma avaliação ainda
                   </p>
-                  <p className="text-sm text-gray-400 mt-2">
+                  <p className="text-xs text-gray-400 mt-2">
                     Seja o primeiro a avaliar!
                   </p>
                 </div>
               ) : (
-                (empresas || []).slice(3).map((emp, t) => {
+                (empresas || []).slice(3).map((emp, idx) => {
                   const media = calcularMedia(emp);
                   return (
                     <div
-                      key={t}
-                      className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-4 border-2 border-gray-200 hover:border-purple-400 hover:shadow-xl transition-all cursor-pointer group"
+                      key={idx}
+                      className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-3 border-2 border-gray-200 hover:border-purple-400 hover:shadow-xl transition-all cursor-pointer group"
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
-                          <h3 className="font-bold text-gray-800 group-hover:text-purple-600 transition-colors text-base">
+                          <h3 className="font-bold text-gray-800 group-hover:text-purple-600 transition-colors text-sm">
                             {emp.company}
                           </h3>
                           <p className="text-xs text-gray-500 mt-1">
@@ -540,18 +539,16 @@ function TrabalheiLaDesktop({
                           </p>
                         </div>
                         <div
-                          className={`${getBadgeColor(
-                            media
-                          )} px-3 py-1.5 rounded-full text-white font-bold text-sm shadow-md`}
+                          className={`${getBadgeColor(media)} px-2 py-1 rounded-full text-white font-bold text-xs shadow-md`}
                         >
                           {media} ⭐
                         </div>
                       </div>
 
                       {emp.comment && (
-                        <p className="text-sm text-gray-600 italic border-t border-gray-200 pt-2 mt-2">
-                          "{emp.comment.substring(0, 100)}
-                          {emp.comment.length > 100 ? "..." : ""}"
+                        <p className="text-xs text-gray-600 italic border-t border-gray-200 pt-2 mt-2">
+                          "{emp.comment.substring(0, 80)}
+                          {emp.comment.length > 80 ? "..." : ""}"
                         </p>
                       )}
                     </div>
@@ -561,7 +558,7 @@ function TrabalheiLaDesktop({
             </div>
 
             <style>{`
-              .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+              .custom-scrollbar::-webkit-scrollbar { width: 6px; }
               .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
               .custom-scrollbar::-webkit-scrollbar-thumb {
                 background: linear-gradient(to bottom, #8b5cf6, #ec4899);
