@@ -1,50 +1,76 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { FcGoogle } from "react-icons/fc";
-import { FaChartBar } from "react-icons/fa"; // Importação adicionada para o ícone de gráfico
+import React, { useMemo } from "react";
 import {
   FaStar,
   FaHandshake,
   FaMoneyBillWave,
   FaBuilding,
   FaUserTie,
-  FaBriefcase,
+  FaRocket,
   FaHeart,
-  FaLightbulb,
-} from "react-icons/fa"; // Ícones para as categorias de avaliação
-import Select from "react-select"; // Importação do react-select
+  FaChartBar,
+  FaBriefcase, // Adicionado para "Plano de Carreira"
+  FaLightbulb, // Adicionado para "Organização"
+} from "react-icons/fa";
+import { FcGoogle } from "react-icons/fc";
+import Select from "react-select";
 
-// Importações de componentes e módulos auxiliares
-import LoginLinkedInButton from "./LoginLinkedInButton"; // Assumindo que este é um componente para o botão do LinkedIn
-import * as featuredModule from "./data/featuredCompanies"; // Assumindo que este módulo existe
+// Acessibilidade: CORREÇÃO DO CAMINHO DE IMPORTAÇÃO
+import LoginLinkedInButton from "./components/LoginLinkedInButton";
 
-// Funções auxiliares (mantidas como estavam)
-const featuredSeed = featuredModule.featuredCompanies ?? featuredModule.default ?? [];
+/** ⭐ Estrela com contorno preto */
+function OutlinedStar({ active, onClick, size = 18, label }) {
+  const outlineScale = 1.24;
 
-function normalizeCompanyName(item) {
-  if (typeof item === "string") return item.trim();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      style={{
+        padding: 0,
+        margin: 0,
+        border: 0,
+        background: "transparent",
+        cursor: "pointer",
+        lineHeight: 0,
+      }}
+    >
+      <span
+        style={{
+          position: "relative",
+          display: "inline-block",
+          width: size,
+          height: size,
+          verticalAlign: "middle",
+        }}
+      >
+        {/* contorno */}
+        // ... (lines 1-54) ...
+          <span
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              transform: `scale(${outlineScale})`,
+              transformOrigin: "center",
+}}
+            aria-hidden="true"
+          >
+            <FaStar size={size} color="#000" />
+          </span>
+// ... (rest of the code) ...
 
-  if (item && typeof item === "object") {
-    const candidate = item.name ?? item.company ?? item.nome ?? item.label ?? item.value;
-    if (typeof candidate === "string") return candidate.trim();
-  }
-  return "";
+
+        {/* estrela principal */}
+        <span style={{ position: "relative" }} aria-hidden="true">
+          <FaStar size={size} color={active ? "#facc15" : "#e5e7eb"} />
+        </span>
+      </span>
+    </button>
+  );
 }
 
-function uniqueStrings(list) {
-  const out = [];
-  const seen = new Set();
-  for (const x of list) {
-    const s = typeof x === "string" ? x.trim() : "";
-    if (!s) continue;
-    const key = s.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(s);
-  }
-  return out;
-}
-
-// Componente TrabalheiLaMobile (com as melhorias de acessibilidade)
 function TrabalheiLaMobile({
   company,
   setCompany,
@@ -81,13 +107,12 @@ function TrabalheiLaMobile({
   commentBemestar,
   setCommentBemestar,
   commentEstimulacaoOrganizacao,
-  setCommentEstimulacaoOrganizacao,
+  setCommentEstimacaoOrganizacao,
   comment,
   setComment,
   empresas,
   isAuthenticated,
   isLoading,
-  companies,
   companyOptions,
   formatOptionLabel,
   handleAddCompany,
@@ -101,23 +126,24 @@ function TrabalheiLaMobile({
   getMedalColor,
   getMedalEmoji,
 }) {
-  // Estado para detectar mobile (mantido como estava)
-  const [isMobile, setIsMobile] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches
-  );
+  // 🔎 Diagnóstico (provar se options está chegando e se viewport é realmente mobile)
+  const debug = useMemo(() => {
+    const w = typeof window !== "undefined" ? window.innerWidth : null;
+    const optCount = Array.isArray(companyOptions) ? companyOptions.length : -1;
+    return { w, optCount };
+  }, [companyOptions]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mediaQuery = window.matchMedia("(max-width: 768px)");
-    const handleResize = () => setIsMobile(mediaQuery.matches);
-    mediaQuery.addEventListener("change", handleResize);
-    return () => mediaQuery.removeEventListener("change", handleResize);
-  }, []);
+  const safeCompanyOptions = Array.isArray(companyOptions) ? companyOptions : [];
 
-  // Definição das categorias de avaliação (mantido como estava)
+  // Acessibilidade: Garante que linkedInClientId seja uma string
+  const linkedInClientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID || "";
+  const linkedInDisabled = Boolean(isLoading || !linkedInClientId);
+
+  // Acessibilidade: Definição dos critérios com IDs únicos
   const ratingCategories = useMemo(
     () => [
       {
+        idPrefix: "rating-geral", // Acessibilidade: ID único
         label: "Avaliação Geral",
         value: rating,
         setter: setRating,
@@ -125,9 +151,9 @@ function TrabalheiLaMobile({
         color: "text-yellow-500",
         comment: commentRating,
         setComment: setCommentRating,
-        idPrefix: "rating-geral", // Acessibilidade: idPrefix para os campos
       },
       {
+        idPrefix: "contato-rh", // Acessibilidade: ID único
         label: "Contato do RH",
         value: contatoRH,
         setter: setContatoRH,
@@ -135,9 +161,9 @@ function TrabalheiLaMobile({
         color: "text-blue-500",
         comment: commentContatoRH,
         setComment: setCommentContatoRH,
-        idPrefix: "rating-rh", // Acessibilidade: idPrefix para os campos
       },
       {
+        idPrefix: "salario-beneficios", // Acessibilidade: ID único
         label: "Salário e Benefícios",
         value: salarioBeneficios,
         setter: setSalarioBeneficios,
@@ -145,57 +171,56 @@ function TrabalheiLaMobile({
         color: "text-green-500",
         comment: commentSalarioBeneficios,
         setComment: setCommentSalarioBeneficios,
-        idPrefix: "rating-salario", // Acessibilidade: idPrefix para os campos
       },
       {
-        label: "Estrutura",
+        idPrefix: "estrutura-empresa", // Acessibilidade: ID único
+        label: "Estrutura da Empresa",
         value: estruturaEmpresa,
         setter: setEstruturaEmpresa,
         icon: FaBuilding,
-        color: "text-gray-600",
+        color: "text-purple-500",
         comment: commentEstruturaEmpresa,
         setComment: setCommentEstruturaEmpresa,
-        idPrefix: "rating-estrutura", // Acessibilidade: idPrefix para os campos
       },
       {
-        label: "Liderança",
+        idPrefix: "acessibilidade-lideranca", // Acessibilidade: ID único
+        label: "Acessibilidade à Liderança",
         value: acessibilidadeLideranca,
         setter: setAcessibilidadeLideranca,
         icon: FaUserTie,
-        color: "text-purple-500",
+        color: "text-red-500",
         comment: commentAcessibilidadeLideranca,
         setComment: setCommentAcessibilidadeLideranca,
-        idPrefix: "rating-lideranca", // Acessibilidade: idPrefix para os campos
       },
       {
+        idPrefix: "plano-carreiras", // Acessibilidade: ID único
         label: "Plano de Carreira",
         value: planoCarreiras,
         setter: setPlanoCarreiras,
-        icon: FaBriefcase,
-        color: "text-red-500",
+        icon: FaBriefcase, // Ícone atualizado
+        color: "text-indigo-500",
         comment: commentPlanoCarreiras,
         setComment: setCommentPlanoCarreiras,
-        idPrefix: "rating-carreira", // Acessibilidade: idPrefix para os campos
       },
       {
-        label: "Bem-estar",
+        idPrefix: "bem-estar", // Acessibilidade: ID único
+        label: "Bem-estar e Ambiente",
         value: bemestar,
         setter: setBemestar,
         icon: FaHeart,
         color: "text-pink-500",
         comment: commentBemestar,
         setComment: setCommentBemestar,
-        idPrefix: "rating-bemestar", // Acessibilidade: idPrefix para os campos
       },
       {
-        label: "Organização",
+        idPrefix: "estimulacao-organizacao", // Acessibilidade: ID único
+        label: "Estímulo e Organização",
         value: estimulacaoOrganizacao,
         setter: setEstimulacaoOrganizacao,
-        icon: FaLightbulb,
-        color: "text-indigo-500",
+        icon: FaLightbulb, // Ícone atualizado
+        color: "text-orange-500",
         comment: commentEstimulacaoOrganizacao,
         setComment: setCommentEstimulacaoOrganizacao,
-        idPrefix: "rating-organizacao", // Acessibilidade: idPrefix para os campos
       },
     ],
     [
@@ -230,7 +255,7 @@ function TrabalheiLaMobile({
       commentBemestar,
       setCommentBemestar,
       commentEstimulacaoOrganizacao,
-      setCommentEstimulacaoOrganizacao,
+      setCommentEstimacaoOrganizacao,
     ]
   );
 
@@ -244,11 +269,11 @@ function TrabalheiLaMobile({
         backgroundAttachment: "fixed",
       }}
     >
-      {/* Header (mantido como estava) */}
+      {/* DEBUG BAR (remova depois) */}
       <div className="max-w-7xl mx-auto mb-2">
         <div className="bg-black/50 text-white text-[11px] px-3 py-2 rounded-xl border border-white/10">
-          viewport: <b>{typeof window !== "undefined" ? window.innerWidth : "?"}</b>
-          px • companyOptions: <b>{Array.isArray(companyOptions) ? companyOptions.length : "?"}</b>
+          viewport: <b>{debug.w ?? "?"}</b>px • companyOptions:{" "}
+          <b>{debug.optCount}</b>
         </div>
       </div>
 
@@ -258,13 +283,10 @@ function TrabalheiLaMobile({
             <div className="flex items-center justify-between gap-4">
               <div className="text-left">
                 <h1 className="text-3xl font-black text-white tracking-tight drop-shadow-[0_0_10px_rgba(0,0,0,0.9)]">
-                  Trabalhei{" "}
-                  <span className="text-[#4FC3F7] drop-shadow-[0_0_8px_rgba(0,0,0,1)]">
-                    Lá
-                  </span>
+                  Trabalhei Lá
                 </h1>
-                <p className="mt-2 text-xs font-bold text-white">
-                  Avaliações reais, anônimas e confiáveis.
+                <p className="text-sm text-white/80 mt-1 drop-shadow-[0_0_5px_rgba(0,0,0,0.9)]">
+                  Avalie empresas de forma anônima
                 </p>
               </div>
               {isAuthenticated && (
@@ -318,12 +340,12 @@ function TrabalheiLaMobile({
                   id="company-select" // Acessibilidade: id para o Select
                   value={company}
                   onChange={setCompany}
-                  options={companyOptions}
+                  options={safeCompanyOptions} // Usando safeCompanyOptions
                   formatOptionLabel={formatOptionLabel}
                   placeholder="Digite ou selecione..."
                   className="mb-3 text-sm"
                   noOptionsMessage={() =>
-                    companyOptions.length === 0
+                    safeCompanyOptions.length === 0
                       ? "Sem empresas (options vazio)"
                       : "Nenhuma opção"
                   }
