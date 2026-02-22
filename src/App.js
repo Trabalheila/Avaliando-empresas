@@ -28,6 +28,7 @@ function App() {
 
      // Fim do componente App
 
+        // Verificação final para deploy Vercel
 
 
 export default App;
