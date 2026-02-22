@@ -1,4 +1,5 @@
-import React, { useMemo } from "react";
+
+import React, { useState, useEffect } from 'react';
 import {
   FaStar,
   FaHandshake,
