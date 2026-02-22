@@ -1,20 +1,21 @@
 
-import React, { useState, useEffect } from 'react';
-import {
-  FaStar,
-  FaHandshake,
-  FaMoneyBillWave,
-  FaBuilding,
-  FaUserTie,
-  FaHeart,
-  FaChartBar,
-  FaBriefcase,
-  FaLightbulb,
-} from "react-icons/fa";
-import { FcGoogle } from "react-icons/fc";
-import Select from "react-select";
+    import React from "react"; // This is correct, React is used
+    import {
+      FaStar,
+      FaHandshake,
+      FaMoneyBillWave,
+      FaBuilding,
+      FaUserTie,
+      FaHeart,
+      FaChartBar,
+      FaBriefcase,
+      FaLightbulb,
+    } from "react-icons/fa";
+    import { FcGoogle } from "react-icons/fc";
+    import Select from "react-select";
 
-import LoginLinkedInButton from "./components/LoginLinkedInButton";
+    import LoginLinkedInButton from "./components/LoginLinkedInButton";
+
 
 /** ⭐ Estrela com contorno preto */
 function OutlinedStar({ active, onClick, size = 18, label }) {

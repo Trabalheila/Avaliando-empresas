@@ -28,7 +28,8 @@ function App() {
 
      // Fim do componente App
 
-        // Verificação final para deploy Vercel
+    // Última verificação de deploy - Código corrigido!
+
 
 
 export default App;
