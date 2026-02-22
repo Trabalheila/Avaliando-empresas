@@ -1,14 +1,12 @@
-import React, { useMemo } from "react";
+import React from "react";
 import {
   FaStar,
   FaHandshake,
   FaMoneyBillWave,
   FaBuilding,
   FaUserTie,
-  // FaRocket, // Removido: 'FaRocket' não é usado
   FaHeart,
   FaChartBar,
-  // FaMedal, // Removido: 'FaMedal' é importado em TrabalheiLa.js
   FaBriefcase,
   FaLightbulb,
 } from "react-icons/fa";
@@ -52,7 +50,7 @@ function OutlinedStar({ active, onClick, size = 18, label }) {
             left: 0,
             top: 0,
             transform: `scale(${outlineScale})`,
-            transformOrigin: "center", // Acessibilidade: CORREÇÃO DA STRING LITERAL
+            transformOrigin: "center",
           }}
           aria-hidden="true"
         >
@@ -105,321 +103,398 @@ function TrabalheiLaMobile({
   setCommentBemestar,
   commentEstimulacaoOrganizacao,
   setCommentEstimulacaoOrganizacao,
-  comment,
-  setComment,
-  empresas,
   isAuthenticated,
-  isLoading,
-  companies,
+  setIsAuthenticated,
+  user,
+  setUser,
   companyOptions,
-  formatOptionLabel,
-  handleAddCompany,
-  handleLinkedInSuccess,
-  handleLinkedInFailure,
-  handleGoogleLogin,
   handleSubmit,
+  isLoading,
+  error,
+  empresas,
   calcularMedia,
-  getBadgeColor,
   top3,
   getMedalColor,
   getMedalEmoji,
+  getBadgeColor,
 }) {
   const safeCompanyOptions = Array.isArray(companyOptions) ? companyOptions : [];
 
   const linkedInClientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID || "";
   const linkedInDisabled = Boolean(isLoading || !linkedInClientId);
 
-  const debug = useMemo(() => {
-    const w = typeof window !== "undefined" ? window.innerWidth : null;
-    return { w, optCount: safeCompanyOptions.length };
-  }, [safeCompanyOptions.length]);
+  // O bloco useMemo de debug foi removido, pois não é necessário para o deploy
+  // e para manter o código limpo, seguindo as práticas de produção.
 
   const selectStyles = {
     control: (base, state) => ({
       ...base,
-      borderRadius: 14,
-      borderColor: state.isFocused ? "#22d3ee" : "#e2e8f0",
-      boxShadow: state.isFocused ? "0 0 0 3px rgba(34,211,238,.25)" : "none",
-      padding: "2px 6px",
-      minHeight: 44,
+      borderRadius: "0.75rem", // rounded-xl
+      padding: "0.1rem", // Ajustado para mobile: um pouco menos de padding
+      borderColor: state.isFocused ? "#8b5cf6" : "#e5e7eb", // focus:border-purple-500
+      boxShadow: state.isFocused ? "0 0 0 1px #8b5cf6" : "none", // focus:ring-1 focus:ring-purple-500
+      "&:hover": {
+        borderColor: state.isFocused ? "#8b5cf6" : "#d1d5db",
+      },
     }),
-    menu: (base) => ({
+    option: (base, state) => ({
       ...base,
-      borderRadius: 14,
-      overflow: "hidden",
-      zIndex: 60,
+      backgroundColor: state.isSelected
+        ? "#8b5cf6"
+        : state.isFocused
+          ? "#f3e8ff"
+          : null,
+      color: state.isSelected ? "white" : "#4b5563",
+      fontSize: "0.875rem", // Ajustado para mobile: text-sm para as opções
+      "&:active": {
+        backgroundColor: "#a78bfa",
+      },
+    }),
+    singleValue: (base) => ({
+      ...base,
+      color: "#1f2937", // text-gray-900
+      fontWeight: "500", // font-medium
+      fontSize: "0.875rem", // Ajustado para mobile: text-sm para o valor selecionado
+    }),
+    placeholder: (base) => ({
+      ...base,
+      color: "#9ca3af", // text-gray-400
+      fontSize: "0.875rem", // Ajustado para mobile: text-sm para o placeholder
     }),
   };
 
-  // Acessibilidade: Definição dos critérios com IDs únicos
-  const criteria = [
-    {
-      id: "rating-geral", // Acessibilidade: ID único
-      label: "Avaliação Geral",
-      value: rating,
-      setter: setRating,
-      icon: FaStar,
-      color: "text-yellow-500",
-      comment: commentRating,
-      setComment: setCommentRating,
-    },
-    {
-      id: "contato-rh", // Acessibilidade: ID único
-      label: "Contato com RH",
-      value: contatoRH,
-      setter: setContatoRH,
-      icon: FaHandshake,
-      color: "text-blue-500",
-      comment: commentContatoRH,
-      setComment: setCommentContatoRH,
-    },
-    {
-      id: "salario-beneficios", // Acessibilidade: ID único
-      label: "Salário e Benefícios",
-      value: salarioBeneficios,
-      setter: setSalarioBeneficios,
-      icon: FaMoneyBillWave,
-      color: "text-green-500",
-      comment: commentSalarioBeneficios,
-      setComment: setCommentSalarioBeneficios,
-    },
-    {
-      id: "estrutura-empresa", // Acessibilidade: ID único
-      label: "Estrutura da Empresa",
-      value: estruturaEmpresa,
-      setter: setEstruturaEmpresa,
-      icon: FaBuilding,
-      color: "text-purple-500",
-      comment: commentEstruturaEmpresa,
-      setComment: setCommentEstruturaEmpresa,
-    },
-    {
-      id: "acessibilidade-lideranca", // Acessibilidade: ID único
-      label: "Acessibilidade à Liderança",
-      value: acessibilidadeLideranca,
-      setter: setAcessibilidadeLideranca,
-      icon: FaUserTie,
-      color: "text-indigo-500",
-      comment: commentAcessibilidadeLideranca,
-      setComment: setCommentAcessibilidadeLideranca,
-    },
-    {
-      id: "plano-carreiras", // Acessibilidade: ID único
-      label: "Plano de Carreira",
-      value: planoCarreiras,
-      setter: setPlanoCarreiras,
-      icon: FaBriefcase,
-      color: "text-cyan-500",
-      comment: commentPlanoCarreiras,
-      setComment: setCommentPlanoCarreiras,
-    },
-    {
-      id: "bem-estar", // Acessibilidade: ID único
-      label: "Bem-estar",
-      value: bemestar,
-      setter: setBemestar,
-      icon: FaHeart,
-      color: "text-rose-500",
-      comment: commentBemestar,
-      setComment: setCommentBemestar,
-    },
-    {
-      id: "estimulacao-organizacao", // Acessibilidade: ID único
-      label: "Estímulo e Organização",
-      value: estimulacaoOrganizacao,
-      setter: setEstimulacaoOrganizacao,
-      icon: FaLightbulb,
-      color: "text-orange-500",
-      comment: commentEstimulacaoOrganizacao,
-      setComment: setCommentEstimulacaoOrganizacao,
-    },
-  ];
-
   return (
-    <div
-      className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 text-slate-800"
-      style={{
-        backgroundImage: 'url("/fundo-new.png")',
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundAttachment: "fixed",
-      }}
-    >
-      {/* DEBUG BAR (remova depois) */}
-      <div className="max-w-7xl mx-auto mb-4">
-        <div className="bg-black/50 text-white text-[11px] px-4 py-2 rounded-xl border border-white/10">
-          DEBUG: {JSON.stringify(debug)}
+    <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-100 p-4"> {/* Removido md:p-8 para mobile */}
+      <header className="text-center mb-8 px-2"> {/* Removido max-w-7xl e mx-auto, adicionado px-2 para um pequeno espaçamento lateral */}
+        <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 drop-shadow-lg mb-3"> {/* Ajustado para text-4xl no mobile, sm:text-5xl para telas maiores */}
+          Trabalhei Lá
+        </h1>
+        <p className="text-lg sm:text-xl text-slate-700 font-medium"> {/* Ajustado para text-lg no mobile, sm:text-xl para telas maiores */}
+          Sua plataforma para avaliar empresas e encontrar o lugar ideal para
+          trabalhar.
+        </p>
+        <div className="mt-4 flex flex-col sm:flex-row justify-center items-center gap-4"> {/* Adicionado flex-col para empilhar no mobile, sm:flex-row para lado a lado em telas maiores */}
+          <LoginLinkedInButton
+            clientId={linkedInClientId}
+            onLoginSuccess={(userData) => {
+              setIsAuthenticated(true);
+              setUser(userData);
+              console.log("Login LinkedIn bem-sucedido:", userData);
+            }}
+            onLoginFailure={(error) => {
+              setIsAuthenticated(false);
+              setUser(null);
+              console.error("Login LinkedIn falhou:", error);
+            }}
+            disabled={linkedInDisabled}
+          />
+          <button
+            type="button"
+            className="flex items-center gap-2 px-5 py-2 bg-white text-gray-700 font-semibold rounded-full shadow-md hover:shadow-lg transition-all transform hover:scale-105 text-sm"
+            aria-label="Entrar com Google"
+          >
+            <FcGoogle className="text-xl" />
+            Entrar com Google
+          </button>
         </div>
-      </div>
+        {isAuthenticated && user && (
+          <p className="mt-3 text-green-700 font-semibold text-sm">
+            Bem-vindo(a), {user.name}!
+          </p>
+        )}
+      </header>
 
-      <div className="max-w-md mx-auto px-4">
-        <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 mt-8">
-          <h1 className="text-3xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-6">
+      <div className="max-w-7xl mx-auto px-2">
+        {/* Formulário de Avaliação */}
+        <div className="bg-white rounded-3xl shadow-2xl p-5 border border-slate-200 mb-6">
+          <h2 className="text-xl font-bold text-slate-700 text-center mb-5">
             Avalie uma Empresa
-          </h1>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Seleção de Empresa */}
+          </h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label
                 htmlFor="company-select-mobile"
-                className="block text-sm font-extrabold text-slate-800 mb-2"
+                className="block text-gray-700 text-sm font-medium mb-2"
               >
-                🏢 Empresa
+                Empresa:
               </label>
               <Select
                 id="company-select-mobile"
-                options={companyOptions}
+                options={safeCompanyOptions}
                 value={company}
                 onChange={setCompany}
-                onCreateOption={handleAddCompany}
-                formatOptionLabel={formatOptionLabel}
+                placeholder="Selecione uma empresa existente"
                 isClearable
-                isSearchable
-                placeholder="Selecione ou digite uma empresa"
                 styles={selectStyles}
-                className="react-select-container"
-                classNamePrefix="react-select"
+                aria-label="Selecione uma empresa"
               />
-              {company && company.value === "add-new" && (
-                <input
-                  type="text"
-                  value={newCompany}
-                  onChange={(e) => setNewCompany(e.target.value)}
-                  placeholder="Nome da nova empresa"
-                  className="mt-2 w-full border-2 border-slate-200 p-3 rounded-2xl focus:ring-2 focus:ring-cyan-400 focus:border-transparent text-sm bg-white/80"
-                />
-              )}
             </div>
 
-            {/* Critérios de Avaliação */}
-            <div className="space-y-5">
-              {criteria.map((criterion) => (
-                <div
-                  key={criterion.id}
-                  className="bg-white rounded-2xl p-5 border-2 border-slate-200"
-                >
-                  <label
-                    htmlFor={`${criterion.id}-stars-mobile`}
-                    className="block text-sm font-extrabold text-slate-800 mb-2"
-                  >
-                    <criterion.icon
-                      className={`${criterion.color} inline-block mr-2`}
-                    />
-                    {criterion.label}
-                  </label>
-                  <div
-                    id={`${criterion.id}-stars-mobile`}
-                    className="flex items-center gap-1 mb-3"
-                    role="radiogroup"
-                    aria-label={`Avaliação de ${criterion.label}`}
-                  >
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <OutlinedStar
-                        key={star}
-                        active={star <= criterion.value}
-                        onClick={() => criterion.setter(star)}
-                        label={`Avaliar ${criterion.label} com ${star} de 5 estrelas`}
-                      />
-                    ))}
-                    <span className="ml-2 text-sm font-semibold text-slate-600">
-                      {criterion.value} de 5
-                    </span>
-                  </div>
-                  <label
-                    htmlFor={`${criterion.id}-comment-mobile`}
-                    className="block text-xs font-semibold text-slate-700 mb-1"
-                  >
-                    Comentário (opcional)
-                  </label>
-                  <textarea
-                    id={`${criterion.id}-comment-mobile`}
-                    value={criterion.comment}
-                    onChange={(e) => criterion.setComment(e.target.value)}
-                    rows={2}
-                    className="w-full border-2 border-slate-200 p-2 rounded-xl focus:ring-2 focus:ring-cyan-400 focus:border-transparent resize-y text-xs bg-white/80"
-                    placeholder={`Detalhes sobre ${criterion.label.toLowerCase()}`}
-                  />
-                </div>
-              ))}
+            <div className="flex items-center gap-3 text-gray-500 text-sm">
+              <hr className="flex-grow border-gray-300" />
+              OU
+              <hr className="flex-grow border-gray-300" />
             </div>
 
-            {/* Comentário Geral */}
-            <div className="bg-white rounded-2xl p-5 border-2 border-violet-200">
+            <div>
               <label
-                htmlFor="general-comment-mobile"
-                className="block text-sm font-extrabold text-slate-800 mb-2"
+                htmlFor="new-company-input-mobile"
+                className="block text-gray-700 text-sm font-medium mb-2"
               >
-                💬 Comentário Geral (opcional)
+                Nova Empresa:
               </label>
-              <textarea
-                id="general-comment-mobile"
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                rows={3}
-                className="w-full border-2 border-violet-200 p-3 rounded-2xl focus:ring-2 focus:ring-cyan-400 focus:border-transparent resize-y text-sm bg-white/80"
-                placeholder="Compartilhe uma visão geral sobre sua experiência"
+              <input
+                id="new-company-input-mobile"
+                type="text"
+                className="w-full p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-sm"
+                placeholder="Digite o nome da nova empresa"
+                value={newCompany}
+                onChange={(e) => setNewCompany(e.target.value)}
+                aria-label="Digite o nome da nova empresa"
               />
             </div>
 
-            {/* Login + envio */}
-            <div className="flex flex-col items-center space-y-3">
-              {!isAuthenticated ? (
-                <div className="w-full max-w-md space-y-3">
-                  <LoginLinkedInButton
-                    clientId={linkedInClientId}
-                    redirectUri="https://www.trabalheila.com.br/auth/linkedin"
-                    onLoginSuccess={handleLinkedInSuccess}
-                    onLoginFailure={handleLinkedInFailure}
-                    disabled={linkedInDisabled}
-                  />
-
-                  {!linkedInClientId && (
-                    <div className="text-xs text-rose-700 font-bold">
-                      REACT_APP_LINKEDIN_CLIENT_ID não está definido no build.
-                    </div>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={handleGoogleLogin}
-                    disabled={isLoading}
-                    className="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-200 hover:border-slate-300 hover:shadow-lg px-6 py-3 rounded-2xl transition-all font-extrabold text-slate-700 text-sm"
-                  >
-                    <FcGoogle size={22} />
-                    Entrar com Google
-                  </button>
-
-                  {isLoading && (
-                    <p className="text-sm text-slate-600 text-center animate-pulse">
-                      Autenticando...
-                    </p>
-                  )}
+            <div className="grid grid-cols-1 gap-4">
+              {/* Categoria: Avaliação Geral */}
+              <div className="bg-purple-50 p-4 rounded-xl border border-purple-200">
+                <label className="block text-purple-800 text-sm font-semibold mb-2 flex items-center gap-2">
+                  <FaStar className="text-purple-600" /> Avaliação Geral:
+                </label>
+                <div className="flex justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <OutlinedStar
+                      key={star}
+                      active={star <= rating}
+                      onClick={() => setRating(star)}
+                      label={`${star} estrelas de avaliação geral`}
+                    />
+                  ))}
                 </div>
-              ) : (
-                <div className="bg-gradient-to-r from-emerald-500 to-green-500 rounded-2xl p-3 text-white text-center font-extrabold shadow-lg max-w-md text-sm">
-                  ✅ Pronto! Agora você pode enviar sua avaliação anônima
-                </div>
-              )}
+                <textarea
+                  className="w-full p-2 mt-3 border border-purple-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400 text-xs"
+                  placeholder="Comentário (opcional)"
+                  value={commentRating}
+                  onChange={(e) => setCommentRating(e.target.value)}
+                  rows="2"
+                  aria-label="Comentário sobre a avaliação geral"
+                ></textarea>
+              </div>
 
+              {/* Categoria: Contato com RH */}
+              <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                <label className="block text-blue-800 text-sm font-semibold mb-2 flex items-center gap-2">
+                  <FaHandshake className="text-blue-600" /> Contato com RH:
+                </label>
+                <div className="flex justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <OutlinedStar
+                      key={star}
+                      active={star <= contatoRH}
+                      onClick={() => setContatoRH(star)}
+                      label={`${star} estrelas para contato com RH`}
+                    />
+                  ))}
+                </div>
+                <textarea
+                  className="w-full p-2 mt-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 text-xs"
+                  placeholder="Comentário (opcional)"
+                  value={commentContatoRH}
+                  onChange={(e) => setCommentContatoRH(e.target.value)}
+                  rows="2"
+                  aria-label="Comentário sobre contato com RH"
+                ></textarea>
+              </div>
+
+              {/* Categoria: Salário e Benefícios */}
+              <div className="bg-green-50 p-4 rounded-xl border border-green-200">
+                <label className="block text-green-800 text-sm font-semibold mb-2 flex items-center gap-2">
+                  <FaMoneyBillWave className="text-green-600" /> Salário e
+                  Benefícios:
+                </label>
+                <div className="flex justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <OutlinedStar
+                      key={star}
+                      active={star <= salarioBeneficios}
+                      onClick={() => setSalarioBeneficios(star)}
+                      label={`${star} estrelas para salário e benefícios`}
+                    />
+                  ))}
+                </div>
+                <textarea
+                  className="w-full p-2 mt-3 border border-green-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-400 text-xs"
+                  placeholder="Comentário (opcional)"
+                  value={commentSalarioBeneficios}
+                  onChange={(e) => setCommentSalarioBeneficios(e.target.value)}
+                  rows="2"
+                  aria-label="Comentário sobre salário e benefícios"
+                ></textarea>
+              </div>
+
+              {/* Categoria: Estrutura da Empresa */}
+              <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
+                <label className="block text-yellow-800 text-sm font-semibold mb-2 flex items-center gap-2">
+                  <FaBuilding className="text-yellow-600" /> Estrutura da
+                  Empresa:
+                </label>
+                <div className="flex justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <OutlinedStar
+                      key={star}
+                      active={star <= estruturaEmpresa}
+                      onClick={() => setEstruturaEmpresa(star)}
+                      label={`${star} estrelas para estrutura da empresa`}
+                    />
+                  ))}
+                </div>
+                <textarea
+                  className="w-full p-2 mt-3 border border-yellow-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-yellow-400 text-xs"
+                  placeholder="Comentário (opcional)"
+                  value={commentEstruturaEmpresa}
+                  onChange={(e) => setCommentEstruturaEmpresa(e.target.value)}
+                  rows="2"
+                  aria-label="Comentário sobre estrutura da empresa"
+                ></textarea>
+              </div>
+
+              {/* Categoria: Acessibilidade à Liderança */}
+              <div className="bg-red-50 p-4 rounded-xl border border-red-200">
+                <label className="block text-red-800 text-sm font-semibold mb-2 flex items-center gap-2">
+                  <FaUserTie className="text-red-600" /> Acessibilidade à
+                  Liderança:
+                </label>
+                <div className="flex justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <OutlinedStar
+                      key={star}
+                      active={star <= acessibilidadeLideranca}
+                      onClick={() => setAcessibilidadeLideranca(star)}
+                      label={`${star} estrelas para acessibilidade à liderança`}
+                    />
+                  ))}
+                </div>
+                <textarea
+                  className="w-full p-2 mt-3 border border-red-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-400 text-xs"
+                  placeholder="Comentário (opcional)"
+                  value={commentAcessibilidadeLideranca}
+                  onChange={(e) =>
+                    setCommentAcessibilidadeLideranca(e.target.value)
+                  }
+                  rows="2"
+                  aria-label="Comentário sobre acessibilidade à liderança"
+                ></textarea>
+              </div>
+
+              {/* Categoria: Plano de Carreiras */}
+              <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-200">
+                <label className="block text-indigo-800 text-sm font-semibold mb-2 flex items-center gap-2">
+                  <FaBriefcase className="text-indigo-600" /> Plano de
+                  Carreiras:
+                </label>
+                <div className="flex justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <OutlinedStar
+                      key={star}
+                      active={star <= planoCarreiras}
+                      onClick={() => setPlanoCarreiras(star)}
+                      label={`${star} estrelas para plano de carreiras`}
+                    />
+                  ))}
+                </div>
+                <textarea
+                  className="w-full p-2 mt-3 border border-indigo-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400 text-xs"
+                  placeholder="Comentário (opcional)"
+                  value={commentPlanoCarreiras}
+                  onChange={(e) => setCommentPlanoCarreiras(e.target.value)}
+                  rows="2"
+                  aria-label="Comentário sobre plano de carreiras"
+                ></textarea>
+              </div>
+
+              {/* Categoria: Bem-estar e Qualidade de Vida */}
+              <div className="bg-pink-50 p-4 rounded-xl border border-pink-200">
+                <label className="block text-pink-800 text-sm font-semibold mb-2 flex items-center gap-2">
+                  <FaHeart className="text-pink-600" /> Bem-estar e Qualidade de
+                  Vida:
+                </label>
+                <div className="flex justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <OutlinedStar
+                      key={star}
+                      active={star <= bemestar}
+                      onClick={() => setBemestar(star)}
+                      label={`${star} estrelas para bem-estar e qualidade de vida`}
+                    />
+                  ))}
+                </div>
+                <textarea
+                  className="w-full p-2 mt-3 border border-pink-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-pink-400 text-xs"
+                  placeholder="Comentário (opcional)"
+                  value={commentBemestar}
+                  onChange={(e) => setCommentBemestar(e.target.value)}
+                  rows="2"
+                  aria-label="Comentário sobre bem-estar e qualidade de vida"
+                ></textarea>
+              </div>
+
+              {/* Categoria: Estímulo à Inovação e Organização */}
+              <div className="bg-teal-50 p-4 rounded-xl border border-teal-200">
+                <label className="block text-teal-800 text-sm font-semibold mb-2 flex items-center gap-2">
+                  <FaLightbulb className="text-teal-600" /> Estímulo à Inovação e
+                  Organização:
+                </label>
+                <div className="flex justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <OutlinedStar
+                      key={star}
+                      active={star <= estimulacaoOrganizacao}
+                      onClick={() => setEstimulacaoOrganizacao(star)}
+                      label={`${star} estrelas para estímulo à inovação e organização`}
+                    />
+                  ))}
+                </div>
+                <textarea
+                  className="w-full p-2 mt-3 border border-teal-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-400 text-xs"
+                  placeholder="Comentário (opcional)"
+                  value={commentEstimulacaoOrganizacao}
+                  onChange={(e) =>
+                    setCommentEstimulacaoOrganizacao(e.target.value)
+                  }
+                  rows="2"
+                  aria-label="Comentário sobre estímulo à inovação e organização"
+                ></textarea>
+              </div>
+            </div>
+
+            {error && (
+              <p className="text-red-600 text-center font-medium text-sm">
+                {error}
+              </p>
+            )}
+
+            <div className="text-center">
               <button
                 type="submit"
-                className={`px-10 py-3.5 rounded-2xl text-white font-extrabold text-base transition-all ${
+                className={`px-6 py-3 rounded-full font-extrabold text-white text-base transition-all transform ${
                   isAuthenticated
-                    ? "bg-gradient-to-r from-indigo-600 to-violet-600 hover:shadow-2xl hover:scale-[1.02]"
+                    ? "bg-gradient-to-r from-purple-600 to-violet-600 hover:shadow-2xl hover:scale-[1.02]"
                     : "bg-slate-400 cursor-not-allowed opacity-60"
                 }`}
-                disabled={!isAuthenticated}
+                disabled={!isAuthenticated || isLoading}
               >
-                {isAuthenticated ? "Enviar avaliação" : "Faça login para avaliar"}
+                {isLoading
+                  ? "Enviando..."
+                  : isAuthenticated
+                    ? "Enviar avaliação"
+                    : "Faça login para avaliar"}
               </button>
             </div>
           </form>
         </div>
 
         {/* Ranking e Outras Avaliações */}
-        <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 mt-8">
-          <div className="flex flex-col items-center mb-4">
+        <div className="bg-white rounded-3xl shadow-2xl p-5 border border-slate-200">
+          <div className="flex flex-col items-center mb-5">
             <h2 className="text-xl font-bold text-slate-700 text-center mb-3">
               Ranking - Top Empresas Avaliadas
             </h2>
