@@ -26,4 +26,7 @@ function App() {
   );
 }
 
+    // Este é um comentário para forçar um novo commit
+
+
 export default App;
