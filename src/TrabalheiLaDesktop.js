@@ -123,10 +123,6 @@ function TrabalheiLaDesktop({
   const linkedInClientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID || "";
   const linkedInDisabled = Boolean(isLoading || !linkedInClientId);
 
-  const debug = useMemo(() => {
-    const w = typeof window !== "undefined" ? window.innerWidth : null;
-    return { w, optCount: safeCompanyOptions.length };
-  }, [safeCompanyOptions.length]);
 
   const selectStyles = {
     control: (base, state) => ({
