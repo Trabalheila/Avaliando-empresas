@@ -26,7 +26,8 @@ function App() {
   );
 }
 
-    // Este é um comentário para forçar um novo commit
+     // Fim do componente App
+
 
 
 export default App;
