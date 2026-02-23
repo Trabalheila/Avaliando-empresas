@@ -9,6 +9,7 @@ import {
   FaChartBar,
   FaBriefcase,
   FaLightbulb,
+  FaLock, // Importado para o ícone de privacidade
 } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import Select from "react-select";
@@ -142,7 +143,6 @@ function TrabalheiLaMobile({
           ? "#f3e8ff"
           : null,
       color: state.isSelected ? "white" : "#4b5563",
-      fontSize: "0.875rem", // Ajustado para mobile: text-sm para as opções
       "&:active": {
         backgroundColor: "#a78bfa",
       },
@@ -151,7 +151,7 @@ function TrabalheiLaMobile({
       ...base,
       color: "#1f2937", // text-gray-900
       fontWeight: "500", // font-medium
-      fontSize: "0.875rem", // Ajustado para mobile: text-sm para o valor selecionado
+      fontSize: "0.875rem", // text-sm para o valor selecionado
     }),
     placeholder: (base) => ({
       ...base,
@@ -162,8 +162,8 @@ function TrabalheiLaMobile({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-100 p-4"> {/* Removido md:p-8 para mobile */}
-      <header className="text-center mb-8 px-2"> {/* Removido max-w-7xl e mx-auto, adicionado px-2 para um pequeno espaçamento lateral */}
-        <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 drop-shadow-lg mb-3"> {/* Ajustado para text-4xl no mobile, sm:text-5xl para telas maiores */}
+      <header className="text-center mb-6 px-2"> {/* Removido max-w-7xl e mx-auto, adicionado px-2 para um pequeno espaçamento lateral */}
+        <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 drop-shadow-lg mb-2"> {/* Ajustado para text-4xl no mobile, sm:text-5xl para telas maiores */}
           Trabalhei Lá
         </h1>
         <p className="text-lg sm:text-xl text-slate-700 font-medium"> {/* Ajustado para text-lg no mobile, sm:text-xl para telas maiores */}
@@ -195,70 +195,99 @@ function TrabalheiLaMobile({
           </button>
         </div>
         {isAuthenticated && user && (
-          <p className="mt-4 text-green-700 font-semibold text-base"> {/* Ajustado para text-base */}
+          <p className="mt-4 text-green-700 font-semibold">
             Bem-vindo(a), {user.name}!
           </p>
         )}
       </header>
 
-      <section
-        className="grid grid-cols-1 gap-6 mx-auto px-2 mt-6" /* Removido lg:grid-cols-2, ajustado px e mt */
-        style={{ maxWidth: 1120 }}
-      >
-        {/* Formulário de Avaliação */}
+      {/* Nova Seção: Sua privacidade é garantida */}
+      <div className="max-w-full mx-auto px-4 mt-6">
+        <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-5 rounded-2xl shadow-lg flex items-start gap-4">
+          <FaLock className="text-3xl mt-1" />
+          <div>
+            <h3 className="font-bold text-xl mb-1">Sua privacidade é garantida</h3>
+            <p className="text-sm opacity-90">
+              Usamos o LinkedIn ou Google apenas para verificar seu vínculo
+              profissional. Suas avaliações são{" "}
+              <span className="font-extrabold">100% anônimas</span> — nome e
+              perfil nunca são exibidos.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Formulário de Avaliação */}
+      <section className="max-w-full mx-auto px-4 mt-6"> {/* Removido grid-cols-1 lg:grid-cols-2 e style, ajustado mt */}
         <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200"> {/* Aumentado padding */}
           <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">
             Avalie uma Empresa
           </h2>
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label
                 htmlFor="company-select"
-                className="block text-gray-700 text-base font-medium mb-2" /* Ajustado para text-base */
+                className="block text-gray-700 text-sm font-semibold mb-2"
               >
                 Empresa:
               </label>
               <Select
                 id="company-select"
                 options={safeCompanyOptions}
-                value={company}
-                onChange={setCompany}
+                value={
+                  company
+                    ? { label: company, value: company }
+                    : null
+                }
+                onChange={(selectedOption) =>
+                  setCompany(selectedOption ? selectedOption.value : "")
+                }
                 placeholder="Selecione uma empresa existente"
                 isClearable
                 styles={selectStyles}
-                aria-label="Selecione uma empresa"
+                className="text-sm" // Adicionado para controlar o tamanho da fonte do Select
               />
             </div>
 
-            <div className="flex items-center gap-3 text-gray-500 text-base"> {/* Ajustado para text-base */}
-              <hr className="flex-grow border-gray-300" />
-              OU
-              <hr className="flex-grow border-gray-300" />
-            </div>
+            <div className="text-center text-gray-500 font-medium my-4">OU</div>
 
             <div>
               <label
-                htmlFor="new-company-input"
-                className="block text-gray-700 text-base font-medium mb-2" /* Ajustado para text-base */
+                htmlFor="new-company"
+                className="block text-gray-700 text-sm font-semibold mb-2"
               >
                 Nova Empresa:
               </label>
-              <input
-                id="new-company-input"
-                type="text"
-                className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-base" /* Ajustado para text-base */
-                placeholder="Digite o nome da nova empresa"
-                value={newCompany}
-                onChange={(e) => setNewCompany(e.target.value)}
-                aria-label="Digite o nome da nova empresa"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  id="new-company"
+                  className="flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                  placeholder="Digite o nome da nova empresa"
+                  value={newCompany}
+                  onChange={(e) => setNewCompany(e.target.value)}
+                  aria-label="Nome da nova empresa"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newCompany.trim()) {
+                      setCompany(newCompany.trim());
+                      setNewCompany("");
+                    }
+                  }}
+                  className="px-5 py-3 bg-green-500 text-white font-semibold rounded-xl hover:bg-green-600 transition-colors shadow-md"
+                >
+                  Adicionar
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"> {/* Ajustado para grid-cols-1 no mobile, sm:grid-cols-2 para telas maiores */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"> {/* Ajustado para grid-cols-1 no mobile, sm:grid-cols-2 em telas maiores */}
               {/* Categoria: Avaliação Geral */}
               <div className="bg-purple-50 p-4 rounded-xl border border-purple-200">
                 <label className="block text-purple-800 text-base font-semibold mb-2 flex items-center gap-2"> {/* Ajustado para text-base */}
-                  <FaStar className="text-purple-600 text-xl" /> Avaliação Geral: {/* Aumentado ícone */}
+                  <FaStar className="text-purple-600 text-xl" /> Avaliação Geral:
                 </label>
                 <div className="flex justify-center gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -281,10 +310,10 @@ function TrabalheiLaMobile({
                 ></textarea>
               </div>
 
-              {/* Categoria: Contato com RH */}
+              {/* Categoria: Contato do RH */}
               <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
                 <label className="block text-blue-800 text-base font-semibold mb-2 flex items-center gap-2"> {/* Ajustado para text-base */}
-                  <FaHandshake className="text-blue-600 text-xl" /> Contato com RH: {/* Aumentado ícone */}
+                  <FaHandshake className="text-blue-600 text-xl" /> Contato do RH:
                 </label>
                 <div className="flex justify-center gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -292,18 +321,18 @@ function TrabalheiLaMobile({
                       key={star}
                       active={star <= contatoRH}
                       onClick={() => setContatoRH(star)}
-                      label={`${star} estrelas para contato com RH`}
+                      label={`${star} estrelas para contato do RH`}
                       size={24} /* Aumentado tamanho da estrela */
                     />
                   ))}
                 </div>
                 <textarea
                   className="w-full p-2 mt-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 text-sm"
-                  placeholder="Comentário sobre contato com RH (opcional)"
+                  placeholder="Comentário sobre contato do RH (opcional)"
                   value={commentContatoRH}
                   onChange={(e) => setCommentContatoRH(e.target.value)}
                   rows="2"
-                  aria-label="Comentário sobre contato com RH"
+                  aria-label="Comentário sobre contato do RH"
                 ></textarea>
               </div>
 
@@ -499,9 +528,11 @@ function TrabalheiLaMobile({
             </div>
           </form>
         </div>
+      </section> {/* Fechamento da seção do formulário */}
 
-        {/* Ranking e Outras Avaliações */}
-        <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 mt-6"> {/* Aumentado padding e margin-top */}
+      {/* Ranking e Outras Avaliações */}
+      <section className="max-w-full mx-auto px-4 mt-6"> {/* max-w-full e px-4, ajustado mt */}
+        <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200"> {/* Aumentado padding */}
           <div className="flex flex-col items-center mb-5">
             <h2 className="text-2xl font-bold text-slate-700 text-center mb-3">
               Ranking - Top Empresas Avaliadas
@@ -601,7 +632,7 @@ function TrabalheiLaMobile({
             }
           `}</style>
         </div>
-      </section> {/* Fechamento da segunda seção */}
+      </section> {/* Fechamento da seção de ranking */}
 
       <footer className="max-w-full mx-auto mt-8 px-4 text-center"> {/* max-w-full e px-4 */}
         <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-5 border border-white/20"> {/* Aumentado padding */}
