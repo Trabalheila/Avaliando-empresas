@@ -127,7 +127,7 @@ function TrabalheiLaMobile({
     control: (base, state) => ({
       ...base,
       borderRadius: "0.75rem", // rounded-xl
-      padding: "0.25rem", // p-1 - Aumentado um pouco para melhor toque
+      padding: "0.1rem", // Ajustado para mobile: um pouco menos de padding
       borderColor: state.isFocused ? "#8b5cf6" : "#e5e7eb", // focus:border-purple-500
       boxShadow: state.isFocused ? "0 0 0 1px #8b5cf6" : "none", // focus:ring-1 focus:ring-purple-500
       "&:hover": {
@@ -142,7 +142,7 @@ function TrabalheiLaMobile({
           ? "#f3e8ff"
           : null,
       color: state.isSelected ? "white" : "#4b5563",
-      fontSize: "0.95rem", // Aumentado um pouco para melhor legibilidade
+      fontSize: "0.875rem", // Ajustado para mobile: text-sm para as opções
       "&:active": {
         backgroundColor: "#a78bfa",
       },
@@ -151,26 +151,26 @@ function TrabalheiLaMobile({
       ...base,
       color: "#1f2937", // text-gray-900
       fontWeight: "500", // font-medium
-      fontSize: "0.95rem", // Aumentado um pouco para melhor legibilidade
+      fontSize: "0.875rem", // Ajustado para mobile: text-sm para o valor selecionado
     }),
     placeholder: (base) => ({
       ...base,
       color: "#9ca3af", // text-gray-400
-      fontSize: "0.95rem", // Aumentado um pouco para melhor legibilidade
+      fontSize: "0.875rem", // text-sm para o placeholder
     }),
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-100 p-4">
-      <header className="text-center mb-6 px-4"> {/* Aumentado px para mais espaçamento lateral */}
-        <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 drop-shadow-lg mb-2">
+    <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-100 p-4"> {/* Removido md:p-8 para mobile */}
+      <header className="text-center mb-8 px-2"> {/* Removido max-w-7xl e mx-auto, adicionado px-2 para um pequeno espaçamento lateral */}
+        <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 drop-shadow-lg mb-3"> {/* Ajustado para text-4xl no mobile, sm:text-5xl para telas maiores */}
           Trabalhei Lá
         </h1>
-        <p className="text-lg text-slate-700 font-medium">
+        <p className="text-lg sm:text-xl text-slate-700 font-medium"> {/* Ajustado para text-lg no mobile, sm:text-xl para telas maiores */}
           Sua plataforma para avaliar empresas e encontrar o lugar ideal para
           trabalhar.
         </p>
-        <div className="mt-4 flex flex-col items-center gap-3">
+        <div className="mt-4 flex flex-col sm:flex-row justify-center items-center gap-4"> {/* Adicionado flex-col para empilhar no mobile, sm:flex-row para lado a lado em telas maiores */}
           <LoginLinkedInButton
             clientId={linkedInClientId}
             onLoginSuccess={(userData) => {
@@ -187,36 +187,39 @@ function TrabalheiLaMobile({
           />
           <button
             type="button"
-            className="flex items-center gap-2 px-6 py-3 bg-white text-gray-700 font-semibold rounded-full shadow-md hover:shadow-lg transition-all transform hover:scale-105 text-base" // Aumentado texto e padding
+            className="flex items-center gap-2 px-6 py-3 bg-white text-gray-700 font-semibold rounded-full shadow-md hover:shadow-lg transition-all transform hover:scale-105"
             aria-label="Entrar com Google"
           >
-            <FcGoogle className="text-xl" />
+            <FcGoogle className="text-2xl" />
             Entrar com Google
           </button>
         </div>
         {isAuthenticated && user && (
-          <p className="mt-3 text-green-700 font-semibold text-base"> {/* Aumentado texto */}
+          <p className="mt-4 text-green-700 font-semibold text-base"> {/* Ajustado para text-base */}
             Bem-vindo(a), {user.name}!
           </p>
         )}
       </header>
 
-      <div className="max-w-full mx-auto px-4"> {/* max-w-full para ocupar toda a largura */}
+      <section
+        className="grid grid-cols-1 gap-6 mx-auto px-2 mt-6" /* Removido lg:grid-cols-2, ajustado px e mt */
+        style={{ maxWidth: 1120 }}
+      >
         {/* Formulário de Avaliação */}
-        <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 mb-6"> {/* Aumentado padding */}
-          <h2 className="text-2xl font-bold text-slate-700 text-center mb-5">
+        <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200"> {/* Aumentado padding */}
+          <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">
             Avalie uma Empresa
           </h2>
-          <form onSubmit={handleSubmit} className="space-y-5"> {/* Aumentado space-y */}
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label
-                htmlFor="company-select-mobile"
-                className="block text-gray-700 text-base font-medium mb-2" // Aumentado texto
+                htmlFor="company-select"
+                className="block text-gray-700 text-base font-medium mb-2" /* Ajustado para text-base */
               >
                 Empresa:
               </label>
               <Select
-                id="company-select-mobile"
+                id="company-select"
                 options={safeCompanyOptions}
                 value={company}
                 onChange={setCompany}
@@ -227,7 +230,7 @@ function TrabalheiLaMobile({
               />
             </div>
 
-            <div className="flex items-center gap-3 text-gray-500 text-base"> {/* Aumentado texto */}
+            <div className="flex items-center gap-3 text-gray-500 text-base"> {/* Ajustado para text-base */}
               <hr className="flex-grow border-gray-300" />
               OU
               <hr className="flex-grow border-gray-300" />
@@ -235,15 +238,15 @@ function TrabalheiLaMobile({
 
             <div>
               <label
-                htmlFor="new-company-input-mobile"
-                className="block text-gray-700 text-base font-medium mb-2" // Aumentado texto
+                htmlFor="new-company-input"
+                className="block text-gray-700 text-base font-medium mb-2" /* Ajustado para text-base */
               >
                 Nova Empresa:
               </label>
               <input
-                id="new-company-input-mobile"
+                id="new-company-input"
                 type="text"
-                className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-base" // Aumentado padding e texto
+                className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-base" /* Ajustado para text-base */
                 placeholder="Digite o nome da nova empresa"
                 value={newCompany}
                 onChange={(e) => setNewCompany(e.target.value)}
@@ -251,11 +254,11 @@ function TrabalheiLaMobile({
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"> {/* Ajustado para grid-cols-1 no mobile, sm:grid-cols-2 para telas maiores */}
               {/* Categoria: Avaliação Geral */}
               <div className="bg-purple-50 p-4 rounded-xl border border-purple-200">
-                <label className="block text-purple-800 text-base font-semibold mb-2 flex items-center gap-2"> {/* Aumentado texto */}
-                  <FaStar className="text-purple-600" /> Avaliação Geral:
+                <label className="block text-purple-800 text-base font-semibold mb-2 flex items-center gap-2"> {/* Ajustado para text-base */}
+                  <FaStar className="text-purple-600 text-xl" /> Avaliação Geral: {/* Aumentado ícone */}
                 </label>
                 <div className="flex justify-center gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -264,6 +267,7 @@ function TrabalheiLaMobile({
                       active={star <= rating}
                       onClick={() => setRating(star)}
                       label={`${star} estrelas para avaliação geral`}
+                      size={24} /* Aumentado tamanho da estrela */
                     />
                   ))}
                 </div>
@@ -279,8 +283,8 @@ function TrabalheiLaMobile({
 
               {/* Categoria: Contato com RH */}
               <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
-                <label className="block text-blue-800 text-base font-semibold mb-2 flex items-center gap-2"> {/* Aumentado texto */}
-                  <FaHandshake className="text-blue-600" /> Contato com RH:
+                <label className="block text-blue-800 text-base font-semibold mb-2 flex items-center gap-2"> {/* Ajustado para text-base */}
+                  <FaHandshake className="text-blue-600 text-xl" /> Contato com RH: {/* Aumentado ícone */}
                 </label>
                 <div className="flex justify-center gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -289,6 +293,7 @@ function TrabalheiLaMobile({
                       active={star <= contatoRH}
                       onClick={() => setContatoRH(star)}
                       label={`${star} estrelas para contato com RH`}
+                      size={24} /* Aumentado tamanho da estrela */
                     />
                   ))}
                 </div>
@@ -304,8 +309,8 @@ function TrabalheiLaMobile({
 
               {/* Categoria: Salário e Benefícios */}
               <div className="bg-green-50 p-4 rounded-xl border border-green-200">
-                <label className="block text-green-800 text-base font-semibold mb-2 flex items-center gap-2"> {/* Aumentado texto */}
-                  <FaMoneyBillWave className="text-green-600" /> Salário e
+                <label className="block text-green-800 text-base font-semibold mb-2 flex items-center gap-2"> {/* Ajustado para text-base */}
+                  <FaMoneyBillWave className="text-green-600 text-xl" /> Salário e
                   Benefícios:
                 </label>
                 <div className="flex justify-center gap-1">
@@ -315,6 +320,7 @@ function TrabalheiLaMobile({
                       active={star <= salarioBeneficios}
                       onClick={() => setSalarioBeneficios(star)}
                       label={`${star} estrelas para salário e benefícios`}
+                      size={24} /* Aumentado tamanho da estrela */
                     />
                   ))}
                 </div>
@@ -330,8 +336,9 @@ function TrabalheiLaMobile({
 
               {/* Categoria: Estrutura da Empresa */}
               <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
-                <label className="block text-yellow-800 text-base font-semibold mb-2 flex items-center gap-2"> {/* Aumentado texto */}
-                  <FaBuilding className="text-yellow-600" /> Estrutura da Empresa:
+                <label className="block text-yellow-800 text-base font-semibold mb-2 flex items-center gap-2"> {/* Ajustado para text-base */}
+                  <FaBuilding className="text-yellow-600 text-xl" /> Estrutura da
+                  Empresa:
                 </label>
                 <div className="flex justify-center gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -340,6 +347,7 @@ function TrabalheiLaMobile({
                       active={star <= estruturaEmpresa}
                       onClick={() => setEstruturaEmpresa(star)}
                       label={`${star} estrelas para estrutura da empresa`}
+                      size={24} /* Aumentado tamanho da estrela */
                     />
                   ))}
                 </div>
@@ -355,8 +363,9 @@ function TrabalheiLaMobile({
 
               {/* Categoria: Acessibilidade à Liderança */}
               <div className="bg-red-50 p-4 rounded-xl border border-red-200">
-                <label className="block text-red-800 text-base font-semibold mb-2 flex items-center gap-2"> {/* Aumentado texto */}
-                  <FaUserTie className="text-red-600" /> Acessibilidade à Liderança:
+                <label className="block text-red-800 text-base font-semibold mb-2 flex items-center gap-2"> {/* Ajustado para text-base */}
+                  <FaUserTie className="text-red-600 text-xl" /> Acessibilidade à
+                  Liderança:
                 </label>
                 <div className="flex justify-center gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -365,6 +374,7 @@ function TrabalheiLaMobile({
                       active={star <= acessibilidadeLideranca}
                       onClick={() => setAcessibilidadeLideranca(star)}
                       label={`${star} estrelas para acessibilidade à liderança`}
+                      size={24} /* Aumentado tamanho da estrela */
                     />
                   ))}
                 </div>
@@ -382,8 +392,9 @@ function TrabalheiLaMobile({
 
               {/* Categoria: Plano de Carreiras */}
               <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-200">
-                <label className="block text-indigo-800 text-base font-semibold mb-2 flex items-center gap-2"> {/* Aumentado texto */}
-                  <FaBriefcase className="text-indigo-600" /> Plano de Carreiras:
+                <label className="block text-indigo-800 text-base font-semibold mb-2 flex items-center gap-2"> {/* Ajustado para text-base */}
+                  <FaBriefcase className="text-indigo-600 text-xl" /> Plano de
+                  Carreiras:
                 </label>
                 <div className="flex justify-center gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -392,6 +403,7 @@ function TrabalheiLaMobile({
                       active={star <= planoCarreiras}
                       onClick={() => setPlanoCarreiras(star)}
                       label={`${star} estrelas para plano de carreiras`}
+                      size={24} /* Aumentado tamanho da estrela */
                     />
                   ))}
                 </div>
@@ -405,11 +417,11 @@ function TrabalheiLaMobile({
                 ></textarea>
               </div>
 
-              {/* Categoria: Bem-estar e Qualidade de Vida */}
+              {/* Categoria: Bem-estar e Ambiente */}
               <div className="bg-pink-50 p-4 rounded-xl border border-pink-200">
-                <label className="block text-pink-800 text-base font-semibold mb-2 flex items-center gap-2"> {/* Aumentado texto */}
-                  <FaHeart className="text-pink-600" /> Bem-estar e Qualidade de
-                  Vida:
+                <label className="block text-pink-800 text-base font-semibold mb-2 flex items-center gap-2"> {/* Ajustado para text-base */}
+                  <FaHeart className="text-pink-600 text-xl" /> Bem-estar e
+                  Ambiente:
                 </label>
                 <div className="flex justify-center gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -417,25 +429,26 @@ function TrabalheiLaMobile({
                       key={star}
                       active={star <= bemestar}
                       onClick={() => setBemestar(star)}
-                      label={`${star} estrelas para bem-estar e qualidade de vida`}
+                      label={`${star} estrelas para bem-estar e ambiente`}
+                      size={24} /* Aumentado tamanho da estrela */
                     />
                   ))}
                 </div>
                 <textarea
                   className="w-full p-2 mt-3 border border-pink-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-pink-400 text-sm"
-                  placeholder="Comentário sobre bem-estar e qualidade de vida (opcional)"
+                  placeholder="Comentário sobre bem-estar e ambiente (opcional)"
                   value={commentBemestar}
                   onChange={(e) => setCommentBemestar(e.target.value)}
                   rows="2"
-                  aria-label="Comentário sobre bem-estar e qualidade de vida"
+                  aria-label="Comentário sobre bem-estar e ambiente"
                 ></textarea>
               </div>
 
               {/* Categoria: Estímulo à Inovação e Organização */}
               <div className="bg-teal-50 p-4 rounded-xl border border-teal-200">
-                <label className="block text-teal-800 text-base font-semibold mb-2 flex items-center gap-2"> {/* Aumentado texto */}
-                  <FaLightbulb className="text-teal-600" /> Estímulo à Inovação e
-                  Organização:
+                <label className="block text-teal-800 text-base font-semibold mb-2 flex items-center gap-2"> {/* Ajustado para text-base */}
+                  <FaLightbulb className="text-teal-600 text-xl" /> Estímulo à
+                  Inovação e Organização:
                 </label>
                 <div className="flex justify-center gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -444,6 +457,7 @@ function TrabalheiLaMobile({
                       active={star <= estimulacaoOrganizacao}
                       onClick={() => setEstimulacaoOrganizacao(star)}
                       label={`${star} estrelas para estímulo à inovação e organização`}
+                      size={24} /* Aumentado tamanho da estrela */
                     />
                   ))}
                 </div>
@@ -587,7 +601,7 @@ function TrabalheiLaMobile({
             }
           `}</style>
         </div>
-      </div>
+      </section> {/* Fechamento da segunda seção */}
 
       <footer className="max-w-full mx-auto mt-8 px-4 text-center"> {/* max-w-full e px-4 */}
         <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-5 border border-white/20"> {/* Aumentado padding */}
