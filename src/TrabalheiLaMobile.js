@@ -147,153 +147,149 @@ function TrabalheiLaMobile({
       "&:active": {
         backgroundColor: "#a78bfa",
       },
-      fontSize: "1rem", // Tamanho de fonte maior para mobile
-    }),
-    singleValue: (base) => ({
-      ...base,
-      color: "#1f2937", // text-gray-900
-      fontWeight: "500", // font-medium
-      fontSize: "1rem", // Tamanho de fonte maior para mobile
+      fontSize: "1rem", // Tamanho de fonte para mobile
     }),
     placeholder: (base) => ({
       ...base,
-      color: "#9ca3af", // text-gray-400
-      fontSize: "1rem", // Tamanho de fonte maior para mobile
+      fontSize: "1rem", // Tamanho de fonte para placeholder em mobile
+    }),
+    singleValue: (base) => ({
+      ...base,
+      fontSize: "1rem", // Tamanho de fonte para valor selecionado em mobile
     }),
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-100 p-4">
-      <header className="text-center mb-8 px-2">
-        <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 drop-shadow-lg mb-3">
+      <header className="text-center mb-6 px-2">
+        <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 drop-shadow-lg mb-2">
           Trabalhei Lá
         </h1>
         <p className="text-lg sm:text-xl text-slate-700 font-medium">
-          Avaliações reais, anônimas e confiáveis.
+          Avaliações reais, decisões inteligentes.
         </p>
         <div className="mt-4 flex flex-col sm:flex-row justify-center items-center gap-4">
           <LoginLinkedInButton
             clientId={linkedInClientId}
             onLoginSuccess={(userData) => {
-              setIsAuthenticated(true);
               setUser(userData);
-              console.log("Login LinkedIn bem-sucedido:", userData);
+              setIsAuthenticated(true);
             }}
             onLoginFailure={(error) => {
+              console.error("LinkedIn login failed:", error);
               setIsAuthenticated(false);
               setUser(null);
-              console.error("Login LinkedIn falhou:", error);
             }}
             disabled={linkedInDisabled}
           />
           <button
-            type="button"
-            className="flex items-center gap-2 px-6 py-3 bg-white text-gray-700 font-semibold rounded-full shadow-md hover:shadow-lg transition-all transform hover:scale-105 w-full sm:w-auto justify-center"
-            aria-label="Entrar com Google"
+            onClick={() => {
+              // Lógica para login com Google
+              console.log("Login com Google clicado!");
+            }}
+            className={`flex items-center justify-center gap-2 px-6 py-3 rounded-full font-semibold text-gray-700 bg-white shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02] ${
+              isLoading ? "opacity-60 cursor-not-allowed" : ""
+            }`}
+            disabled={isLoading}
           >
             <FcGoogle className="text-2xl" />
             Entrar com Google
           </button>
         </div>
-        {isAuthenticated && user && (
-          <p className="mt-4 text-green-700 font-semibold text-base">
-            Bem-vindo(a), {user.name}!
-          </p>
-        )}
       </header>
 
-      {/* Card de Privacidade - Adicionado aqui */}
+      {/* Card de Privacidade */}
       <div className="max-w-full mx-auto px-4 mt-6">
-        <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-5 text-white shadow-lg flex items-center gap-4">
+        <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-2xl p-5 shadow-lg flex items-center gap-4">
           <FaLock className="text-3xl" />
           <div>
             <h3 className="font-bold text-lg mb-1">Sua privacidade é garantida</h3>
             <p className="text-sm opacity-90">
-              Usamos o LinkedIn ou Google apenas para verificar seu vínculo profissional. Suas avaliações são{" "}
-              <span className="font-extrabold">100% anônimas</span> — nome e perfil nunca são exibidos.
+              Usamos o LinkedIn ou Google apenas para verificar seu vínculo
+              profissional. Suas avaliações são{" "}
+              <span className="font-extrabold">100% anônimas</span> — nome e
+              perfil nunca são exibidos.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Formulário de Avaliação */}
+      {/* Seção Principal de Conteúdo (Formulário e Ranking) */}
       <section className="max-w-full mx-auto px-4 mt-6">
+        {/* Formulário de Avaliação */}
         <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200">
-          <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">
+          <h2 className="text-2xl font-bold text-slate-700 text-center mb-5">
             Avalie uma Empresa
           </h2>
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Campo de seleção da empresa */}
             <div>
               <label
                 htmlFor="company-select"
-                className="block text-gray-700 text-base font-medium mb-2"
+                className="block text-slate-700 text-base font-semibold mb-2"
               >
                 Empresa:
               </label>
               <Select
                 id="company-select"
                 options={safeCompanyOptions}
-                value={company}
-                onChange={setCompany}
-                placeholder="Selecione uma empresa existente"
+                value={
+                  company
+                    ? { label: company, value: company }
+                    : newCompany
+                      ? { label: newCompany, value: newCompany }
+                      : null
+                }
+                onChange={(selectedOption) => {
+                  setCompany(selectedOption ? selectedOption.value : "");
+                  setNewCompany("");
+                }}
+                onCreateOption={(inputValue) => {
+                  setNewCompany(inputValue);
+                  setCompany(inputValue);
+                }}
                 isClearable
+                isSearchable
+                placeholder="Selecione ou digite o nome da empresa"
                 styles={selectStyles}
-                aria-label="Selecione uma empresa"
+                isDisabled={isLoading}
               />
+              {newCompany && (
+                <p className="text-sm text-gray-500 mt-2">
+                  Você está adicionando uma nova empresa:{" "}
+                  <span className="font-bold">{newCompany}</span>
+                </p>
+              )}
             </div>
 
-            <div className="flex items-center gap-3 text-gray-500 text-base">
-              <hr className="flex-grow border-gray-300" />
-              OU
-              <hr className="flex-grow border-gray-300" />
-            </div>
-
-            <div>
-              <label
-                htmlFor="new-company-input"
-                className="block text-gray-700 text-base font-medium mb-2"
-              >
-                Nova Empresa:
+            {/* Avaliação Geral */}
+            <div className="bg-purple-50 p-4 rounded-xl border border-purple-200">
+              <label className="block text-purple-800 text-base font-semibold mb-2 flex items-center gap-2">
+                <FaStar className="text-purple-600 text-xl" /> Avaliação Geral:
               </label>
-              <input
-                id="new-company-input"
-                type="text"
-                className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-base"
-                placeholder="Digite o nome da nova empresa"
-                value={newCompany}
-                onChange={(e) => setNewCompany(e.target.value)}
-                aria-label="Digite o nome da nova empresa"
-              />
+              <div className="flex justify-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <OutlinedStar
+                    key={star}
+                    active={star <= rating}
+                    onClick={() => setRating(star)}
+                    label={`${star} estrelas para avaliação geral`}
+                    size={24}
+                  />
+                ))}
+              </div>
+              <textarea
+                className="w-full p-2 mt-3 border border-purple-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400 text-sm"
+                placeholder="Comentário geral sobre a empresa (opcional)"
+                value={commentRating}
+                onChange={(e) => setCommentRating(e.target.value)}
+                rows="2"
+                aria-label="Comentário geral sobre a empresa"
+              ></textarea>
             </div>
 
+            {/* Outras Categorias de Avaliação */}
             <div className="grid grid-cols-1 gap-4">
-              {/* Categoria: Avaliação Geral */}
-              <div className="bg-purple-50 p-4 rounded-xl border border-purple-200">
-                <label className="block text-purple-800 text-base font-semibold mb-2 flex items-center gap-2">
-                  <FaStar className="text-purple-600 text-xl" /> Avaliação
-                  Geral:
-                </label>
-                <div className="flex justify-center gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <OutlinedStar
-                      key={star}
-                      active={star <= rating}
-                      onClick={() => setRating(star)}
-                      label={`${star} estrelas para avaliação geral`}
-                      size={24}
-                    />
-                  ))}
-                </div>
-                <textarea
-                  className="w-full p-2 mt-3 border border-purple-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400 text-sm"
-                  placeholder="Comentário sobre avaliação geral (opcional)"
-                  value={commentRating}
-                  onChange={(e) => setCommentRating(e.target.value)}
-                  rows="2"
-                  aria-label="Comentário sobre avaliação geral"
-                ></textarea>
-              </div>
-
               {/* Categoria: Contato com RH */}
               <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
                 <label className="block text-blue-800 text-base font-semibold mb-2 flex items-center gap-2">
@@ -351,8 +347,8 @@ function TrabalheiLaMobile({
               {/* Categoria: Estrutura da Empresa */}
               <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
                 <label className="block text-yellow-800 text-base font-semibold mb-2 flex items-center gap-2">
-                  <FaBuilding className="text-yellow-600 text-xl" /> Estrutura
-                  da Empresa:
+                  <FaBuilding className="text-yellow-600 text-xl" /> Estrutura da
+                  Empresa:
                 </label>
                 <div className="flex justify-center gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -501,7 +497,7 @@ function TrabalheiLaMobile({
                   isAuthenticated
                     ? "bg-gradient-to-r from-purple-600 to-violet-600 hover:shadow-2xl hover:scale-[1.02]"
                     : "bg-slate-400 cursor-not-allowed opacity-60"
-                } w-full sm:w-auto`}
+                }`}
                 disabled={!isAuthenticated || isLoading}
               >
                 {isLoading
