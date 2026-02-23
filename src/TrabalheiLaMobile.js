@@ -134,7 +134,7 @@ function TrabalheiLaMobile({
       "&:hover": {
         borderColor: state.isFocused ? "#8b5cf6" : "#d1d5db",
       },
-      minHeight: "44px", // Altura mínima para mobile
+      minHeight: "48px", // Garante altura mínima para mobile
     }),
     option: (base, state) => ({
       ...base,
@@ -147,38 +147,42 @@ function TrabalheiLaMobile({
       "&:active": {
         backgroundColor: "#a78bfa",
       },
-      fontSize: "1rem", // Tamanho de fonte para mobile
-    }),
-    placeholder: (base) => ({
-      ...base,
-      fontSize: "1rem", // Tamanho de fonte para placeholder em mobile
+      fontSize: "1rem", // Aumenta o tamanho da fonte das opções
     }),
     singleValue: (base) => ({
       ...base,
-      fontSize: "1rem", // Tamanho de fonte para valor selecionado em mobile
+      color: "#1f2937", // text-gray-900
+      fontWeight: "500", // font-medium
+      fontSize: "1rem", // Aumenta o tamanho da fonte do valor selecionado
+    }),
+    placeholder: (base) => ({
+      ...base,
+      color: "#9ca3af", // text-gray-400
+      fontSize: "1rem", // Aumenta o tamanho da fonte do placeholder
     }),
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-100 p-4">
-      <header className="text-center mb-6 px-2">
-        <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 drop-shadow-lg mb-2">
+      <header className="text-center mb-8 px-2">
+        <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 drop-shadow-lg mb-3">
           Trabalhei Lá
         </h1>
         <p className="text-lg sm:text-xl text-slate-700 font-medium">
-          Avaliações reais, decisões inteligentes.
+          Avaliações reais, anônimas e confiáveis.
         </p>
         <div className="mt-4 flex flex-col sm:flex-row justify-center items-center gap-4">
           <LoginLinkedInButton
             clientId={linkedInClientId}
             onLoginSuccess={(userData) => {
-              setUser(userData);
               setIsAuthenticated(true);
+              setUser(userData);
+              console.log("Login LinkedIn bem-sucedido:", userData);
             }}
             onLoginFailure={(error) => {
-              console.error("LinkedIn login failed:", error);
               setIsAuthenticated(false);
               setUser(null);
+              console.error("Login LinkedIn falhou:", error);
             }}
             disabled={linkedInDisabled}
           />
@@ -187,23 +191,22 @@ function TrabalheiLaMobile({
               // Lógica para login com Google
               console.log("Login com Google clicado!");
             }}
-            className={`flex items-center justify-center gap-2 px-6 py-3 rounded-full font-semibold text-gray-700 bg-white shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02] ${
+            className={`flex items-center justify-center gap-2 px-6 py-3 rounded-full font-semibold text-gray-700 bg-white shadow-md hover:shadow-lg transition-all transform ${
               isLoading ? "opacity-60 cursor-not-allowed" : ""
             }`}
             disabled={isLoading}
           >
-            <FcGoogle className="text-2xl" />
-            Entrar com Google
+            <FcGoogle className="text-xl" /> Entrar com Google
           </button>
         </div>
       </header>
 
       {/* Card de Privacidade */}
-      <div className="max-w-full mx-auto px-4 mt-6">
-        <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-2xl p-5 shadow-lg flex items-center gap-4">
-          <FaLock className="text-3xl" />
+      <div className="max-w-full mx-auto px-4 mb-6">
+        <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-2xl p-5 shadow-lg flex items-start gap-4">
+          <FaLock className="text-3xl mt-1 opacity-80" />
           <div>
-            <h3 className="font-bold text-lg mb-1">Sua privacidade é garantida</h3>
+            <h2 className="font-bold text-lg mb-1">Sua privacidade é garantida</h2>
             <p className="text-sm opacity-90">
               Usamos o LinkedIn ou Google apenas para verificar seu vínculo
               profissional. Suas avaliações são{" "}
@@ -214,87 +217,91 @@ function TrabalheiLaMobile({
         </div>
       </div>
 
-      {/* Seção Principal de Conteúdo (Formulário e Ranking) */}
-      <section className="max-w-full mx-auto px-4 mt-6">
-        {/* Formulário de Avaliação */}
+      {/* Formulário de Avaliação */}
+      <section className="max-w-full mx-auto px-4">
         <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200">
-          <h2 className="text-2xl font-bold text-slate-700 text-center mb-5">
+          <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">
             Avalie uma Empresa
           </h2>
+
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Campo de seleção da empresa */}
+            {/* Seleção de Empresa */}
             <div>
-              <label
-                htmlFor="company-select"
-                className="block text-slate-700 text-base font-semibold mb-2"
-              >
-                Empresa:
+              <label className="block text-slate-700 text-base font-semibold mb-2">
+                Selecione a Empresa:
               </label>
               <Select
-                id="company-select"
                 options={safeCompanyOptions}
                 value={
-                  company
-                    ? { label: company, value: company }
-                    : newCompany
-                      ? { label: newCompany, value: newCompany }
-                      : null
+                  safeCompanyOptions.find((opt) => opt.value === company) || null
                 }
-                onChange={(selectedOption) => {
-                  setCompany(selectedOption ? selectedOption.value : "");
-                  setNewCompany("");
-                }}
-                onCreateOption={(inputValue) => {
-                  setNewCompany(inputValue);
-                  setCompany(inputValue);
-                }}
+                onChange={(selectedOption) =>
+                  setCompany(selectedOption ? selectedOption.value : "")
+                }
+                placeholder="Digite ou selecione..."
                 isClearable
-                isSearchable
-                placeholder="Selecione ou digite o nome da empresa"
                 styles={selectStyles}
-                isDisabled={isLoading}
+                className="mb-4"
               />
-              {newCompany && (
-                <p className="text-sm text-gray-500 mt-2">
-                  Você está adicionando uma nova empresa:{" "}
-                  <span className="font-bold">{newCompany}</span>
-                </p>
-              )}
-            </div>
-
-            {/* Avaliação Geral */}
-            <div className="bg-purple-50 p-4 rounded-xl border border-purple-200">
-              <label className="block text-purple-800 text-base font-semibold mb-2 flex items-center gap-2">
-                <FaStar className="text-purple-600 text-xl" /> Avaliação Geral:
+              <p className="text-center text-slate-600 font-medium mb-3">OU</p>
+              <label className="block text-slate-700 text-base font-semibold mb-2">
+                Adicione uma nova empresa:
               </label>
-              <div className="flex justify-center gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <OutlinedStar
-                    key={star}
-                    active={star <= rating}
-                    onClick={() => setRating(star)}
-                    label={`${star} estrelas para avaliação geral`}
-                    size={24}
-                  />
-                ))}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  className="flex-1 p-3 border border-purple-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400 text-base"
+                  placeholder="Digite o nome da nova empresa"
+                  value={newCompany}
+                  onChange={(e) => setNewCompany(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newCompany && !companyOptions.some(opt => opt.value === newCompany)) {
+                      setCompany(newCompany);
+                      setNewCompany("");
+                    }
+                  }}
+                  className="px-6 py-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors text-base"
+                >
+                  Adicionar
+                </button>
               </div>
-              <textarea
-                className="w-full p-2 mt-3 border border-purple-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400 text-sm"
-                placeholder="Comentário geral sobre a empresa (opcional)"
-                value={commentRating}
-                onChange={(e) => setCommentRating(e.target.value)}
-                rows="2"
-                aria-label="Comentário geral sobre a empresa"
-              ></textarea>
             </div>
 
-            {/* Outras Categorias de Avaliação */}
+            {/* Categorias de Avaliação */}
             <div className="grid grid-cols-1 gap-4">
+              {/* Categoria: Avaliação Geral */}
+              <div className="bg-purple-50 p-4 rounded-xl border border-purple-200">
+                <label className="block text-purple-800 text-base font-semibold mb-2 flex items-center gap-2">
+                  <FaStar className="text-purple-600 text-xl" /> Avaliação Geral:
+                </label>
+                <div className="flex justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <OutlinedStar
+                      key={star}
+                      active={star <= rating}
+                      onClick={() => setRating(star)}
+                      label={`${star} estrelas para avaliação geral`}
+                      size={24}
+                    />
+                  ))}
+                </div>
+                <textarea
+                  className="w-full p-2 mt-3 border border-purple-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400 text-sm"
+                  placeholder="Comentário sobre avaliação geral (opcional)"
+                  value={commentRating}
+                  onChange={(e) => setCommentRating(e.target.value)}
+                  rows="2"
+                  aria-label="Comentário sobre avaliação geral"
+                ></textarea>
+              </div>
+
               {/* Categoria: Contato com RH */}
               <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
                 <label className="block text-blue-800 text-base font-semibold mb-2 flex items-center gap-2">
-                  <FaHandshake className="text-blue-600 text-xl" /> Contato com
-                  RH:
+                  <FaHandshake className="text-blue-600 text-xl" /> Contato com RH:
                 </label>
                 <div className="flex justify-center gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -320,8 +327,8 @@ function TrabalheiLaMobile({
               {/* Categoria: Salário e Benefícios */}
               <div className="bg-green-50 p-4 rounded-xl border border-green-200">
                 <label className="block text-green-800 text-base font-semibold mb-2 flex items-center gap-2">
-                  <FaMoneyBillWave className="text-green-600 text-xl" /> Salário
-                  e Benefícios:
+                  <FaMoneyBillWave className="text-green-600 text-xl" /> Salário e
+                  Benefícios:
                 </label>
                 <div className="flex justify-center gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -374,8 +381,8 @@ function TrabalheiLaMobile({
               {/* Categoria: Acessibilidade à Liderança */}
               <div className="bg-red-50 p-4 rounded-xl border border-red-200">
                 <label className="block text-red-800 text-base font-semibold mb-2 flex items-center gap-2">
-                  <FaUserTie className="text-red-600 text-xl" /> Acessibilidade
-                  à Liderança:
+                  <FaUserTie className="text-red-600 text-xl" /> Acessibilidade à
+                  Liderança:
                 </label>
                 <div className="flex justify-center gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -427,11 +434,11 @@ function TrabalheiLaMobile({
                 ></textarea>
               </div>
 
-              {/* Categoria: Bem-estar e Ambiente */}
+              {/* Categoria: Bem-estar e Qualidade de Vida */}
               <div className="bg-pink-50 p-4 rounded-xl border border-pink-200">
                 <label className="block text-pink-800 text-base font-semibold mb-2 flex items-center gap-2">
                   <FaHeart className="text-pink-600 text-xl" /> Bem-estar e
-                  Ambiente:
+                  Qualidade de Vida:
                 </label>
                 <div className="flex justify-center gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
