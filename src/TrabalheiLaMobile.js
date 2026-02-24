@@ -1,16 +1,16 @@
     import React from "react";
-    import {
-      FaStar,
-      FaHandshake,
-      FaMoneyBillWave,
-      FaBuilding,
-      FaUserTie,
-      FaHeart,
-      FaChartBar,
-      FaBriefcase,
-      FaLightbulb,
-      FaLock, // Importado para o card de privacidade
-    } from "react-icons/fa";
+          import {
+          FaStar,
+          FaHandshake,
+          FaMoneyBillWave,
+          FaBuilding,
+          FaUserTie,
+          FaHeart,
+          FaChartBar,
+          FaLightbulb,
+          FaLock,
+        } from "react-icons/fa";
+
     import { FcGoogle } from "react-icons/fc";
     import Select from "react-select";
 
