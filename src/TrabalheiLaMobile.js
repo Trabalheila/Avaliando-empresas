@@ -147,31 +147,32 @@ function TrabalheiLaMobile({
       "&:active": {
         backgroundColor: "#a78bfa",
       },
-      fontSize: "1rem", // Aumenta o tamanho da fonte das opções
+      fontSize: "1rem", // Tamanho de fonte legível para mobile
     }),
     singleValue: (base) => ({
       ...base,
       color: "#1f2937", // text-gray-900
       fontWeight: "500", // font-medium
-      fontSize: "1rem", // Aumenta o tamanho da fonte do valor selecionado
+      fontSize: "1rem", // Tamanho de fonte legível para mobile
     }),
     placeholder: (base) => ({
       ...base,
       color: "#9ca3af", // text-gray-400
-      fontSize: "1rem", // Aumenta o tamanho da fonte do placeholder
+      fontSize: "1rem", // Tamanho de fonte legível para mobile
     }),
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-100 p-4">
-      <header className="text-center mb-8 px-2">
+    <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-100 p-4"> {/* Removido md:p-8 */}
+      <header className="max-w-full mx-auto text-center mb-8 px-4"> {/* max-w-full e px-4 para mobile */}
         <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 drop-shadow-lg mb-3">
           Trabalhei Lá
         </h1>
         <p className="text-lg sm:text-xl text-slate-700 font-medium">
-          Avaliações reais, anônimas e confiáveis.
+          Sua plataforma para avaliar empresas e encontrar o lugar ideal para
+          trabalhar.
         </p>
-        <div className="mt-4 flex flex-col sm:flex-row justify-center items-center gap-4">
+        <div className="mt-6 flex flex-col sm:flex-row justify-center items-center gap-4"> {/* flex-col para empilhar no mobile */}
           <LoginLinkedInButton
             clientId={linkedInClientId}
             onLoginSuccess={(userData) => {
@@ -187,95 +188,87 @@ function TrabalheiLaMobile({
             disabled={linkedInDisabled}
           />
           <button
-            onClick={() => {
-              // Lógica para login com Google
-              console.log("Login com Google clicado!");
-            }}
-            className={`flex items-center justify-center gap-2 px-6 py-3 rounded-full font-semibold text-gray-700 bg-white shadow-md hover:shadow-lg transition-all transform ${
-              isLoading ? "opacity-60 cursor-not-allowed" : ""
-            }`}
-            disabled={isLoading}
+            type="button"
+            className="flex items-center gap-2 px-6 py-3 bg-white text-gray-700 font-semibold rounded-full shadow-md hover:shadow-lg transition-all transform hover:scale-105 w-full sm:w-auto justify-center" // w-full para mobile
+            aria-label="Entrar com Google"
           >
-            <FcGoogle className="text-xl" /> Entrar com Google
+            <FcGoogle className="text-2xl" />
+            Entrar com Google
           </button>
+        </div>
+        {isAuthenticated && user && (
+          <p className="mt-4 text-green-700 font-semibold">
+            Bem-vindo(a), {user.name}!
+          </p>
+        )}
+
+        {/* Card de privacidade - AGORA NO MOBILE TAMBÉM */}
+        <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-5 border border-white/20 mt-8 max-w-md mx-auto shadow-lg">
+          <div className="flex items-center justify-center gap-3 text-purple-700 mb-2">
+            <FaLock className="text-2xl" />
+            <h3 className="font-bold text-lg">Sua privacidade é garantida</h3>
+          </div>
+          <p className="text-gray-600 text-sm">
+            Todas as avaliações são anônimas. Sua identidade nunca será
+            revelada.
+          </p>
         </div>
       </header>
 
-      {/* Card de Privacidade */}
-      <div className="max-w-full mx-auto px-4 mb-6">
-        <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-2xl p-5 shadow-lg flex items-start gap-4">
-          <FaLock className="text-3xl mt-1 opacity-80" />
-          <div>
-            <h2 className="font-bold text-lg mb-1">Sua privacidade é garantida</h2>
-            <p className="text-sm opacity-90">
-              Usamos o LinkedIn ou Google apenas para verificar seu vínculo
-              profissional. Suas avaliações são{" "}
-              <span className="font-extrabold">100% anônimas</span> — nome e
-              perfil nunca são exibidos.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Formulário de Avaliação */}
-      <section className="max-w-full mx-auto px-4">
-        <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200">
+      <div className="max-w-full mx-auto px-4" style={{ maxWidth: 1120 }}> {/* Container principal para o formulário e ranking */}
+        <section className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 mb-6"> {/* Formulário de Avaliação */}
           <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">
             Avalie uma Empresa
           </h2>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Seleção de Empresa */}
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-slate-700 text-base font-semibold mb-2">
-                Selecione a Empresa:
+              <label
+                htmlFor="company-select"
+                className="block text-gray-700 text-sm font-medium mb-2"
+              >
+                Empresa:
               </label>
               <Select
+                id="company-select"
                 options={safeCompanyOptions}
-                value={
-                  safeCompanyOptions.find((opt) => opt.value === company) || null
-                }
-                onChange={(selectedOption) =>
-                  setCompany(selectedOption ? selectedOption.value : "")
-                }
-                placeholder="Digite ou selecione..."
+                value={company}
+                onChange={setCompany}
+                placeholder="Selecione uma empresa existente"
                 isClearable
                 styles={selectStyles}
-                className="mb-4"
+                aria-label="Selecione uma empresa"
               />
-              <p className="text-center text-slate-600 font-medium mb-3">OU</p>
-              <label className="block text-slate-700 text-base font-semibold mb-2">
-                Adicione uma nova empresa:
-              </label>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <input
-                  type="text"
-                  className="flex-1 p-3 border border-purple-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400 text-base"
-                  placeholder="Digite o nome da nova empresa"
-                  value={newCompany}
-                  onChange={(e) => setNewCompany(e.target.value)}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (newCompany && !companyOptions.some(opt => opt.value === newCompany)) {
-                      setCompany(newCompany);
-                      setNewCompany("");
-                    }
-                  }}
-                  className="px-6 py-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors text-base"
-                >
-                  Adicionar
-                </button>
-              </div>
             </div>
 
-            {/* Categorias de Avaliação */}
-            <div className="grid grid-cols-1 gap-4">
+            <div className="flex items-center gap-3 text-gray-500">
+              <hr className="flex-grow border-gray-300" />
+              OU
+              <hr className="flex-grow border-gray-300" />
+            </div>
+
+            <div>
+              <label
+                htmlFor="new-company-input"
+                className="block text-gray-700 text-sm font-medium mb-2"
+              >
+                Nova Empresa:
+              </label>
+              <input
+                id="new-company-input"
+                type="text"
+                className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                placeholder="Digite o nome da nova empresa"
+                value={newCompany}
+                onChange={(e) => setNewCompany(e.target.value)}
+                aria-label="Digite o nome da nova empresa"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"> {/* grid-cols-1 para mobile, sm:grid-cols-2 para telas maiores */}
               {/* Categoria: Avaliação Geral */}
               <div className="bg-purple-50 p-4 rounded-xl border border-purple-200">
-                <label className="block text-purple-800 text-base font-semibold mb-2 flex items-center gap-2">
-                  <FaStar className="text-purple-600 text-xl" /> Avaliação Geral:
+                <label className="block text-purple-800 text-base font-semibold mb-2 flex items-center gap-2"> {/* text-base para mobile */}
+                  <FaStar className="text-purple-600 text-xl" /> Avaliação Geral: {/* text-xl para ícone */}
                 </label>
                 <div className="flex justify-center gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -284,7 +277,7 @@ function TrabalheiLaMobile({
                       active={star <= rating}
                       onClick={() => setRating(star)}
                       label={`${star} estrelas para avaliação geral`}
-                      size={24}
+                      size={24} {/* Aumentado o tamanho da estrela */}
                     />
                   ))}
                 </div>
@@ -515,12 +508,10 @@ function TrabalheiLaMobile({
               </button>
             </div>
           </form>
-        </div>
-      </section> {/* Fechamento da seção do formulário */}
+        </section> {/* Fechamento da seção do formulário */}
 
-      {/* Ranking e Outras Avaliações */}
-      <section className="max-w-full mx-auto px-4 mt-6">
-        <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200">
+        {/* Ranking e Outras Avaliações */}
+        <section className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 mt-6">
           <div className="flex flex-col items-center mb-5">
             <h2 className="text-2xl font-bold text-slate-700 text-center mb-3">
               Ranking - Top Empresas Avaliadas
@@ -621,6 +612,7 @@ function TrabalheiLaMobile({
           `}</style>
         </div>
       </section> {/* Fechamento da seção de ranking */}
+      </div> {/* Fechamento do container principal */}
 
       <footer className="max-w-full mx-auto mt-8 px-4 text-center">
         <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-5 border border-white/20">
