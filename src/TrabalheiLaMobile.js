@@ -162,69 +162,124 @@ function TrabalheiLaMobile({
     }),
   };
 
+  const formFields = [
+    {
+      label: "Avaliação Geral",
+      value: rating,
+      setter: setRating,
+      comment: commentRating,
+      commentSetter: setCommentRating,
+      icon: FaStar,
+    },
+    {
+      label: "Contato com RH",
+      value: contatoRH,
+      setter: setContatoRH,
+      comment: commentContatoRH,
+      commentSetter: setCommentContatoRH,
+      icon: FaHandshake,
+    },
+    {
+      label: "Salário e Benefícios",
+      value: salarioBeneficios,
+      setter: setSalarioBeneficios,
+      comment: commentSalarioBeneficios,
+      commentSetter: setCommentSalarioBeneficios,
+      icon: FaMoneyBillWave,
+    },
+    {
+      label: "Estrutura da Empresa",
+      value: estruturaEmpresa,
+      setter: setEstruturaEmpresa,
+      comment: commentEstruturaEmpresa,
+      commentSetter: setCommentEstruturaEmpresa,
+      icon: FaBuilding,
+    },
+    {
+      label: "Acessibilidade à Liderança",
+      value: acessibilidadeLideranca,
+      setter: setAcessibilidadeLideranca,
+      comment: commentAcessibilidadeLideranca,
+      commentSetter: setCommentAcessibilidadeLideranca,
+      icon: FaUserTie,
+    },
+    {
+      label: "Plano de Carreiras",
+      value: planoCarreiras,
+      setter: setPlanoCarreiras,
+      comment: commentPlanoCarreiras,
+      commentSetter: setCommentPlanoCarreiras,
+      icon: FaBriefcase,
+    },
+    {
+      label: "Bem-estar e Ambiente",
+      value: bemestar,
+      setter: setBemestar,
+      comment: commentBemestar,
+      commentSetter: setCommentBemestar,
+      icon: FaHeart,
+    },
+    {
+      label: "Estímulo à Organização",
+      value: estimulacaoOrganizacao,
+      setter: setEstimulacaoOrganizacao,
+      comment: commentEstimulacaoOrganizacao,
+      commentSetter: setCommentEstimulacaoOrganizacao,
+      icon: FaLightbulb,
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-100 p-4">
-      <header className="max-w-full mx-auto text-center mb-8 p-4">
-        <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 drop-shadow-lg mb-3">
-          Trabalhei Lá
-        </h1>
-        <p className="text-lg sm:text-xl text-slate-700 font-medium">
-          Sua plataforma para avaliar empresas e encontrar o lugar ideal para
-          trabalhar.
-        </p>
-        <div className="mt-6 flex flex-col sm:flex-row justify-center items-center gap-4">
-          <LoginLinkedInButton
-            clientId={linkedInClientId}
-            onLoginSuccess={(userData) => {
-              setIsAuthenticated(true);
-              setUser(userData);
-              console.log("Login LinkedIn bem-sucedido:", userData);
-            }}
-            onLoginFailure={(error) => {
-              setIsAuthenticated(false);
-              setUser(null);
-              console.error("Login LinkedIn falhou:", error);
-            }}
-            disabled={linkedInDisabled}
-          />
-          <button
-            type="button"
-            className="flex items-center gap-2 px-6 py-3 bg-white text-gray-700 font-semibold rounded-full shadow-md hover:shadow-lg transition-all transform hover:scale-105 w-full sm:w-auto justify-center"
-            aria-label="Entrar com Google"
-          >
-            <FcGoogle className="text-2xl" />
-            Entrar com Google
-          </button>
-        </div>
-        {isAuthenticated && user && (
-          <p className="mt-4 text-green-700 font-semibold">
-            Bem-vindo(a), {user.name}!
+      <div className="max-w-7xl mx-auto">
+        {/* Cabeçalho */}
+        <header className="text-center mb-8 p-4">
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 drop-shadow-lg mb-3">
+            Trabalhei Lá
+          </h1>
+          <p className="text-lg sm:text-xl text-slate-700 font-medium">
+            Sua plataforma para avaliar empresas e encontrar o lugar ideal para
+            trabalhar.
           </p>
-        )}
-
-        {/* Card de privacidade - NOVO */}
-        <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-5 border border-white/20 mt-8 max-w-md mx-auto shadow-lg">
-          <div className="flex items-center justify-center gap-3 text-purple-700 mb-2">
-            <FaLock className="text-2xl" />
-            <h3 className="font-bold text-lg">Sua privacidade é garantida</h3>
+          <div className="mt-6 flex flex-col sm:flex-row justify-center items-center gap-4">
+            <LoginLinkedInButton
+              clientId={linkedInClientId}
+              onLoginSuccess={(userData) => {
+                setIsAuthenticated(true);
+                setUser(userData);
+                console.log("Login LinkedIn bem-sucedido:", userData);
+              }}
+              onLoginFailure={(error) => {
+                setIsAuthenticated(false);
+                setUser(null);
+                console.error("Login LinkedIn falhou:", error);
+              }}
+              disabled={linkedInDisabled}
+            />
+            <button
+              type="button"
+              className="flex items-center gap-2 px-6 py-3 bg-white text-gray-700 font-semibold rounded-full shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+              aria-label="Entrar com Google"
+            >
+              <FcGoogle className="text-2xl" />
+              Entrar com Google
+            </button>
           </div>
-          <p className="text-gray-600 text-sm">
-            Todas as avaliações são anônimas. Sua identidade nunca será
-            revelada.
-          </p>
-        </div>
-      </header>
+          {/* Card de Privacidade */}
+          <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 mt-8 flex items-center justify-center gap-3 shadow-md">
+            <FaLock className="text-purple-600 text-2xl" />
+            <p className="text-purple-800 font-semibold text-sm sm:text-base">
+              Sua privacidade é garantida. Avalie anonimamente!
+            </p>
+          </div>
+        </header>
 
-      <div className="max-w-full mx-auto px-4">
-        {" "}
-        {/* Container principal para formulário e ranking */}
-        <section className="grid grid-cols-1 gap-6">
-          {/* Formulário de Avaliação */}
+        {/* Formulário de Avaliação */}
+        <section className="grid grid-cols-1 gap-6 mx-auto px-4">
           <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200">
             <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">
               Avalie uma Empresa
             </h2>
-
             {error && (
               <div
                 className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4"
@@ -234,7 +289,6 @@ function TrabalheiLaMobile({
                 <span className="block sm:inline"> {error}</span>
               </div>
             )}
-
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label
@@ -257,8 +311,9 @@ function TrabalheiLaMobile({
                     setCompany(selectedOption ? selectedOption.value : "");
                     setNewCompany("");
                   }}
-                  placeholder="Selecione ou digite uma empresa"
+                  placeholder="Selecione ou digite o nome da empresa"
                   isClearable
+                  isSearchable
                   styles={selectStyles}
                 />
               </div>
@@ -283,73 +338,7 @@ function TrabalheiLaMobile({
                 </div>
               )}
 
-              {/* Campos de avaliação */}
-              {[
-                {
-                  label: "Avaliação Geral",
-                  value: rating,
-                  setter: setRating,
-                  comment: commentRating,
-                  commentSetter: setCommentRating,
-                  icon: FaStar,
-                },
-                {
-                  label: "Contato com RH",
-                  value: contatoRH,
-                  setter: setContatoRH,
-                  comment: commentContatoRH,
-                  commentSetter: setCommentContatoRH,
-                  icon: FaHandshake,
-                },
-                {
-                  label: "Salário e Benefícios",
-                  value: salarioBeneficios,
-                  setter: setSalarioBeneficios,
-                  comment: commentSalarioBeneficios,
-                  commentSetter: setCommentSalarioBeneficios,
-                  icon: FaMoneyBillWave,
-                },
-                {
-                  label: "Estrutura da Empresa",
-                  value: estruturaEmpresa,
-                  setter: setEstruturaEmpresa,
-                  comment: commentEstruturaEmpresa,
-                  commentSetter: setCommentEstruturaEmpresa,
-                  icon: FaBuilding,
-                },
-                {
-                  label: "Acessibilidade e Liderança",
-                  value: acessibilidadeLideranca,
-                  setter: setAcessibilidadeLideranca,
-                  comment: commentAcessibilidadeLideranca,
-                  commentSetter: setCommentAcessibilidadeLideranca,
-                  icon: FaUserTie,
-                },
-                {
-                  label: "Plano de Carreiras",
-                  value: planoCarreiras,
-                  setter: setPlanoCarreiras,
-                  comment: commentPlanoCarreiras,
-                  commentSetter: setCommentPlanoCarreiras,
-                  icon: FaBriefcase,
-                },
-                {
-                  label: "Bem-estar e Ambiente",
-                  value: bemestar,
-                  setter: setBemestar,
-                  comment: commentBemestar,
-                  commentSetter: setCommentBemestar,
-                  icon: FaHeart,
-                },
-                {
-                  label: "Estímulo à Organização",
-                  value: estimulacaoOrganizacao,
-                  setter: setEstimulacaoOrganizacao,
-                  comment: commentEstimulacaoOrganizacao,
-                  commentSetter: setCommentEstimulacaoOrganizacao,
-                  icon: FaLightbulb,
-                },
-              ].map((field, index) => (
+              {formFields.map((field, index) => (
                 <div key={index} className="bg-gray-50 p-4 rounded-xl">
                   <div className="flex items-center mb-3">
                     <field.icon className="text-purple-500 text-xl mr-3" />
@@ -513,4 +502,3 @@ function TrabalheiLaMobile({
 }
 
 export default TrabalheiLaMobile;
-
