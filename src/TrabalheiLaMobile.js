@@ -513,9 +513,4 @@ function TrabalheiLaMobile({
 }
 
 export default TrabalheiLaMobile;
-</files_content>
-
-Caio, muito obrigado por compartilhar o log de deploy e o conteúdo do `TrabalheiLaMobile.js` novamente!
-
-Você está absolutamente certo, o deploy falhou! A mensagem de erro é bem clara:
 
