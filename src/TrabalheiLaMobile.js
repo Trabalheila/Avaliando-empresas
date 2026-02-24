@@ -2,19 +2,20 @@
     import {
       FaStar,
       FaChartBar,
-      FaHandshake, // Re-importado: usado nos campos de avaliação
-      FaMoneyBillWave, // Re-importado: usado nos campos de avaliação
-      FaBuilding, // Re-importado: usado nos campos de avaliação
-      FaUserTie, // Re-importado: usado nos campos de avaliação
-      FaHeart, // Re-importado: usado nos campos de avaliação
-      FaBriefcase, // Re-importado: usado nos campos de avaliação
-      FaLightbulb, // Re-importado: usado nos campos de avaliação
-      // FaLock, // Não é mais usado, então permanece removido
+      FaHandshake,
+      FaMoneyBillWave,
+      FaBuilding,
+      FaUserTie,
+      FaHeart,
+      FaBriefcase,
+      FaLightbulb,
+      FaPlus, // Para o botão de adicionar nova empresa
+      FaLock, // Re-importado para o card de privacidade, caso seja reintroduzido ou usado em outro lugar
     } from "react-icons/fa";
-    // import { FcGoogle } from "react-icons/fc"; // Não é mais usado, então permanece removido
+    import { FcGoogle } from "react-icons/fc"; // Re-importado para o botão de login
     import Select from "react-select";
 
-    // import LoginLinkedInButton from "./components/LoginLinkedInButton"; // Não é mais usado, então permanece removido
+    import LoginLinkedInButton from "./components/LoginLinkedInButton"; // Re-importado para o botão de login
 
     /** ⭐ Estrela com contorno preto */
     function OutlinedStar({ active, onClick, size = 18, label }) {
@@ -104,89 +105,57 @@
       setCommentBemestar,
       commentEstimulacaoOrganizacao,
       setCommentEstimulacaoOrganizacao,
-      isLoading,
+      generalComment, // Novo estado para o comentário geral
+      setGeneralComment, // Novo setter para o comentário geral
       handleSubmit,
+      isLoading,
       empresas,
       top3,
-      calcularMedia,
-      getMedalColor,
-      getMedalEmoji,
-      getBadgeColor,
-      handleCompanyChange,
-      companyOptions,
-      isNewCompany,
-      setIsNewCompany,
+      setTop3,
+      // Estados para a nova empresa
+      showNewCompanyInput,
+      setShowNewCompanyInput,
+      handleAddNewCompany,
+      // Login
+      linkedInClientId,
+      handleLinkedInLogin,
+      handleGoogleLogin,
     }) {
-      const ratingFields = [
-        {
-          label: "Avaliação Geral",
-          icon: <FaStar className="text-yellow-500" />,
-          value: rating,
-          setter: setRating,
-          comment: commentRating,
-          commentSetter: setCommentRating,
-        },
-        {
-          label: "Contato com RH",
-          icon: <FaHandshake className="text-blue-500" />,
-          value: contatoRH,
-          setter: setContatoRH,
-          comment: commentContatoRH,
-          commentSetter: setCommentContatoRH,
-        },
-        {
-          label: "Salário e Benefícios",
-          icon: <FaMoneyBillWave className="text-green-500" />,
-          value: salarioBeneficios,
-          setter: setSalarioBeneficios,
-          comment: commentSalarioBeneficios,
-          commentSetter: setCommentSalarioBeneficios,
-        },
-        {
-          label: "Estrutura da Empresa",
-          icon: <FaBuilding className="text-gray-500" />,
-          value: estruturaEmpresa,
-          setter: setEstruturaEmpresa,
-          comment: commentEstruturaEmpresa,
-          commentSetter: setCommentEstruturaEmpresa,
-        },
-        {
-          label: "Acessibilidade e Liderança",
-          icon: <FaUserTie className="text-purple-500" />,
-          value: acessibilidadeLideranca,
-          setter: setAcessibilidadeLideranca,
-          comment: commentAcessibilidadeLideranca,
-          commentSetter: setCommentAcessibilidadeLideranca,
-        },
-        {
-          label: "Plano de Carreiras",
-          icon: <FaBriefcase className="text-indigo-500" />,
-          value: planoCarreiras,
-          setter: setPlanoCarreiras,
-          comment: commentPlanoCarreiras,
-          commentSetter: setCommentPlanoCarreiras,
-        },
-        {
-          label: "Bem-estar e Ambiente",
-          icon: <FaHeart className="text-red-500" />,
-          value: bemestar,
-          setter: setBemestar,
-          comment: commentBemestar,
-          commentSetter: setCommentBemestar,
-        },
-        {
-          label: "Estímulo e Organização",
-          icon: <FaLightbulb className="text-orange-500" />,
-          value: estimulacaoOrganizacao,
-          setter: setEstimulacaoOrganizacao,
-          comment: commentEstimulacaoOrganizacao,
-          commentSetter: setCommentEstimulacaoOrganizacao,
-        },
-      ];
+      // Funções auxiliares para o cálculo da média e cores
+      const calcularMedia = (emp) => {
+        const sum =
+          emp.rating +
+          emp.contatoRH +
+          emp.salarioBeneficios +
+          emp.estruturaEmpresa +
+          emp.acessibilidadeLideranca +
+          emp.planoCarreiras +
+          emp.bemestar +
+          emp.estimulacaoOrganizacao;
+        return (sum / 8).toFixed(1);
+      };
 
-      // const linkedInClientId = "SEU_CLIENT_ID_LINKEDIN"; // Removido: não é mais usado
-      // const linkedInDisabled = !linkedInClientId; // Removido: não é mais usado
+      const getBadgeColor = (media) => {
+        if (media >= 4.5) return "bg-green-500";
+        if (media >= 3.5) return "bg-yellow-500";
+        return "bg-red-500";
+      };
 
+      const getMedalColor = (index) => {
+        if (index === 0) return "from-yellow-400 to-yellow-600";
+        if (index === 1) return "from-gray-400 to-gray-600";
+        if (index === 2) return "from-amber-600 to-amber-800";
+        return "from-gray-200 to-gray-400";
+      };
+
+      const getMedalEmoji = (index) => {
+        if (index === 0) return "🥇";
+        if (index === 1) return "🥈";
+        if (index === 2) return "🥉";
+        return "🏅";
+      };
+
+      // Estilos para o componente Select (mantidos)
       const selectStyles = {
         control: (base, state) => ({
           ...base,
@@ -200,96 +169,105 @@
         }),
         option: (base, state) => ({
           ...base,
-          backgroundColor: state.isSelected
-            ? "#8b5cf6"
-            : state.isFocused
-            ? "#f3e8ff"
-            : null,
-          color: state.isSelected ? "white" : "#4a5568",
+          backgroundColor: state.isFocused ? "#ede9fe" : null, // bg-purple-100
+          color: "#4a4a4a",
           "&:active": {
-            backgroundColor: "#a78bfa",
+            backgroundColor: "#d8b4fe", // bg-purple-300
           },
         }),
       };
 
+      // Opções de empresas para o Select
+      const companyOptions = empresas.map((emp) => ({
+        value: emp.company,
+        label: emp.company,
+      }));
+
+      // Estado para controlar a visibilidade do campo de nova empresa
+      // const [showNewCompanyInput, setShowNewCompanyInput] = React.useState(false); // Movido para o componente pai
+
+      // Função para renderizar as estrelas de avaliação
+      const renderStars = (currentRating, setFunction, commentState, setCommentFunction, labelPrefix) => (
+        <div className="flex items-center space-x-1">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <OutlinedStar
+              key={star}
+              active={star <= currentRating}
+              onClick={() => setFunction(star)}
+              label={`${labelPrefix} - ${star} estrelas`}
+            />
+          ))}
+          {currentRating > 0 && (
+            <textarea
+              className="ml-3 p-2 border rounded-lg flex-grow text-sm"
+              placeholder="Comentário (opcional)"
+              value={commentState}
+              onChange={(e) => setCommentFunction(e.target.value)}
+            ></textarea>
+          )}
+        </div>
+      );
+
       return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-100 flex flex-col items-center justify-center p-4">
-          <div
-            className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl p-6 md:p-8 border border-slate-200"
-            style={{ maxWidth: 1120 }}
-          >
-            {/* Novo Cabeçalho - Adaptado da imagem */}
-            <header className="bg-blue-50 p-6 rounded-2xl mb-8 shadow-inner border border-blue-100 text-center md:text-left">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                {/* Seção da Empresa em Destaque (esquerda) */}
-                <div className="flex-shrink-0 text-center md:text-left">
-                  <p className="text-sm text-blue-600 font-semibold mb-2">
-                    Empresa em Destaque
-                  </p>
-                  <div className="flex items-center justify-center md:justify-start gap-3 bg-white p-3 rounded-xl shadow-md border border-blue-200">
-                    <img
-                      src="/petrobras-logo.png" // Exemplo de logo, você pode tornar dinâmico
-                      alt="Logo Petrobras"
-                      className="w-10 h-10 object-contain"
-                    />
-                    <div>
-                      <h3 className="font-bold text-lg text-gray-800">Petrobras</h3>
-                      <p className="text-sm text-gray-600">Nota: 4.5/5 ⭐</p>
-                    </div>
-                  </div>
-                </div>
+        <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex flex-col">
+          <div className="flex-grow max-w-full mx-auto px-4 py-8">
+            {/* Novo Cabeçalho */}
+            <header className="bg-blue-200 p-6 rounded-3xl shadow-lg mb-8 flex flex-col md:flex-row items-center justify-between gap-6">
+              {/* Seção Esquerda: Logo e Nota (Exemplo) */}
+              <div className="flex flex-col items-center md:items-start text-center md:text-left">
+                <img
+                  src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Petrobras_logo.svg/1200px-Petrobras_logo.svg.png" // Exemplo da Petrobras
+                  alt="Logo da Empresa"
+                  className="w-24 h-auto mb-2"
+                />
+                <p className="text-xl font-bold text-gray-800">Nota 4.5/5</p>
+              </div>
 
-                {/* Seção Central do Título e Chamada */}
-                <div className="flex-grow text-center">
-                  <h1 className="text-4xl font-extrabold text-purple-700 mb-2">
-                    Trabalhei Lá
-                  </h1>
-                  <p className="text-lg text-gray-700 mb-4 font-medium">
-                    Sua opinião é anônima e ajuda outros profissionais
-                  </p>
-                  <p className="text-sm text-gray-500 mb-6">
-                    Avaliações anônimas feitas por profissionais verificados.
-                  </p>
-                  <button className="bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transform hover:scale-105 transition-all">
-                    Clique e Saiba Mais
-                  </button>
-                  <div className="mt-6 flex justify-center items-center gap-4 text-sm text-gray-600 font-semibold">
-                    <span className="flex items-center gap-1">
-                      <span className="text-green-500">●</span> Anônimo
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span className="text-blue-500">●</span> Verificado
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span className="text-purple-500">●</span> Confiável
-                    </span>
-                  </div>
+              {/* Seção Central: Título e Botão */}
+              <div className="flex-1 flex flex-col items-center text-center px-4">
+                <h1 className="text-4xl font-extrabold text-blue-800 mb-2">
+                  TRABALHEI LÁ
+                </h1>
+                <p className="text-sm text-gray-700 mb-1">
+                  Sua opinião é anônima e ajuda outros profissionais
+                </p>
+                <p className="text-xs text-gray-600 mb-4">
+                  Avaliações anônimas feitas por profissionais verificados.
+                </p>
+                <button className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-full shadow-md transition-all transform hover:scale-105 mb-4">
+                  CLIQUE E SAIBA MAIS
+                </button>
+                <div className="flex items-center justify-center space-x-4 text-sm text-gray-600">
+                  <span className="flex items-center">
+                    <FaStar className="text-green-500 mr-1" /> Anônimo
+                  </span>
+                  <span className="flex items-center">
+                    <FaStar className="text-green-500 mr-1" /> Verificado
+                  </span>
+                  <span className="flex-items-center">
+                    <FaStar className="text-green-500 mr-1" /> Confiável
+                  </span>
                 </div>
+              </div>
 
-                {/* Seção de Ranking (direita) */}
-                <div className="flex-shrink-0 w-full md:w-auto text-center md:text-right mt-6 md:mt-0">
-                  <h2 className="text-xl font-bold text-blue-700 mb-3">
-                    Melhores Empresas
-                  </h2>
+              {/* Seção Direita: Melhores Empresas (Ranking) */}
+              <div className="flex flex-col items-center md:items-end text-center md:text-right">
+                <h2 className="text-xl font-bold text-gray-800 mb-3">
+                  MELHORES EMPRESAS
+                </h2>
+                <div className="space-y-2">
                   {Array.isArray(top3) && top3.length > 0 ? (
-                    <div className="space-y-2">
-                      {top3.slice(0, 3).map((emp, t) => {
-                        const media = calcularMedia(emp);
-                        return (
-                          <div
-                            key={t}
-                            className="flex items-center justify-between bg-white p-2 rounded-lg shadow-sm border border-gray-200"
-                          >
-                            <span className="font-medium text-gray-700 text-sm">
-                              {t + 1}º {emp.company}
-                            </span>
-                            <span className="text-yellow-500 font-bold text-sm">
-                              {media} ⭐
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    top3.map((emp, t) => (
+                      <div key={t} className="flex items-center gap-2">
+                        <span className="text-2xl">{getMedalEmoji(t)}</span>
+                        <p className="text-base font-semibold text-gray-700">
+                          {emp.company}
+                        </p>
+                        <span className="text-sm font-bold text-green-600">
+                          {calcularMedia(emp)}/5
+                        </span>
+                      </div>
+                    ))
                   ) : (
                     <p className="text-sm text-gray-500">
                       Nenhuma empresa no ranking ainda.
@@ -299,97 +277,183 @@
               </div>
             </header>
 
-            {/* Seção de Avaliação da Empresa */}
-            <section className="mt-8">
-              <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200">
-                <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">
+            {/* Seção de Avaliação */}
+            <section className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200">
+              <div className="text-center mb-6">
+                <h2 className="text-3xl font-bold text-slate-700 mb-2">
                   Avalie uma Empresa
                 </h2>
+                <p className="text-slate-500 text-lg">
+                  Sua opinião é anônima e ajuda outros profissionais
+                </p>
+              </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Campo de seleção/nova empresa */}
-                  <div className="mb-4">
-                    <label
-                      htmlFor="company-select"
-                      className="block text-gray-700 text-sm font-bold mb-2"
+              {/* Card de Privacidade (Reintroduzido) */}
+              <div className="bg-purple-600 text-white p-4 rounded-xl flex items-center justify-center gap-3 mb-6 shadow-md">
+                <FaLock className="text-2xl" />
+                <div>
+                  <p className="font-bold text-lg">Sua privacidade é garantida</p>
+                  <p className="text-sm opacity-90">
+                    Usamos o LinkedIn ou Google apenas para verificar seu vínculo
+                    profissional. Suas avaliações são 100% anônimas.
+                  </p>
+                </div>
+              </div>
+
+              {/* Botões de Login (Reintroduzidos) */}
+              <div className="flex flex-col md:flex-row gap-4 mb-8 justify-center">
+                <LoginLinkedInButton
+                  onClick={handleLinkedInLogin}
+                  clientId={linkedInClientId}
+                />
+                <button
+                  onClick={handleGoogleLogin}
+                  className="flex items-center justify-center gap-3 bg-white text-gray-700 font-bold py-3 px-6 rounded-xl shadow-md hover:bg-gray-100 transition-all transform hover:scale-105 border border-gray-300"
+                >
+                  <FcGoogle className="text-2xl" />
+                  Entrar com Google
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Campo de seleção de empresa */}
+                <div>
+                  <label
+                    htmlFor="company-select"
+                    className="block text-slate-700 text-lg font-semibold mb-3"
+                  >
+                    <FaBuilding className="inline-block mr-2 text-purple-600" />
+                    Selecione a Empresa
+                  </label>
+                  <Select
+                    id="company-select"
+                    options={companyOptions}
+                    value={companyOptions.find((opt) => opt.value === company)}
+                    onChange={(selectedOption) =>
+                      setCompany(selectedOption ? selectedOption.value : "")
+                    }
+                    placeholder="Digite ou selecione..."
+                    isClearable
+                    isSearchable
+                    styles={selectStyles}
+                    className="mb-4"
+                  />
+
+                  {/* Campo para adicionar nova empresa (Reintroduzido) */}
+                  {!showNewCompanyInput && (
+                    <button
+                      type="button"
+                      onClick={() => setShowNewCompanyInput(true)}
+                      className="w-full flex items-center justify-center gap-2 bg-purple-100 text-purple-700 font-bold py-2 px-4 rounded-xl hover:bg-purple-200 transition-colors"
                     >
-                      Nome da Empresa
-                    </label>
-                    <Select
-                      id="company-select"
-                      options={companyOptions}
-                      value={company}
-                      onChange={handleCompanyChange}
-                      placeholder="Selecione ou digite uma empresa..."
-                      isClearable
-                      isSearchable
-                      styles={selectStyles}
-                      className="text-sm"
-                    />
-                  </div>
-
-                  {isNewCompany && (
-                    <div className="mb-4">
-                      <label
-                        htmlFor="new-company-name"
-                        className="block text-gray-700 text-sm font-bold mb-2"
-                      >
-                        Nova Empresa
-                      </label>
-                      <input
-                        type="text"
-                        id="new-company-name"
-                        className="shadow appearance-none border rounded-xl w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-sm"
-                        value={newCompany}
-                        onChange={(e) => setNewCompany(e.target.value)}
-                        placeholder="Digite o nome da nova empresa"
-                        required
-                      />
-                    </div>
+                      <FaPlus /> Ou adicione uma nova empresa
+                    </button>
                   )}
 
-                  {/* Campos de avaliação */}
-                  {ratingFields.map((field, index) => (
-                    <div
-                      key={index}
-                      className="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm"
-                    >
-                      <div className="flex items-center gap-3 mb-2">
-                        {field.icon}
-                        <label className="block text-gray-700 text-base font-bold">
-                          {field.label}
-                        </label>
-                      </div>
-                      <div className="flex justify-center gap-1 mb-3">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <OutlinedStar
-                            key={star}
-                            active={star <= field.value}
-                            onClick={() => field.setter(star)}
-                            size={28}
-                            label={`${star} estrelas para ${field.label}`}
-                          />
-                        ))}
-                      </div>
-                      <textarea
-                        className="shadow appearance-none border rounded-xl w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-sm"
-                        rows="2"
-                        value={field.comment}
-                        onChange={(e) => field.commentSetter(e.target.value)}
-                        placeholder={`Comentário sobre ${field.label.toLowerCase()} (opcional)`}
-                      ></textarea>
+                  {showNewCompanyInput && (
+                    <div className="flex gap-2 mt-4">
+                      <input
+                        type="text"
+                        className="flex-grow p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="Nome da nova empresa"
+                        value={newCompany}
+                        onChange={(e) => setNewCompany(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddNewCompany}
+                        className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-5 rounded-xl transition-colors"
+                      >
+                        Adicionar
+                      </button>
                     </div>
-                  ))}
+                  )}
+                </div>
 
-                  <button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={isLoading}
+                {/* Campos de avaliação (estrelas clicáveis) */}
+                <div className="space-y-5 mt-8">
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+                    <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center">
+                      <FaStar className="mr-2 text-yellow-500" /> Avaliação Geral
+                    </label>
+                    {renderStars(rating, setRating, commentRating, setCommentRating, "Avaliação Geral")}
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+                    <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center">
+                      <FaHandshake className="mr-2 text-blue-500" /> Contato com RH
+                    </label>
+                    {renderStars(contatoRH, setContatoRH, commentContatoRH, setCommentContatoRH, "Contato com RH")}
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+                    <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center">
+                      <FaMoneyBillWave className="mr-2 text-green-500" /> Salário e Benefícios
+                    </label>
+                    {renderStars(salarioBeneficios, setSalarioBeneficios, commentSalarioBeneficios, setCommentSalarioBeneficios, "Salário e Benefícios")}
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+                    <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center">
+                      <FaBuilding className="mr-2 text-indigo-500" /> Estrutura da Empresa
+                    </label>
+                    {renderStars(estruturaEmpresa, setEstruturaEmpresa, commentEstruturaEmpresa, setCommentEstruturaEmpresa, "Estrutura da Empresa")}
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+                    <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center">
+                      <FaUserTie className="mr-2 text-red-500" /> Acessibilidade à Liderança
+                    </label>
+                    {renderStars(acessibilidadeLideranca, setAcessibilidadeLideranca, commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca, "Acessibilidade à Liderança")}
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+                    <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center">
+                      <FaBriefcase className="mr-2 text-orange-500" /> Plano de Carreiras
+                    </label>
+                    {renderStars(planoCarreiras, setPlanoCarreiras, commentPlanoCarreiras, setCommentPlanoCarreiras, "Plano de Carreiras")}
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+                    <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center">
+                      <FaHeart className="mr-2 text-pink-500" /> Bem-estar e Ambiente
+                    </label>
+                    {renderStars(bemestar, setBemestar, commentBemestar, setCommentBemestar, "Bem-estar e Ambiente")}
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+                    <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center">
+                      <FaLightbulb className="mr-2 text-yellow-600" /> Estímulo à Inovação
+                    </label>
+                    {renderStars(estimulacaoOrganizacao, setEstimulacaoOrganizacao, commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao, "Estímulo à Inovação")}
+                  </div>
+                </div>
+
+                {/* Campo de Comentário Geral (Reintroduzido) */}
+                <div className="mt-8">
+                  <label
+                    htmlFor="general-comment"
+                    className="block text-slate-700 text-lg font-semibold mb-3"
                   >
-                    {isLoading ? "Enviando..." : "Avaliar Empresa"}
-                  </button>
-                </form>
-              </div>
+                    Comentário Geral (Opcional)
+                  </label>
+                  <textarea
+                    id="general-comment"
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[100px]"
+                    placeholder="Escreva seu comentário geral sobre a empresa..."
+                    value={generalComment}
+                    onChange={(e) => setGeneralComment(e.target.value)}
+                  ></textarea>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Enviando..." : "Avaliar Empresa"}
+                </button>
+              </form>
             </section>
 
             {/* Ranking e Outras Avaliações (agora fora do cabeçalho) */}
@@ -418,7 +482,6 @@
                     </div>
                   ) : (
                     (empresas || []).map((emp, t) => {
-                      // Removido .slice(3) pois top3 está no header
                       const media = calcularMedia(emp);
                       return (
                         <div
