@@ -141,12 +141,7 @@
         return "bg-red-500";
       };
 
-      const getMedalColor = (index) => {
-        if (index === 0) return "from-yellow-400 to-yellow-600";
-        if (index === 1) return "from-gray-400 to-gray-600";
-        if (index === 2) return "from-amber-600 to-amber-800";
-        return "from-gray-200 to-gray-400";
-      };
+      // A função getMedalColor foi removida pois não é mais utilizada com o novo cabeçalho.
 
       const getMedalEmoji = (index) => {
         if (index === 0) return "🥇";
@@ -169,107 +164,120 @@
         }),
         option: (base, state) => ({
           ...base,
-          backgroundColor: state.isFocused ? "#ede9fe" : null, // bg-purple-100
-          color: "#4a4a4a",
+          backgroundColor: state.isFocused ? "#ede9fe" : "white", // focus:bg-purple-100
+          color: "#4a5568", // text-gray-700
           "&:active": {
-            backgroundColor: "#d8b4fe", // bg-purple-300
+            backgroundColor: "#d8b4fe", // active:bg-purple-200
           },
+        }),
+        singleValue: (base) => ({
+          ...base,
+          color: "#4a5568", // text-gray-700
+          fontWeight: "600", // font-semibold
+        }),
+        placeholder: (base) => ({
+          ...base,
+          color: "#a0aec0", // text-gray-500
         }),
       };
 
-      // Opções de empresas para o Select
-      const companyOptions = empresas.map((emp) => ({
-        value: emp.company,
-        label: emp.company,
-      }));
-
-      // Estado para controlar a visibilidade do campo de nova empresa
-      // const [showNewCompanyInput, setShowNewCompanyInput] = React.useState(false); // Movido para o componente pai
-
-      // Função para renderizar as estrelas de avaliação
-      const renderStars = (currentRating, setFunction, commentState, setCommentFunction, labelPrefix) => (
-        <div className="flex items-center space-x-1">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <OutlinedStar
-              key={star}
-              active={star <= currentRating}
-              onClick={() => setFunction(star)}
-              label={`${labelPrefix} - ${star} estrelas`}
-            />
-          ))}
-          {currentRating > 0 && (
-            <textarea
-              className="ml-3 p-2 border rounded-lg flex-grow text-sm"
-              placeholder="Comentário (opcional)"
-              value={commentState}
-              onChange={(e) => setCommentFunction(e.target.value)}
-            ></textarea>
-          )}
+      // Componente auxiliar para renderizar as estrelas e o campo de comentário
+      const renderStars = (currentRating, setRatingFn, comment, setCommentFn, labelText) => (
+        <div className="flex flex-col items-start w-full md:w-2/3">
+          <div className="flex items-center gap-1 mb-2">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <OutlinedStar
+                key={star}
+                active={star <= currentRating}
+                onClick={() => setRatingFn(star)}
+                label={`${star} de 5 estrelas para ${labelText}`}
+              />
+            ))}
+            <span className="ml-2 text-slate-600 font-medium">
+              {currentRating > 0 ? `${currentRating} Estrela${currentRating > 1 ? "s" : ""}` : "Não avaliado"}
+            </span>
+          </div>
+          <textarea
+            className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-400"
+            placeholder={`Comentário sobre ${labelText.toLowerCase()} (opcional)`}
+            value={comment}
+            onChange={(e) => setCommentFn(e.target.value)}
+          ></textarea>
         </div>
       );
 
       return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex flex-col">
-          <div className="flex-grow max-w-full mx-auto px-4 py-8">
-            {/* Novo Cabeçalho */}
-            <header className="bg-blue-200 p-6 rounded-3xl shadow-lg mb-8 flex flex-col md:flex-row items-center justify-between gap-6">
-              {/* Seção Esquerda: Logo e Nota (Exemplo) */}
-              <div className="flex flex-col items-center md:items-start text-center md:text-left">
-                <img
-                  src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Petrobras_logo.svg/1200px-Petrobras_logo.svg.png" // Exemplo da Petrobras
-                  alt="Logo da Empresa"
-                  className="w-24 h-auto mb-2"
-                />
-                <p className="text-xl font-bold text-gray-800">Nota 4.5/5</p>
-              </div>
-
-              {/* Seção Central: Título e Botão */}
-              <div className="flex-1 flex flex-col items-center text-center px-4">
-                <h1 className="text-4xl font-extrabold text-blue-800 mb-2">
-                  TRABALHEI LÁ
-                </h1>
-                <p className="text-sm text-gray-700 mb-1">
-                  Sua opinião é anônima e ajuda outros profissionais
-                </p>
-                <p className="text-xs text-gray-600 mb-4">
-                  Avaliações anônimas feitas por profissionais verificados.
-                </p>
-                <button className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-full shadow-md transition-all transform hover:scale-105 mb-4">
-                  CLIQUE E SAIBA MAIS
-                </button>
-                <div className="flex items-center justify-center space-x-4 text-sm text-gray-600">
-                  <span className="flex items-center">
-                    <FaStar className="text-green-500 mr-1" /> Anônimo
-                  </span>
-                  <span className="flex items-center">
-                    <FaStar className="text-green-500 mr-1" /> Verificado
-                  </span>
-                  <span className="flex-items-center">
-                    <FaStar className="text-green-500 mr-1" /> Confiável
-                  </span>
+        <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-100 font-sans text-gray-800">
+          <div className="max-w-full mx-auto px-4 py-8">
+            {/* Novo Cabeçalho - Conforme a imagem */}
+            <header className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 mb-8">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                {/* Seção Esquerda (Logo Petrobras e Nota) - Exemplo Estático */}
+                <div className="flex-shrink-0 text-center md:text-left">
+                  <img
+                    src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Petrobras_logo.svg/1200px-Petrobras_logo.svg.png" // Exemplo de logo
+                    alt="Petrobras Logo"
+                    className="h-12 w-auto mx-auto md:mx-0 mb-2"
+                  />
+                  <p className="text-sm font-bold text-gray-700">Nota: 4.5/5 ⭐</p>
                 </div>
-              </div>
 
-              {/* Seção Direita: Melhores Empresas (Ranking) */}
-              <div className="flex flex-col items-center md:items-end text-center md:text-right">
-                <h2 className="text-xl font-bold text-gray-800 mb-3">
-                  MELHORES EMPRESAS
-                </h2>
-                <div className="space-y-2">
+                {/* Seção Central (Título, Subtítulos, Botão, Tags) */}
+                <div className="flex-grow text-center">
+                  <h1 className="text-4xl font-extrabold text-purple-700 mb-2 leading-tight">
+                    Trabalhei Lá
+                  </h1>
+                  <p className="text-lg text-gray-600 mb-3">
+                    Sua opinião é anônima e ajuda outros profissionais.
+                  </p>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Avaliações anônimas feitas por profissionais verificados.
+                  </p>
+                  <button
+                    onClick={() => alert("Funcionalidade 'Saiba Mais' em desenvolvimento!")} // Ação temporária
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-all transform hover:scale-105 mb-4"
+                  >
+                    Clique e Saiba Mais
+                  </button>
+                  <div className="flex justify-center gap-3 text-sm font-medium text-gray-500">
+                    <span className="bg-gray-100 px-3 py-1 rounded-full">Anônimo</span>
+                    <span className="bg-gray-100 px-3 py-1 rounded-full">Verificado</span>
+                    <span className="bg-gray-100 px-3 py-1 rounded-full">Confiável</span>
+                  </div>
+                </div>
+
+                {/* Seção Direita (Melhores Empresas - Ranking) */}
+                <div className="flex-shrink-0 w-full md:w-1/4 bg-purple-50 p-4 rounded-2xl shadow-inner mt-6 md:mt-0">
+                  <h3 className="text-lg font-bold text-purple-700 mb-3 text-center">
+                    Melhores Empresas
+                  </h3>
                   {Array.isArray(top3) && top3.length > 0 ? (
-                    top3.map((emp, t) => (
-                      <div key={t} className="flex items-center gap-2">
-                        <span className="text-2xl">{getMedalEmoji(t)}</span>
-                        <p className="text-base font-semibold text-gray-700">
-                          {emp.company}
-                        </p>
-                        <span className="text-sm font-bold text-green-600">
-                          {calcularMedia(emp)}/5
-                        </span>
-                      </div>
-                    ))
+                    <div className="space-y-2">
+                      {top3.map((emp, t) => (
+                        <div
+                          key={t}
+                          className={`flex items-center justify-between p-2 rounded-xl ${
+                            t === 0
+                              ? "bg-yellow-100 border-yellow-300"
+                              : t === 1
+                              ? "bg-gray-100 border-gray-300"
+                              : "bg-amber-100 border-amber-300"
+                          } border`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{getMedalEmoji(t)}</span>
+                            <span className="font-semibold text-gray-800 text-sm">
+                              {emp.company}
+                            </span>
+                          </div>
+                          <span className="font-bold text-purple-600 text-sm">
+                            {calcularMedia(emp)} ⭐
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
-                    <p className="text-sm text-gray-500">
+                    <p className="text-center text-sm text-gray-500">
                       Nenhuma empresa no ranking ainda.
                     </p>
                   )}
@@ -278,100 +286,85 @@
             </header>
 
             {/* Seção de Avaliação */}
-            <section className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200">
-              <div className="text-center mb-6">
-                <h2 className="text-3xl font-bold text-slate-700 mb-2">
-                  Avalie uma Empresa
-                </h2>
-                <p className="text-slate-500 text-lg">
-                  Sua opinião é anônima e ajuda outros profissionais
-                </p>
-              </div>
+            <section className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 mt-6">
+              <h2 className="text-3xl font-bold text-slate-700 text-center mb-6">
+                Avalie uma Empresa
+              </h2>
 
-              {/* Card de Privacidade (Reintroduzido) */}
-              <div className="bg-purple-600 text-white p-4 rounded-xl flex items-center justify-center gap-3 mb-6 shadow-md">
-                <FaLock className="text-2xl" />
-                <div>
-                  <p className="font-bold text-lg">Sua privacidade é garantida</p>
-                  <p className="text-sm opacity-90">
-                    Usamos o LinkedIn ou Google apenas para verificar seu vínculo
-                    profissional. Suas avaliações são 100% anônimas.
-                  </p>
-                </div>
-              </div>
-
-              {/* Botões de Login (Reintroduzidos) */}
-              <div className="flex flex-col md:flex-row gap-4 mb-8 justify-center">
-                <LoginLinkedInButton
-                  onClick={handleLinkedInLogin}
-                  clientId={linkedInClientId}
-                />
+              {/* Botões de Login (Reintroduzidos, posicionamento a ser definido) */}
+              <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
+                <LoginLinkedInButton onClick={handleLinkedInLogin} />
                 <button
                   onClick={handleGoogleLogin}
-                  className="flex items-center justify-center gap-3 bg-white text-gray-700 font-bold py-3 px-6 rounded-xl shadow-md hover:bg-gray-100 transition-all transform hover:scale-105 border border-gray-300"
+                  className="flex items-center justify-center gap-2 bg-white border border-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-xl shadow-sm hover:bg-gray-50 transition-colors"
                 >
-                  <FcGoogle className="text-2xl" />
+                  <FcGoogle className="text-xl" />
                   Entrar com Google
                 </button>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Campo de seleção de empresa */}
-                <div>
+                {/* Seleção de Empresa */}
+                <div className="mb-6">
                   <label
                     htmlFor="company-select"
                     className="block text-slate-700 text-lg font-semibold mb-3"
                   >
-                    <FaBuilding className="inline-block mr-2 text-purple-600" />
                     Selecione a Empresa
                   </label>
                   <Select
                     id="company-select"
-                    options={companyOptions}
-                    value={companyOptions.find((opt) => opt.value === company)}
-                    onChange={(selectedOption) =>
-                      setCompany(selectedOption ? selectedOption.value : "")
-                    }
-                    placeholder="Digite ou selecione..."
+                    options={empresas.map((emp) => ({
+                      value: emp.company,
+                      label: emp.company,
+                    }))}
+                    value={company ? { value: company, label: company } : null}
+                    onChange={(selectedOption) => setCompany(selectedOption ? selectedOption.value : "")}
+                    placeholder="Buscar ou selecionar empresa..."
                     isClearable
-                    isSearchable
                     styles={selectStyles}
-                    className="mb-4"
                   />
-
-                  {/* Campo para adicionar nova empresa (Reintroduzido) */}
-                  {!showNewCompanyInput && (
-                    <button
-                      type="button"
-                      onClick={() => setShowNewCompanyInput(true)}
-                      className="w-full flex items-center justify-center gap-2 bg-purple-100 text-purple-700 font-bold py-2 px-4 rounded-xl hover:bg-purple-200 transition-colors"
-                    >
-                      <FaPlus /> Ou adicione uma nova empresa
-                    </button>
-                  )}
-
-                  {showNewCompanyInput && (
-                    <div className="flex gap-2 mt-4">
-                      <input
-                        type="text"
-                        className="flex-grow p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        placeholder="Nome da nova empresa"
-                        value={newCompany}
-                        onChange={(e) => setNewCompany(e.target.value)}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAddNewCompany}
-                        className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-5 rounded-xl transition-colors"
-                      >
-                        Adicionar
-                      </button>
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowNewCompanyInput(!showNewCompanyInput)}
+                    className="mt-3 flex items-center gap-2 text-purple-600 hover:text-purple-800 font-medium transition-colors"
+                  >
+                    <FaPlus />
+                    {showNewCompanyInput ? "Cancelar Nova Empresa" : "Adicionar Nova Empresa"}
+                  </button>
                 </div>
 
-                {/* Campos de avaliação (estrelas clicáveis) */}
-                <div className="space-y-5 mt-8">
+                {/* Campo para Nova Empresa (Reintroduzido) */}
+                {showNewCompanyInput && (
+                  <div className="mb-6">
+                    <label
+                      htmlFor="new-company-name"
+                      className="block text-slate-700 text-lg font-semibold mb-3"
+                    >
+                      Nome da Nova Empresa
+                    </label>
+                    <input
+                      type="text"
+                      id="new-company-name"
+                      className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="Digite o nome da nova empresa"
+                      value={newCompany}
+                      onChange={(e) => setNewCompany(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddNewCompany}
+                      className="mt-3 w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-xl transition-colors"
+                    >
+                      Adicionar Empresa
+                    </button>
+                  </div>
+                )}
+
+                {/* Campos de Avaliação por Estrelas (Reconectados) */}
+                <div className="space-y-6">
+                  <h3 className="text-xl font-bold text-slate-700 mb-4">Critérios de Avaliação</h3>
+
                   <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
                     <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center">
                       <FaStar className="mr-2 text-yellow-500" /> Avaliação Geral
@@ -395,21 +388,21 @@
 
                   <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
                     <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center">
-                      <FaBuilding className="mr-2 text-indigo-500" /> Estrutura da Empresa
+                      <FaBuilding className="mr-2 text-gray-500" /> Estrutura da Empresa
                     </label>
                     {renderStars(estruturaEmpresa, setEstruturaEmpresa, commentEstruturaEmpresa, setCommentEstruturaEmpresa, "Estrutura da Empresa")}
                   </div>
 
                   <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
                     <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center">
-                      <FaUserTie className="mr-2 text-red-500" /> Acessibilidade à Liderança
+                      <FaUserTie className="mr-2 text-indigo-500" /> Acessibilidade à Liderança
                     </label>
                     {renderStars(acessibilidadeLideranca, setAcessibilidadeLideranca, commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca, "Acessibilidade à Liderança")}
                   </div>
 
                   <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
                     <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center">
-                      <FaBriefcase className="mr-2 text-orange-500" /> Plano de Carreiras
+                      <FaBriefcase className="mr-2 text-purple-500" /> Plano de Carreiras
                     </label>
                     {renderStars(planoCarreiras, setPlanoCarreiras, commentPlanoCarreiras, setCommentPlanoCarreiras, "Plano de Carreiras")}
                   </div>
