@@ -104,7 +104,7 @@ function TrabalheiLaMobile({
   commentBemestar,
   setCommentBemestar,
   commentEstimulacaoOrganizacao,
-  setCommentEstimacaoOrganizacao,
+  setCommentEstimulacaoOrganizacao, // <-- CORRIGIDO AQUI!
   generalComment, // Novo estado para o comentário geral
   setGeneralComment, // Novo setter para o comentário geral
   handleSubmit,
@@ -201,10 +201,8 @@ function TrabalheiLaMobile({
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex flex-col p-4">
-
-      <div className="w-full max-w-4xl min-w-0">
-
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex flex-col p-4"> {/* Ajuste de layout aqui */}
+      <div className="w-full max-w-4xl min-w-0"> {/* Ajuste de layout aqui */}
         {/* Novo Cabeçalho */}
         <header className="bg-blue-200 rounded-3xl shadow-xl p-6 mb-8 border border-blue-300 flex flex-col md:flex-row items-center justify-between text-center md:text-left">
           {/* Seção Esquerda: Logo e Nota */}
