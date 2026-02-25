@@ -292,7 +292,7 @@
                 </button>
               </div>
               <div className="bg-purple-100 border border-purple-300 text-purple-800 p-4 rounded-xl flex items-center text-sm">
-                <FaLock className="mr-3 text-2xl text-purple-600" />
+                
                 Sua privacidade é garantida! Usamos o LinkedIn ou Google apenas
                 para verificar seu vínculo profissional. Suas avaliações são
                 100% anônimas.
