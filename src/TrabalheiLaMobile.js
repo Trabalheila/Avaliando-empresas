@@ -163,7 +163,7 @@ function TrabalheiLaMobile({
   clientId={linkedInClientId}
   redirectUri={process.env.REACT_APP_LINKEDIN_REDIRECT_URI}
   onLoginSuccess={handleLinkedInLogin}
-  onLoginFailure={(err) => setError("Falha no login LinkedIn.")}
+  onLoginFailure={(err) => console.error("Falha no login LinkedIn.", err)}
 />
           </div>
         </section>
