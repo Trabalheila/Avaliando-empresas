@@ -1,12 +1,11 @@
 import React from "react";
 import {
   FaStar, FaChartBar, FaHandshake, FaMoneyBillWave,
-  FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb, FaPlus, FaMinus, FaCheckCircle
+  FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb, FaPlus, FaCheckCircle
 } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import Select from "react-select";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
-import { useState } from "react"; // Certifique-se de que useState está importado
 
 function OutlinedStar({ active, onClick, size = 18, label }) {
   const outlineScale = 1.24;
@@ -36,7 +35,6 @@ function TrabalheiLaDesktop({
   planoCarreiras, setPlanoCarreiras,
   bemestar, setBemestar,
   estimulacaoOrganizacao, setEstimulacaoOrganizacao,
-  commentRating, setCommentRating,
   commentContatoRH, setCommentContatoRH,
   commentSalarioBeneficios, setCommentSalarioBeneficios,
   commentEstruturaEmpresa, setCommentEstruturaEmpresa,
@@ -45,14 +43,15 @@ function TrabalheiLaDesktop({
   commentBemestar, setCommentBemestar,
   commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao,
   generalComment, setGeneralComment,
-  handleAddNewCompany, handleSubmit,
+  isLoading, handleSubmit,
+  handleAddNewCompany,
+  empresas,
+  top3,
+  calcularMedia, getMedalColor, getMedalEmoji, getBadgeColor,
   linkedInClientId, handleLinkedInLogin, handleGoogleLogin,
-  isAuthenticated, user,
-  isLoading, error,
-  empresas, top3,
-  calcularMedia, getBadgeColor, getMedalColor, getMedalEmoji,
+  isAuthenticated, error,
 }) {
-  const [showCommentInput, setShowCommentInput] = useState({});
+  const [showCommentInput, setShowCommentInput] = React.useState({});
 
   const renderStars = (currentRating, setRating, currentComment, setComment, label) => (
     <div className="flex items-center gap-2">
@@ -93,24 +92,23 @@ function TrabalheiLaDesktop({
     </div>
   );
 
-  // AQUI ESTÁ A CORREÇÃO: A lista 'campos' é definida ANTES do return do componente.
   const campos = [
-    { label: "Avaliação Geral", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FaStar className="text-yellow-500" /> },
     { label: "Contato com RH", value: contatoRH, set: setContatoRH, comment: commentContatoRH, setComment: setCommentContatoRH, icon: <FaHandshake className="text-blue-500" /> },
     { label: "Salário e Benefícios", value: salarioBeneficios, set: setSalarioBeneficios, comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios, icon: <FaMoneyBillWave className="text-green-500" /> },
     { label: "Estrutura da Empresa", value: estruturaEmpresa, set: setEstruturaEmpresa, comment: commentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa, icon: <FaBuilding className="text-purple-500" /> },
-    { label: "Acessibilidade à Liderança", value: acessibilidadeLideranca, set: setAcessibilidadeLideranca, comment: commentAcessibilidadeLideranca, setComment: setCommentAcessibilidadeLideranca, icon: <FaUserTie className="text-red-500" /> },
-    { label: "Plano de Carreiras", value: planoCarreiras, set: setPlanoCarreiras, comment: commentPlanoCarreiras, setComment: setCommentPlanoCarreiras, icon: <FaBriefcase className="text-indigo-500" /> },
-    { label: "Bem-estar e Qualidade de Vida", value: bemestar, set: setBemestar, comment: commentBemestar, setComment: setCommentBemestar, icon: <FaHeart className="text-pink-500" /> },
+    { label: "Acessibilidade da Liderança", value: acessibilidadeLideranca, set: setAcessibilidadeLideranca, comment: commentAcessibilidadeLideranca, setComment: setCommentAcessibilidadeLideranca, icon: <FaUserTie className="text-red-500" /> },
+    { label: "Plano de Carreiras", value: planoCarreiras, set: setPlanoCarreiras, comment: commentPlanoCarreiras, setComment: setCommentPlanoCarreiras, icon: <FaBriefcase className="text-yellow-500" /> },
+    { label: "Bem-estar e Ambiente", value: bemestar, set: setBemestar, comment: commentBemestar, setComment: setCommentBemestar, icon: <FaHeart className="text-pink-500" /> },
     { label: "Estímulo e Organização", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-orange-500" /> },
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 text-slate-800 flex flex-col items-center p-6">
       <div className="max-w-4xl w-full">
-        {/* HEADER DESKTOP */}
+        {/* HEADER DESKTOP - Layout correto e final */}
         <header className="bg-gradient-to-r from-indigo-700 via-purple-600 to-pink-500 rounded-3xl shadow-2xl p-8 mb-8 text-white">
           <div className="flex items-center justify-between">
+            {/* Left side: Logo and Score */}
             <div className="flex items-center">
               <div className="bg-white/20 p-4 rounded-xl mr-4">
                 <FaBuilding className="text-white text-4xl" />
@@ -121,6 +119,7 @@ function TrabalheiLaDesktop({
                 <p className="text-sm">NOTA</p>
               </div>
             </div>
+            {/* Center: Title and Description */}
             <div className="flex flex-col items-center flex-grow">
               <h1 className="text-5xl font-extrabold mb-2">TRABALHEI LÁ</h1>
               <p className="text-lg text-center mb-4">Sua opinião é anônima e ajuda outros profissionais</p>
@@ -129,6 +128,7 @@ function TrabalheiLaDesktop({
                 CLIQUE E SAIBA MAIS
               </button>
             </div>
+            {/* Right side: Checkmarks */}
             <div className="flex flex-col items-end space-y-2 text-white font-semibold text-sm">
               <p className="flex items-center"><FaCheckCircle className="mr-2" /> Anônimo</p>
               <p className="flex items-center"><FaCheckCircle className="mr-2" /> Verificado</p>
@@ -137,53 +137,38 @@ function TrabalheiLaDesktop({
           </div>
         </header>
 
-        {/* MAIN CONTENT */}
+        {/* Conteúdo Principal (Login, Avaliação, Ranking) */}
         <div className="flex gap-6 mb-8">
-          {/* COLUNA ESQUERDA - FORMULÁRIO */}
+          {/* COLUNA ESQUERDA - Login e Avaliação */}
           <div className="flex-1">
-            <section className="bg-white rounded-3xl shadow-2xl p-6 border border-blue-100">
+            <section className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100 mb-6">
+              <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">Login para Avaliar</h2>
+
+              <div className="flex flex-col space-y-4 mb-8">
+                <button onClick={handleGoogleLogin}
+                  className="flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105">
+                  <FcGoogle className="mr-3 text-2xl" />
+                  Entrar com Google
+                </button>
+                <LoginLinkedInButton
+                  clientId={linkedInClientId}
+                  redirectUri={process.env.REACT_APP_LINKEDIN_REDIRECT_URI}
+                  onLoginSuccess={handleLinkedInLogin}
+                  onLoginFailure={(err) => console.error("Falha no login LinkedIn:", err)}
+                  className="flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-blue-800 transition-all transform hover:scale-105"
+                />
+              </div>
+
               <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">Avalie uma Empresa</h2>
 
-              {/* Login Buttons */}
-              {!isAuthenticated && (
-                <div className="flex flex-col space-y-4 mb-8">
-                  <LoginLinkedInButton
-                    clientId={linkedInClientId}
-                    redirectUri={process.env.REACT_APP_LINKEDIN_REDIRECT_URI}
-                    onLoginSuccess={handleLinkedInLogin}
-                    onLoginFailure={(err) => console.error("Falha no login LinkedIn:", err)}
-                    className="flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-blue-800 transition-all transform hover:scale-105"
-                  />
-                  <button onClick={handleGoogleLogin}
-                    className="flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105">
-                    <FcGoogle className="mr-3 text-2xl" />
-                    Entrar com Google
-                  </button>
-                </div>
-              )}
-
-              {isAuthenticated && user && (
-                <div className="text-center mb-6">
-                  <p className="text-lg font-semibold text-slate-700">Bem-vindo, {user.name}!</p>
-                  <p className="text-sm text-slate-500">Você pode avaliar uma empresa.</p>
-                </div>
-              )}
-
-              {/* Company Selection */}
               <div className="mb-8">
-                <label htmlFor="company-select" className="block text-slate-700 font-semibold text-lg mb-2">
-                  Empresa que você trabalhou:
-                </label>
+                <label className="block text-slate-700 font-semibold text-lg mb-2">Empresa que você trabalhou:</label>
                 <Select
-                  id="company-select"
-                  options={empresas.map(emp => ({ value: emp.company, label: emp.company }))}
+                  options={empresas.map(emp => ({ value: emp.company, label: emp.company })).concat({ value: 'Adicionar Nova Empresa', label: 'Adicionar Nova Empresa' })}
                   value={company ? { value: company, label: company } : null}
                   onChange={(selectedOption) => setCompany(selectedOption ? selectedOption.value : '')}
                   placeholder="Selecione ou digite uma empresa"
                   isClearable
-                  isSearchable
-                  className="react-select-container"
-                  classNamePrefix="react-select"
                   styles={{
                     control: (base) => ({
                       ...base,
