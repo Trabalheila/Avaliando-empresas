@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+// src/TrabalheiLaDesktop.js
+import React, { useState } from "react"; // <-- useEffect REMOVIDO AQUI
 import {
   FaStar, FaChartBar, FaHandshake, FaMoneyBillWave,
-  FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb, FaPlus, FaMinus, // <-- FaMinus ADICIONADO AQUI
+  FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb, FaPlus, FaMinus,
   FaCheckCircle
 } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
@@ -17,8 +18,8 @@ function OutlinedStar({ active, onClick, size = 18, label }) {
         <span style={{ position: "absolute", left: 0, top: 0, transform: `scale(${outlineScale})`, transformOrigin: "center" }} aria-hidden="true">
           <FaStar size={size} color="#000" />
         </span>
-        <span style={{ position: "relative" }} aria-hidden="true">
-          <FaStar size={size} color={active ? "#facc15" : "#e5e7eb"} />
+        <span style={{ position: "absolute", left: 0, top: 0 }}>
+          <FaStar size={size} color={active ? "#FFD700" : "#ccc"} />
         </span>
       </span>
     </button>
@@ -26,13 +27,27 @@ function OutlinedStar({ active, onClick, size = 18, label }) {
 }
 
 function TrabalheiLaDesktop({
-  company, setCompany,
-  newCompany, setNewCompany,
+  empresas,
+  top3,
+  calcularMedia,
+  getMedalColor,
+  getMedalEmoji,
+  getBadgeColor,
+  handleGoogleLogin,
+  handleLinkedInLogin,
+  isAuthenticated,
+  linkedInClientId,
+  error,
+  isLoading,
+  selectedCompany,
+  setSelectedCompany,
   handleAddNewCompany,
-  companies,
-  linkedInClientId, handleLinkedInLogin, handleGoogleLogin,
-  error, isAuthenticated,
-  isLoading, handleSubmit,
+  newCompanyName,
+  setNewCompanyName,
+  newCompanyArea,
+  setNewCompanyArea,
+  newCompanyPeriodo,
+  setNewCompanyPeriodo,
   contatoRH, setContatoRH, commentContatoRH, setCommentContatoRH,
   salarioBeneficios, setSalarioBeneficios, commentSalarioBeneficios, setCommentSalarioBeneficios,
   estruturaEmpresa, setEstruturaEmpresa, commentEstruturaEmpresa, setCommentEstruturaEmpresa,
@@ -41,11 +56,23 @@ function TrabalheiLaDesktop({
   bemestar, setBemestar, commentBemestar, setCommentBemestar,
   estimulacaoOrganizacao, setEstimulacaoOrganizacao, commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao,
   generalComment, setGeneralComment,
-  top3, empresas, calcularMedia, getMedalColor, getMedalEmoji, getBadgeColor,
+  handleSubmit,
+  linkedInRedirectUri // Adicionado para garantir que a URI de redirecionamento seja passada
 }) {
   const [showCommentInput, setShowCommentInput] = useState({});
 
-  // Função para renderizar as estrelas e o botão de comentário
+  // DEFINIÇÃO DO ARRAY 'campos' FORA DO JSX DE RETORNO
+  // Isso corrige o erro de estrutura 'div' sem fechamento
+  const campos = [
+    { label: "Contato com RH", value: contatoRH, set: setContatoRH, comment: commentContatoRH, setComment: setCommentContatoRH, icon: <FaHandshake className="text-blue-500" /> },
+    { label: "Salário e Benefícios", value: salarioBeneficios, set: setSalarioBeneficios, comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios, icon: <FaMoneyBillWave className="text-green-500" /> },
+    { label: "Estrutura da Empresa", value: estruturaEmpresa, set: setEstruturaEmpresa, comment: commentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa, icon: <FaBuilding className="text-purple-500" /> },
+    { label: "Acessibilidade da Liderança", value: acessibilidadeLideranca, set: setAcessibilidadeLideranca, comment: commentAcessibilidadeLideranca, setComment: setCommentAcessibilidadeLideranca, icon: <FaUserTie className="text-red-500" /> },
+    { label: "Plano de Carreiras", value: planoCarreiras, set: setPlanoCarreiras, comment: commentPlanoCarreiras, setComment: setCommentPlanoCarreiras, icon: <FaBriefcase className="text-yellow-500" /> },
+    { label: "Bem-estar e Ambiente", value: bemestar, set: setBemestar, comment: commentBemestar, setComment: setCommentBemestar, icon: <FaHeart className="text-pink-500" /> },
+    { label: "Estímulo e Organização", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-orange-500" /> },
+  ];
+
   const renderStars = (currentRating, setRating, currentComment, setComment, label) => (
     <div className="flex items-center gap-2">
       {[...Array(5)].map((_, i) => {
@@ -85,26 +112,13 @@ function TrabalheiLaDesktop({
     </div>
   );
 
-  // <-- O array 'campos' foi movido para AQUI, antes do 'return' principal do componente.
-  // Isso corrige o erro de estrutura (div sem fechamento) que estava ocorrendo.
-  const campos = [
-    { label: "Contato com RH", value: contatoRH, set: setContatoRH, comment: commentContatoRH, setComment: setCommentContatoRH, icon: <FaHandshake className="text-blue-500" /> },
-    { label: "Salário e Benefícios", value: salarioBeneficios, set: setSalarioBeneficios, comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios, icon: <FaMoneyBillWave className="text-green-500" /> },
-    { label: "Estrutura da Empresa", value: estruturaEmpresa, set: setEstruturaEmpresa, comment: commentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa, icon: <FaBuilding className="text-purple-500" /> },
-    { label: "Acessibilidade da Liderança", value: acessibilidadeLideranca, set: setAcessibilidadeLideranca, comment: commentAcessibilidadeLideranca, setComment: setCommentAcessibilidadeLideranca, icon: <FaUserTie className="text-red-500" /> },
-    { label: "Plano de Carreiras", value: planoCarreiras, set: setPlanoCarreiras, comment: commentPlanoCarreiras, setComment: setCommentPlanoCarreiras, icon: <FaBriefcase className="text-yellow-500" /> },
-    { label: "Bem-estar e Ambiente", value: bemestar, set: setBemestar, comment: commentBemestar, setComment: setCommentBemestar, icon: <FaHeart className="text-pink-500" /> },
-    { label: "Estímulo e Organização", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-orange-500" /> },
-  ];
-
   return (
-    <div className="min-h-screen bg-gray-100 p-6 flex items-center justify-center">
-      <div className="max-w-6xl w-full">
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center p-6">
+      <div className="w-full max-w-6xl">
 
-        {/* HEADER */}
+        {/* CABEÇALHO (HEADER) - Layout Desktop */}
         <header className="bg-gradient-to-r from-indigo-700 via-purple-600 to-pink-500 rounded-3xl shadow-2xl p-8 mb-8 text-white">
           <div className="flex items-center justify-between">
-            {/* Logo e Nota */}
             <div className="flex items-center">
               <div className="bg-white/20 p-4 rounded-xl mr-4">
                 <FaBuilding className="text-white text-4xl" />
@@ -115,43 +129,57 @@ function TrabalheiLaDesktop({
                 <p className="text-sm">NOTA</p>
               </div>
             </div>
-
-            {/* Título e Descrição Central */}
-            <div className="flex flex-col items-center flex-grow">
-              <h1 className="text-5xl font-extrabold mb-2">TRABALHEI LÁ</h1>
-              <p className="text-lg text-center mb-4">Sua opinião é anônima e ajuda outros profissionais</p>
-              <p className="text-sm text-center mb-6">Avaliações anônimas feitas por profissionais verificados.</p>
+            <div className="text-right">
+              <h1 className="text-5xl font-extrabold mb-2 font-azonix">TRABALHEI LÁ</h1>
+              <p className="text-lg mb-4">Sua opinião é anônima e ajuda outros profissionais</p>
+              <p className="text-sm mb-6">Avaliações anônimas feitas por profissionais verificados.</p>
               <button className="bg-white text-purple-700 font-bold py-3 px-6 rounded-full shadow-lg hover:bg-gray-100 transition-all transform hover:scale-105">
                 CLIQUE E SAIBA MAIS
               </button>
-            </div>
-
-            {/* Ícones de Verificação */}
-            <div className="flex flex-col items-end space-y-2 text-sm font-semibold">
-              <p className="flex items-center"><FaCheckCircle className="mr-2" /> Anônimo</p>
-              <p className="flex items-center"><FaCheckCircle className="mr-2" /> Verificado</p>
-              <p className="flex items-center"><FaCheckCircle className="mr-2" /> Confiável</p>
+              <div className="flex justify-end space-x-4 mt-6 text-sm font-semibold">
+                <p className="flex items-center"><FaCheckCircle className="mr-2" /> Anônimo</p>
+                <p className="flex items-center"><FaCheckCircle className="mr-2" /> Verificado</p>
+                <p className="flex items-center"><FaCheckCircle className="mr-2" /> Confiável</p>
+              </div>
             </div>
           </div>
         </header>
 
         {/* CONTEÚDO PRINCIPAL */}
-        <div className="flex gap-8">
-          {/* COLUNA ESQUERDA - FORMULÁRIO */}
+        <div className="flex gap-8 mb-8">
+          {/* COLUNA ESQUERDA - FORMULÁRIO E LOGIN */}
           <div className="flex-1">
             <section className="bg-white rounded-3xl shadow-xl p-8 border border-blue-100 mb-8">
-              <h2 className="text-3xl font-bold text-blue-800 text-center mb-6">Avalie a Empresa</h2>
+              <h2 className="text-3xl font-bold text-blue-800 text-center mb-6">Faça seu Login</h2>
+              <div className="space-y-4">
+                <LoginLinkedInButton
+                  clientId={linkedInClientId}
+                  onLoginSuccess={handleLinkedInLogin}
+                  onLoginFailure={(err) => console.error("Falha no login LinkedIn:", err)}
+                  redirectUri={linkedInRedirectUri}
+                  className="flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-blue-800 transition-all transform hover:scale-105"
+                />
+                <button onClick={handleGoogleLogin}
+                  className="flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105">
+                  <FcGoogle className="mr-3 text-2xl" />
+                  Entrar com Google
+                </button>
+              </div>
+            </section>
+
+            <section className="bg-white rounded-3xl shadow-xl p-8 border border-blue-100">
+              <h2 className="text-3xl font-bold text-blue-800 text-center mb-6">Avalie uma Empresa</h2>
 
               {/* Seleção de Empresa */}
-              <div className="mb-6">
+              <div className="mb-8">
                 <label htmlFor="company-select" className="block text-slate-700 font-semibold text-lg mb-2">
-                  Selecione a empresa:
+                  Selecione a empresa que deseja avaliar:
                 </label>
                 <Select
                   id="company-select"
-                  options={companies.map(c => ({ value: c, label: c }))}
-                  value={company ? { value: company, label: company } : null}
-                  onChange={(selectedOption) => setCompany(selectedOption ? selectedOption.value : '')}
+                  options={empresas.map(emp => ({ value: emp.company, label: emp.company }))}
+                  value={selectedCompany}
+                  onChange={setSelectedCompany}
                   placeholder="Buscar ou selecionar empresa..."
                   isClearable
                   className="react-select-container"
@@ -159,68 +187,83 @@ function TrabalheiLaDesktop({
                   styles={{
                     control: (base) => ({
                       ...base,
-                      borderRadius: '12px',
-                      padding: '8px',
-                      borderColor: '#d1d5db',
+                      borderRadius: '0.75rem', // rounded-xl
+                      padding: '0.5rem', // p-2
+                      borderColor: '#D1D5DB', // border-gray-300
                       boxShadow: 'none',
-                      '&:hover': { borderColor: '#a78bfa' },
+                      '&:hover': {
+                        borderColor: '#9CA3AF', // hover:border-gray-400
+                      },
                     }),
                     option: (base, state) => ({
                       ...base,
-                      backgroundColor: state.isFocused ? '#e0e7ff' : 'white',
-                      color: '#4b5563',
+                      backgroundColor: state.isFocused ? '#E0E7FF' : 'white', // focus:bg-blue-100
+                      color: '#1F2937', // text-gray-800
+                      '&:active': {
+                        backgroundColor: '#BFDBFE', // active:bg-blue-200
+                      },
                     }),
-                    singleValue: (base) => ({ ...base, color: '#1f2937' }),
+                    singleValue: (base) => ({
+                      ...base,
+                      color: '#1F2937', // text-gray-800
+                    }),
+                    placeholder: (base) => ({
+                      ...base,
+                      color: '#9CA3AF', // text-gray-400
+                    }),
                   }}
                 />
               </div>
 
               {/* Adicionar Nova Empresa */}
-              <div className="mb-8 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                <label htmlFor="new-company" className="block text-blue-800 font-semibold text-lg mb-2">
-                  Não encontrou a empresa? Adicione uma nova:
-                </label>
-                <div className="flex gap-3">
-                  <input
-                    type="text"
-                    id="new-company"
-                    className="flex-1 p-3 border border-blue-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Nome da nova empresa"
-                    value={newCompany}
-                    onChange={(e) => setNewCompany(e.target.value)}
-                  />
+              <div className="mb-8 p-6 bg-blue-50 rounded-2xl border border-blue-200">
+                <h3 className="text-xl font-bold text-blue-700 mb-4">Não encontrou a empresa? Adicione!</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="new-company-name" className="block text-slate-700 font-semibold text-sm mb-1">Nome da Empresa</label>
+                    <input
+                      type="text"
+                      id="new-company-name"
+                      className="w-full p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={newCompanyName}
+                      onChange={(e) => setNewCompanyName(e.target.value)}
+                      placeholder="Ex: Minha Empresa Inc."
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="new-company-area" className="block text-slate-700 font-semibold text-sm mb-1">Área de Atuação</label>
+                    <input
+                      type="text"
+                      id="new-company-area"
+                      className="w-full p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={newCompanyArea}
+                      onChange={(e) => setNewCompanyArea(e.target.value)}
+                      placeholder="Ex: Tecnologia, Finanças, Saúde"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="new-company-periodo" className="block text-slate-700 font-semibold text-sm mb-1">Período de Atuação</label>
+                    <input
+                      type="text"
+                      id="new-company-periodo"
+                      className="w-full p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={newCompanyPeriodo}
+                      onChange={(e) => setNewCompanyPeriodo(e.target.value)}
+                      placeholder="Ex: 2020 - Atualmente, 2018 - 2022"
+                    />
+                  </div>
                   <button
-                    type="button"
                     onClick={handleAddNewCompany}
-                    className="bg-blue-600 text-white font-bold py-3 px-6 rounded-xl shadow-md hover:bg-blue-700 transition-all transform hover:scale-105"
+                    className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-xl hover:bg-blue-700 transition-colors"
                   >
-                    <FaPlus className="inline-block mr-2" /> Adicionar
-                  </button>
-                </div>
-              </div>
-
-              {/* Botões de Login */}
-              <div className="mb-8 text-center">
-                <p className="text-slate-700 text-lg font-semibold mb-4">Faça login para avaliar:</p>
-                <div className="flex flex-col space-y-4 items-center">
-                  <LoginLinkedInButton
-                    clientId={linkedInClientId}
-                    onLoginSuccess={handleLinkedInLogin}
-                    onLoginFailure={(err) => console.error("Falha no login LinkedIn:", err)} // Adicionado onLoginFailure
-                    redirectUri={process.env.REACT_APP_LINKEDIN_REDIRECT_URI} // Adicionado redirectUri
-                    className="flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-blue-800 transition-all transform hover:scale-105"
-                  />
-                  <button onClick={handleGoogleLogin}
-                    className="flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105">
-                    <FcGoogle className="mr-3 text-2xl" />
-                    Entrar com Google
+                    Adicionar Empresa
                   </button>
                 </div>
               </div>
 
               {/* Formulário de Avaliação */}
               <form onSubmit={handleSubmit}>
-                <div className="space-y-8 mb-10">
+                <div className="space-y-6 mb-8">
                   {campos.map((campo, index) => (
                     <div key={index} className="flex items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
                       <label className="w-1/3 text-slate-700 font-semibold flex items-center gap-2">
@@ -231,10 +274,10 @@ function TrabalheiLaDesktop({
                   ))}
                 </div>
 
-                <div className="mb-6">
+                <div className="mb-8">
                   <label className="text-slate-700 font-semibold text-lg block mb-2">Comentário Geral</label>
                   <textarea
-                    className="w-full p-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="Deixe um comentário geral sobre a empresa (opcional)"
                     rows="4"
                     value={generalComment}
@@ -310,7 +353,8 @@ function TrabalheiLaDesktop({
                 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #1d4ed8, #3b82f6); border-radius: 10px; }
-              `}</style>
+              `}
+              </style>
             </div>
           </div>
 
