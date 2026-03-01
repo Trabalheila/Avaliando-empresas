@@ -5,7 +5,7 @@ import Select from "react-select";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
 
 function OutlinedStar({ active, onClick, size = 18, label }) {
-  const outlineScale = 1.24; // Adicionado para consistência com Mobile
+  const outlineScale = 1.24; // Definido para consistência, embora o valor seja fixo
   return (
     <button type="button" onClick={onClick} aria-label={label} title={label}
       style={{ padding: 0, margin: 0, border: 0, background: "transparent", cursor: "pointer", lineHeight: 0 }}>
@@ -141,7 +141,7 @@ function TrabalheiLaDesktop({
                   clientId={linkedInClientId}
                   redirectUri={process.env.REACT_APP_LINKEDIN_REDIRECT_URI}
                   onLoginSuccess={handleLinkedInLogin}
-                  onLoginFailure={(err) => console.error("Falha no login LinkedIn (Desktop).", err)}
+                  onLoginFailure={(err) => console.error("Falha no login LinkedIn:", err)}
                   className="flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-blue-800 transition-all transform hover:scale-105"
                 />
               </div>
@@ -188,14 +188,14 @@ function TrabalheiLaDesktop({
                   { label: "Cultura e Valores", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FaStar className="text-yellow-400" /> },
                   { label: "Contato com RH", value: contatoRH, set: setContatoRH, comment: commentContatoRH, setComment: setCommentContatoRH, icon: <FaHandshake className="text-blue-400" /> },
                   { label: "Salário e Benefícios", value: salarioBeneficios, set: setSalarioBeneficios, comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios, icon: <FaMoneyBillWave className="text-green-400" /> },
-                  { label: "Estrutura da Empresa", value: estruturaEmpresa, set: setEstruturaEmpresa, comment: commentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa, icon: <FaBuilding className="text-indigo-500" /> },
+                  { label: "Estrutura da Empresa", value: estruturaEmpresa, set: setEstruturaEmpresa, comment: commentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa, icon: <FaBuilding className="text-indigo-400" /> },
                   { label: "Acessibilidade à Liderança", value: acessibilidadeLideranca, set: setAcessibilidadeLideranca, comment: commentAcessibilidadeLideranca, setComment: setCommentAcessibilidadeLideranca, icon: <FaUserTie className="text-red-500" /> },
                   { label: "Plano de Carreiras", value: planoCarreiras, set: setPlanoCarreiras, comment: commentPlanoCarreiras, setComment: setCommentPlanoCarreiras, icon: <FaBriefcase className="text-purple-500" /> },
                   { label: "Bem-estar e Qualidade de Vida", value: bemestar, set: setBemestar, comment: commentBemestar, setComment: setCommentBemestar, icon: <FaHeart className="text-pink-500" /> },
-                  { label: "Estímulo e Organização", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-orange-500" /> },
+                  { label: "Estímulo e Organização", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao, icon: <FaLightbulb className="text-orange-500" /> },
                 ].map((campo, index) => (
                   <div key={index} className="flex items-start justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                    <label className="w-1/3 text-slate-700 font-semibold flex items-center gap-2"> {/* Adicionado gap-2 aqui */}
+                    <label className="w-1/3 text-slate-700 font-semibold flex items-center gap-2">
                       {campo.icon} {campo.label}
                     </label>
                     {renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label)}
