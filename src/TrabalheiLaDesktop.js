@@ -5,11 +5,12 @@ import Select from "react-select";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
 
 function OutlinedStar({ active, onClick, size = 18, label }) {
+  const outlineScale = 1.24; // Adicionado para consistência com Mobile
   return (
     <button type="button" onClick={onClick} aria-label={label} title={label}
       style={{ padding: 0, margin: 0, border: 0, background: "transparent", cursor: "pointer", lineHeight: 0 }}>
       <span style={{ position: "relative", display: "inline-block", width: size, height: size, verticalAlign: "middle" }}>
-        <span style={{ position: "absolute", left: 0, top: 0, transform: "scale(1.24)", transformOrigin: "center" }} aria-hidden="true">
+        <span style={{ position: "absolute", left: 0, top: 0, transform: `scale(${outlineScale})`, transformOrigin: "center" }} aria-hidden="true">
           <FaStar size={size} color="#000" />
         </span>
         <span style={{ position: "relative" }} aria-hidden="true">
@@ -132,16 +133,17 @@ function TrabalheiLaDesktop({
               <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">Login para Avaliar</h2>
               <div className="flex flex-col space-y-4">
                 <button onClick={handleGoogleLogin}
-                  className="w-full flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105">
+                  className="flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105">
                   <FcGoogle className="mr-3 text-2xl" />
                   Entrar com Google
                 </button>
                 <LoginLinkedInButton
-  clientId={linkedInClientId}
-  redirectUri={process.env.REACT_APP_LINKEDIN_REDIRECT_URI}
-  onLoginSuccess={handleLinkedInLogin}
-  onLoginFailure={(err) => setError("Falha no login LinkedIn.")}
-/>
+                  clientId={linkedInClientId}
+                  redirectUri={process.env.REACT_APP_LINKEDIN_REDIRECT_URI}
+                  onLoginSuccess={handleLinkedInLogin}
+                  onLoginFailure={(err) => console.error("Falha no login LinkedIn (Desktop).", err)}
+                  className="flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-blue-800 transition-all transform hover:scale-105"
+                />
               </div>
             </section>
 
@@ -193,7 +195,7 @@ function TrabalheiLaDesktop({
                   { label: "Estímulo e Organização", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-orange-500" /> },
                 ].map((campo, index) => (
                   <div key={index} className="flex items-start justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                    <label className="w-1/3 text-slate-700 font-semibold flex items-center">
+                    <label className="w-1/3 text-slate-700 font-semibold flex items-center gap-2"> {/* Adicionado gap-2 aqui */}
                       {campo.icon} {campo.label}
                     </label>
                     {renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label)}
