@@ -51,8 +51,7 @@ function TrabalheiLaMobile({
   linkedInClientId,
   handleLinkedInLogin, handleGoogleLogin,
   error, isAuthenticated,
-  calcularMedia, getMedalColor, getMedalEmoji, getBadgeColor, // Usando as props de Home.js
-  safeCompanyOptions,
+  calcularMedia, getMedalColor, getMedalEmoji, getBadgeColor, // Funções agora vêm de props
 }) {
   const selectStyles = {
     control: (base, state) => ({
@@ -162,7 +161,7 @@ function TrabalheiLaMobile({
               clientId={linkedInClientId}
               redirectUri={process.env.REACT_APP_LINKEDIN_REDIRECT_URI}
               onLoginSuccess={handleLinkedInLogin}
-              onLoginFailure={(err) => console.error("Falha no login LinkedIn (Mobile).", err)}
+              onLoginFailure={(err) => console.error("Falha no login LinkedIn:", err)}
               className="flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-blue-800 transition-all transform hover:scale-105"
             />
           </div>
@@ -210,69 +209,32 @@ function TrabalheiLaMobile({
           ) : (
             <button
               onClick={() => setShowNewCompanyInput(true)}
-              className="w-full flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-sm transition-all mb-6"
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold py-3 px-4 rounded-xl shadow-md hover:opacity-90 transition-all"
             >
-              <FaPlus className="mr-2" /> Adicionar Nova Empresa
+              <FaPlus />
+              Adicionar Nova Empresa
             </button>
           )}
 
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-6 mb-8">
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
-                  <FaStar className="mr-2 text-yellow-500" /> Avaliação Geral
-                </label>
-                {renderStars(rating, setRating, commentRating, setCommentRating, "Avaliação Geral")}
-              </div>
-
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
-                  <FaHandshake className="mr-2 text-blue-500" /> Contato com RH
-                </label>
-                {renderStars(contatoRH, setContatoRH, commentContatoRH, setCommentContatoRH, "Contato com RH")}
-              </div>
-
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
-                  <FaMoneyBillWave className="mr-2 text-green-500" /> Salário e Benefícios
-                </label>
-                {renderStars(salarioBeneficios, setSalarioBeneficios, commentSalarioBeneficios, setCommentSalarioBeneficios, "Salário e Benefícios")}
-              </div>
-
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
-                  <FaBuilding className="mr-2 text-indigo-500" /> Estrutura da Empresa
-                </label>
-                {renderStars(estruturaEmpresa, setEstruturaEmpresa, commentEstruturaEmpresa, setCommentEstruturaEmpresa, "Estrutura da Empresa")}
-              </div>
-
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
-                  <FaUserTie className="mr-2 text-red-500" /> Acessibilidade à Liderança
-                </label>
-                {renderStars(acessibilidadeLideranca, setAcessibilidadeLideranca, commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca, "Acessibilidade à Liderança")}
-              </div>
-
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
-                  <FaBriefcase className="mr-2 text-indigo-500" /> Plano de Carreira
-                </label>
-                {renderStars(planoCarreiras, setPlanoCarreiras, commentPlanoCarreiras, setCommentPlanoCarreiras, "Plano de Carreira")}
-              </div>
-
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
-                  <FaHeart className="mr-2 text-pink-500" /> Bem-estar e Qualidade de Vida
-                </label>
-                {renderStars(bemestar, setBemestar, commentBemestar, setCommentBemestar, "Bem-estar")}
-              </div>
-
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
-                  <FaLightbulb className="mr-2 text-teal-500" /> Estímulo à Inovação
-                </label>
-                {renderStars(estimulacaoOrganizacao, setEstimulacaoOrganizacao, commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao, "Estímulo à Inovação")}
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-4 mt-6">
+            <div className="space-y-4">
+              {[
+                { label: "Cultura e Valores", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FaStar className="text-yellow-400" /> },
+                { label: "Contato com RH", value: contatoRH, set: setContatoRH, comment: commentContatoRH, setComment: setCommentContatoRH, icon: <FaHandshake className="text-blue-400" /> },
+                { label: "Salário e Benefícios", value: salarioBeneficios, set: setSalarioBeneficios, comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios, icon: <FaMoneyBillWave className="text-green-400" /> },
+                { label: "Estrutura da Empresa", value: estruturaEmpresa, set: setEstruturaEmpresa, comment: commentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa, icon: <FaBuilding className="text-gray-500" /> },
+                { label: "Acessibilidade à Liderança", value: acessibilidadeLideranca, set: setAcessibilidadeLideranca, comment: commentAcessibilidadeLideranca, setComment: setCommentAcessibilidadeLideranca, icon: <FaUserTie className="text-red-500" /> },
+                { label: "Plano de Carreiras", value: planoCarreiras, set: setPlanoCarreiras, comment: commentPlanoCarreiras, setComment: setCommentPlanoCarreiras, icon: <FaBriefcase className="text-purple-500" /> },
+                { label: "Bem-estar e Qualidade de Vida", value: bemestar, set: setBemestar, comment: commentBemestar, setComment: setCommentBemestar, icon: <FaHeart className="text-pink-500" /> },
+                { label: "Estímulo à Inovação", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-teal-500" /> },
+              ].map((campo, index) => (
+                <div key={index} className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                  <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center gap-2 mb-2 md:mb-0">
+                    {campo.icon} {campo.label}
+                  </label>
+                  {renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label)}
+                </div>
+              ))}
             </div>
 
             {error && <p className="text-red-600 text-center font-medium mb-4">{error}</p>}
@@ -296,71 +258,61 @@ function TrabalheiLaMobile({
         {/* Ranking */}
         <section className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 mb-8">
           <div className="flex flex-col items-center mb-4">
-            <h2 className="text-2xl font-bold text-slate-700 text-center mb-3">
-              Ranking - Top Empresas Avaliadas
-            </h2>
-            <img src="/trofeu-new.png" alt="Troféu Trabalhei Lá" className="w-20 h-20 object-contain drop-shadow-lg" />
-          </div>
+            <h2 className="text-2xl font-bold text-slate-700 text-center mb-4">🏆 Ranking de Empresas</h2>
 
-          {Array.isArray(top3) && top3.length > 0 && (
-            <div className="mb-4 space-y-3">
-              {top3.map((emp, t) => {
-                const media = calcularMedia(emp);
-                return (
-                  <div key={t} className={`bg-gradient-to-r ${getMedalColor(t)} rounded-2xl p-4 text-white shadow-lg`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="text-3xl">{getMedalEmoji(t)}</span>
-                        <div>
-                          <h3 className="font-bold text-base">{emp.company}</h3>
-                          <p className="text-xs opacity-90">{emp.area} • {emp.periodo}</p>
+            {Array.isArray(top3) && top3.length > 0 && (
+              <div className="mb-4 space-y-2 w-full">
+                {top3.map((emp, i) => {
+                  const media = calcularMedia(emp);
+                  return (
+                    <div key={i} className={`bg-gradient-to-r ${getMedalColor(i)} rounded-2xl p-4 text-white shadow-md`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-3xl">{getMedalEmoji(i)}</span>
+                          <p className="font-bold text-lg">{emp.company}</p>
                         </div>
-                      </div>
-                      <div className="bg-white/20 px-3 py-1.5 rounded-full font-bold text-sm">
-                        {media} ⭐
+                        <div className="bg-white/20 px-3 py-1.5 rounded-full font-bold text-sm">{media} ⭐</div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-            {Array.isArray(empresas) && empresas.length === 0 ? (
-              <div className="text-center py-8">
-                <FaChartBar className="text-gray-300 text-5xl mx-auto mb-3" />
-                <p className="text-gray-500 font-medium text-lg">Nenhuma avaliação ainda</p>
-                <p className="text-sm text-gray-400 mt-2">Seja o primeiro a avaliar!</p>
+                  );
+                })}
               </div>
-            ) : (
-              (empresas || []).slice(3).map((emp, t) => {
-                const media = calcularMedia(emp);
-                return (
-                  <div key={t} className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-4 border-2 border-gray-200 hover:border-purple-400 hover:shadow-xl transition-all cursor-pointer group">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <h3 className="font-bold text-gray-800 group-hover:text-purple-600 transition-colors text-base">{emp.company}</h3>
-                        <p className="text-xs text-gray-500 mt-1">{emp.area} • {emp.periodo}</p>
-                      </div>
-                      <div className={`${getBadgeColor(media)} px-3 py-1.5 rounded-full text-white font-bold text-sm shadow-md`}>
-                        {media} ⭐
-                      </div>
-                    </div>
-                    {emp.comment && (
-                      <p className="text-sm text-gray-600 italic border-t border-gray-200 pt-2 mt-2">"{emp.comment}"</p>
-                    )}
-                  </div>
-                );
-              })
             )}
-          </div>
 
-          <style>{`
-            .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-            .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-            .custom-scrollbar::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #8b5cf6, #ec4899); border-radius: 10px; }
-          `}</style>
+            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              {Array.isArray(empresas) && empresas.length === 0 ? (
+                <div className="text-center py-8">
+                  <FaChartBar className="text-gray-300 text-5xl mx-auto mb-3" />
+                  <p className="text-gray-500 font-medium text-lg">Nenhuma avaliação ainda</p>
+                  <p className="text-sm text-gray-400 mt-2">Seja o primeiro a avaliar!</p>
+                </div>
+              ) : (
+                (empresas || []).slice(3).map((emp, t) => {
+                  const media = calcularMedia(emp);
+                  return (
+                    <div key={t} className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-4 border-2 border-gray-200 hover:border-purple-400 hover:shadow-xl transition-all cursor-pointer group">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-gray-800 group-hover:text-purple-600 transition-colors text-base">{emp.company}</h3>
+                          <p className="text-xs text-gray-500 mt-1">{emp.area} • {emp.periodo}</p>
+                        </div>
+                        <div className={`${getBadgeColor(media)} px-3 py-1.5 rounded-full text-white font-bold text-sm shadow-md`}>{media} ⭐</div>
+                      </div>
+                      {emp.comment && (
+                        <p className="text-sm text-gray-600 italic border-t border-gray-200 pt-2 mt-2">"{emp.comment}"</p>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <style>{`
+              .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+              .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+              .custom-scrollbar::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #8b5cf6, #ec4899); border-radius: 10px; }
+            `}</style>
+          </div>
         </section>
 
         {/* FOOTER */}

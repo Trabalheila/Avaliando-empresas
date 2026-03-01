@@ -5,12 +5,11 @@ import Select from "react-select";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
 
 function OutlinedStar({ active, onClick, size = 18, label }) {
-  const outlineScale = 1.24; // Definido para consistência, embora o valor seja fixo
   return (
     <button type="button" onClick={onClick} aria-label={label} title={label}
       style={{ padding: 0, margin: 0, border: 0, background: "transparent", cursor: "pointer", lineHeight: 0 }}>
       <span style={{ position: "relative", display: "inline-block", width: size, height: size, verticalAlign: "middle" }}>
-        <span style={{ position: "absolute", left: 0, top: 0, transform: `scale(${outlineScale})`, transformOrigin: "center" }} aria-hidden="true">
+        <span style={{ position: "absolute", left: 0, top: 0, transform: "scale(1.24)", transformOrigin: "center" }} aria-hidden="true">
           <FaStar size={size} color="#000" />
         </span>
         <span style={{ position: "relative" }} aria-hidden="true">
@@ -58,7 +57,7 @@ function TrabalheiLaDesktop({
       borderRadius: "0.75rem",
       padding: "0.25rem",
       borderColor: state.isFocused ? "#8b5cf6" : "#e5e7eb",
-      boxShadow: state.isFocused ? "0 0 0 1px #8b5cf6" : "none",
+      boxShadow: "none", // Removido o box-shadow padrão
       "&:hover": { borderColor: state.isFocused ? "#8b5cf6" : "#d1d5db" },
     }),
     option: (base, state) => ({
@@ -133,7 +132,7 @@ function TrabalheiLaDesktop({
               <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">Login para Avaliar</h2>
               <div className="flex flex-col space-y-4">
                 <button onClick={handleGoogleLogin}
-                  className="flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105">
+                  className="flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105">
                   <FcGoogle className="mr-3 text-2xl" />
                   Entrar com Google
                 </button>
@@ -142,7 +141,7 @@ function TrabalheiLaDesktop({
                   redirectUri={process.env.REACT_APP_LINKEDIN_REDIRECT_URI}
                   onLoginSuccess={handleLinkedInLogin}
                   onLoginFailure={(err) => console.error("Falha no login LinkedIn:", err)}
-                  className="flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-blue-800 transition-all transform hover:scale-105"
+                  className="flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-blue-800 transition-all transform hover:scale-105"
                 />
               </div>
             </section>
@@ -188,11 +187,11 @@ function TrabalheiLaDesktop({
                   { label: "Cultura e Valores", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FaStar className="text-yellow-400" /> },
                   { label: "Contato com RH", value: contatoRH, set: setContatoRH, comment: commentContatoRH, setComment: setCommentContatoRH, icon: <FaHandshake className="text-blue-400" /> },
                   { label: "Salário e Benefícios", value: salarioBeneficios, set: setSalarioBeneficios, comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios, icon: <FaMoneyBillWave className="text-green-400" /> },
-                  { label: "Estrutura da Empresa", value: estruturaEmpresa, set: setEstruturaEmpresa, comment: commentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa, icon: <FaBuilding className="text-indigo-400" /> },
+                  { label: "Estrutura da Empresa", value: estruturaEmpresa, set: setEstruturaEmpresa, comment: commentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa, icon: <FaBuilding className="text-gray-500" /> },
                   { label: "Acessibilidade à Liderança", value: acessibilidadeLideranca, set: setAcessibilidadeLideranca, comment: commentAcessibilidadeLideranca, setComment: setCommentAcessibilidadeLideranca, icon: <FaUserTie className="text-red-500" /> },
                   { label: "Plano de Carreiras", value: planoCarreiras, set: setPlanoCarreiras, comment: commentPlanoCarreiras, setComment: setCommentPlanoCarreiras, icon: <FaBriefcase className="text-purple-500" /> },
                   { label: "Bem-estar e Qualidade de Vida", value: bemestar, set: setBemestar, comment: commentBemestar, setComment: setCommentBemestar, icon: <FaHeart className="text-pink-500" /> },
-                  { label: "Estímulo e Organização", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao, icon: <FaLightbulb className="text-orange-500" /> },
+                  { label: "Estímulo e Organização", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-orange-500" /> }, // CORRIGIDO AQUI
                 ].map((campo, index) => (
                   <div key={index} className="flex items-start justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
                     <label className="w-1/3 text-slate-700 font-semibold flex items-center gap-2">
