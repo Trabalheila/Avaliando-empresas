@@ -3,6 +3,7 @@ import TrabalheiLaMobile from './TrabalheiLaMobile';
 import TrabalheiLaDesktop from './TrabalheiLaDesktop';
 
 function Home() {
+  // Detecção de tamanho de tela
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -11,6 +12,7 @@ function Home() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Estados do formulário
   const [company, setCompany] = useState(null);
   const [newCompany, setNewCompany] = useState('');
   const [rating, setRating] = useState(0);
@@ -21,7 +23,6 @@ function Home() {
   const [planoCarreiras, setPlanoCarreiras] = useState(0);
   const [bemestar, setBemestar] = useState(0);
   const [estimulacaoOrganizacao, setEstimulacaoOrganizacao] = useState(0);
-
   const [commentRating, setCommentRating] = useState('');
   const [commentContatoRH, setCommentContatoRH] = useState('');
   const [commentSalarioBeneficios, setCommentSalarioBeneficios] = useState('');
@@ -32,37 +33,33 @@ function Home() {
   const [commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao] = useState('');
   const [generalComment, setGeneralComment] = useState('');
 
+  // Dados mockados de empresas (substituir por API real)
   const [empresas, setEmpresas] = useState([
     {
-      company: "Empresa A",
-      rating: 4, contatoRH: 3, salarioBeneficios: 4, estruturaEmpresa: 5,
-      acessibilidadeLideranca: 4, planoCarreiras: 3, bemestar: 4, estimulacaoOrganizacao: 5,
-      comment: "Ótimo ambiente de trabalho e liderança acessível.",
-      area: "TI", periodo: "2020-Atual"
+      company: "Petrobras", rating: 4.5, contatoRH: 4.0, salarioBeneficios: 4.8,
+      estruturaEmpresa: 4.2, acessibilidadeLideranca: 3.9, planoCarreiras: 4.1, bemestar: 4.3, estimulacaoOrganizacao: 4.6,
+      comment: "Ótima empresa para trabalhar, com muitos benefícios e oportunidades de crescimento.",
+      area: "Engenharia", periodo: "2015-Atual"
     },
     {
-      company: "Empresa B",
-      rating: 3, contatoRH: 2, salarioBeneficios: 3, estruturaEmpresa: 4,
-      acessibilidadeLideranca: 3, planoCarreiras: 4, bemestar: 3, estimulacaoOrganizacao: 4,
-      comment: "Benefícios bons, mas a estrutura deixa a desejar.",
-      area: "Marketing", periodo: "2021-2024"
+      company: "Vale", rating: 3.8, contatoRH: 3.5, salarioBeneficios: 4.0,
+      estruturaEmpresa: 3.7, acessibilidadeLideranca: 3.2, planoCarreiras: 3.5, bemestar: 3.8, estimulacaoOrganizacao: 3.9,
+      comment: "Ambiente desafiador, mas com boa remuneração. Precisa melhorar a comunicação interna.",
+      area: "Mineração", periodo: "2010-2020"
     },
     {
-      company: "Empresa C",
-      rating: 5, contatoRH: 5, salarioBeneficios: 5, estruturaEmpresa: 5,
-      acessibilidadeLideranca: 5, planoCarreiras: 5, bemestar: 5, estimulacaoOrganizacao: 5,
-      comment: "Melhor lugar que já trabalhei! Recomendo muito.",
-      area: "Finanças", periodo: "2019-Atual"
+      company: "Ambev", rating: 4.0, contatoRH: 4.2, salarioBeneficios: 4.1,
+      estruturaEmpresa: 4.5, acessibilidadeLideranca: 4.0, planoCarreiras: 4.3, bemestar: 4.0, estimulacaoOrganizacao: 4.2,
+      comment: "Cultura forte e meritocrática. Muita pressão, mas com recompensas.",
+      area: "Marketing", periodo: "2019-Atual"
     },
     {
-      company: "Petrobras",
-      rating: 4.5, contatoRH: 4, salarioBeneficios: 4.8, estruturaEmpresa: 4.5,
-      acessibilidadeLideranca: 4.2, planoCarreiras: 4.7, bemestar: 4.3, estimulacaoOrganizacao: 4.6,
+      company: "Itaú Unibanco", rating: 4.7, contatoRH: 4.5, salarioBeneficios: 4.9,
+      estruturaEmpresa: 4.6, acessibilidadeLideranca: 4.8, planoCarreiras: 4.7, bemestar: 4.3, estimulacaoOrganizacao: 4.6,
       comment: "Excelente empresa, com muitos desafios e oportunidades.",
       area: "Engenharia", periodo: "2018-Atual"
     },
   ]);
-
   const [top3, setTop3] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -70,17 +67,24 @@ function Home() {
   const [user, setUser] = useState(null);
   const [showNewCompanyInput, setShowNewCompanyInput] = useState(false);
 
+  // LinkedIn
   const linkedInClientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID || '';
   const linkedInDisabled = !linkedInClientId;
 
-  // ✅ CORRIGIDO: useCallback para evitar o erro do ESLint/build
+  // Funções auxiliares para o cálculo da média e cores (definidas aqui para uso em Home e passadas como prop)
   const calcularMedia = useCallback((emp) => {
-    if (!emp) return 0;
+    if (!emp) return 0; // Garante que não haverá erro se emp for nulo
     const sum =
       emp.rating + emp.contatoRH + emp.salarioBeneficios +
       emp.estruturaEmpresa + emp.acessibilidadeLideranca +
       emp.planoCarreiras + emp.bemestar + emp.estimulacaoOrganizacao;
     return (sum / 8).toFixed(1);
+  }, []); // Sem dependências, pois 'emp' é passado como argumento
+
+  const getBadgeColor = useCallback((media) => {
+    if (media >= 4.5) return "bg-green-500";
+    if (media >= 3.5) return "bg-yellow-500";
+    return "bg-red-500";
   }, []);
 
   const getMedalColor = useCallback((index) => {
@@ -97,19 +101,15 @@ function Home() {
     return "🏅";
   }, []);
 
-  const getBadgeColor = useCallback((media) => {
-    if (media >= 4.5) return "bg-green-500";
-    if (media >= 3.5) return "bg-yellow-500";
-    return "bg-red-500";
-  }, []);
-
+  // Atualiza top3 sempre que empresas mudar
   useEffect(() => {
     const sorted = [...empresas].sort(
       (a, b) => calcularMedia(b) - calcularMedia(a)
     );
     setTop3(sorted.slice(0, 3));
-  }, [empresas, calcularMedia]);
+  }, [empresas, calcularMedia]); // calcularMedia agora é estável devido ao useCallback
 
+  // Handlers
   const handleAddNewCompany = () => {
     if (newCompany.trim()) {
       setCompany(newCompany.trim());
@@ -138,11 +138,22 @@ function Home() {
     try {
       const newEvaluation = {
         company: typeof company === 'object' ? company.value : company,
-        rating, contatoRH, salarioBeneficios, estruturaEmpresa,
-        acessibilidadeLideranca, planoCarreiras, bemestar, estimulacaoOrganizacao,
-        commentRating, commentContatoRH, commentSalarioBeneficios,
-        commentEstruturaEmpresa, commentAcessibilidadeLideranca,
-        commentPlanoCarreiras, commentBemestar, commentEstimulacaoOrganizacao,
+        rating,
+        contatoRH,
+        salarioBeneficios,
+        estruturaEmpresa,
+        acessibilidadeLideranca,
+        planoCarreiras,
+        bemestar,
+        estimulacaoOrganizacao,
+        commentRating,
+        commentContatoRH,
+        commentSalarioBeneficios,
+        commentEstruturaEmpresa,
+        commentAcessibilidadeLideranca,
+        commentPlanoCarreiras,
+        commentBemestar,
+        commentEstimulacaoOrganizacao,
         comment: generalComment,
         area: 'Geral',
         periodo: 'Atual',
@@ -150,6 +161,7 @@ function Home() {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       setEmpresas((prev) => [...prev, newEvaluation]);
       alert('Avaliação enviada com sucesso!');
+      // Reset do formulário
       setCompany(null);
       setRating(0);
       setContatoRH(0);
@@ -182,10 +194,9 @@ function Home() {
     label: emp.company,
   }));
 
-  // ✅ CORRIGIDO: company && antes do typeof para evitar TypeError
-  const selectedCompanyData = empresas.find(
-    (emp) => emp.company === (company && typeof company === 'object' ? company.value : company)
-  );
+  // Dados da empresa selecionada para passar ao cabeçalho
+  // CORREÇÃO: Adicionado 'company &&' para evitar TypeError se 'company' for null
+  const selectedCompanyData = empresas.find(emp => emp.company === (company && typeof company === 'object' ? company.value : company));
 
   const commonProps = {
     company, setCompany,
@@ -214,18 +225,18 @@ function Home() {
     showNewCompanyInput, setShowNewCompanyInput,
     handleAddNewCompany,
     linkedInClientId,
-    linkedInDisabled,
     handleLinkedInLogin,
     handleGoogleLogin,
     error,
     isAuthenticated, setIsAuthenticated,
     user, setUser,
+    linkedInDisabled,
     safeCompanyOptions,
     selectedCompanyData,
     calcularMedia,
+    getBadgeColor,
     getMedalColor,
     getMedalEmoji,
-    getBadgeColor,
   };
 
   return isMobile ? (
