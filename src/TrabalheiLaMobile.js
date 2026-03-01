@@ -130,14 +130,7 @@ function TrabalheiLaMobile({
     return "bg-red-500";
   };
 
-  // ✅ CORRIGIDO: getMedalColor foi re-adicionada
-  const getMedalColor = (index) => {
-    if (index === 0) return "from-yellow-400 to-yellow-600";
-    if (index === 1) return "from-gray-300 to-gray-500";
-    if (index === 2) return "from-orange-300 to-orange-500";
-    return "from-blue-300 to-blue-500";
-  };
-
+ 
   const getMedalEmoji = (index) => {
     if (index === 0) return "🥇";
     if (index === 1) return "🥈";
