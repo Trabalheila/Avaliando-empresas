@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   FaStar, FaChartBar, FaHandshake, FaMoneyBillWave,
-  FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb, FaPlus, FaCheckCircle
+  FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb, FaPlus, FaMinus, // <-- FaMinus ADICIONADO AQUI
+  FaCheckCircle
 } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import Select from "react-select";
@@ -27,32 +28,24 @@ function OutlinedStar({ active, onClick, size = 18, label }) {
 function TrabalheiLaDesktop({
   company, setCompany,
   newCompany, setNewCompany,
-  rating, setRating,
-  contatoRH, setContatoRH,
-  salarioBeneficios, setSalarioBeneficios,
-  estruturaEmpresa, setEstruturaEmpresa,
-  acessibilidadeLideranca, setAcessibilidadeLideranca,
-  planoCarreiras, setPlanoCarreiras,
-  bemestar, setBemestar,
-  estimulacaoOrganizacao, setEstimulacaoOrganizacao,
-  commentContatoRH, setCommentContatoRH,
-  commentSalarioBeneficios, setCommentSalarioBeneficios,
-  commentEstruturaEmpresa, setCommentEstruturaEmpresa,
-  commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca,
-  commentPlanoCarreiras, setCommentPlanoCarreiras,
-  commentBemestar, setCommentBemestar,
-  commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao,
-  generalComment, setGeneralComment,
-  isLoading, handleSubmit,
   handleAddNewCompany,
-  empresas,
-  top3,
-  calcularMedia, getMedalColor, getMedalEmoji, getBadgeColor,
+  companies,
   linkedInClientId, handleLinkedInLogin, handleGoogleLogin,
-  isAuthenticated, error,
+  error, isAuthenticated,
+  isLoading, handleSubmit,
+  contatoRH, setContatoRH, commentContatoRH, setCommentContatoRH,
+  salarioBeneficios, setSalarioBeneficios, commentSalarioBeneficios, setCommentSalarioBeneficios,
+  estruturaEmpresa, setEstruturaEmpresa, commentEstruturaEmpresa, setCommentEstruturaEmpresa,
+  acessibilidadeLideranca, setAcessibilidadeLideranca, commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca,
+  planoCarreiras, setPlanoCarreiras, commentPlanoCarreiras, setCommentPlanoCarreiras,
+  bemestar, setBemestar, commentBemestar, setCommentBemestar,
+  estimulacaoOrganizacao, setEstimulacaoOrganizacao, commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao,
+  generalComment, setGeneralComment,
+  top3, empresas, calcularMedia, getMedalColor, getMedalEmoji, getBadgeColor,
 }) {
-  const [showCommentInput, setShowCommentInput] = React.useState({});
+  const [showCommentInput, setShowCommentInput] = useState({});
 
+  // Função para renderizar as estrelas e o botão de comentário
   const renderStars = (currentRating, setRating, currentComment, setComment, label) => (
     <div className="flex items-center gap-2">
       {[...Array(5)].map((_, i) => {
@@ -92,6 +85,8 @@ function TrabalheiLaDesktop({
     </div>
   );
 
+  // <-- O array 'campos' foi movido para AQUI, antes do 'return' principal do componente.
+  // Isso corrige o erro de estrutura (div sem fechamento) que estava ocorrendo.
   const campos = [
     { label: "Contato com RH", value: contatoRH, set: setContatoRH, comment: commentContatoRH, setComment: setCommentContatoRH, icon: <FaHandshake className="text-blue-500" /> },
     { label: "Salário e Benefícios", value: salarioBeneficios, set: setSalarioBeneficios, comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios, icon: <FaMoneyBillWave className="text-green-500" /> },
@@ -103,12 +98,13 @@ function TrabalheiLaDesktop({
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 text-slate-800 flex flex-col items-center p-6">
-      <div className="max-w-4xl w-full">
-        {/* HEADER DESKTOP - Layout correto e final */}
+    <div className="min-h-screen bg-gray-100 p-6 flex items-center justify-center">
+      <div className="max-w-6xl w-full">
+
+        {/* HEADER */}
         <header className="bg-gradient-to-r from-indigo-700 via-purple-600 to-pink-500 rounded-3xl shadow-2xl p-8 mb-8 text-white">
           <div className="flex items-center justify-between">
-            {/* Left side: Logo and Score */}
+            {/* Logo e Nota */}
             <div className="flex items-center">
               <div className="bg-white/20 p-4 rounded-xl mr-4">
                 <FaBuilding className="text-white text-4xl" />
@@ -119,17 +115,19 @@ function TrabalheiLaDesktop({
                 <p className="text-sm">NOTA</p>
               </div>
             </div>
-            {/* Center: Title and Description */}
+
+            {/* Título e Descrição Central */}
             <div className="flex flex-col items-center flex-grow">
               <h1 className="text-5xl font-extrabold mb-2">TRABALHEI LÁ</h1>
               <p className="text-lg text-center mb-4">Sua opinião é anônima e ajuda outros profissionais</p>
               <p className="text-sm text-center mb-6">Avaliações anônimas feitas por profissionais verificados.</p>
-              <button className="bg-white text-purple-700 font-bold py-3 px-6 rounded-full shadow-lg hover:bg-gray-100 transition-all transform hover:scale-105 mb-6">
+              <button className="bg-white text-purple-700 font-bold py-3 px-6 rounded-full shadow-lg hover:bg-gray-100 transition-all transform hover:scale-105">
                 CLIQUE E SAIBA MAIS
               </button>
             </div>
-            {/* Right side: Checkmarks */}
-            <div className="flex flex-col items-end space-y-2 text-white font-semibold text-sm">
+
+            {/* Ícones de Verificação */}
+            <div className="flex flex-col items-end space-y-2 text-sm font-semibold">
               <p className="flex items-center"><FaCheckCircle className="mr-2" /> Anônimo</p>
               <p className="flex items-center"><FaCheckCircle className="mr-2" /> Verificado</p>
               <p className="flex items-center"><FaCheckCircle className="mr-2" /> Confiável</p>
@@ -137,71 +135,87 @@ function TrabalheiLaDesktop({
           </div>
         </header>
 
-        {/* Conteúdo Principal (Login, Avaliação, Ranking) */}
-        <div className="flex gap-6 mb-8">
-          {/* COLUNA ESQUERDA - Login e Avaliação */}
+        {/* CONTEÚDO PRINCIPAL */}
+        <div className="flex gap-8">
+          {/* COLUNA ESQUERDA - FORMULÁRIO */}
           <div className="flex-1">
-            <section className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100 mb-6">
-              <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">Login para Avaliar</h2>
+            <section className="bg-white rounded-3xl shadow-xl p-8 border border-blue-100 mb-8">
+              <h2 className="text-3xl font-bold text-blue-800 text-center mb-6">Avalie a Empresa</h2>
 
-              <div className="flex flex-col space-y-4 mb-8">
-                <button onClick={handleGoogleLogin}
-                  className="flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105">
-                  <FcGoogle className="mr-3 text-2xl" />
-                  Entrar com Google
-                </button>
-                <LoginLinkedInButton
-                  clientId={linkedInClientId}
-                  redirectUri={process.env.REACT_APP_LINKEDIN_REDIRECT_URI}
-                  onLoginSuccess={handleLinkedInLogin}
-                  onLoginFailure={(err) => console.error("Falha no login LinkedIn:", err)}
-                  className="flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-blue-800 transition-all transform hover:scale-105"
-                />
-              </div>
-
-              <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">Avalie uma Empresa</h2>
-
-              <div className="mb-8">
-                <label className="block text-slate-700 font-semibold text-lg mb-2">Empresa que você trabalhou:</label>
+              {/* Seleção de Empresa */}
+              <div className="mb-6">
+                <label htmlFor="company-select" className="block text-slate-700 font-semibold text-lg mb-2">
+                  Selecione a empresa:
+                </label>
                 <Select
-                  options={empresas.map(emp => ({ value: emp.company, label: emp.company })).concat({ value: 'Adicionar Nova Empresa', label: 'Adicionar Nova Empresa' })}
+                  id="company-select"
+                  options={companies.map(c => ({ value: c, label: c }))}
                   value={company ? { value: company, label: company } : null}
                   onChange={(selectedOption) => setCompany(selectedOption ? selectedOption.value : '')}
-                  placeholder="Selecione ou digite uma empresa"
+                  placeholder="Buscar ou selecionar empresa..."
                   isClearable
+                  className="react-select-container"
+                  classNamePrefix="react-select"
                   styles={{
                     control: (base) => ({
                       ...base,
-                      padding: '0.5rem',
-                      borderRadius: '0.75rem',
+                      borderRadius: '12px',
+                      padding: '8px',
                       borderColor: '#d1d5db',
                       boxShadow: 'none',
-                      '&:hover': { borderColor: '#9ca3af' },
+                      '&:hover': { borderColor: '#a78bfa' },
                     }),
                     option: (base, state) => ({
                       ...base,
-                      backgroundColor: state.isSelected ? '#6366f1' : state.isFocused ? '#e0e7ff' : null,
-                      color: state.isSelected ? 'white' : '#1f2937',
+                      backgroundColor: state.isFocused ? '#e0e7ff' : 'white',
+                      color: '#4b5563',
                     }),
+                    singleValue: (base) => ({ ...base, color: '#1f2937' }),
                   }}
                 />
-                {company === 'Adicionar Nova Empresa' && (
-                  <div className="mt-4 flex gap-2">
-                    <input
-                      type="text"
-                      className="flex-1 p-3 border border-gray-300 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Nome da nova empresa"
-                      value={newCompany}
-                      onChange={(e) => setNewCompany(e.target.value)}
-                    />
-                    <button
-                      onClick={handleAddNewCompany}
-                      className="bg-green-600 text-white p-4 rounded-xl hover:bg-green-700 transition-all"
-                    >
-                      Adicionar
-                    </button>
-                  </div>
-                )}
+              </div>
+
+              {/* Adicionar Nova Empresa */}
+              <div className="mb-8 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <label htmlFor="new-company" className="block text-blue-800 font-semibold text-lg mb-2">
+                  Não encontrou a empresa? Adicione uma nova:
+                </label>
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    id="new-company"
+                    className="flex-1 p-3 border border-blue-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Nome da nova empresa"
+                    value={newCompany}
+                    onChange={(e) => setNewCompany(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddNewCompany}
+                    className="bg-blue-600 text-white font-bold py-3 px-6 rounded-xl shadow-md hover:bg-blue-700 transition-all transform hover:scale-105"
+                  >
+                    <FaPlus className="inline-block mr-2" /> Adicionar
+                  </button>
+                </div>
+              </div>
+
+              {/* Botões de Login */}
+              <div className="mb-8 text-center">
+                <p className="text-slate-700 text-lg font-semibold mb-4">Faça login para avaliar:</p>
+                <div className="flex flex-col space-y-4 items-center">
+                  <LoginLinkedInButton
+                    clientId={linkedInClientId}
+                    onLoginSuccess={handleLinkedInLogin}
+                    onLoginFailure={(err) => console.error("Falha no login LinkedIn:", err)} // Adicionado onLoginFailure
+                    redirectUri={process.env.REACT_APP_LINKEDIN_REDIRECT_URI} // Adicionado redirectUri
+                    className="flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-blue-800 transition-all transform hover:scale-105"
+                  />
+                  <button onClick={handleGoogleLogin}
+                    className="flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105">
+                    <FcGoogle className="mr-3 text-2xl" />
+                    Entrar com Google
+                  </button>
+                </div>
               </div>
 
               {/* Formulário de Avaliação */}
