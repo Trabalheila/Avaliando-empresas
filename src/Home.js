@@ -35,12 +35,15 @@ function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showNewCompanyInput, setShowNewCompanyInput] = useState(false);
   const [top3, setTop3] = useState([]);
-  const [empresas, setEmpresas] = useState([]);
+  const [empresas, setEmpresas] = useState([
+    { company: "Petrobras", rating: 4.5, contatoRH: 4.0, salarioBeneficios: 4.8, estruturaEmpresa: 4.2, acessibilidadeLideranca: 3.9, planoCarreiras: 4.1, bemestar: 4.3, estimulacaoOrganizacao: 4.6, comment: "Ótima empresa.", area: "Engenharia", periodo: "2015-Atual" },
+    { company: "Vale", rating: 3.8, contatoRH: 3.5, salarioBeneficios: 4.0, estruturaEmpresa: 3.7, acessibilidadeLideranca: 3.2, planoCarreiras: 3.5, bemestar: 3.8, estimulacaoOrganizacao: 3.9, comment: "Ambiente desafiador.", area: "Mineração", periodo: "2010-2020" },
+    { company: "Ambev", rating: 4.0, contatoRH: 4.2, salarioBeneficios: 4.1, estruturaEmpresa: 4.0, acessibilidadeLideranca: 4.0, planoCarreiras: 3.8, bemestar: 4.2, estimulacaoOrganizacao: 4.1, comment: "Cultura forte.", area: "Bebidas", periodo: "2018-Atual" },
+  ]);
 
   const calcularMedia = useCallback((emp) => {
     if (!emp) return 0;
-    const sum =
-      emp.rating + emp.contatoRH + emp.salarioBeneficios +
+    const sum = emp.rating + emp.contatoRH + emp.salarioBeneficios +
       emp.estruturaEmpresa + emp.acessibilidadeLideranca +
       emp.planoCarreiras + emp.bemestar + emp.estimulacaoOrganizacao;
     return (sum / 8).toFixed(1);
@@ -51,17 +54,17 @@ function Home() {
     setTop3(sorted.slice(0, 3));
   }, [empresas, calcularMedia]);
 
-  const getMedalColor = (index) => {
-    if (index === 0) return "from-yellow-400 to-yellow-600";
-    if (index === 1) return "from-gray-300 to-gray-500";
-    if (index === 2) return "from-orange-300 to-orange-500";
+  const getMedalColor = (i) => {
+    if (i === 0) return "from-yellow-400 to-yellow-600";
+    if (i === 1) return "from-gray-300 to-gray-500";
+    if (i === 2) return "from-orange-300 to-orange-500";
     return "from-blue-300 to-blue-500";
   };
 
-  const getMedalEmoji = (index) => {
-    if (index === 0) return "🥇";
-    if (index === 1) return "🥈";
-    if (index === 2) return "🥉";
+  const getMedalEmoji = (i) => {
+    if (i === 0) return "🥇";
+    if (i === 1) return "🥈";
+    if (i === 2) return "🥉";
     return "🏅";
   };
 
@@ -72,17 +75,12 @@ function Home() {
   };
 
   const handleAddNewCompany = () => {
-    if (newCompany && !empresas.some((emp) => emp.company === newCompany)) {
-      setEmpresas((prev) => [
-        ...prev,
-        {
-          company: newCompany,
-          rating: 0, contatoRH: 0, salarioBeneficios: 0,
-          estruturaEmpresa: 0, acessibilidadeLideranca: 0,
-          planoCarreiras: 0, bemestar: 0, estimulacaoOrganizacao: 0,
-          comment: "", area: "Nova", periodo: "Atual",
-        },
-      ]);
+    if (newCompany && !empresas.some((e) => e.company === newCompany)) {
+      setEmpresas((prev) => [...prev, {
+        company: newCompany, rating: 0, contatoRH: 0, salarioBeneficios: 0,
+        estruturaEmpresa: 0, acessibilidadeLideranca: 0, planoCarreiras: 0,
+        bemestar: 0, estimulacaoOrganizacao: 0, comment: "", area: "Nova", periodo: "Atual"
+      }]);
       setCompany({ value: newCompany, label: newCompany });
       setNewCompany("");
       setShowNewCompanyInput(false);
@@ -102,52 +100,36 @@ function Home() {
   };
 
   const handleLinkedInLogin = (response) => {
-    console.log("LinkedIn login success:", response);
+    console.log("LinkedIn login:", response);
     setIsAuthenticated(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!company) {
-      setError("Por favor, selecione ou adicione uma empresa.");
-      return;
-    }
-    if (!isAuthenticated) {
-      setError("Você precisa fazer login para enviar uma avaliação.");
-      return;
-    }
+    if (!company) { setError("Selecione ou adicione uma empresa."); return; }
+    if (!isAuthenticated) { setError("Faça login para enviar uma avaliação."); return; }
     setIsLoading(true);
     setError("");
     try {
-      const newEvaluation = {
+      const newEval = {
         company: typeof company === "object" ? company.value : company,
         rating, contatoRH, salarioBeneficios, estruturaEmpresa,
-        acessibilidadeLideranca, planoCarreiras, bemestar,
-        estimulacaoOrganizacao,
-        comment: generalComment,
-        area: "Geral",
-        periodo: "Atual",
+        acessibilidadeLideranca, planoCarreiras, bemestar, estimulacaoOrganizacao,
+        comment: generalComment, area: "Geral", periodo: "Atual",
       };
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((r) => setTimeout(r, 1000));
       setEmpresas((prev) => {
-        const existing = prev.findIndex(
-          (emp) => emp.company === newEvaluation.company
-        );
-        if (existing >= 0) {
-          const updated = [...prev];
-          updated[existing] = { ...updated[existing], ...newEvaluation };
-          return updated;
-        }
-        return [...prev, newEvaluation];
+        const idx = prev.findIndex((e) => e.company === newEval.company);
+        if (idx >= 0) { const u = [...prev]; u[idx] = { ...u[idx], ...newEval }; return u; }
+        return [...prev, newEval];
       });
       setCompany(null);
       setRating(0); setContatoRH(0); setSalarioBeneficios(0);
       setEstruturaEmpresa(0); setAcessibilidadeLideranca(0);
       setPlanoCarreiras(0); setBemestar(0); setEstimulacaoOrganizacao(0);
-      setCommentRating(""); setCommentContatoRH("");
-      setCommentSalarioBeneficios(""); setCommentEstruturaEmpresa("");
-      setCommentAcessibilidadeLideranca(""); setCommentPlanoCarreiras("");
-      setCommentBemestar(""); setCommentEstimulacaoOrganizacao("");
+      setCommentRating(""); setCommentContatoRH(""); setCommentSalarioBeneficios("");
+      setCommentEstruturaEmpresa(""); setCommentAcessibilidadeLideranca("");
+      setCommentPlanoCarreiras(""); setCommentBemestar(""); setCommentEstimulacaoOrganizacao("");
       setGeneralComment("");
       alert("Avaliação enviada com sucesso!");
     } catch (err) {
@@ -157,15 +139,8 @@ function Home() {
     }
   };
 
-  const safeCompanyOptions = empresas.map((emp) => ({
-    value: emp.company,
-    label: emp.company,
-  }));
-
-  const selectedCompanyData = company &&
-    empresas.find(
-      (emp) => emp.company === (typeof company === "object" ? company.value : company)
-    );
+  const safeCompanyOptions = empresas.map((e) => ({ value: e.company, label: e.company }));
+  const selectedCompanyData = company && empresas.find((e) => e.company === (typeof company === "object" ? company.value : company));
 
   const commonProps = {
     company, setCompany, newCompany, setNewCompany,
