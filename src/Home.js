@@ -35,7 +35,6 @@ function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  // const [user, setUser] = useState(null);
   const [showNewCompanyInput, setShowNewCompanyInput] = useState(false);
   const [top3, setTop3] = useState([]);
 
@@ -167,7 +166,7 @@ function Home() {
     setError("");
     setTimeout(() => {
       setIsAuthenticated(true);
-      setUser({ name: "Usuário Teste", email: "teste@example.com" });
+   
       setIsLoading(false);
     }, 1500);
   };
@@ -177,8 +176,7 @@ function Home() {
   const handleLinkedInLogin = (response) => {
     console.log("LinkedIn login success:", response);
     setIsAuthenticated(true);
-    setUser({ name: "Usuário LinkedIn", email: response.email }); // Adapte conforme a resposta do LinkedIn
-  };
+   
 
   const linkedInDisabled = !linkedInClientId || linkedInClientId === "SEU_CLIENT_ID_LINKEDIN";
 

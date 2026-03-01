@@ -95,6 +95,7 @@ function TrabalheiLaDesktop({
     { label: "Cultura de Inovação", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-yellow-300" /> },
   ];
 
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex flex-col items-center p-4">
       <div className="w-full max-w-6xl">
@@ -286,6 +287,124 @@ function TrabalheiLaDesktop({
         </div>
 
         {/* FOOTER */}
+        <footer className="w-full px-6 py-8 text-center">
+          <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-5 border border-white/20">
+            <p className="text-slate-700 text-sm">
+              <a href="/politica-de-privacidade.html" className="text-indigo-700 hover:text-indigo-900 font-extrabold underline">
+                Política de Privacidade
+              </a>
+              {" • "}
+              <span>© 2026 Trabalhei Lá - Todos os direitos reservados</span>
+            </p>
+          </div>
+        </footer>
+
+      </div>
+    </div>
+  );
+}
+
+                  { label: "Estrutura da Empresa", value: estruturaEmpresa, set: setEstruturaEmpresa, comment: commentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa, icon: <FaBuilding className="text-gray-400" /> },
+                  { label: "Acessibilidade da Liderança", value: acessibilidadeLideranca, set: setAcessibilidadeLideranca, comment: commentAcessibilidadeLideranca, setComment: setCommentAcessibilidadeLideranca, icon: <FaUserTie className="text-purple-400" /> },
+                  { label: "Plano de Carreiras", value: planoCarreiras, set: setPlanoCarreiras, comment: commentPlanoCarreiras, setComment: setCommentPlanoCarreiras, icon: <FaBriefcase className="text-orange-400" /> },
+                  { label: "Bem-estar", value: bemestar, set: setBemestar, comment: commentBemestar, setComment: setCommentBemestar, icon: <FaHeart className="text-red-400" /> },
+                  { label: "Estimulação e Organização", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-yellow-400" /> },
+                ].map((item, index) => (
+                  <div key={index} className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <label className="font-semibold text-slate-700 w-full md:w-1/3 mb-2 md:mb-0 flex items-center gap-2">
+                      {item.icon} {item.label}
+                    </label>
+                    {renderStars(item.value, item.set, item.comment, item.setComment, item.label)}
+                  </div>
+                ))}
+
+                <div>
+                  <label className="font-semibold text-slate-700 mb-2 block">Comentário Geral</label>
+                  <textarea
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Descreva sua experiência geral na empresa..."
+                    value={generalComment}
+                    onChange={(e) => setGeneralComment(e.target.value)}
+                    rows={4}
+                  />
+                </div>
+
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={!isAuthenticated || isLoading}
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white font-extrabold py-4 px-6 rounded-2xl shadow-lg hover:opacity-90 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+                >
+                  {isLoading ? "Enviando..." : isAuthenticated ? "Enviar Avaliação" : "Faça login para avaliar"}
+                </button>
+
+              </form>
+            </section>
+
+          </div>
+
+          {/* COLUNA DIREITA - RANKING */}
+          <div className="w-80">
+            <div className="bg-white rounded-3xl shadow-xl p-6 border border-slate-200 sticky top-6">
+              <h2 className="text-xl font-bold text-slate-700 text-center mb-4">🏆 Ranking de Empresas</h2>
+
+              {Array.isArray(top3) && top3.length > 0 && (
+                <div className="mb-4 space-y-3">
+                  {top3.map((emp, index) => {
+                    const media = calcularMedia(emp);
+                    return (
+                      <div key={index} className={`bg-gradient-to-r ${getMedalColor(index)} rounded-2xl p-3 text-white`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl">{getMedalEmoji(index)}</span>
+                            <div>
+                              <p className="font-bold text-sm">{emp.company}</p>
+                            </div>
+                          </div>
+                          <div className="bg-white/20 px-2 py-1 rounded-full font-bold text-sm">{media} ⭐</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="space-y-3 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
+                {Array.isArray(empresas) && empresas.length === 0 ? (
+                  <div className="text-center py-8">
+                    <FaChartBar className="text-gray-300 text-4xl mx-auto mb-3" />
+                    <p className="text-gray-500 text-sm">Nenhuma avaliação ainda</p>
+                  </div>
+                ) : (
+                  (empresas || []).slice(3).map((emp, index) => {
+                    const media = calcularMedia(emp);
+                    return (
+                      <div key={index} className="bg-gray-50 rounded-2xl p-3 border border-gray-200 hover:border-purple-300 transition-all">
+                        <div className="flex items-center justify-between">
+                          <p className="font-bold text-gray-800 text-sm">{emp.company}</p>
+                          <div className={`${getBadgeColor(media)} px-2 py-1 rounded-full text-white font-bold text-xs`}>{media} ⭐</div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <style>{`
+                .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #8b5cf6, #ec4899); border-radius: 10px; }
+              `}</style>
+            </div>
+          </div>
+
+        </div>
+
         <footer className="w-full px-6 py-8 text-center">
           <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-5 border border-white/20">
             <p className="text-slate-700 text-sm">
