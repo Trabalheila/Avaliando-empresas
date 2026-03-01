@@ -332,6 +332,7 @@ function Home() {
   ) : (
     <TrabalheiLaDesktop {...commonProps} />
   );
+
 }
 
 export default Home;
