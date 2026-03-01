@@ -102,7 +102,7 @@ function TrabalheiLaMobile({
   commentBemestar,
   setCommentBemestar,
   commentEstimulacaoOrganizacao,
-  setCommentEstimulacaoOrganizacao,
+  setCommentEstimacaoOrganizacao,
   generalComment,
   setGeneralComment,
   handleSubmit,
@@ -116,21 +116,27 @@ function TrabalheiLaMobile({
   linkedInClientId,
   handleLinkedInLogin,
   handleGoogleLogin,
-  error, // ✅ CORRIGIDO: Adicionado como prop
-  isAuthenticated, // ✅ CORRIGIDO: Adicionado como prop
-  selectedCompanyData, // ✅ NOVO: Para a logo e nota dinâmica
-  calcularMedia, // ✅ NOVO: Para calcular a média
+  error,
+  isAuthenticated,
+  selectedCompanyData, // ✅ NOVO: Recebendo dados da empresa selecionada
+  calcularMedia, // ✅ NOVO: Recebendo a função calcularMedia
 }) {
   // Funções auxiliares para o cálculo da média e cores
-  // ✅ CORRIGIDO: calcularMedia agora é recebida como prop de Home.js
-  // ✅ CORRIGIDO: getBadgeColor foi mantida
+  // ✅ calcularMedia agora vem de Home.js, mas mantemos aqui para o ranking interno
   const getBadgeColor = (media) => {
     if (media >= 4.5) return "bg-green-500";
     if (media >= 3.5) return "bg-yellow-500";
     return "bg-red-500";
   };
 
- 
+  // ✅ getMedalColor reintroduzida para o ranking
+  const getMedalColor = (index) => {
+    if (index === 0) return "from-yellow-400 to-yellow-600"; // Ouro
+    if (index === 1) return "from-gray-400 to-gray-600"; // Prata
+    if (index === 2) return "from-amber-700 to-amber-900"; // Bronze
+    return "from-blue-400 to-blue-600"; // Padrão
+  };
+
   const getMedalEmoji = (index) => {
     if (index === 0) return "🥇";
     if (index === 1) return "🥈";
@@ -188,9 +194,21 @@ function TrabalheiLaMobile({
     </div>
   );
 
+  // Função auxiliar para obter URL da logo (pode ser movida para um utilitário se necessário)
+  const getCompanyLogoUrl = (companyName) => {
+    const logos = {
+      "Petrobras": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Petrobras_logo.svg/1200px-Petrobras_logo.svg.png",
+      "Empresa A": "https://via.placeholder.com/100x50?text=Empresa+A",
+      "Empresa B": "https://via.placeholder.com/100x50?text=Empresa+B",
+      "Empresa C": "https://via.placeholder.com/100x50?text=Empresa+C",
+      // Adicione mais logos aqui
+    };
+    return logos[companyName] || "https://via.placeholder.com/100x50?text=Logo";
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex flex-col p-4">
-      <div className="w-full max-w-4xl min-w-0 mx-auto">
+      <div className="w-full max-w-4xl min-w-0 mx-auto"> {/* Adicionado mx-auto para centralizar */}
         {/* Novo Cabeçalho */}
         <header className="bg-blue-200 rounded-3xl shadow-xl p-6 mb-8 border border-blue-300 flex flex-col md:flex-row items-center justify-between text-center md:text-left">
           {/* Seção Esquerda: Logo e Nota */}
@@ -397,7 +415,9 @@ function TrabalheiLaMobile({
               </div>
             </div>
 
-            {/* Campo de Comentário Geral (Reintroduzido) */}
+            {error && <p className="text-red-600 text-center font-medium mb-4">{error}</p>}
+
+            {/* Campo de Comentário Geral */}
             <div className="mt-8">
               <label
                 htmlFor="general-comment"
@@ -416,10 +436,10 @@ function TrabalheiLaMobile({
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isLoading}
+              className={`w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed`}
+              disabled={isLoading || !isAuthenticated} // Desabilita se não autenticado
             >
-              {isLoading ? "Enviando..." : "Avaliar Empresa"}
+              {isLoading ? "Enviando..." : isAuthenticated ? "Avaliar Empresa" : "Faça login para avaliar"}
             </button>
           </form>
         </section>
@@ -507,7 +527,10 @@ function TrabalheiLaMobile({
       >
         <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-5 border border-white/20">
           <p className="text-slate-700 text-sm">
-            <a href="/politica-de-privacidade.html" className="text-indigo-700 hover:text-indigo-900 font-extrabold underline">
+            <a
+              href="/politica-de-privacidade.html"
+              className="text-indigo-700 hover:text-indigo-900 font-extrabold underline"
+            >
               Política de Privacidade
             </a>
             {" • "}
@@ -519,17 +542,4 @@ function TrabalheiLaMobile({
   );
 }
 
-// Função auxiliar para obter URL da logo (pode ser movida para um utilitário se necessário)
-const getCompanyLogoUrl = (companyName) => {
-  const logos = {
-    "Petrobras": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Petrobras_logo.svg/1200px-Petrobras_logo.svg.png",
-    "Empresa A": "https://via.placeholder.com/100x50?text=Empresa+A",
-    "Empresa B": "https://via.placeholder.com/100x50?text=Empresa+B",
-    "Empresa C": "https://via.placeholder.com/100x50?text=Empresa+C",
-    // Adicione mais logos aqui
-  };
-  return logos[companyName] || "https://via.placeholder.com/100x50?text=Logo";
-};
-
-// ✅ CORRIGIDO: Era "export default TrabalheiLaDesktop;" - ESSE ERA O BUG PRINCIPAL
 export default TrabalheiLaMobile;
