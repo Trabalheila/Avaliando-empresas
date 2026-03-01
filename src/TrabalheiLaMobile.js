@@ -41,51 +41,30 @@ function OutlinedStar({ active, onClick, size = 18, label }) {
 }
 
 function TrabalheiLaMobile({
-  company,
-  setCompany,
-  newCompany,
-  setNewCompany,
-  rating,
-  setRating,
-  contatoRH,
-  setContatoRH,
-  salarioBeneficios,
-  setSalarioBeneficios,
-  estruturaEmpresa,
-  setEstruturaEmpresa,
-  acessibilidadeLideranca,
-  setAcessibilidadeLideranca,
-  planoCarreiras,
-  setPlanoCarreiras,
-  bemestar,
-  setBemestar,
-  estimulacaoOrganizacao,
-  setEstimulacaoOrganizacao,
-  commentRating,
-  setCommentRating,
-  commentContatoRH,
-  setCommentContatoRH,
-  commentSalarioBeneficios,
-  setCommentSalarioBeneficios,
-  commentEstruturaEmpresa,
-  setCommentEstruturaEmpresa,
-  commentAcessibilidadeLideranca,
-  setCommentAcessibilidadeLideranca,
-  commentPlanoCarreiras,
-  setCommentPlanoCarreiras,
-  commentBemestar,
-  setCommentBemestar,
-  commentEstimulacaoOrganizacao,
-  setCommentEstimulacaoOrganizacao,
-  generalComment,
-  setGeneralComment,
+  company, setCompany,
+  newCompany, setNewCompany,
+  rating, setRating,
+  contatoRH, setContatoRH,
+  salarioBeneficios, setSalarioBeneficios,
+  estruturaEmpresa, setEstruturaEmpresa,
+  acessibilidadeLideranca, setAcessibilidadeLideranca,
+  planoCarreiras, setPlanoCarreiras,
+  bemestar, setBemestar,
+  estimulacaoOrganizacao, setEstimulacaoOrganizacao,
+  commentRating, setCommentRating,
+  commentContatoRH, setCommentContatoRH,
+  commentSalarioBeneficios, setCommentSalarioBeneficios,
+  commentEstruturaEmpresa, setCommentEstruturaEmpresa,
+  commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca,
+  commentPlanoCarreiras, setCommentPlanoCarreiras,
+  commentBemestar, setCommentBemestar,
+  commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao,
+  generalComment, setGeneralComment,
   handleSubmit,
   isLoading,
   empresas,
   top3,
-  setTop3,
-  showNewCompanyInput,
-  setShowNewCompanyInput,
+  showNewCompanyInput, setShowNewCompanyInput,
   handleAddNewCompany,
   linkedInClientId,
   handleLinkedInLogin,
@@ -93,6 +72,7 @@ function TrabalheiLaMobile({
   error,
   isAuthenticated,
 }) {
+  // ✅ TODAS as funções auxiliares definidas aqui dentro
   const calcularMedia = (emp) => {
     if (!emp) return 0;
     const sum =
@@ -108,6 +88,7 @@ function TrabalheiLaMobile({
     return "bg-red-500";
   };
 
+  // ✅ getMedalColor ADICIONADA (estava faltando e causando crash)
   const getMedalColor = (index) => {
     if (index === 0) return "from-yellow-400 to-yellow-600";
     if (index === 1) return "from-gray-300 to-gray-500";
@@ -158,48 +139,46 @@ function TrabalheiLaMobile({
         placeholder={`Comentário sobre ${label} (opcional)`}
         value={commentValue}
         onChange={(e) => setCommentValue(e.target.value)}
+        rows="2"
       />
     </div>
   );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex flex-col items-center p-4">
-      <div className="w-full max-w-4xl">
+      <div className="w-full max-w-2xl">
 
         {/* Cabeçalho */}
-        <header className="bg-blue-200 rounded-3xl shadow-xl p-6 mb-8 border border-blue-300 flex flex-col md:flex-row items-center justify-between text-center md:text-left">
-          <div className="flex flex-col items-center md:items-start mb-4 md:mb-0 md:w-1/4">
+        <header className="bg-blue-200 rounded-3xl shadow-xl p-6 mb-6 border border-blue-300 flex flex-col items-center text-center">
+          <div className="flex flex-col items-center mb-4">
             <img
               src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Petrobras_logo.svg/1200px-Petrobras_logo.svg.png"
-              alt="Logo da Empresa"
+              alt="Logo"
               className="w-24 h-auto mb-2"
             />
             <p className="text-xl font-bold text-slate-700">NOTA 4.5/5</p>
           </div>
 
-          <div className="flex flex-col items-center md:w-1/2 px-4">
-            <h1 className="text-4xl font-extrabold text-indigo-800 mb-2 drop-shadow-md">
-              TRABALHEI LÁ
-            </h1>
-            <p className="text-slate-700 text-sm mb-1">
-              Sua opinião é anônima e ajuda outros profissionais
-            </p>
-            <p className="text-slate-600 text-xs mb-4">
-              Avaliações anônimas feitas por profissionais verificados.
-            </p>
-            <button className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all transform hover:scale-105 mb-4">
-              CLIQUE E SAIBA MAIS
-            </button>
-            <p className="text-green-700 text-sm font-semibold flex items-center gap-2">
-              <span>✓ Anônimo</span>
-              <span>✓ Verificado</span>
-              <span>✓ Confiável</span>
-            </p>
-          </div>
+          <h1 className="text-4xl font-extrabold text-indigo-800 mb-2 drop-shadow-md">
+            TRABALHEI LÁ
+          </h1>
+          <p className="text-slate-700 text-sm mb-1">
+            Sua opinião é anônima e ajuda outros profissionais
+          </p>
+          <p className="text-slate-600 text-xs mb-4">
+            Avaliações anônimas feitas por profissionais verificados.
+          </p>
+          <button className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all transform hover:scale-105 mb-4">
+            CLIQUE E SAIBA MAIS
+          </button>
+          <p className="text-green-700 text-sm font-semibold">
+            ✓ Anônimo &nbsp; ✓ Verificado &nbsp; ✓ Confiável
+          </p>
 
-          <div className="md:w-1/4 flex flex-col items-center md:items-end mt-4 md:mt-0">
-            <h2 className="text-xl font-bold text-slate-700 mb-3">Melhores Empresas</h2>
-            <div className="space-y-2 w-full">
+          {/* Ranking Top 3 no cabeçalho */}
+          <div className="mt-4 w-full">
+            <h2 className="text-lg font-bold text-slate-700 mb-2">Melhores Empresas</h2>
+            <div className="space-y-2">
               {Array.isArray(top3) && top3.length === 0 ? (
                 <p className="text-gray-500 text-sm text-center">Nenhuma empresa no ranking ainda.</p>
               ) : (
@@ -221,7 +200,7 @@ function TrabalheiLaMobile({
           <div className="flex flex-col space-y-4">
             <button
               onClick={handleGoogleLogin}
-              className="w-full flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105"
+              className="w-full flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-gray-50 transition-all"
             >
               <FcGoogle className="mr-3 text-2xl" />
               Entrar com Google
@@ -229,7 +208,7 @@ function TrabalheiLaMobile({
             <LoginLinkedInButton
               clientId={linkedInClientId}
               onLoginSuccess={handleLinkedInLogin}
-              className="w-full flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-blue-800 transition-all transform hover:scale-105"
+              className="w-full flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-blue-800 transition-all"
             />
           </div>
         </section>
@@ -239,14 +218,11 @@ function TrabalheiLaMobile({
           <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">Avalie uma Empresa</h2>
 
           <div className="mb-6">
-            <label htmlFor="company-select" className="block text-slate-700 text-lg font-semibold mb-3">
-              Selecione a Empresa
-            </label>
+            <label className="block text-slate-700 text-lg font-semibold mb-3">Selecione a Empresa</label>
             <Select
-              id="company-select"
               options={(empresas || []).map((emp) => ({ value: emp.company, label: emp.company }))}
               value={company ? { value: company, label: company } : null}
-              onChange={(selectedOption) => selectedOption && setCompany(selectedOption.value)}
+              onChange={(opt) => opt && setCompany(opt.value)}
               placeholder="Buscar ou selecionar empresa..."
               isClearable
               styles={selectStyles}
@@ -255,12 +231,9 @@ function TrabalheiLaMobile({
 
           {showNewCompanyInput ? (
             <div className="mb-6">
-              <label htmlFor="new-company-name" className="block text-slate-700 text-lg font-semibold mb-3">
-                Nome da Nova Empresa
-              </label>
+              <label className="block text-slate-700 text-lg font-semibold mb-3">Nome da Nova Empresa</label>
               <input
                 type="text"
-                id="new-company-name"
                 className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
                 placeholder="Digite o nome da nova empresa"
                 value={newCompany}
@@ -284,61 +257,72 @@ function TrabalheiLaMobile({
 
           <form onSubmit={handleSubmit}>
             <div className="space-y-6 mb-8">
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+
+              <div className="flex flex-col items-start bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <label className="text-slate-700 font-semibold flex items-center mb-2">
                   <FaStar className="mr-2 text-yellow-500" /> Avaliação Geral
                 </label>
                 {renderStars(rating, setRating, commentRating, setCommentRating, "Avaliação Geral")}
               </div>
 
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+              <div className="flex flex-col items-start bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <label className="text-slate-700 font-semibold flex items-center mb-2">
                   <FaHandshake className="mr-2 text-blue-500" /> Contato com RH
                 </label>
                 {renderStars(contatoRH, setContatoRH, commentContatoRH, setCommentContatoRH, "Contato com RH")}
               </div>
 
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+              <div className="flex flex-col items-start bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <label className="text-slate-700 font-semibold flex items-center mb-2">
                   <FaMoneyBillWave className="mr-2 text-green-500" /> Salário e Benefícios
                 </label>
                 {renderStars(salarioBeneficios, setSalarioBeneficios, commentSalarioBeneficios, setCommentSalarioBeneficios, "Salário e Benefícios")}
               </div>
 
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+              <div className="flex flex-col items-start bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <label className="text-slate-700 font-semibold flex items-center mb-2">
                   <FaBuilding className="mr-2 text-indigo-500" /> Estrutura da Empresa
                 </label>
                 {renderStars(estruturaEmpresa, setEstruturaEmpresa, commentEstruturaEmpresa, setCommentEstruturaEmpresa, "Estrutura da Empresa")}
               </div>
 
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
-                  <FaUserTie className="mr-2 text-red-500" /> Acessibilidade à Liderança
+              <div className="flex flex-col items-start bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <label className="text-slate-700 font-semibold flex items-center mb-2">
+                  <FaUserTie className="mr-2 text-purple-500" /> Acessibilidade à Liderança
                 </label>
                 {renderStars(acessibilidadeLideranca, setAcessibilidadeLideranca, commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca, "Acessibilidade à Liderança")}
               </div>
 
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
-                  <FaBriefcase className="mr-2 text-indigo-500" /> Plano de Carreira
+              <div className="flex flex-col items-start bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <label className="text-slate-700 font-semibold flex items-center mb-2">
+                  <FaBriefcase className="mr-2 text-teal-500" /> Plano de Carreiras
                 </label>
-                {renderStars(planoCarreiras, setPlanoCarreiras, commentPlanoCarreiras, setCommentPlanoCarreiras, "Plano de Carreira")}
+                {renderStars(planoCarreiras, setPlanoCarreiras, commentPlanoCarreiras, setCommentPlanoCarreiras, "Plano de Carreiras")}
               </div>
 
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
-                  <FaHeart className="mr-2 text-pink-500" /> Bem-estar e Qualidade de Vida
+              <div className="flex flex-col items-start bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <label className="text-slate-700 font-semibold flex items-center mb-2">
+                  <FaHeart className="mr-2 text-red-500" /> Bem-estar e Qualidade de Vida
                 </label>
                 {renderStars(bemestar, setBemestar, commentBemestar, setCommentBemestar, "Bem-estar")}
               </div>
 
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
-                  <FaLightbulb className="mr-2 text-teal-500" /> Estímulo à Inovação
+              <div className="flex flex-col items-start bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <label className="text-slate-700 font-semibold flex items-center mb-2">
+                  <FaLightbulb className="mr-2 text-yellow-600" /> Estímulo à Inovação
                 </label>
                 {renderStars(estimulacaoOrganizacao, setEstimulacaoOrganizacao, commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao, "Estímulo à Inovação")}
               </div>
+            </div>
+
+            <div className="mt-6 mb-6">
+              <label className="block text-slate-700 text-lg font-semibold mb-3">Comentário Geral (Opcional)</label>
+              <textarea
+                className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[100px]"
+                placeholder="Escreva seu comentário geral sobre a empresa..."
+                value={generalComment}
+                onChange={(e) => setGeneralComment(e.target.value)}
+              />
             </div>
 
             {error && <p className="text-red-600 text-center font-medium mb-4">{error}</p>}
@@ -348,7 +332,7 @@ function TrabalheiLaMobile({
                 type="submit"
                 className={`px-8 py-4 rounded-full font-extrabold text-white text-lg transition-all transform ${
                   isAuthenticated
-                    ? "bg-gradient-to-r from-purple-600 to-violet-600 hover:shadow-2xl hover:scale-[1.02]"
+                    ? "bg-gradient-to-r from-purple-600 to-violet-600 hover:shadow-2xl hover:scale-105"
                     : "bg-slate-400 cursor-not-allowed opacity-60"
                 }`}
                 disabled={!isAuthenticated || isLoading}
@@ -359,13 +343,11 @@ function TrabalheiLaMobile({
           </form>
         </section>
 
-        {/* Ranking */}
+        {/* Ranking completo */}
         <section className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 mb-8">
           <div className="flex flex-col items-center mb-4">
-            <h2 className="text-2xl font-bold text-slate-700 text-center mb-3">
-              Ranking - Top Empresas Avaliadas
-            </h2>
-            <img src="/trofeu-new.png" alt="Troféu Trabalhei Lá" className="w-20 h-20 object-contain drop-shadow-lg" />
+            <h2 className="text-2xl font-bold text-slate-700 text-center mb-3">Ranking - Top Empresas Avaliadas</h2>
+            <img src="/trofeu-new.png" alt="Troféu" className="w-20 h-20 object-contain drop-shadow-lg" />
           </div>
 
           {Array.isArray(top3) && top3.length > 0 && (
@@ -382,9 +364,7 @@ function TrabalheiLaMobile({
                           <p className="text-xs opacity-90">{emp.area} • {emp.periodo}</p>
                         </div>
                       </div>
-                      <div className="bg-white/20 px-3 py-1.5 rounded-full font-bold text-sm">
-                        {media} ⭐
-                      </div>
+                      <div className="bg-white/20 px-3 py-1.5 rounded-full font-bold text-sm">{media} ⭐</div>
                     </div>
                   </div>
                 );
@@ -392,7 +372,7 @@ function TrabalheiLaMobile({
             </div>
           )}
 
-          <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
             {Array.isArray(empresas) && empresas.length === 0 ? (
               <div className="text-center py-8">
                 <FaChartBar className="text-gray-300 text-5xl mx-auto mb-3" />
@@ -400,13 +380,13 @@ function TrabalheiLaMobile({
                 <p className="text-sm text-gray-400 mt-2">Seja o primeiro a avaliar!</p>
               </div>
             ) : (
-              (empresas || []).slice(3).map((emp, t) => {
+              (empresas || []).map((emp, t) => {
                 const media = calcularMedia(emp);
                 return (
-                  <div key={t} className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-4 border-2 border-gray-200 hover:border-purple-400 hover:shadow-xl transition-all cursor-pointer group">
+                  <div key={t} className="bg-white rounded-2xl p-4 border-2 border-gray-200 hover:border-purple-400 hover:shadow-xl transition-all cursor-pointer">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
-                        <h3 className="font-bold text-gray-800 group-hover:text-purple-600 transition-colors text-base">{emp.company}</h3>
+                        <h3 className="font-bold text-gray-800 text-base">{emp.company}</h3>
                         <p className="text-xs text-gray-500 mt-1">{emp.area} • {emp.periodo}</p>
                       </div>
                       <div className={`${getBadgeColor(media)} px-3 py-1.5 rounded-full text-white font-bold text-sm shadow-md`}>
@@ -423,13 +403,6 @@ function TrabalheiLaMobile({
               })
             )}
           </div>
-
-          <style>{`
-            .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-            .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-            .custom-scrollbar::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #8b5cf6, #ec4899); border-radius: 10px; }
-            .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: linear-gradient(to bottom, #7c3aed, #db2777); }
-          `}</style>
         </section>
 
         <footer className="w-full px-6 py-8 text-center">
@@ -449,5 +422,5 @@ function TrabalheiLaMobile({
   );
 }
 
-// ✅ CORRIGIDO: export correto
+// ✅ CORRIGIDO: era "TrabalheiLaDesktop" - ESSE ERA O BUG PRINCIPAL
 export default TrabalheiLaMobile;
