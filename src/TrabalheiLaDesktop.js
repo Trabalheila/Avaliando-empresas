@@ -1,21 +1,19 @@
+import React from "react";
+import {
+  FaStar,
+  FaChartBar,
+  FaHandshake,
+  FaMoneyBillWave,
+  FaBuilding,
+  FaUserTie,
+  FaHeart,
+  FaBriefcase,
+  FaLightbulb,
+} from "react-icons/fa";
+import { FcGoogle } from "react-icons/fc";
+import Select from "react-select";
 
-    import React from "react"; // This is correct, React is used
-    import {
-      FaStar,
-      FaHandshake,
-      FaMoneyBillWave,
-      FaBuilding,
-      FaUserTie,
-      FaHeart,
-      FaChartBar,
-      FaBriefcase,
-      FaLightbulb,
-    } from "react-icons/fa";
-    import { FcGoogle } from "react-icons/fc";
-    import Select from "react-select";
-
-    import LoginLinkedInButton from "./components/LoginLinkedInButton";
-
+import LoginLinkedInButton from "./components/LoginLinkedInButton";
 
 /** ⭐ Estrela com contorno preto */
 function OutlinedStar({ active, onClick, size = 18, label }) {
@@ -105,27 +103,46 @@ function TrabalheiLaDesktop({
   setCommentBemestar,
   commentEstimulacaoOrganizacao,
   setCommentEstimulacaoOrganizacao,
+  handleSubmit,
+  isLoading,
+  empresas,
+  top3,
+  error,
   isAuthenticated,
   setIsAuthenticated,
   user,
   setUser,
-  companyOptions,
-  handleSubmit,
-  isLoading,
-  error,
-  empresas,
-  calcularMedia,
-  top3,
-  getMedalColor,
-  getMedalEmoji,
-  getBadgeColor,
+  linkedInClientId,
+  linkedInDisabled,
+  handleLinkedInLogin,
+  handleGoogleLogin,
+  safeCompanyOptions,
+  selectedCompanyData, // <-- NOVO: Recebendo os dados da empresa selecionada
+  calcularMedia, // <-- NOVO: Recebendo a função calcularMedia
 }) {
-  const safeCompanyOptions = Array.isArray(companyOptions) ? companyOptions : [];
+  // Funções auxiliares para o cálculo da média e cores
+  // calcularMedia agora vem de Home.js
+  const getBadgeColor = (media) => {
+    if (media >= 4.5) return "bg-green-500";
+    if (media >= 3.5) return "bg-yellow-500";
+    return "bg-red-500";
+  };
 
-  const linkedInClientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID || "";
-  const linkedInDisabled = Boolean(isLoading || !linkedInClientId);
+  const getMedalColor = (index) => {
+    if (index === 0) return "from-yellow-400 to-yellow-600";
+    if (index === 1) return "from-gray-400 to-gray-600";
+    if (index === 2) return "from-orange-400 to-orange-600";
+    return "from-blue-400 to-blue-600";
+  };
 
+  const getMedalEmoji = (index) => {
+    if (index === 0) return "🥇";
+    if (index === 1) return "🥈";
+    if (index === 2) return "🥉";
+    return "🏅";
+  };
 
+  // Estilos para o componente Select
   const selectStyles = {
     control: (base, state) => ({
       ...base,
@@ -139,20 +156,12 @@ function TrabalheiLaDesktop({
     }),
     option: (base, state) => ({
       ...base,
-      backgroundColor: state.isSelected
-        ? "#8b5cf6"
-        : state.isFocused
-          ? "#f3e8ff"
-          : null,
-      color: state.isSelected ? "white" : "#4b5563",
-      "&:active": {
-        backgroundColor: "#a78bfa",
-      },
+      backgroundColor: state.isFocused ? "#ede9fe" : "white", // focus:bg-purple-100
+      color: "#4a4a4a",
     }),
     singleValue: (base) => ({
       ...base,
-      color: "#1f2937", // text-gray-900
-      fontWeight: "500", // font-medium
+      color: "#4a4a4a",
     }),
     placeholder: (base) => ({
       ...base,
@@ -160,37 +169,52 @@ function TrabalheiLaDesktop({
     }),
   };
 
+  // Função para obter a URL da logo da empresa
+  const getCompanyLogoUrl = (companyName) => {
+    if (companyName === "Petrobras") {
+      return "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Petrobras_logo.svg/1200px-Petrobras_logo.svg.png";
+    }
+    // Adicione outras logos aqui ou uma lógica para buscar de uma API
+    return "https://via.placeholder.com/100x50?text=Logo"; // Logo padrão
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-100 p-4 md:p-8">
-      <header className="max-w-7xl mx-auto text-center mb-8">
-        <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 drop-shadow-lg mb-3">
-          Trabalhei Lá
-        </h1>
-        <p className="text-xl text-slate-700 font-medium">
-          Sua plataforma para avaliar empresas e encontrar o lugar ideal para
-          trabalhar.
-        </p>
-        <div className="mt-4 flex justify-center items-center gap-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex flex-col">
+      <header
+        className="bg-white rounded-b-3xl shadow-lg p-6 mb-8 flex flex-col md:flex-row items-center justify-between mx-auto w-full"
+        style={{ maxWidth: 1120 }}
+      >
+        <div className="flex items-center mb-4 md:mb-0">
+          <img
+            src={selectedCompanyData ? getCompanyLogoUrl(selectedCompanyData.company) : "https://via.placeholder.com/100x50?text=Logo"}
+            alt={selectedCompanyData ? `${selectedCompanyData.company} Logo` : "Company Logo"}
+            className="w-20 h-auto mr-4"
+          />
+          <div>
+            <h1 className="text-3xl font-extrabold text-indigo-800">
+              TRABALHEI LÁ
+            </h1>
+            <p className="text-slate-700 text-sm">
+              Sua opinião é anônima e ajuda outros profissionais
+            </p>
+            <p className="text-xl font-bold text-slate-700">
+              NOTA {selectedCompanyData ? calcularMedia(selectedCompanyData) : "X.X"}/5
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row items-center space-y-3 md:space-y-0 md:space-x-4">
           <LoginLinkedInButton
             clientId={linkedInClientId}
-            onLoginSuccess={(userData) => {
-              setIsAuthenticated(true);
-              setUser(userData);
-              console.log("Login LinkedIn bem-sucedido:", userData);
-            }}
-            onLoginFailure={(error) => {
-              setIsAuthenticated(false);
-              setUser(null);
-              console.error("Login LinkedIn falhou:", error);
-            }}
+            onLoginSuccess={handleLinkedInLogin}
             disabled={linkedInDisabled}
+            className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-xl shadow-sm transition-all transform hover:scale-105"
           />
           <button
-            type="button"
-            className="flex items-center gap-2 px-6 py-3 bg-white text-gray-700 font-semibold rounded-full shadow-md hover:shadow-lg transition-all transform hover:scale-105"
-            aria-label="Entrar com Google"
+            onClick={handleGoogleLogin}
+            className="bg-white border border-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105"
           >
-            <FcGoogle className="text-2xl" />
+            <FcGoogle className="inline-block mr-2 text-xl" />
             Entrar com Google
           </button>
         </div>

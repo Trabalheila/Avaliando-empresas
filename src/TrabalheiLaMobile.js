@@ -10,7 +10,6 @@ import {
   FaBriefcase,
   FaLightbulb,
   FaPlus, // Para o botão de adicionar nova empresa
-  // FaLock, // Removido: não é mais usado no código atual
 } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc"; // Re-importado para o botão de login
 import Select from "react-select";
@@ -104,44 +103,30 @@ function TrabalheiLaMobile({
   commentBemestar,
   setCommentBemestar,
   commentEstimulacaoOrganizacao,
-  setCommentEstimulacaoOrganizacao, // <-- CORRIGIDO AQUI!
-  generalComment, // Novo estado para o comentário geral
-  setGeneralComment, // Novo setter para o comentário geral
+  setCommentEstimulacaoOrganizacao,
+  generalComment,
+  setGeneralComment,
   handleSubmit,
   isLoading,
   empresas,
   top3,
   setTop3,
-  // Estados para a nova empresa
   showNewCompanyInput,
   setShowNewCompanyInput,
   handleAddNewCompany,
-  // Login
   linkedInClientId,
   handleLinkedInLogin,
   handleGoogleLogin,
+  selectedCompanyData, // <-- NOVO: Recebendo os dados da empresa selecionada
+  calcularMedia, // <-- NOVO: Recebendo a função calcularMedia
 }) {
-  // Funções auxiliares para o cálculo da média e cores
-  const calcularMedia = (emp) => {
-    const sum =
-      emp.rating +
-      emp.contatoRH +
-      emp.salarioBeneficios +
-      emp.estruturaEmpresa +
-      emp.acessibilidadeLideranca +
-      emp.planoCarreiras +
-      emp.bemestar +
-      emp.estimulacaoOrganizacao;
-    return (sum / 8).toFixed(1);
-  };
-
+  // Funções auxiliares para o cálculo da média e cores (agora passadas via props ou definidas localmente se necessário)
+  // A função calcularMedia agora vem de Home.js, mas mantemos as outras aqui se forem específicas
   const getBadgeColor = (media) => {
     if (media >= 4.5) return "bg-green-500";
     if (media >= 3.5) return "bg-yellow-500";
     return "bg-red-500";
   };
-
-  // A função getMedalColor foi removida pois não é mais utilizada com o novo cabeçalho.
 
   const getMedalEmoji = (index) => {
     if (index === 0) return "🥇";
@@ -200,19 +185,30 @@ function TrabalheiLaMobile({
     </div>
   );
 
+  // Função para obter a URL da logo da empresa
+  const getCompanyLogoUrl = (companyName) => {
+    if (companyName === "Petrobras") {
+      return "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Petrobras_logo.svg/1200px-Petrobras_logo.svg.png";
+    }
+    // Adicione outras logos aqui ou uma lógica para buscar de uma API
+    return "https://via.placeholder.com/100x50?text=Logo"; // Logo padrão
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex flex-col p-4"> {/* Ajuste de layout aqui */}
-      <div className="w-full max-w-4xl min-w-0"> {/* Ajuste de layout aqui */}
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex flex-col p-4">
+      <div className="w-full max-w-4xl min-w-0">
         {/* Novo Cabeçalho */}
         <header className="bg-blue-200 rounded-3xl shadow-xl p-6 mb-8 border border-blue-300 flex flex-col md:flex-row items-center justify-between text-center md:text-left">
           {/* Seção Esquerda: Logo e Nota */}
           <div className="flex flex-col items-center md:items-start mb-4 md:mb-0 md:w-1/4">
             <img
-              src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Petrobras_logo.svg/1200px-Petrobras_logo.svg.png"
-              alt="Petrobras Logo"
+              src={selectedCompanyData ? getCompanyLogoUrl(selectedCompanyData.company) : "https://via.placeholder.com/100x50?text=Logo"}
+              alt={selectedCompanyData ? `${selectedCompanyData.company} Logo` : "Company Logo"}
               className="w-24 h-auto mb-2"
             />
-            <p className="text-xl font-bold text-slate-700">NOTA 4.5/5</p>
+            <p className="text-xl font-bold text-slate-700">
+              NOTA {selectedCompanyData ? calcularMedia(selectedCompanyData) : "X.X"}/5
+            </p>
           </div>
 
           {/* Seção Central: Título, Subtítulos e Botão */}
