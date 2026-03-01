@@ -7,6 +7,7 @@ import { FcGoogle } from "react-icons/fc";
 import Select from "react-select";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
 
+/** ⭐ Estrela com contorno preto */
 function OutlinedStar({ active, onClick, size = 18, label }) {
   const outlineScale = 1.24;
   return (
@@ -33,52 +34,34 @@ function OutlinedStar({ active, onClick, size = 18, label }) {
 }
 
 function TrabalheiLaMobile({
-  company, setCompany,
-  newCompany, setNewCompany,
-  rating, setRating,
-  contatoRH, setContatoRH,
-  salarioBeneficios, setSalarioBeneficios,
-  estruturaEmpresa, setEstruturaEmpresa,
-  acessibilidadeLideranca, setAcessibilidadeLideranca,
-  planoCarreiras, setPlanoCarreiras,
-  bemestar, setBemestar,
-  estimulacaoOrganizacao, setEstimulacaoOrganizacao,
-  commentRating, setCommentRating,
-  commentContatoRH, setCommentContatoRH,
-  commentSalarioBeneficios, setCommentSalarioBeneficios,
-  commentEstruturaEmpresa, setCommentEstruturaEmpresa,
-  commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca,
-  commentPlanoCarreiras, setCommentPlanoCarreiras,
-  commentBemestar, setCommentBemestar,
-  commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao,
-  generalComment, setGeneralComment,
-  handleSubmit,
-  isLoading,
-  empresas,
-  top3,
-  setTop3,
-  showNewCompanyInput, setShowNewCompanyInput,
-  handleAddNewCompany,
-  linkedInClientId,
-  handleLinkedInLogin,
-  handleGoogleLogin,
-  error,           // ✅ ADICIONADO
-  isAuthenticated, // ✅ ADICIONADO
-  selectedCompanyData,
-  calcularMedia,
+  company, setCompany, newCompany, setNewCompany,
+  rating, setRating, contatoRH, setContatoRH,
+  salarioBeneficios, setSalarioBeneficios, estruturaEmpresa, setEstruturaEmpresa,
+  acessibilidadeLideranca, setAcessibilidadeLideranca, planoCarreiras, setPlanoCarreiras,
+  bemestar, setBemestar, estimulacaoOrganizacao, setEstimulacaoOrganizacao,
+  commentRating, setCommentRating, commentContatoRH, setCommentContatoRH,
+  commentSalarioBeneficios, setCommentSalarioBeneficios, commentEstruturaEmpresa, setCommentEstruturaEmpresa,
+  commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca, commentPlanoCarreiras, setCommentPlanoCarreiras,
+  commentBemestar, setCommentBemestar, commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao,
+  generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3, setTop3,
+  showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany,
+  linkedInClientId, handleLinkedInLogin, handleGoogleLogin,
+  selectedCompanyData, calcularMedia, // <-- NOVO: Recebendo os dados da empresa selecionada e calcularMedia
+  error, isAuthenticated // <-- NOVO: Recebendo error e isAuthenticated
 }) {
+  // Funções auxiliares para o cálculo da média e cores
   const getBadgeColor = (media) => {
     if (media >= 4.5) return "bg-green-500";
     if (media >= 3.5) return "bg-yellow-500";
     return "bg-red-500";
   };
 
-  // ✅ ADICIONADO: getMedalColor que estava faltando
+  // ✅ CORRIGIDO: getMedalColor adicionada
   const getMedalColor = (index) => {
     if (index === 0) return "from-yellow-400 to-yellow-600";
-    if (index === 1) return "from-gray-300 to-gray-500";
-    if (index === 2) return "from-orange-300 to-orange-500";
-    return "from-purple-400 to-purple-600";
+    if (index === 1) return "from-gray-400 to-gray-600";
+    if (index === 2) return "from-amber-700 to-amber-900";
+    return "from-blue-400 to-blue-600";
   };
 
   const getMedalEmoji = (index) => {
@@ -88,24 +71,43 @@ function TrabalheiLaMobile({
     return "🏅";
   };
 
+  // URL da logo (pode ser de uma API ou um mapa local)
+  const getCompanyLogoUrl = (companyName) => {
+    if (companyName === "Petrobras") {
+      return "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Petrobras_logo.svg/1200px-Petrobras_logo.svg.png";
+    }
+    // Adicione outras logos aqui ou uma lógica para buscar de uma API
+    return "https://via.placeholder.com/100x50?text=Logo"; // Logo padrão
+  };
+
+  // Estilos para o componente Select (mantidos)
   const selectStyles = {
     control: (base, state) => ({
       ...base,
-      borderRadius: "0.75rem",
-      padding: "0.25rem",
-      borderColor: state.isFocused ? "#8b5cf6" : "#e5e7eb",
-      boxShadow: state.isFocused ? "0 0 0 1px #8b5cf6" : "none",
-      "&:hover": { borderColor: state.isFocused ? "#8b5cf6" : "#d1d5db" },
+      borderRadius: "0.75rem", // rounded-xl
+      padding: "0.25rem", // p-1
+      borderColor: state.isFocused ? "#8b5cf6" : "#e5e7eb", // focus:border-purple-500
+      boxShadow: state.isFocused ? "0 0 0 1px #8b5cf6" : "none", // focus:ring-1 focus:ring-purple-500
+      "&:hover": {
+        borderColor: state.isFocused ? "#8b5cf6" : "#d1d5db",
+      },
     }),
     option: (base, state) => ({
       ...base,
-      backgroundColor: state.isFocused ? "#ede9fe" : "white",
+      backgroundColor: state.isFocused ? "#ede9fe" : "white", // focus:bg-purple-100
       color: "#4a4a4a",
     }),
-    singleValue: (base) => ({ ...base, color: "#4a4a4a" }),
-    placeholder: (base) => ({ ...base, color: "#9ca3af" }),
+    singleValue: (base) => ({
+      ...base,
+      color: "#4a4a4a",
+    }),
+    placeholder: (base) => ({
+      ...base,
+      color: "#9ca3af", // text-gray-400
+    }),
   };
 
+  // Componente para renderizar as estrelas e o campo de comentário
   const renderStars = (value, setValue, commentValue, setCommentValue, label) => (
     <div className="flex flex-col items-end w-full md:w-2/3">
       <div className="flex items-center space-x-1 mb-2">
@@ -124,47 +126,28 @@ function TrabalheiLaMobile({
         placeholder={`Comentário sobre ${label} (opcional)`}
         value={commentValue}
         onChange={(e) => setCommentValue(e.target.value)}
-      />
+      ></textarea>
     </div>
   );
 
-  // Lógica para logo dinâmica da empresa selecionada
-  const getCompanyLogoUrl = (companyName) => {
-    if (!companyName) return null;
-    // Busca logo via Google Favicon/Clearbit como fallback simples
-    return `https://logo.clearbit.com/${companyName.toLowerCase().replace(/\s/g, '')}.com.br`;
-  };
-
-  const companyName = selectedCompanyData?.company || null;
-  const companyMedia = selectedCompanyData ? calcularMedia(selectedCompanyData) : null;
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex flex-col items-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex flex-col p-4">
       <div className="w-full max-w-4xl min-w-0">
-
-        {/* Cabeçalho */}
+        {/* Novo Cabeçalho */}
         <header className="bg-blue-200 rounded-3xl shadow-xl p-6 mb-8 border border-blue-300 flex flex-col md:flex-row items-center justify-between text-center md:text-left">
-
           {/* Seção Esquerda: Logo e Nota */}
           <div className="flex flex-col items-center md:items-start mb-4 md:mb-0 md:w-1/4">
-            {companyName ? (
-              <img
-                src={getCompanyLogoUrl(companyName)}
-                alt={`${companyName} Logo`}
-                className="w-24 h-auto mb-2 object-contain"
-                onError={(e) => { e.target.style.display = 'none'; }}
-              />
-            ) : (
-              <div className="w-24 h-16 mb-2 flex items-center justify-center bg-white/50 rounded-xl border border-blue-300">
-                <span className="text-xs text-gray-400 text-center px-1">Selecione uma empresa</span>
-              </div>
-            )}
+            <img
+              src={selectedCompanyData ? getCompanyLogoUrl(selectedCompanyData.company) : "https://via.placeholder.com/100x50?text=Logo"}
+              alt={selectedCompanyData ? `${selectedCompanyData.company} Logo` : "Company Logo"}
+              className="w-24 h-auto mb-2"
+            />
             <p className="text-xl font-bold text-slate-700">
-              {companyMedia ? `NOTA ${companyMedia}/5` : "NOTA --/5"}
+              NOTA {selectedCompanyData ? calcularMedia(selectedCompanyData) : "X.X"}/5
             </p>
           </div>
 
-          {/* Seção Central: Título e Botão */}
+          {/* Seção Central: Título, Subtítulos e Botão */}
           <div className="flex flex-col items-center md:w-1/2 px-4">
             <h1 className="text-4xl font-extrabold text-indigo-800 mb-2 drop-shadow-md">
               TRABALHEI LÁ
@@ -178,25 +161,38 @@ function TrabalheiLaMobile({
             <button className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all transform hover:scale-105 mb-4">
               CLIQUE E SAIBA MAIS
             </button>
-            <p className="text-green-700 text-sm font-semibold flex items-center gap-2">
-              <span>✓ Anônimo</span>
-              <span>✓ Verificado</span>
+            <p className="text-green-700 text-sm font-semibold flex items-center">
+              <span className="mr-2">✓ Anônimo</span>
+              <span className="mr-2">✓ Verificado</span>
               <span>✓ Confiável</span>
             </p>
           </div>
 
           {/* Seção Direita: Ranking Top 3 */}
           <div className="md:w-1/4 flex flex-col items-center md:items-end mt-4 md:mt-0">
-            <h2 className="text-xl font-bold text-slate-700 mb-3">Melhores Empresas</h2>
+            <h2 className="text-xl font-bold text-slate-700 mb-3">
+              Melhores Empresas
+            </h2>
             <div className="space-y-2 w-full">
               {Array.isArray(top3) && top3.length === 0 ? (
-                <p className="text-gray-500 text-sm text-center">Nenhuma empresa no ranking ainda.</p>
+                <p className="text-gray-500 text-sm text-center">
+                  Nenhuma empresa no ranking ainda.
+                </p>
               ) : (
                 (top3 || []).map((emp, index) => (
-                  <div key={index} className="flex items-center justify-between bg-white rounded-lg p-2 shadow-sm border border-gray-200">
-                    <span className="text-lg mr-2">{getMedalEmoji(index)}</span>
-                    <span className="font-medium text-gray-800 flex-1 text-left text-sm">{emp.company}</span>
-                    <span className="text-yellow-500 font-bold text-sm">{calcularMedia(emp)} ⭐</span>
+                  <div
+                    key={index}
+                    className="flex items-center justify-between bg-white rounded-lg p-2 shadow-sm border border-gray-200"
+                  >
+                    <span className="text-lg mr-2">
+                      {getMedalEmoji(index)}
+                    </span>
+                    <span className="font-medium text-gray-800 flex-1 text-left">
+                      {emp.company}
+                    </span>
+                    <span className="text-yellow-500 font-bold">
+                      {calcularMedia(emp)} ⭐
+                    </span>
                   </div>
                 ))
               )}
@@ -204,9 +200,11 @@ function TrabalheiLaMobile({
           </div>
         </header>
 
-        {/* Login */}
+        {/* Seção de Login e Avaliação */}
         <section className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 mb-8">
-          <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">Login para Avaliar</h2>
+          <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">
+            Login para Avaliar
+          </h2>
           <div className="flex flex-col space-y-4">
             <button
               onClick={handleGoogleLogin}
@@ -223,19 +221,27 @@ function TrabalheiLaMobile({
           </div>
         </section>
 
-        {/* Formulário */}
-        <section className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 mb-8">
-          <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">Avalie uma Empresa</h2>
+        {/* Formulário de Avaliação */}
+        <section className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 mt-6">
+          <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">
+            Avalie uma Empresa
+          </h2>
 
           <div className="mb-6">
-            <label htmlFor="company-select" className="block text-slate-700 text-lg font-semibold mb-3">
+            <label
+              htmlFor="company-select"
+              className="block text-slate-700 text-lg font-semibold mb-3"
+            >
               Selecione a Empresa
             </label>
             <Select
               id="company-select"
-              options={(empresas || []).map((emp) => ({ value: emp.company, label: emp.company }))}
+              options={empresas.map((emp) => ({
+                value: emp.company,
+                label: emp.company,
+              }))}
               value={company ? { value: company, label: company } : null}
-              onChange={(selectedOption) => setCompany(selectedOption ? selectedOption.value : null)}
+              onChange={(selectedOption) => setCompany(selectedOption.value)}
               placeholder="Buscar ou selecionar empresa..."
               isClearable
               styles={selectStyles}
@@ -244,7 +250,10 @@ function TrabalheiLaMobile({
 
           {showNewCompanyInput ? (
             <div className="mb-6">
-              <label htmlFor="new-company-name" className="block text-slate-700 text-lg font-semibold mb-3">
+              <label
+                htmlFor="new-company-name"
+                className="block text-slate-700 text-lg font-semibold mb-3"
+              >
                 Nome da Nova Empresa
               </label>
               <input
@@ -257,7 +266,7 @@ function TrabalheiLaMobile({
               />
               <button
                 onClick={handleAddNewCompany}
-                className="mt-3 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-xl transition-all"
+                className="mt-3 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-xl transition-all transform hover:scale-105"
               >
                 Adicionar Empresa
               </button>
@@ -265,7 +274,7 @@ function TrabalheiLaMobile({
           ) : (
             <button
               onClick={() => setShowNewCompanyInput(true)}
-              className="w-full flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-sm transition-all mb-6"
+              className="w-full flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-sm transition-all transform hover:scale-105 mb-6"
             >
               <FaPlus className="mr-2" /> Adicionar Nova Empresa
             </button>
@@ -274,49 +283,56 @@ function TrabalheiLaMobile({
           <form onSubmit={handleSubmit}>
             <div className="space-y-6 mb-8">
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center">
                   <FaStar className="mr-2 text-yellow-500" /> Avaliação Geral
                 </label>
                 {renderStars(rating, setRating, commentRating, setCommentRating, "Avaliação Geral")}
               </div>
+
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center">
                   <FaHandshake className="mr-2 text-blue-500" /> Contato com RH
                 </label>
                 {renderStars(contatoRH, setContatoRH, commentContatoRH, setCommentContatoRH, "Contato com RH")}
               </div>
+
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center">
                   <FaMoneyBillWave className="mr-2 text-green-500" /> Salário e Benefícios
                 </label>
                 {renderStars(salarioBeneficios, setSalarioBeneficios, commentSalarioBeneficios, setCommentSalarioBeneficios, "Salário e Benefícios")}
               </div>
+
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center">
                   <FaBuilding className="mr-2 text-indigo-500" /> Estrutura da Empresa
                 </label>
                 {renderStars(estruturaEmpresa, setEstruturaEmpresa, commentEstruturaEmpresa, setCommentEstruturaEmpresa, "Estrutura da Empresa")}
               </div>
+
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center">
                   <FaUserTie className="mr-2 text-red-500" /> Acessibilidade à Liderança
                 </label>
                 {renderStars(acessibilidadeLideranca, setAcessibilidadeLideranca, commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca, "Acessibilidade à Liderança")}
               </div>
+
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center">
                   <FaBriefcase className="mr-2 text-indigo-500" /> Plano de Carreira
                 </label>
                 {renderStars(planoCarreiras, setPlanoCarreiras, commentPlanoCarreiras, setCommentPlanoCarreiras, "Plano de Carreira")}
               </div>
+
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center">
                   <FaHeart className="mr-2 text-pink-500" /> Bem-estar e Qualidade de Vida
                 </label>
                 {renderStars(bemestar, setBemestar, commentBemestar, setCommentBemestar, "Bem-estar")}
               </div>
+
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center">
                   <FaLightbulb className="mr-2 text-teal-500" /> Estímulo à Inovação
                 </label>
                 {renderStars(estimulacaoOrganizacao, setEstimulacaoOrganizacao, commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao, "Estímulo à Inovação")}
@@ -427,5 +443,5 @@ function TrabalheiLaMobile({
   );
 }
 
-// ✅ CORRIGIDO: era "export default TrabalheiLaDesktop" - ERRADO!
+// ✅ CORRIGIDO: Era "export default TrabalheiLaDesktop" - ERRADO!
 export default TrabalheiLaMobile;
