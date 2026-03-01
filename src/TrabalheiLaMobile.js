@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   FaStar, FaChartBar, FaHandshake, FaMoneyBillWave,
-  FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb, FaPlus, FaMinus, // <-- ADDED FaMinus HERE
+  FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb, FaPlus, FaMinus, // <-- FaMinus ADICIONADO AQUI
   FaCheckCircle
 } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
@@ -44,29 +44,24 @@ function TrabalheiLaMobile({
   commentBemestar, setCommentBemestar,
   commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao,
   generalComment, setGeneralComment,
-  isLoading, setIsLoading,
-  companies,
-  handleAddNewCompany,
+  empresas,
+  top3,
+  isLoading,
+  isAuthenticated,
+  error,
+  handleLinkedInLogin,
+  handleGoogleLogin,
   handleSubmit,
-  linkedInClientId, handleLinkedInLogin, handleGoogleLogin,
-  error, isAuthenticated,
-  top3, empresas,
-  calcularMedia, getMedalColor, getMedalEmoji, getBadgeColor,
+  handleAddNewCompany,
+  linkedInClientId,
+  calcularMedia,
+  getMedalColor,
+  getMedalEmoji,
+  getBadgeColor,
 }) {
   const [showCommentInput, setShowCommentInput] = useState({});
-  const [showNewCompanyInput, setShowNewCompanyInput] = useState(false);
 
-  // Define campos array *AQUI*, antes do return
-  const campos = [
-    { label: "Contato com RH", value: contatoRH, set: setContatoRH, comment: commentContatoRH, setComment: setCommentContatoRH, icon: <FaHandshake className="text-blue-500" /> },
-    { label: "Salário e Benefícios", value: salarioBeneficios, set: setSalarioBeneficios, comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios, icon: <FaMoneyBillWave className="text-green-500" /> },
-    { label: "Estrutura da Empresa", value: estruturaEmpresa, set: setEstruturaEmpresa, comment: commentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa, icon: <FaBuilding className="text-purple-500" /> },
-    { label: "Acessibilidade da Liderança", value: acessibilidadeLideranca, set: setAcessibilidadeLideranca, comment: commentAcessibilidadeLideranca, setComment: setCommentAcessibilidadeLideranca, icon: <FaUserTie className="text-red-500" /> },
-    { label: "Plano de Carreiras", value: planoCarreiras, set: setPlanoCarreiras, comment: commentPlanoCarreiras, setComment: setCommentPlanoCarreiras, icon: <FaBriefcase className="text-yellow-500" /> },
-    { label: "Bem-estar e Ambiente", value: bemestar, set: setBemestar, comment: commentBemestar, setComment: setCommentBemestar, icon: <FaHeart className="text-pink-500" /> },
-    { label: "Estímulo e Organização", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-orange-500" /> },
-  ];
-
+  // FUNÇÃO renderStars (CORRIGIDA: usa FaMinus e FaPlus)
   const renderStars = (currentRating, setRating, currentComment, setComment, label) => (
     <div className="flex items-center gap-2">
       {[...Array(5)].map((_, i) => {
@@ -88,7 +83,7 @@ function TrabalheiLaMobile({
             className="text-gray-500 hover:text-gray-700 transition-colors text-sm ml-2"
             aria-label={`Adicionar comentário para ${label}`}
           >
-            {showCommentInput[label] ? <FaMinus /> : <FaPlus />}
+            {showCommentInput[label] ? <FaMinus /> : <FaPlus />} {/* <-- FaMinus e FaPlus usados aqui */}
           </button>
           {showCommentInput[label] && (
             <div className="absolute z-10 bg-white p-3 rounded-lg shadow-lg border border-gray-200 mt-2 w-64 right-0">
@@ -106,107 +101,96 @@ function TrabalheiLaMobile({
     </div>
   );
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 text-slate-800 flex flex-col items-center p-4">
-      <div className="max-w-md w-full">
+  // DEFINIÇÃO DO ARRAY campos (MOVIDO PARA FORA DO RETURN PARA EVITAR ERROS ESTRUTURAIS)
+  const campos = [
+    { label: "Contato com RH", value: contatoRH, set: setContatoRH, comment: commentContatoRH, setComment: setCommentContatoRH, icon: <FaHandshake className="text-blue-500" /> },
+    { label: "Salário e Benefícios", value: salarioBeneficios, set: setSalarioBeneficios, comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios, icon: <FaMoneyBillWave className="text-green-500" /> },
+    { label: "Estrutura da Empresa", value: estruturaEmpresa, set: setEstruturaEmpresa, comment: commentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa, icon: <FaBuilding className="text-purple-500" /> },
+    { label: "Acessibilidade da Liderança", value: acessibilidadeLideranca, set: setAcessibilidadeLideranca, comment: commentAcessibilidadeLideranca, setComment: setCommentAcessibilidadeLideranca, icon: <FaUserTie className="text-red-500" /> },
+    { label: "Plano de Carreiras", value: planoCarreiras, set: setPlanoCarreiras, comment: commentPlanoCarreiras, setComment: setCommentPlanoCarreiras, icon: <FaBriefcase className="text-yellow-500" /> },
+    { label: "Bem-estar e Ambiente", value: bemestar, set: setBemestar, comment: commentBemestar, setComment: setCommentBemestar, icon: <FaHeart className="text-pink-500" /> },
+    { label: "Estímulo e Organização", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-orange-500" /> },
+  ];
 
-        {/* HEADER - MOBILE LAYOUT (ADAPTADO DO DESKTOP) */}
-        <header className="bg-gradient-to-r from-indigo-700 via-purple-600 to-pink-500 rounded-3xl shadow-2xl p-6 mb-6 text-white">
-          <div className="flex flex-col items-center text-center"> {/* Changed to flex-col for mobile */}
-            {/* Logo and Score - Centered for mobile */}
-            <div className="flex items-center mb-4">
-              <div className="bg-white/20 p-3 rounded-xl mr-3">
-                <FaBuilding className="text-white text-3xl" />
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 text-slate-800 flex flex-col items-center p-4"> {/* Padding ajustado para mobile */}
+      <div className="max-w-full w-full"> {/* Largura máxima ajustada para mobile */}
+        {/* CABEÇALHO (MOBILE) - ADAPTADO DO DESKTOP */}
+        <header className="bg-gradient-to-r from-indigo-700 via-purple-600 to-pink-500 rounded-3xl shadow-2xl p-6 mb-6 text-white"> {/* Padding e margin ajustados */}
+          <div className="flex flex-col items-center justify-center text-center"> {/* Flex column para mobile */}
+            {/* Topo: Logo e Nota */}
+            <div className="flex items-center justify-center mb-4"> {/* Centralizado */}
+              <div className="bg-white/20 p-3 rounded-xl mr-3"> {/* Padding e margin ajustados */}
+                <FaBuilding className="text-white text-3xl" /> {/* Tamanho do ícone ajustado */}
                 <p className="text-xs mt-1">Logo da Empresa</p>
               </div>
               <div>
-                <p className="text-3xl font-extrabold">0.0/5</p>
+                <p className="text-3xl font-extrabold">0.0/5</p> {/* Tamanho da fonte ajustado */}
                 <p className="text-sm">NOTA</p>
               </div>
             </div>
-            {/* Title and Description - Centered for mobile */}
-            <h1 className="text-4xl font-extrabold mb-2">TRABALHEI LÁ</h1>
-            <p className="text-base mb-3">Sua opinião é anônima e ajuda outros profissionais</p>
-            <p className="text-sm mb-4">Avaliações anônimas feitas por profissionais verificados.</p>
-            <button className="bg-white text-purple-700 font-bold py-2 px-5 rounded-full shadow-lg hover:bg-gray-100 transition-all transform hover:scale-105 mb-4">
-              CLIQUE E SAIBA MAIS
-            </button>
-            {/* Checkmarks - Centered for mobile */}
-            <div className="flex flex-col items-center space-y-1 text-white font-semibold text-sm">
-              <p className="flex items-center"><FaCheckCircle className="mr-2" /> Anônimo</p>
-              <p className="flex items-center"><FaCheckCircle className="mr-2" /> Verificado</p>
-              <p className="flex items-center"><FaCheckCircle className="mr-2" /> Confiável</p>
+            {/* Centro: Título e Descrição */}
+            <div className="flex flex-col items-center flex-grow mb-4"> {/* Margin ajustado */}
+              <h1 className="text-4xl font-extrabold mb-2">TRABALHEI LÁ</h1> {/* Tamanho da fonte ajustado */}
+              <p className="text-base text-center mb-3">Sua opinião é anônima e ajuda outros profissionais</p> {/* Tamanho da fonte ajustado */}
+              <p className="text-sm text-center mb-4">Avaliações anônimas feitas por profissionais verificados.</p> {/* Tamanho da fonte ajustado */}
+              <button className="bg-white text-purple-700 font-bold py-2 px-5 rounded-full shadow-lg hover:bg-gray-100 transition-all transform hover:scale-105 mb-4"> {/* Padding e margin ajustados */}
+                CLIQUE E SAIBA MAIS
+              </button>
+            </div>
+            {/* Base: Checkmarks */}
+            <div className="flex flex-col items-center space-y-1 text-white font-semibold text-xs"> {/* Flex column e tamanho da fonte ajustados */}
+              <p className="flex items-center"><FaCheckCircle className="mr-1" /> Anônimo</p>
+              <p className="flex items-center"><FaCheckCircle className="mr-1" /> Verificado</p>
+              <p className="flex items-center"><FaCheckCircle className="mr-1" /> Confiável</p>
             </div>
           </div>
         </header>
 
-        <div className="flex flex-col gap-6 mb-6">
-
-          {/* SEÇÃO DE LOGIN E AVALIAÇÃO */}
-          <div className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100">
-            <section className="mb-8">
+        <div className="flex flex-col gap-6 mb-8"> {/* Flex column padrão para mobile */}
+          {/* COLUNA ESQUERDA - FORMULÁRIO */}
+          <div className="flex-1">
+            <section className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100 mb-6">
               <h2 className="text-2xl font-bold text-blue-800 text-center mb-6">Login para Avaliar</h2>
               <div className="space-y-4 mb-6">
+                <LoginLinkedInButton
+                  clientId={linkedInClientId}
+                  onLoginSuccess={handleLinkedInLogin}
+                  onLoginFailure={(err) => console.error("Falha no login LinkedIn:", err)}
+                  redirectUri={process.env.REACT_APP_LINKEDIN_REDIRECT_URI}
+                  className="flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-blue-800 transition-all transform hover:scale-105"
+                />
                 <button onClick={handleGoogleLogin}
                   className="flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105">
                   <FcGoogle className="mr-3 text-2xl" />
                   Entrar com Google
                 </button>
-                <LoginLinkedInButton
-                  clientId={linkedInClientId}
-                  redirectUri={process.env.REACT_APP_LINKEDIN_REDIRECT_URI}
-                  onLoginSuccess={handleLinkedInLogin}
-                  onLoginFailure={(err) => console.error("Falha no login LinkedIn:", err)}
-                  className="flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-blue-800 transition-all transform hover:scale-105"
-                />
               </div>
             </section>
 
-            <section>
+            <section className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100">
               <h2 className="text-2xl font-bold text-blue-800 text-center mb-6">Avalie uma Empresa</h2>
               <div className="mb-6">
-                <label htmlFor="company-select" className="text-slate-700 font-semibold text-lg block mb-2">Selecione a Empresa</label>
+                <label htmlFor="company-select" className="text-slate-700 font-semibold text-lg block mb-2">Empresa que você trabalhou:</label>
                 <Select
                   id="company-select"
-                  options={companies.map(c => ({ value: c.id, label: c.name }))}
-                  value={company ? { value: company.id, label: company.name } : null}
-                  onChange={(selectedOption) => setCompany(selectedOption ? { id: selectedOption.value, name: selectedOption.label } : null)}
-                  placeholder="Buscar ou selecionar..."
+                  options={empresas.map(emp => ({ value: emp.company, label: emp.company }))}
+                  value={company ? { value: company, label: company } : null}
+                  onChange={(selectedOption) => setCompany(selectedOption ? selectedOption.value : '')}
+                  placeholder="Selecione ou digite uma empresa..."
                   isClearable
+                  isSearchable
                   className="react-select-container"
                   classNamePrefix="react-select"
-                  styles={{
-                    control: (base) => ({ ...base, padding: '0.5rem', borderRadius: '0.75rem', borderColor: '#d1d5db', boxShadow: 'none', '&:hover': { borderColor: '#a78bfa' } }),
-                    placeholder: (base) => ({ ...base, color: '#9ca3af' }),
-                    singleValue: (base) => ({ ...base, color: '#334155' }),
-                    option: (base, state) => ({
-                      ...base,
-                      backgroundColor: state.isFocused ? '#ede9fe' : 'white',
-                      color: '#334155',
-                      '&:active': { backgroundColor: '#c4b5fd' },
-                    }),
-                  }}
                 />
-                <button
-                  onClick={() => setShowNewCompanyInput(!showNewCompanyInput)}
-                  className="mt-4 w-full bg-purple-600 text-white p-3 rounded-xl hover:bg-purple-700 transition-all flex items-center justify-center gap-2"
-                >
-                  <FaPlus /> Adicionar Nova Empresa
-                </button>
-                {showNewCompanyInput && (
-                  <div className="mt-4 flex gap-2">
-                    <input
-                      type="text"
-                      className="flex-1 p-3 border border-gray-300 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Nome da nova empresa"
-                      value={newCompany}
-                      onChange={(e) => setNewCompany(e.target.value)}
-                    />
+                {company === '' && (
+                  <div className="mt-4 text-center">
                     <button
+                      type="button"
                       onClick={handleAddNewCompany}
-                      className="bg-green-600 text-white p-4 rounded-xl hover:bg-green-700 transition-all"
+                      className="bg-purple-600 text-white font-bold py-3 px-6 rounded-xl shadow-md hover:bg-purple-700 transition-all transform hover:scale-105"
                     >
-                      Adicionar
+                      <FaPlus className="inline-block mr-2" /> Adicionar Nova Empresa
                     </button>
                   </div>
                 )}
