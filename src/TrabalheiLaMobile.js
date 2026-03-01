@@ -51,50 +51,25 @@ function TrabalheiLaMobile({
   linkedInClientId,
   handleLinkedInLogin, handleGoogleLogin,
   error, isAuthenticated,
+  selectedCompanyData, calcularMedia,
+  getMedalColor, getMedalEmoji, getBadgeColor,
+  safeCompanyOptions,
 }) {
-  const calcularMedia = (emp) => {
-    if (!emp) return 0;
-    const sum = emp.rating + emp.contatoRH + emp.salarioBeneficios +
-      emp.estruturaEmpresa + emp.acessibilidadeLideranca +
-      emp.planoCarreiras + emp.bemestar + emp.estimulacaoOrganizacao;
-    return (sum / 8).toFixed(1);
-  };
-
-  const getBadgeColor = (media) => {
-    if (media >= 4.5) return "bg-green-500";
-    if (media >= 3.5) return "bg-yellow-500";
-    return "bg-red-500";
-  };
-
-  const getMedalColor = (index) => {
-    if (index === 0) return "from-yellow-400 to-yellow-600";
-    if (index === 1) return "from-gray-300 to-gray-500";
-    if (index === 2) return "from-orange-300 to-orange-500";
-    return "from-blue-300 to-blue-500";
-  };
-
-  const getMedalEmoji = (index) => {
-    if (index === 0) return "🥇";
-    if (index === 1) return "🥈";
-    if (index === 2) return "🥉";
-    return "🏅";
-  };
-
   const selectStyles = {
     control: (base, state) => ({
       ...base,
       borderRadius: "0.75rem",
       padding: "0.25rem",
-      borderColor: state.isFocused ? "#1d4ed8" : "#e5e7eb",
-      boxShadow: state.isFocused ? "0 0 0 1px #1d4ed8" : "none",
-      "&:hover": { borderColor: state.isFocused ? "#1d4ed8" : "#d1d5db" },
+      borderColor: state.isFocused ? "#8b5cf6" : "#e5e7eb",
+      boxShadow: state.isFocused ? "0 0 0 1px #8b5cf6" : "none",
+      "&:hover": { borderColor: state.isFocused ? "#8b5cf6" : "#d1d5db" },
     }),
     option: (base, state) => ({
       ...base,
-      backgroundColor: state.isFocused ? "#dbeafe" : "white",
-      color: "#1e3a8a",
+      backgroundColor: state.isFocused ? "#ede9fe" : "white",
+      color: "#4a4a4a",
     }),
-    singleValue: (base) => ({ ...base, color: "#1e3a8a" }),
+    singleValue: (base) => ({ ...base, color: "#4a4a4a" }),
     placeholder: (base) => ({ ...base, color: "#9ca3af" }),
   };
 
@@ -102,12 +77,17 @@ function TrabalheiLaMobile({
     <div className="flex flex-col items-end w-full md:w-2/3">
       <div className="flex items-center space-x-1 mb-2">
         {[...Array(5)].map((_, i) => (
-          <OutlinedStar key={i} active={i < value} onClick={() => setValue(i + 1)} label={`${i + 1} estrelas para ${label}`} />
+          <OutlinedStar
+            key={i}
+            active={i < value}
+            onClick={() => setValue(i + 1)}
+            label={`${i + 1} estrelas para ${label}`}
+          />
         ))}
         <span className="ml-2 text-slate-700 font-medium">{value}/5</span>
       </div>
       <textarea
-        className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 mt-1"
+        className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500 mt-1"
         placeholder={`Comentário sobre ${label} (opcional)`}
         value={commentValue}
         onChange={(e) => setCommentValue(e.target.value)}
@@ -116,200 +96,217 @@ function TrabalheiLaMobile({
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center p-4">
-      <style>{`
-        @import url('https://fonts.cdnfonts.com/css/azonix');
-        .font-azonix { font-family: 'Azonix', sans-serif; }
-      `}</style>
-      <div className="w-full max-w-lg">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex flex-col items-center p-4">
+      <div className="w-full max-w-4xl">
 
-        {/* HEADER */}
-        <header className="bg-white rounded-3xl shadow-xl p-6 mb-6 border-2 border-blue-200">
-          <div className="flex flex-col items-center text-center">
-            <h1 className="text-3xl font-extrabold text-blue-800 mb-1 font-azonix">
+        {/* Cabeçalho */}
+        <header className="bg-blue-200 rounded-3xl shadow-xl p-6 mb-8 border border-blue-300 flex flex-col md:flex-row items-center justify-between text-center md:text-left">
+          <div className="flex flex-col items-center md:items-start mb-4 md:mb-0 md:w-1/4">
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Petrobras_logo.svg/1200px-Petrobras_logo.svg.png"
+              alt="Logo da Empresa"
+              className="w-24 h-auto mb-2"
+            />
+            <p className="text-xl font-bold text-slate-700">NOTA 4.5/5</p>
+          </div>
+
+          <div className="flex flex-col items-center md:w-1/2 px-4">
+            <h1 className="text-4xl font-extrabold text-indigo-800 mb-2 drop-shadow-md">
               TRABALHEI LÁ
             </h1>
-            <p className="text-blue-600 text-sm mb-1">Sua opinião é anônima e ajuda outros profissionais</p>
-            <p className="text-blue-400 text-xs mb-4">Avaliações anônimas feitas por profissionais verificados.</p>
-            <p className="text-blue-700 text-sm font-semibold flex items-center gap-3">
+            <p className="text-slate-700 text-sm mb-1">
+              Sua opinião é anônima e ajuda outros profissionais
+            </p>
+            <p className="text-slate-600 text-xs mb-4">
+              Avaliações anônimas feitas por profissionais verificados.
+            </p>
+            <button className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all transform hover:scale-105 mb-4">
+              CLIQUE E SAIBA MAIS
+            </button>
+            <p className="text-green-700 text-sm font-semibold flex items-center gap-2">
               <span>✓ Anônimo</span>
               <span>✓ Verificado</span>
               <span>✓ Confiável</span>
             </p>
           </div>
 
-          {/* Top 3 no header mobile */}
-          {Array.isArray(top3) && top3.length > 0 && (
-            <div className="mt-4 space-y-2">
-              <h2 className="text-base font-bold text-blue-800 text-center font-azonix">🏆 Melhores Empresas</h2>
-              {top3.map((emp, index) => (
-                <div key={index} className="flex items-center justify-between bg-blue-50 rounded-lg p-2 border border-blue-200">
-                  <span className="text-lg mr-2">{getMedalEmoji(index)}</span>
-                  <span className="font-medium text-blue-800 flex-1 text-left text-sm">{emp.company}</span>
-                  <span className="text-yellow-500 font-bold text-sm">{calcularMedia(emp)} ⭐</span>
-                </div>
-              ))}
+          <div className="md:w-1/4 flex flex-col items-center md:items-end mt-4 md:mt-0">
+            <h2 className="text-xl font-bold text-slate-700 mb-3">Melhores Empresas</h2>
+            <div className="space-y-2 w-full">
+              {Array.isArray(top3) && top3.length === 0 ? (
+                <p className="text-gray-500 text-sm text-center">Nenhuma empresa no ranking ainda.</p>
+              ) : (
+                (top3 || []).map((emp, index) => (
+                  <div key={index} className="flex items-center justify-between bg-white rounded-lg p-2 shadow-sm border border-gray-200">
+                    <span className="text-lg mr-2">{getMedalEmoji(index)}</span>
+                    <span className="font-medium text-gray-800 flex-1 text-left">{emp.company}</span>
+                    <span className="text-yellow-500 font-bold">{calcularMedia(emp)} ⭐</span>
+                  </div>
+                ))
+              )}
             </div>
-          )}
+          </div>
         </header>
 
-        {/* LOGIN */}
-        <section className="bg-white rounded-3xl shadow-2xl p-6 border border-blue-100 mb-6">
-          <h2 className="text-xl font-bold text-blue-800 text-center mb-4 font-azonix">Login para Avaliar</h2>
-          <div className="flex flex-col space-y-3">
+        {/* Login */}
+        <section className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 mb-6">
+          <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">Login para Avaliar</h2>
+          <div className="flex flex-col space-y-4">
             <button
               onClick={handleGoogleLogin}
-              className="flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-gray-50 transition-all"
+              className="w-full flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105"
             >
               <FcGoogle className="mr-3 text-2xl" />
               Entrar com Google
             </button>
             <LoginLinkedInButton
-              clientId={linkedInClientId}
-              onLoginSuccess={handleLinkedInLogin}
-              className="flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-blue-800 transition-all"
-            />
+  clientId={linkedInClientId}
+  redirectUri={process.env.REACT_APP_LINKEDIN_REDIRECT_URI}
+  onLoginSuccess={handleLinkedInLogin}
+  onLoginFailure={(err) => setError("Falha no login LinkedIn.")}
+/>
           </div>
         </section>
 
-        {/* FORMULÁRIO */}
-        <section className="bg-white rounded-3xl shadow-2xl p-6 border border-blue-100 mb-6">
-          <h2 className="text-xl font-bold text-blue-800 text-center mb-4 font-azonix">Avalie uma Empresa</h2>
+        {/* Formulário */}
+        <section className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 mb-6">
+          <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">Avalie uma Empresa</h2>
 
-          <div className="mb-4">
-            <label className="block text-slate-700 font-semibold mb-2">Selecione a Empresa</label>
+          <div className="mb-6">
+            <label htmlFor="company-select" className="block text-slate-700 text-lg font-semibold mb-3">
+              Selecione a Empresa
+            </label>
             <Select
-              options={(empresas || []).map((emp) => ({ value: emp.company, label: emp.company }))}
-              value={company ? { value: company, label: company } : null}
-              onChange={(opt) => opt && setCompany(opt.value)}
-              placeholder="Buscar empresa..."
+              id="company-select"
+              options={safeCompanyOptions}
+              value={company}
+              onChange={setCompany}
+              placeholder="Buscar ou selecionar empresa..."
               isClearable
               styles={selectStyles}
             />
           </div>
 
           {showNewCompanyInput ? (
-            <div className="mb-4">
+            <div className="mb-6">
+              <label htmlFor="new-company-name" className="block text-slate-700 text-lg font-semibold mb-3">
+                Nome da Nova Empresa
+              </label>
               <input
                 type="text"
-                className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
-                placeholder="Nome da nova empresa"
+                id="new-company-name"
+                className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="Digite o nome da nova empresa"
                 value={newCompany}
                 onChange={(e) => setNewCompany(e.target.value)}
               />
-              <div className="flex gap-2">
-                <button onClick={handleAddNewCompany}
-                  className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-xl transition-all">
-                  Confirmar
-                </button>
-                <button onClick={() => setShowNewCompanyInput(false)}
-                  className="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-xl transition-all">
-                  Cancelar
-                </button>
-              </div>
+              <button
+                onClick={handleAddNewCompany}
+                className="mt-3 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-xl transition-all"
+              >
+                Adicionar Empresa
+              </button>
             </div>
           ) : (
-            <button onClick={() => setShowNewCompanyInput(true)}
-              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl transition-all mb-4">
-              <FaPlus /> Adicionar Nova Empresa
+            <button
+              onClick={() => setShowNewCompanyInput(true)}
+              className="w-full flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-sm transition-all mb-6"
+            >
+              <FaPlus className="mr-2" /> Adicionar Nova Empresa
             </button>
           )}
 
           <form onSubmit={handleSubmit}>
-            <div className="space-y-4 mb-6">
-
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="text-slate-700 font-semibold flex items-center mb-2">
+            <div className="space-y-6 mb-8">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
                   <FaStar className="mr-2 text-yellow-500" /> Avaliação Geral
                 </label>
                 {renderStars(rating, setRating, commentRating, setCommentRating, "Avaliação Geral")}
               </div>
 
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="text-slate-700 font-semibold flex items-center mb-2">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
                   <FaHandshake className="mr-2 text-blue-500" /> Contato com RH
                 </label>
                 {renderStars(contatoRH, setContatoRH, commentContatoRH, setCommentContatoRH, "Contato com RH")}
               </div>
 
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="text-slate-700 font-semibold flex items-center mb-2">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
                   <FaMoneyBillWave className="mr-2 text-green-500" /> Salário e Benefícios
                 </label>
                 {renderStars(salarioBeneficios, setSalarioBeneficios, commentSalarioBeneficios, setCommentSalarioBeneficios, "Salário e Benefícios")}
               </div>
 
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="text-slate-700 font-semibold flex items-center mb-2">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
                   <FaBuilding className="mr-2 text-indigo-500" /> Estrutura da Empresa
                 </label>
                 {renderStars(estruturaEmpresa, setEstruturaEmpresa, commentEstruturaEmpresa, setCommentEstruturaEmpresa, "Estrutura da Empresa")}
               </div>
 
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="text-slate-700 font-semibold flex items-center mb-2">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
                   <FaUserTie className="mr-2 text-red-500" /> Acessibilidade à Liderança
                 </label>
                 {renderStars(acessibilidadeLideranca, setAcessibilidadeLideranca, commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca, "Acessibilidade à Liderança")}
               </div>
 
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="text-slate-700 font-semibold flex items-center mb-2">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
                   <FaBriefcase className="mr-2 text-purple-500" /> Plano de Carreiras
                 </label>
                 {renderStars(planoCarreiras, setPlanoCarreiras, commentPlanoCarreiras, setCommentPlanoCarreiras, "Plano de Carreiras")}
               </div>
 
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="text-slate-700 font-semibold flex items-center mb-2">
-                  <FaHeart className="mr-2 text-pink-500" /> Bem-estar
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+                  <FaHeart className="mr-2 text-pink-500" /> Bem-estar e Qualidade de Vida
                 </label>
-                {renderStars(bemestar, setBemestar, commentBemestar, setCommentBemestar, "Bem-estar")}
+                {renderStars(bemestar, setBemestar, commentBemestar, setCommentBemestar, "Bem-estar e Qualidade de Vida")}
               </div>
 
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="text-slate-700 font-semibold flex items-center mb-2">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
                   <FaLightbulb className="mr-2 text-orange-500" /> Estímulo e Organização
                 </label>
                 {renderStars(estimulacaoOrganizacao, setEstimulacaoOrganizacao, commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao, "Estímulo e Organização")}
               </div>
-
             </div>
 
-            <div className="mb-4">
-              <label className="text-slate-700 font-semibold block mb-2">Comentário Geral</label>
+            <div className="mb-6">
+              <label className="text-slate-700 font-semibold text-lg block mb-2">Comentário Geral</label>
               <textarea
-                className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={3}
-                placeholder="Compartilhe sua experiência geral..."
+                className="w-full p-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="Deixe um comentário geral sobre a empresa (opcional)"
+                rows="4"
                 value={generalComment}
                 onChange={(e) => setGeneralComment(e.target.value)}
               />
             </div>
 
-            {error && (
-              <p className="text-red-500 text-sm text-center mb-4">{error}</p>
-            )}
+            {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
             <div className="text-center">
               <button
                 type="submit"
-                disabled={!isAuthenticated || isLoading}
-                className={`w-full py-4 rounded-2xl font-extrabold text-white text-lg transition-all font-azonix ${
+                className={`px-8 py-4 rounded-full font-extrabold text-white text-lg transition-all transform ${
                   isAuthenticated
-                    ? "bg-blue-700 hover:bg-blue-800 hover:shadow-xl"
+                    ? "bg-gradient-to-r from-purple-600 to-violet-600 hover:shadow-2xl hover:scale-[1.02]"
                     : "bg-slate-400 cursor-not-allowed opacity-60"
                 }`}
+                disabled={!isAuthenticated || isLoading}
               >
-                {isLoading ? "Enviando..." : isAuthenticated ? "Enviar Avaliação" : "Faça login para avaliar"}
+                {isLoading ? "Enviando..." : isAuthenticated ? "Enviar avaliação" : "Faça login para avaliar"}
               </button>
             </div>
           </form>
         </section>
 
-        {/* RANKING */}
-        <section className="bg-white rounded-3xl shadow-2xl p-6 border border-blue-100 mb-6">
-          <h2 className="text-xl font-bold text-blue-800 text-center mb-4 font-azonix">🏆 Ranking de Empresas</h2>
+        {/* Ranking */}
+        <section className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 mb-6">
+          <h2 className="text-2xl font-bold text-slate-700 text-center mb-4">🏆 Ranking de Empresas</h2>
 
           {Array.isArray(top3) && top3.length > 0 && (
             <div className="mb-4 space-y-2">
