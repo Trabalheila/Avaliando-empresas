@@ -35,7 +35,7 @@ function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
+  // const [user, setUser] = useState(null);
   const [showNewCompanyInput, setShowNewCompanyInput] = useState(false);
   const [top3, setTop3] = useState([]);
 
