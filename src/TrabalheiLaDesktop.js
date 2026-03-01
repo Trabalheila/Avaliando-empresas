@@ -1,13 +1,14 @@
 import React from "react";
 import {
   FaStar, FaChartBar, FaHandshake, FaMoneyBillWave,
-  FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb, FaPlus,
+  FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb, FaPlus, FaMinus, FaCheckCircle
 } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import Select from "react-select";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
+import { useState } from "react"; // Certifique-se de que useState está importado
 
-function OutlinedStar({ active, onClick, size = 20, label }) {
+function OutlinedStar({ active, onClick, size = 18, label }) {
   const outlineScale = 1.24;
   return (
     <button type="button" onClick={onClick} aria-label={label} title={label}
@@ -44,224 +45,219 @@ function TrabalheiLaDesktop({
   commentBemestar, setCommentBemestar,
   commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao,
   generalComment, setGeneralComment,
-  handleSubmit, isLoading,
+  handleAddNewCompany, handleSubmit,
+  linkedInClientId, handleLinkedInLogin, handleGoogleLogin,
+  isAuthenticated, user,
+  isLoading, error,
   empresas, top3,
-  showNewCompanyInput, setShowNewCompanyInput,
-  handleAddNewCompany,
-  linkedInClientId,
-  handleLinkedInLogin, handleGoogleLogin,
-  error, isAuthenticated,
-  selectedCompanyData,
-  safeCompanyOptions,
+  calcularMedia, getBadgeColor, getMedalColor, getMedalEmoji,
 }) {
-  const calcularMedia = (emp) => {
-    if (!emp) return 0;
-    const sum = emp.rating + emp.contatoRH + emp.salarioBeneficios +
-      emp.estruturaEmpresa + emp.acessibilidadeLideranca +
-      emp.planoCarreiras + emp.bemestar + emp.estimulacaoOrganizacao;
-    return (sum / 8).toFixed(1);
-  };
+  const [showCommentInput, setShowCommentInput] = useState({});
 
-  const getBadgeColor = (media) => {
-    if (media >= 4.5) return "bg-green-500";
-    if (media >= 3.5) return "bg-yellow-500";
-    return "bg-red-500";
-  };
-
-  const getMedalColor = (index) => {
-    if (index === 0) return "from-yellow-400 to-yellow-600";
-    if (index === 1) return "from-gray-300 to-gray-500";
-    if (index === 2) return "from-orange-300 to-orange-500";
-    return "from-blue-300 to-blue-500";
-  };
-
-  const getMedalEmoji = (index) => {
-    if (index === 0) return "🥇";
-    if (index === 1) return "🥈";
-    if (index === 2) return "🥉";
-    return "🏅";
-  };
-
-  const companyNote = selectedCompanyData ? calcularMedia(selectedCompanyData) : "—";
-
-  const selectStyles = {
-    control: (base, state) => ({
-      ...base,
-      borderRadius: "0.75rem",
-      padding: "0.25rem",
-      borderColor: state.isFocused ? "#1d4ed8" : "#e5e7eb",
-      boxShadow: state.isFocused ? "0 0 0 1px #1d4ed8" : "none",
-      "&:hover": { borderColor: state.isFocused ? "#1d4ed8" : "#d1d5db" },
-    }),
-    option: (base, state) => ({
-      ...base,
-      backgroundColor: state.isFocused ? "#dbeafe" : "white",
-      color: "#1e3a8a",
-    }),
-    singleValue: (base) => ({ ...base, color: "#1e3a8a" }),
-    placeholder: (base) => ({ ...base, color: "#9ca3af" }),
-  };
-
-  const renderStars = (value, setValue, commentValue, setCommentValue, label) => (
-    <div className="flex flex-col items-end w-full md:w-2/3">
-      <div className="flex items-center space-x-1 mb-2">
-        {[...Array(5)].map((_, i) => (
-          <OutlinedStar key={i} active={i < value} onClick={() => setValue(i + 1)} label={`${i + 1} estrelas para ${label}`} />
-        ))}
-        <span className="ml-2 text-slate-700 font-medium">{value}/5</span>
-      </div>
-      <textarea
-        className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 mt-1"
-        placeholder={`Comentário sobre ${label} (opcional)`}
-        value={commentValue}
-        onChange={(e) => setCommentValue(e.target.value)}
-      />
+  const renderStars = (currentRating, setRating, currentComment, setComment, label) => (
+    <div className="flex items-center gap-2">
+      {[...Array(5)].map((_, i) => {
+        const ratingValue = i + 1;
+        return (
+          <OutlinedStar
+            key={i}
+            active={ratingValue <= currentRating}
+            onClick={() => setRating(ratingValue)}
+            label={`${ratingValue} estrelas para ${label}`}
+          />
+        );
+      })}
+      {currentRating > 0 && (
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowCommentInput(prev => ({ ...prev, [label]: !prev[label] }))}
+            className="text-gray-500 hover:text-gray-700 transition-colors text-sm ml-2"
+            aria-label={`Adicionar comentário para ${label}`}
+          >
+            {showCommentInput[label] ? <FaMinus /> : <FaPlus />}
+          </button>
+          {showCommentInput[label] && (
+            <div className="absolute z-10 bg-white p-3 rounded-lg shadow-lg border border-gray-200 mt-2 w-64 right-0">
+              <textarea
+                className="w-full p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder={`Comentário para ${label}`}
+                rows="2"
+                value={currentComment}
+                onChange={(e) => setComment(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 
+  // AQUI ESTÁ A CORREÇÃO: A lista 'campos' é definida ANTES do return do componente.
   const campos = [
-    { label: "Cultura e Valores", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FaStar className="text-yellow-400" /> },
-    { label: "Contato com RH", value: contatoRH, set: setContatoRH, comment: commentContatoRH, setComment: setCommentContatoRH, icon: <FaHandshake className="text-blue-400" /> },
-    { label: "Salário e Benefícios", value: salarioBeneficios, set: setSalarioBeneficios, comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios, icon: <FaMoneyBillWave className="text-green-400" /> },
-    { label: "Estrutura da Empresa", value: estruturaEmpresa, set: setEstruturaEmpresa, comment: commentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa, icon: <FaBuilding className="text-indigo-400" /> },
-    { label: "Acessibilidade à Liderança", value: acessibilidadeLideranca, set: setAcessibilidadeLideranca, comment: commentAcessibilidadeLideranca, setComment: setCommentAcessibilidadeLideranca, icon: <FaUserTie className="text-red-400" /> },
-    { label: "Plano de Carreira", value: planoCarreiras, set: setPlanoCarreiras, comment: commentPlanoCarreiras, setComment: setCommentPlanoCarreiras, icon: <FaBriefcase className="text-indigo-400" /> },
-    { label: "Bem-estar", value: bemestar, set: setBemestar, comment: commentBemestar, setComment: setCommentBemestar, icon: <FaHeart className="text-pink-400" /> },
-    { label: "Estímulo e Organização", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-orange-400" /> },
+    { label: "Avaliação Geral", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FaStar className="text-yellow-500" /> },
+    { label: "Contato com RH", value: contatoRH, set: setContatoRH, comment: commentContatoRH, setComment: setCommentContatoRH, icon: <FaHandshake className="text-blue-500" /> },
+    { label: "Salário e Benefícios", value: salarioBeneficios, set: setSalarioBeneficios, comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios, icon: <FaMoneyBillWave className="text-green-500" /> },
+    { label: "Estrutura da Empresa", value: estruturaEmpresa, set: setEstruturaEmpresa, comment: commentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa, icon: <FaBuilding className="text-purple-500" /> },
+    { label: "Acessibilidade à Liderança", value: acessibilidadeLideranca, set: setAcessibilidadeLideranca, comment: commentAcessibilidadeLideranca, setComment: setCommentAcessibilidadeLideranca, icon: <FaUserTie className="text-red-500" /> },
+    { label: "Plano de Carreiras", value: planoCarreiras, set: setPlanoCarreiras, comment: commentPlanoCarreiras, setComment: setCommentPlanoCarreiras, icon: <FaBriefcase className="text-indigo-500" /> },
+    { label: "Bem-estar e Qualidade de Vida", value: bemestar, set: setBemestar, comment: commentBemestar, setComment: setCommentBemestar, icon: <FaHeart className="text-pink-500" /> },
+    { label: "Estímulo e Organização", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-orange-500" /> },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center p-6">
-      <style>{`@import url('https://fonts.cdnfonts.com/css/azonix'); .font-azonix { font-family: 'Azonix', sans-serif; }`}</style>
-      <div className="w-full max-w-6xl">
-
-        {/* HEADER */}
-        <header className="bg-white rounded-3xl shadow-2xl p-8 mb-8 border-2 border-blue-200">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 text-slate-800 flex flex-col items-center p-6">
+      <div className="max-w-4xl w-full">
+        {/* HEADER DESKTOP */}
+        <header className="bg-gradient-to-r from-indigo-700 via-purple-600 to-pink-500 rounded-3xl shadow-2xl p-8 mb-8 text-white">
           <div className="flex items-center justify-between">
-            <div className="flex flex-col items-center">
-              <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center border-2 border-blue-200">
-                <FaBuilding className="text-blue-700 text-4xl" />
+            <div className="flex items-center">
+              <div className="bg-white/20 p-4 rounded-xl mr-4">
+                <FaBuilding className="text-white text-4xl" />
+                <p className="text-xs mt-1">Logo da Empresa</p>
               </div>
-              <span className="text-xs mt-2 text-blue-400">Logo da Empresa</span>
-              <div className="mt-2 bg-blue-700 rounded-xl px-3 py-1 text-center">
-                <p className="text-xl font-extrabold text-white">{companyNote}/5</p>
-                <p className="text-xs text-blue-200">NOTA</p>
+              <div>
+                <p className="text-4xl font-extrabold">0.0/5</p>
+                <p className="text-sm">NOTA</p>
               </div>
             </div>
-
-            <div className="flex-1 text-center px-8">
-              <h1 className="text-5xl font-extrabold text-blue-800 drop-shadow tracking-wide mb-3 font-azonix">
-                TRABALHEI LÁ
-              </h1>
-              <p className="text-blue-600 text-lg mb-2">Sua opinião é anônima e ajuda outros profissionais</p>
-              <p className="text-blue-400 text-sm mb-6">Avaliações anônimas feitas por profissionais verificados.</p>
-              <button className="bg-blue-700 text-white font-extrabold py-3 px-8 rounded-2xl shadow-lg hover:bg-blue-800 transition-all transform hover:scale-105 text-lg font-azonix">
+            <div className="flex flex-col items-center flex-grow">
+              <h1 className="text-5xl font-extrabold mb-2">TRABALHEI LÁ</h1>
+              <p className="text-lg text-center mb-4">Sua opinião é anônima e ajuda outros profissionais</p>
+              <p className="text-sm text-center mb-6">Avaliações anônimas feitas por profissionais verificados.</p>
+              <button className="bg-white text-purple-700 font-bold py-3 px-6 rounded-full shadow-lg hover:bg-gray-100 transition-all transform hover:scale-105 mb-6">
                 CLIQUE E SAIBA MAIS
               </button>
             </div>
-
-            <div className="flex flex-col items-center gap-3">
-              <span className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-full font-semibold">✓ Anônimo</span>
-              <span className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-full font-semibold">✓ Verificado</span>
-              <span className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-full font-semibold">✓ Confiável</span>
+            <div className="flex flex-col items-end space-y-2 text-white font-semibold text-sm">
+              <p className="flex items-center"><FaCheckCircle className="mr-2" /> Anônimo</p>
+              <p className="flex items-center"><FaCheckCircle className="mr-2" /> Verificado</p>
+              <p className="flex items-center"><FaCheckCircle className="mr-2" /> Confiável</p>
             </div>
           </div>
         </header>
 
-        {/* CONTEÚDO - 2 COLUNAS */}
+        {/* MAIN CONTENT */}
         <div className="flex gap-6 mb-8">
-
-          {/* COLUNA ESQUERDA */}
+          {/* COLUNA ESQUERDA - FORMULÁRIO */}
           <div className="flex-1">
+            <section className="bg-white rounded-3xl shadow-2xl p-6 border border-blue-100">
+              <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">Avalie uma Empresa</h2>
 
-            {/* LOGIN */}
-            <section className="bg-white rounded-3xl shadow-xl p-6 mb-6 border border-blue-100">
-              <h2 className="text-2xl font-bold text-blue-800 text-center mb-6 font-azonix">Login para Avaliar</h2>
-              <div className="flex flex-col space-y-4">
-                <button onClick={handleGoogleLogin}
-                  className="flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105">
-                  <FcGoogle className="mr-3 text-2xl" />
-                  Entrar com Google
-                </button>
-                <LoginLinkedInButton
-                  clientId={linkedInClientId}
-                  onSuccess={handleLinkedInLogin}
-                  onError={(e) => console.error(e)}
-                />
-              </div>
-              {isAuthenticated && (
-                <p className="text-green-600 font-semibold text-center mt-4">✓ Você está autenticado!</p>
-              )}
-            </section>
-
-            {/* FORMULÁRIO */}
-            <section className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100">
-              <h2 className="text-2xl font-bold text-blue-800 text-center mb-6 font-azonix">Avalie uma Empresa</h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
-
-                <div>
-                  <label className="font-semibold text-slate-700 mb-2 block">Selecione a Empresa</label>
-                  <Select
-                    options={safeCompanyOptions}
-                    value={company}
-                    onChange={setCompany}
-                    placeholder="Buscar ou selecionar empresa..."
-                    styles={selectStyles}
-                    isClearable
+              {/* Login Buttons */}
+              {!isAuthenticated && (
+                <div className="flex flex-col space-y-4 mb-8">
+                  <LoginLinkedInButton
+                    clientId={linkedInClientId}
+                    redirectUri={process.env.REACT_APP_LINKEDIN_REDIRECT_URI}
+                    onLoginSuccess={handleLinkedInLogin}
+                    onLoginFailure={(err) => console.error("Falha no login LinkedIn:", err)}
+                    className="flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-blue-800 transition-all transform hover:scale-105"
                   />
+                  <button onClick={handleGoogleLogin}
+                    className="flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105">
+                    <FcGoogle className="mr-3 text-2xl" />
+                    Entrar com Google
+                  </button>
                 </div>
+              )}
 
-                {showNewCompanyInput && (
-                  <div className="flex gap-2">
-                    <input type="text"
-                      className="flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              {isAuthenticated && user && (
+                <div className="text-center mb-6">
+                  <p className="text-lg font-semibold text-slate-700">Bem-vindo, {user.name}!</p>
+                  <p className="text-sm text-slate-500">Você pode avaliar uma empresa.</p>
+                </div>
+              )}
+
+              {/* Company Selection */}
+              <div className="mb-8">
+                <label htmlFor="company-select" className="block text-slate-700 font-semibold text-lg mb-2">
+                  Empresa que você trabalhou:
+                </label>
+                <Select
+                  id="company-select"
+                  options={empresas.map(emp => ({ value: emp.company, label: emp.company }))}
+                  value={company ? { value: company, label: company } : null}
+                  onChange={(selectedOption) => setCompany(selectedOption ? selectedOption.value : '')}
+                  placeholder="Selecione ou digite uma empresa"
+                  isClearable
+                  isSearchable
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      padding: '0.5rem',
+                      borderRadius: '0.75rem',
+                      borderColor: '#d1d5db',
+                      boxShadow: 'none',
+                      '&:hover': { borderColor: '#9ca3af' },
+                    }),
+                    option: (base, state) => ({
+                      ...base,
+                      backgroundColor: state.isSelected ? '#6366f1' : state.isFocused ? '#e0e7ff' : null,
+                      color: state.isSelected ? 'white' : '#1f2937',
+                    }),
+                  }}
+                />
+                {company === 'Adicionar Nova Empresa' && (
+                  <div className="mt-4 flex gap-2">
+                    <input
+                      type="text"
+                      className="flex-1 p-3 border border-gray-300 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Nome da nova empresa"
                       value={newCompany}
                       onChange={(e) => setNewCompany(e.target.value)}
                     />
-                    <button type="button" onClick={handleAddNewCompany}
-                      className="px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all">
+                    <button
+                      onClick={handleAddNewCompany}
+                      className="bg-green-600 text-white p-4 rounded-xl hover:bg-green-700 transition-all"
+                    >
                       Adicionar
                     </button>
                   </div>
                 )}
+              </div>
 
-                <button type="button" onClick={() => setShowNewCompanyInput(!showNewCompanyInput)}
-                  className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow transition-all">
-                  <FaPlus />
-                  {showNewCompanyInput ? "Cancelar" : "Adicionar Nova Empresa"}
-                </button>
+              {/* Formulário de Avaliação */}
+              <form onSubmit={handleSubmit}>
+                <div className="space-y-8 mb-10">
+                  {campos.map((campo, index) => (
+                    <div key={index} className="flex items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                      <label className="w-1/3 text-slate-700 font-semibold flex items-center gap-2">
+                        {campo.icon} {campo.label}
+                      </label>
+                      {renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label)}
+                    </div>
+                  ))}
+                </div>
 
-                {campos.map((campo, idx) => (
-                  <div key={idx} className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                    <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center gap-2 mb-2 md:mb-0">
-                      {campo.icon} {campo.label}
-                    </label>
-                    {renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label)}
-                  </div>
-                ))}
-
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <div className="mb-6">
                   <label className="text-slate-700 font-semibold text-lg block mb-2">Comentário Geral</label>
                   <textarea
-                    className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    placeholder="Descreva sua experiência na empresa..."
-                    rows={3}
+                    className="w-full p-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Deixe um comentário geral sobre a empresa (opcional)"
+                    rows="4"
                     value={generalComment}
                     onChange={(e) => setGeneralComment(e.target.value)}
                   />
                 </div>
 
-                {error && <p className="text-red-600 text-center text-sm font-medium">{error}</p>}
+                {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
-                <div className="text-center pt-2">
-                  <button type="submit"
-                    className={`px-8 py-3 rounded-full font-extrabold text-white transition-all ${isAuthenticated ? "bg-gradient-to-r from-blue-600 to-blue-800 hover:shadow-xl hover:scale-105" : "bg-slate-400 cursor-not-allowed opacity-60"}`}
-                    disabled={!isAuthenticated || isLoading}>
-                    {isLoading ? "Enviando..." : isAuthenticated ? "Enviar Avaliação" : "Faça login para avaliar"}
+                <div className="text-center">
+                  <button
+                    type="submit"
+                    className={`px-8 py-4 rounded-full font-extrabold text-white text-lg transition-all transform ${
+                      isAuthenticated
+                        ? "bg-gradient-to-r from-purple-600 to-violet-600 hover:shadow-2xl hover:scale-[1.02]"
+                        : "bg-slate-400 cursor-not-allowed opacity-60"
+                    }`}
+                    disabled={!isAuthenticated || isLoading}
+                  >
+                    {isLoading ? "Enviando..." : isAuthenticated ? "Enviar avaliação" : "Faça login para avaliar"}
                   </button>
                 </div>
-
               </form>
             </section>
           </div>
@@ -269,7 +265,7 @@ function TrabalheiLaDesktop({
           {/* COLUNA DIREITA - RANKING */}
           <div className="w-80">
             <div className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100 sticky top-6">
-              <h2 className="text-xl font-bold text-blue-800 text-center mb-4 font-azonix">🏆 Ranking de Empresas</h2>
+              <h2 className="text-xl font-bold text-blue-800 text-center mb-4">🏆 Ranking de Empresas</h2>
 
               {Array.isArray(top3) && top3.length > 0 && (
                 <div className="mb-4 space-y-2">
