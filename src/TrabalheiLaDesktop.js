@@ -15,10 +15,8 @@ import { FcGoogle } from "react-icons/fc";
 import Select from "react-select";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
 
-/** ⭐ Estrela com contorno preto */
 function OutlinedStar({ active, onClick, size = 18, label }) {
   const outlineScale = 1.24;
-
   return (
     <button
       type="button"
@@ -43,7 +41,6 @@ function OutlinedStar({ active, onClick, size = 18, label }) {
           verticalAlign: "middle",
         }}
       >
-        {/* contorno */}
         <span
           style={{
             position: "absolute",
@@ -56,8 +53,6 @@ function OutlinedStar({ active, onClick, size = 18, label }) {
         >
           <FaStar size={size} color="#000" />
         </span>
-
-        {/* estrela principal */}
         <span style={{ position: "relative" }} aria-hidden="true">
           <FaStar size={size} color={active ? "#facc15" : "#e5e7eb"} />
         </span>
@@ -109,7 +104,6 @@ function TrabalheiLaDesktop({
   isLoading,
   empresas,
   top3,
-  setTop3,
   showNewCompanyInput,
   setShowNewCompanyInput,
   handleAddNewCompany,
@@ -118,14 +112,13 @@ function TrabalheiLaDesktop({
   handleGoogleLogin,
   error,
   isAuthenticated,
+  selectedCompanyData,
+  calcularMedia,
+  getMedalColor,
+  getMedalEmoji,
+  getBadgeColor,
   safeCompanyOptions,
-  selectedCompanyData, // <-- AGORA RECEBE COMO PROP
-  calcularMedia,      // <-- AGORA RECEBE COMO PROP
-  getBadgeColor,      // <-- AGORA RECEBE COMO PROP
-  getMedalColor,      // <-- AGORA RECEBE COMO PROP
-  getMedalEmoji,      // <-- AGORA RECEBE COMO PROP
 }) {
-  // Estilos para o Select
   const selectStyles = {
     control: (base, state) => ({
       ...base,
@@ -144,7 +137,6 @@ function TrabalheiLaDesktop({
     placeholder: (base) => ({ ...base, color: "#9ca3af" }),
   };
 
-  // Função para renderizar as estrelas e o campo de comentário
   const renderStars = (value, setValue, commentValue, setCommentValue, label) => (
     <div className="flex flex-col items-end w-full md:w-2/3">
       <div className="flex items-center space-x-1 mb-2">
@@ -167,24 +159,23 @@ function TrabalheiLaDesktop({
     </div>
   );
 
-  // Dados para o cabeçalho dinâmico
-  const companyName = selectedCompanyData?.company || "Empresa Não Selecionada";
-  const companyRating = selectedCompanyData ? calcularMedia(selectedCompanyData) : "0.0";
-  const companyLogo = selectedCompanyData?.logo || "https://via.placeholder.com/150?text=Logo"; // Placeholder se não houver logo
+  const companyNote = selectedCompanyData ? calcularMedia(selectedCompanyData) : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex flex-col items-center p-4">
-      <div className="w-full max-w-4xl">
+      <div className="w-full max-w-6xl">
 
-        {/* Cabeçalho */}
+        {/* CABEÇALHO */}
         <header className="bg-blue-200 rounded-3xl shadow-xl p-6 mb-8 border border-blue-300 flex flex-col md:flex-row items-center justify-between text-center md:text-left">
           <div className="flex flex-col items-center md:items-start mb-4 md:mb-0 md:w-1/4">
-            <img
-              src={companyLogo}
-              alt={`Logo da ${companyName}`}
-              className="w-24 h-auto mb-2"
-            />
-            <p className="text-xl font-bold text-slate-700">NOTA {companyRating}/5</p>
+            {selectedCompanyData ? (
+              <p className="text-2xl font-extrabold text-indigo-800">{selectedCompanyData.company}</p>
+            ) : (
+              <p className="text-lg font-bold text-slate-500">Nenhuma empresa selecionada</p>
+            )}
+            {companyNote && (
+              <p className="text-xl font-bold text-slate-700 mt-1">NOTA {companyNote}/5</p>
+            )}
           </div>
 
           <div className="flex flex-col items-center md:w-1/2 px-4">
@@ -200,7 +191,7 @@ function TrabalheiLaDesktop({
             <button className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all transform hover:scale-105 mb-4">
               CLIQUE E SAIBA MAIS
             </button>
-            <p className="text-green-700 text-sm font-semibold flex items-center gap-2">
+            <p className="text-green-700 text-sm font-semibold flex items-center gap-4">
               <span>✓ Anônimo</span>
               <span>✓ Verificado</span>
               <span>✓ Confiável</span>
@@ -216,8 +207,8 @@ function TrabalheiLaDesktop({
                 (top3 || []).map((emp, index) => (
                   <div key={index} className="flex items-center justify-between bg-white rounded-lg p-2 shadow-sm border border-gray-200">
                     <span className="text-lg mr-2">{getMedalEmoji(index)}</span>
-                    <span className="font-medium text-gray-800 flex-1 text-left">{emp.company}</span>
-                    <span className="text-gray-600 text-sm">{calcularMedia(emp)} ⭐</span>
+                    <span className="font-medium text-gray-800 flex-1 text-left text-sm">{emp.company}</span>
+                    <span className="text-yellow-500 font-bold text-sm">{calcularMedia(emp)} ⭐</span>
                   </div>
                 ))
               )}
@@ -225,22 +216,40 @@ function TrabalheiLaDesktop({
           </div>
         </header>
 
-        {/* Conteúdo Principal */}
+        {/* DUAS COLUNAS */}
         <div className="flex flex-col md:flex-row gap-6 mb-8">
-          {/* Coluna Esquerda: Formulário */}
-          <div className="w-full md:w-2/3">
-            <section className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200">
-              <h2 className="text-3xl font-bold text-slate-700 mb-6 text-center">
-                Avalie uma Empresa
-              </h2>
 
-              {/* Seleção de Empresa */}
+          {/* COLUNA ESQUERDA */}
+          <div className="w-full md:w-2/3 flex flex-col gap-6">
+
+            {/* LOGIN */}
+            <section className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200">
+              <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">Login para Avaliar</h2>
+              <div className="flex flex-col space-y-4">
+                <button
+                  onClick={handleGoogleLogin}
+                  className="w-full flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105"
+                >
+                  <FcGoogle className="mr-3 text-2xl" />
+                  Entrar com Google
+                </button>
+                <LoginLinkedInButton
+                  clientId={linkedInClientId}
+                  onLoginSuccess={handleLinkedInLogin}
+                  className="w-full flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-blue-800 transition-all transform hover:scale-105"
+                />
+              </div>
+            </section>
+
+            {/* FORMULÁRIO */}
+            <section className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200">
+              <h2 className="text-2xl font-bold text-slate-700 text-center mb-6">Avalie uma Empresa</h2>
+
               <div className="mb-6">
-                <label htmlFor="company-select" className="block text-slate-700 font-semibold mb-2">
-                  Selecione a Empresa:
+                <label className="block text-slate-700 text-lg font-semibold mb-3">
+                  Selecione a Empresa
                 </label>
                 <Select
-                  id="company-select"
                   options={safeCompanyOptions}
                   value={company}
                   onChange={setCompany}
@@ -248,115 +257,102 @@ function TrabalheiLaDesktop({
                   isClearable
                   styles={selectStyles}
                 />
-                <button
-                  onClick={() => setShowNewCompanyInput(!showNewCompanyInput)}
-                  className="mt-3 text-purple-600 hover:text-purple-800 font-medium flex items-center gap-1"
-                >
-                  <FaPlus /> Adicionar nova empresa
-                </button>
-                {showNewCompanyInput && (
-                  <div className="mt-3 flex gap-2">
-                    <input
-                      type="text"
-                      className="flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="Nome da nova empresa"
-                      value={newCompany}
-                      onChange={(e) => setNewCompany(e.target.value)}
-                    />
-                    <button
-                      onClick={handleAddNewCompany}
-                      className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-xl"
-                    >
-                      Adicionar
-                    </button>
-                  </div>
-                )}
               </div>
 
-              {/* Login para Avaliar */}
-              {!isAuthenticated && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6 text-center">
-                  <p className="text-yellow-800 font-semibold mb-3">
-                    Faça login para enviar sua avaliação:
-                  </p>
-                  <div className="flex flex-col sm:flex-row justify-center gap-3">
-                    <LoginLinkedInButton
-                      clientId={linkedInClientId}
-                      onSuccess={handleLinkedInLogin}
-                      onError={(err) => console.error("LinkedIn Login Error:", err)}
-                    />
-                    <button
-                      onClick={handleGoogleLogin}
-                      className="flex items-center justify-center gap-2 bg-white border border-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-xl shadow-sm hover:bg-gray-50 transition-colors"
-                    >
-                      <FcGoogle className="text-xl" /> Login com Google
-                    </button>
-                  </div>
+              {showNewCompanyInput ? (
+                <div className="mb-6">
+                  <label className="block text-slate-700 text-lg font-semibold mb-3">
+                    Nome da Nova Empresa
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Digite o nome da nova empresa"
+                    value={newCompany}
+                    onChange={(e) => setNewCompany(e.target.value)}
+                  />
+                  <button
+                    onClick={handleAddNewCompany}
+                    className="mt-3 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-xl transition-all"
+                  >
+                    Adicionar Empresa
+                  </button>
                 </div>
+              ) : (
+                <button
+                  onClick={() => setShowNewCompanyInput(true)}
+                  className="w-full flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-sm transition-all mb-6"
+                >
+                  <FaPlus className="mr-2" /> Adicionar Nova Empresa
+                </button>
               )}
 
-              {/* Formulário de Avaliação Detalhada */}
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <h3 className="text-2xl font-bold text-slate-700 mb-4 text-center">
-                  Detalhes da Avaliação
-                </h3>
+              <form onSubmit={handleSubmit}>
+                <div className="space-y-4 mb-6">
 
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm">
-                  <label className="font-semibold text-slate-700 w-full md:w-1/3 mb-2 md:mb-0">
-                    Avaliação Geral:
-                  </label>
-                  {renderStars(rating, setRating, commentRating, setCommentRating, "Avaliação Geral")}
-                </div>
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm">
-                  <label className="font-semibold text-slate-700 w-full md:w-1/3 mb-2 md:mb-0">
-                    Contato com RH:
-                  </label>
-                  {renderStars(contatoRH, setContatoRH, commentContatoRH, setCommentContatoRH, "Contato com RH")}
-                </div>
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm">
-                  <label className="font-semibold text-slate-700 w-full md:w-1/3 mb-2 md:mb-0">
-                    Salário e Benefícios:
-                  </label>
-                  {renderStars(salarioBeneficios, setSalarioBeneficios, commentSalarioBeneficios, setCommentSalarioBeneficios, "Salário e Benefícios")}
-                </div>
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm">
-                  <label className="font-semibold text-slate-700 w-full md:w-1/3 mb-2 md:mb-0">
-                    Estrutura da Empresa:
-                  </label>
-                  {renderStars(estruturaEmpresa, setEstruturaEmpresa, commentEstruturaEmpresa, setCommentEstruturaEmpresa, "Estrutura da Empresa")}
-                </div>
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm">
-                  <label className="font-semibold text-slate-700 w-full md:w-1/3 mb-2 md:mb-0">
-                    Acessibilidade à Liderança:
-                  </label>
-                  {renderStars(acessibilidadeLideranca, setAcessibilidadeLideranca, commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca, "Acessibilidade à Liderança")}
-                </div>
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm">
-                  <label className="font-semibold text-slate-700 w-full md:w-1/3 mb-2 md:mb-0">
-                    Plano de Carreiras:
-                  </label>
-                  {renderStars(planoCarreiras, setPlanoCarreiras, commentPlanoCarreiras, setCommentPlanoCarreiras, "Plano de Carreiras")}
-                </div>
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm">
-                  <label className="font-semibold text-slate-700 w-full md:w-1/3 mb-2 md:mb-0">
-                    Bem-estar e Ambiente:
-                  </label>
-                  {renderStars(bemestar, setBemestar, commentBemestar, setCommentBemestar, "Bem-estar e Ambiente")}
-                </div>
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm">
-                  <label className="font-semibold text-slate-700 w-full md:w-1/3 mb-2 md:mb-0">
-                    Estímulo à Organização:
-                  </label>
-                  {renderStars(estimulacaoOrganizacao, setEstimulacaoOrganizacao, commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao, "Estímulo à Organização")}
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+                      <FaStar className="mr-2 text-yellow-500" /> Avaliação Geral
+                    </label>
+                    {renderStars(rating, setRating, commentRating, setCommentRating, "Avaliação Geral")}
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+                      <FaHandshake className="mr-2 text-blue-500" /> Contato com RH
+                    </label>
+                    {renderStars(contatoRH, setContatoRH, commentContatoRH, setCommentContatoRH, "Contato com RH")}
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+                      <FaMoneyBillWave className="mr-2 text-green-500" /> Salário e Benefícios
+                    </label>
+                    {renderStars(salarioBeneficios, setSalarioBeneficios, commentSalarioBeneficios, setCommentSalarioBeneficios, "Salário e Benefícios")}
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+                      <FaBuilding className="mr-2 text-gray-500" /> Estrutura da Empresa
+                    </label>
+                    {renderStars(estruturaEmpresa, setEstruturaEmpresa, commentEstruturaEmpresa, setCommentEstruturaEmpresa, "Estrutura da Empresa")}
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+                      <FaUserTie className="mr-2 text-purple-500" /> Acessibilidade da Liderança
+                    </label>
+                    {renderStars(acessibilidadeLideranca, setAcessibilidadeLideranca, commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca, "Acessibilidade da Liderança")}
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+                      <FaBriefcase className="mr-2 text-orange-500" /> Plano de Carreira
+                    </label>
+                    {renderStars(planoCarreiras, setPlanoCarreiras, commentPlanoCarreiras, setCommentPlanoCarreiras, "Plano de Carreira")}
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+                      <FaHeart className="mr-2 text-red-500" /> Bem-estar
+                    </label>
+                    {renderStars(bemestar, setBemestar, commentBemestar, setCommentBemestar, "Bem-estar")}
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center mb-2 md:mb-0">
+                      <FaLightbulb className="mr-2 text-yellow-400" /> Estímulo e Organização
+                    </label>
+                    {renderStars(estimulacaoOrganizacao, setEstimulacaoOrganizacao, commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao, "Estímulo e Organização")}
+                  </div>
+
                 </div>
 
-                {/* Comentário Geral */}
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm">
-                  <label htmlFor="general-comment" className="font-semibold text-slate-700 mb-3 block">
-                    Comentário Geral:
+                <div className="mb-6">
+                  <label className="block text-slate-700 font-semibold mb-2">
+                    Comentário Geral
                   </label>
                   <textarea
-                    id="general-comment"
                     className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[100px]"
                     placeholder="Escreva seu comentário geral sobre a empresa..."
                     value={generalComment}
@@ -365,33 +361,38 @@ function TrabalheiLaDesktop({
                 </div>
 
                 {error && (
-                  <p className="text-red-600 text-center font-medium my-4">{error}</p>
+                  <p className="text-red-600 text-center font-medium mb-4">{error}</p>
                 )}
 
-                <div className="text-center mt-6">
+                <div className="text-center">
                   <button
                     type="submit"
+                    disabled={!isAuthenticated || isLoading}
                     className={`px-8 py-4 rounded-full font-extrabold text-white text-lg transition-all transform ${
                       isAuthenticated
-                        ? "bg-gradient-to-r from-purple-600 to-violet-600 hover:shadow-2xl hover:scale-[1.02]"
+                        ? "bg-gradient-to-r from-purple-600 to-violet-600 hover:shadow-2xl hover:scale-105"
                         : "bg-slate-400 cursor-not-allowed opacity-60"
                     }`}
-                    disabled={!isAuthenticated || isLoading}
                   >
                     {isLoading ? "Enviando..." : isAuthenticated ? "Enviar avaliação" : "Faça login para avaliar"}
                   </button>
                 </div>
               </form>
             </section>
-
           </div>
 
-          {/* Coluna Direita: Ranking e Outras Avaliações */}
-          <div className="w-full md:w-1/3 flex-shrink-0">
-            <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200">
+          {/* COLUNA DIREITA */}
+          <div className="w-full md:w-1/3">
+            <div className="bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 sticky top-4">
               <div className="flex flex-col items-center mb-5">
-                <h2 className="text-2xl font-bold text-slate-700 text-center mb-3">Ranking - Top Empresas Avaliadas</h2>
-                <img src="/trofeu-new.png" alt="Troféu" className="w-20 h-20 object-contain drop-shadow-lg" />
+                <h2 className="text-xl font-bold text-slate-700 text-center mb-3">
+                  Ranking - Top Empresas
+                </h2>
+                <img
+                  src="/trofeu-new.png"
+                  alt="Troféu"
+                  className="w-16 h-16 object-contain drop-shadow-lg"
+                />
               </div>
 
               {Array.isArray(top3) && top3.length > 0 && (
@@ -399,16 +400,21 @@ function TrabalheiLaDesktop({
                   {top3.map((emp, t) => {
                     const media = calcularMedia(emp);
                     return (
-                      <div key={t} className={`bg-gradient-to-r ${getMedalColor(t)} rounded-2xl p-4 text-white shadow-lg`}>
+                      <div
+                        key={t}
+                        className={`bg-gradient-to-r ${getMedalColor(t)} rounded-2xl p-4 text-white shadow-lg`}
+                      >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <span className="text-3xl">{getMedalEmoji(t)}</span>
+                            <span className="text-2xl">{getMedalEmoji(t)}</span>
                             <div>
-                              <h3 className="font-bold text-base">{emp.company}</h3>
+                              <h3 className="font-bold text-sm">{emp.company}</h3>
                               <p className="text-xs opacity-90">{emp.area} • {emp.periodo}</p>
                             </div>
                           </div>
-                          <div className="bg-white/20 px-3 py-1.5 rounded-full font-bold text-sm">{media} ⭐</div>
+                          <div className="bg-white/20 px-2 py-1 rounded-full font-bold text-sm">
+                            {media} ⭐
+                          </div>
                         </div>
                       </div>
                     );
@@ -416,30 +422,35 @@ function TrabalheiLaDesktop({
                 </div>
               )}
 
-              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
                 {Array.isArray(empresas) && empresas.length === 0 ? (
                   <div className="text-center py-8">
                     <FaChartBar className="text-gray-300 text-5xl mx-auto mb-3" />
-                    <p className="text-gray-500 font-medium text-lg">Nenhuma avaliação ainda</p>
+                    <p className="text-gray-500 font-medium">Nenhuma avaliação ainda</p>
                     <p className="text-sm text-gray-400 mt-2">Seja o primeiro a avaliar!</p>
                   </div>
                 ) : (
                   (empresas || []).slice(3).map((emp, t) => {
                     const media = calcularMedia(emp);
                     return (
-                      <div key={t} className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-4 border-2 border-gray-200 hover:border-purple-400 hover:shadow-xl transition-all cursor-pointer group">
+                      <div
+                        key={t}
+                        className="bg-white rounded-2xl p-4 border-2 border-gray-200 hover:border-purple-400 hover:shadow-xl transition-all cursor-pointer group"
+                      >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
-                            <h3 className="font-bold text-gray-800 group-hover:text-purple-600 transition-colors text-base">{emp.company}</h3>
+                            <h3 className="font-bold text-gray-800 group-hover:text-purple-600 transition-colors text-sm">
+                              {emp.company}
+                            </h3>
                             <p className="text-xs text-gray-500 mt-1">{emp.area} • {emp.periodo}</p>
                           </div>
-                          <div className={`${getBadgeColor(media)} px-3 py-1.5 rounded-full text-white font-bold text-sm shadow-md`}>
+                          <div className={`${getBadgeColor(media)} px-2 py-1 rounded-full text-white font-bold text-xs shadow-md`}>
                             {media} ⭐
                           </div>
                         </div>
                         {emp.comment && (
-                          <p className="text-sm text-gray-600 italic border-t border-gray-200 pt-2 mt-2">
-                            "{emp.comment.substring(0, 100)}{emp.comment.length > 100 ? "..." : ""}"
+                          <p className="text-xs text-gray-600 italic border-t border-gray-200 pt-2 mt-2">
+                            "{emp.comment.substring(0, 80)}{emp.comment.length > 80 ? "..." : ""}"
                           </p>
                         )}
                       </div>
@@ -449,19 +460,24 @@ function TrabalheiLaDesktop({
               </div>
 
               <style>{`
-                .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+                .custom-scrollbar::-webkit-scrollbar { width: 6px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #8b5cf6, #ec4899); border-radius: 10px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: linear-gradient(to bottom, #7c3aed, #db2777); }
               `}</style>
             </div>
           </div>
+
         </div>
 
-        <footer className="w-full max-w-4xl px-6 py-8 text-center">
+        {/* FOOTER */}
+        <footer className="w-full px-6 py-8 text-center">
           <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-5 border border-white/20">
             <p className="text-slate-700 text-sm">
-              <a href="/politica-de-privacidade.html" className="text-indigo-700 hover:text-indigo-900 font-extrabold underline">
+              <a
+                href="/politica-de-privacidade.html"
+                className="text-indigo-700 hover:text-indigo-900 font-extrabold underline"
+              >
                 Política de Privacidade
               </a>
               {" • "}
@@ -469,6 +485,7 @@ function TrabalheiLaDesktop({
             </p>
           </div>
         </footer>
+
       </div>
     </div>
   );
