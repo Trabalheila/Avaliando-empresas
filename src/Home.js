@@ -88,7 +88,6 @@ function Home() {
   };
 
   const linkedInClientId = "86l0151f148013";
-  const linkedInDisabled = !linkedInClientId;
 
   const handleGoogleLogin = () => {
     setIsLoading(true);
@@ -96,11 +95,10 @@ function Home() {
     setTimeout(() => {
       setIsAuthenticated(true);
       setIsLoading(false);
-    }, 1500);
+    }, 1000);
   };
 
-  const handleLinkedInLogin = (response) => {
-    console.log("LinkedIn login:", response);
+  const handleLinkedInLogin = () => {
     setIsAuthenticated(true);
   };
 
@@ -140,11 +138,15 @@ function Home() {
   };
 
   const safeCompanyOptions = empresas.map((e) => ({ value: e.company, label: e.company }));
-  const selectedCompanyData = company && empresas.find((e) => e.company === (typeof company === "object" ? company.value : company));
+  const selectedCompanyData = company && empresas.find(
+    (e) => e.company === (typeof company === "object" ? company.value : company)
+  );
 
   const commonProps = {
-    company, setCompany, newCompany, setNewCompany,
-    rating, setRating, contatoRH, setContatoRH,
+    company, setCompany,
+    newCompany, setNewCompany,
+    rating, setRating,
+    contatoRH, setContatoRH,
     salarioBeneficios, setSalarioBeneficios,
     estruturaEmpresa, setEstruturaEmpresa,
     acessibilidadeLideranca, setAcessibilidadeLideranca,
@@ -162,8 +164,8 @@ function Home() {
     generalComment, setGeneralComment,
     handleSubmit, isLoading, empresas, top3,
     showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany,
-    linkedInClientId, linkedInDisabled, handleLinkedInLogin,
-    handleGoogleLogin, error, isAuthenticated,
+    linkedInClientId, handleLinkedInLogin, handleGoogleLogin,
+    error, isAuthenticated,
     selectedCompanyData, calcularMedia,
     getMedalColor, getMedalEmoji, getBadgeColor,
     safeCompanyOptions,

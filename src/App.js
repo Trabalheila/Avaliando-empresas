@@ -1,6 +1,7 @@
-import './App.css'; // Pode ser usado para estilos globais ou específicos do App
-import { Routes, Route } from 'react-router-dom'; // Importa componentes de roteamento
-import Home from './Home'; // Importa o seu componente Home
+import './App.css';
+import { Routes, Route } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+import Home from './Home';
 
 function CompanyDetailPage() {
   return (
@@ -12,12 +13,14 @@ function CompanyDetailPage() {
 
 function App() {
   return (
-    <div className="App">
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/empresa/:companyName" element={<CompanyDetailPage />} />
-      </Routes>
-    </div>
+    <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || ""}>
+      <div className="App">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/empresa/:companyName" element={<CompanyDetailPage />} />
+        </Routes>
+      </div>
+    </GoogleOAuthProvider>
   );
 }
 

@@ -1,15 +1,19 @@
 import React from "react";
-import { FaStar, FaChartBar, FaHandshake, FaMoneyBillWave, FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb, FaPlus } from "react-icons/fa";
+import {
+  FaStar, FaChartBar, FaHandshake, FaMoneyBillWave,
+  FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb, FaPlus,
+} from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import Select from "react-select";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
 
-function OutlinedStar({ active, onClick, size = 18, label }) {
+function OutlinedStar({ active, onClick, size = 20, label }) {
+  const outlineScale = 1.24;
   return (
     <button type="button" onClick={onClick} aria-label={label} title={label}
       style={{ padding: 0, margin: 0, border: 0, background: "transparent", cursor: "pointer", lineHeight: 0 }}>
       <span style={{ position: "relative", display: "inline-block", width: size, height: size, verticalAlign: "middle" }}>
-        <span style={{ position: "absolute", left: 0, top: 0, transform: "scale(1.24)", transformOrigin: "center" }} aria-hidden="true">
+        <span style={{ position: "absolute", left: 0, top: 0, transform: `scale(${outlineScale})`, transformOrigin: "center" }} aria-hidden="true">
           <FaStar size={size} color="#000" />
         </span>
         <span style={{ position: "relative" }} aria-hidden="true">
@@ -21,8 +25,10 @@ function OutlinedStar({ active, onClick, size = 18, label }) {
 }
 
 function TrabalheiLaDesktop({
-  company, setCompany, newCompany, setNewCompany,
-  rating, setRating, contatoRH, setContatoRH,
+  company, setCompany,
+  newCompany, setNewCompany,
+  rating, setRating,
+  contatoRH, setContatoRH,
   salarioBeneficios, setSalarioBeneficios,
   estruturaEmpresa, setEstruturaEmpresa,
   acessibilidadeLideranca, setAcessibilidadeLideranca,
@@ -38,28 +44,66 @@ function TrabalheiLaDesktop({
   commentBemestar, setCommentBemestar,
   commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao,
   generalComment, setGeneralComment,
-  handleSubmit, isLoading, empresas, top3,
-  showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany,
-  linkedInClientId, handleLinkedInLogin, handleGoogleLogin,
-  error, isAuthenticated, selectedCompanyData, calcularMedia,
-  getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
+  handleSubmit, isLoading,
+  empresas, top3,
+  showNewCompanyInput, setShowNewCompanyInput,
+  handleAddNewCompany,
+  linkedInClientId,
+  handleLinkedInLogin, handleGoogleLogin,
+  error, isAuthenticated,
+  selectedCompanyData,
+  safeCompanyOptions,
 }) {
+  const calcularMedia = (emp) => {
+    if (!emp) return 0;
+    const sum = emp.rating + emp.contatoRH + emp.salarioBeneficios +
+      emp.estruturaEmpresa + emp.acessibilidadeLideranca +
+      emp.planoCarreiras + emp.bemestar + emp.estimulacaoOrganizacao;
+    return (sum / 8).toFixed(1);
+  };
+
+  const getBadgeColor = (media) => {
+    if (media >= 4.5) return "bg-green-500";
+    if (media >= 3.5) return "bg-yellow-500";
+    return "bg-red-500";
+  };
+
+  const getMedalColor = (index) => {
+    if (index === 0) return "from-yellow-400 to-yellow-600";
+    if (index === 1) return "from-gray-300 to-gray-500";
+    if (index === 2) return "from-orange-300 to-orange-500";
+    return "from-blue-300 to-blue-500";
+  };
+
+  const getMedalEmoji = (index) => {
+    if (index === 0) return "🥇";
+    if (index === 1) return "🥈";
+    if (index === 2) return "🥉";
+    return "🏅";
+  };
+
+  const companyNote = selectedCompanyData ? calcularMedia(selectedCompanyData) : "—";
+
   const selectStyles = {
     control: (base, state) => ({
-      ...base, borderRadius: "0.75rem", padding: "0.25rem",
+      ...base,
+      borderRadius: "0.75rem",
+      padding: "0.25rem",
       borderColor: state.isFocused ? "#1d4ed8" : "#e5e7eb",
       boxShadow: state.isFocused ? "0 0 0 1px #1d4ed8" : "none",
-      "&:hover": { borderColor: "#93c5fd" },
+      "&:hover": { borderColor: state.isFocused ? "#1d4ed8" : "#d1d5db" },
     }),
     option: (base, state) => ({
-      ...base, backgroundColor: state.isFocused ? "#dbeafe" : "white", color: "#1e3a8a",
+      ...base,
+      backgroundColor: state.isFocused ? "#dbeafe" : "white",
+      color: "#1e3a8a",
     }),
     singleValue: (base) => ({ ...base, color: "#1e3a8a" }),
     placeholder: (base) => ({ ...base, color: "#9ca3af" }),
   };
 
   const renderStars = (value, setValue, commentValue, setCommentValue, label) => (
-    <div className="flex flex-col items-end w-2/3">
+    <div className="flex flex-col items-end w-full md:w-2/3">
       <div className="flex items-center space-x-1 mb-2">
         {[...Array(5)].map((_, i) => (
           <OutlinedStar key={i} active={i < value} onClick={() => setValue(i + 1)} label={`${i + 1} estrelas para ${label}`} />
@@ -74,8 +118,6 @@ function TrabalheiLaDesktop({
       />
     </div>
   );
-
-  const companyNote = selectedCompanyData ? calcularMedia(selectedCompanyData) : "0.0";
 
   const campos = [
     { label: "Cultura e Valores", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FaStar className="text-yellow-400" /> },
@@ -137,7 +179,7 @@ function TrabalheiLaDesktop({
               <h2 className="text-2xl font-bold text-blue-800 text-center mb-6 font-azonix">Login para Avaliar</h2>
               <div className="flex flex-col space-y-4">
                 <button onClick={handleGoogleLogin}
-                  className="w-full flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105">
+                  className="flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105">
                   <FcGoogle className="mr-3 text-2xl" />
                   Entrar com Google
                 </button>
