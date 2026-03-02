@@ -1,9 +1,11 @@
 // src/TrabalheiLaDesktop.js
-import React, { useState } from 'react';
-import { FaHandshake, FaMoneyBillWave, FaChartLine, FaLightbulb, FaPlus, FaMinus, FaChartBar, FaBuilding, FaCheckCircle } from 'react-icons/fa';
-import Select from 'react-select';
-import LoginLinkedInButton from './components/LoginLinkedInButton';
-import OutlinedStar from './components/OutlinedStar'; // Importa o componente OutlinedStar
+import React, { useState } from "react";
+import {
+  FaStar, FaChartBar, FaHandshake, FaMoneyBillWave, FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb, FaPlus, FaMinus, FaCheckCircle
+} from "react-icons/fa";
+import Select from "react-select";
+import LoginLinkedInButton from "./components/LoginLinkedInButton";
+import OutlinedStar from "./components/OutlinedStar"; // Caminho corrigido
 
 function TrabalheiLaDesktop({
   empresas,
@@ -20,7 +22,7 @@ function TrabalheiLaDesktop({
   getMedalColor,
   getMedalEmoji,
 }) {
-  const [company, setCompany] = useState(null);
+  const [company, setCompany] = useState(null); // Usar null para Select
   const [newCompany, setNewCompany] = useState('');
   const [showNewCompanyInput, setShowNewCompanyInput] = useState(false);
   const [contatoRH, setContatoRH] = useState(0);
@@ -37,8 +39,6 @@ function TrabalheiLaDesktop({
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showCommentInput, setShowCommentInput] = useState({});
-
-  const companyNote = calcularMedia(empresas[0] || {}); // Exemplo, pegando a primeira empresa
 
   const renderStars = (currentRating, setRating, currentComment, setComment, label) => (
     <div className="flex items-center gap-2">
@@ -81,7 +81,7 @@ function TrabalheiLaDesktop({
   const campos = [
     { label: "Contato com RH", value: contatoRH, set: setContatoRH, comment: commentContatoRH, setComment: setCommentContatoRH, icon: <FaHandshake className="text-blue-500" /> },
     { label: "Salário e Benefícios", value: salarioBeneficios, set: setSalarioBeneficios, comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios, icon: <FaMoneyBillWave className="text-green-500" /> },
-    { label: "Oportunidade de Crescimento", value: oportunidadeCrescimento, set: setOportunidadeCrescimento, comment: commentOportunidadeCrescimento, setComment: setCommentOportunidadeCrescimento, icon: <FaChartLine className="text-purple-500" /> },
+    { label: "Oportunidade de Crescimento", value: oportunidadeCrescimento, set: setOportunidadeCrescimento, comment: commentOportunidadeCrescimento, setComment: setCommentOportunidadeCrescimento, icon: <FaChartBar className="text-purple-500" /> },
     { label: "Cultura e Valores", value: culturaValores, set: setCulturaValores, comment: commentCulturaValores, setComment: setCommentCulturaValores, icon: <FaBuilding className="text-yellow-500" /> },
     { label: "Estímulo e Organização", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-orange-500" /> },
   ];
@@ -91,10 +91,13 @@ function TrabalheiLaDesktop({
       const newCompanyObj = {
         id: empresas.length + 1,
         company: newCompany,
+        area: "Não informado", // Valores padrão
+        periodo: "Não informado",
+        description: "Não informado",
         ratings: [],
       };
       setEmpresas([...empresas, newCompanyObj]);
-      setCompany({ value: newCompany, label: newCompany });
+      setCompany({ value: newCompanyObj.company, label: newCompanyObj.company });
       setNewCompany('');
       setShowNewCompanyInput(false);
       setError('');
@@ -165,35 +168,22 @@ function TrabalheiLaDesktop({
     alert('Avaliação enviada com sucesso!');
   };
 
-  const safeCompanyOptions = Array.isArray(empresas) ? empresas.map(emp => ({ value: emp.company, label: emp.company })) : [];
+  const safeCompanyOptions = empresas.map(emp => ({ value: emp.company, label: emp.company }));
 
   const selectStyles = {
     control: (provided) => ({
       ...provided,
       borderRadius: '0.75rem', // rounded-xl
-      padding: '0.25rem', // p-3
-      borderColor: '#d1d5db', // border-gray-300
+      padding: '0.25rem', // p-1
+      borderColor: '#d1d5db', // gray-300
+      '&:hover': { borderColor: '#93c5fd' }, // blue-300
       boxShadow: 'none',
-      '&:hover': {
-        borderColor: '#93c5fd', // hover:border-blue-300
-      },
-      '&:focus': {
-        borderColor: '#3b82f6', // focus:ring-blue-500
-        boxShadow: '0 0 0 1px #3b82f6',
-      },
+      '&:focus': { boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.5)' }, // ring-2 ring-blue-500
     }),
     option: (provided, state) => ({
       ...provided,
-      backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#eff6ff' : null,
-      color: state.isSelected ? 'white' : '#1f2937',
-    }),
-    singleValue: (provided) => ({
-      ...provided,
-      color: '#1f2937',
-    }),
-    placeholder: (provided) => ({
-      ...provided,
-      color: '#9ca3af',
+      backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#eff6ff' : null, // blue-500, blue-50
+      color: state.isSelected ? 'white' : '#1f2937', // white, gray-800
     }),
   };
 
@@ -201,46 +191,55 @@ function TrabalheiLaDesktop({
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 flex flex-col items-center py-8 px-4">
       <div className="max-w-6xl w-full space-y-8">
 
-        {/* HEADER */}
-        <header className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-3xl shadow-2xl p-8 text-white flex items-center justify-between mb-6">
+        {/* HEADER (DESIGN DO MOBILE APLICADO AO DESKTOP) */}
+        <header className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-3xl shadow-2xl p-6 mb-6 text-white flex justify-between items-center">
+          {/* Logo e Nota */}
           <div className="flex items-center gap-4">
-            <div className="w-20 h-20 bg-white/20 rounded-2xl flex flex-col items-center justify-center text-purple-100">
-              <FaBuilding size={30} />
+            <div className="bg-white/20 p-3 rounded-xl flex flex-col items-center justify-center text-purple-100">
+              <FaBuilding size={24} />
               <span className="text-xs mt-1">Logo da Empresa</span>
             </div>
-            <div className="text-center">
+            <div>
               <p className="text-4xl font-extrabold font-azonix">TRABALHEI LÁ</p>
-              <p className="text-lg mt-1">Sua opinião é anônima e ajuda outros profissionais</p>
+              <p className="text-base mt-1">Sua opinião é anônima e ajuda outros profissionais</p>
               <p className="text-sm opacity-80">Avaliações anônimas feitas por profissionais verificados.</p>
             </div>
           </div>
 
+          {/* Botão e Checkmarks */}
           <div className="flex flex-col items-end gap-3">
-            <button className="bg-white text-purple-700 font-bold py-3 px-6 rounded-full shadow-lg hover:scale-105 transition-transform text-lg">
+            <button className="bg-white text-purple-700 font-bold py-2 px-5 rounded-full shadow-lg hover:scale-105 transition-transform text-base">
               CLIQUE E SAIBA MAIS
             </button>
-            <div className="flex flex-col gap-1 text-sm">
-              <span className="flex items-center gap-2"><FaCheckCircle className="text-green-300" /> Anônimo</span>
-              <span className="flex items-center gap-2"><FaCheckCircle className="text-green-300" /> Verificado</span>
-              <span className="flex items-center gap-2"><FaCheckCircle className="text-green-300" /> Confiável</span>
+            <div className="flex flex-col items-end gap-1 text-sm">
+              <span className="flex items-center gap-1"><FaCheckCircle className="text-green-300" /> Anônimo</span>
+              <span className="flex items-center gap-1"><FaCheckCircle className="text-green-300" /> Verificado</span>
+              <span className="flex items-center gap-1"><FaCheckCircle className="text-green-300" /> Confiável</span>
             </div>
           </div>
         </header>
 
         {/* CONTEÚDO - 2 COLUNAS */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div className="lg:grid lg:grid-cols-2 lg:gap-8">
 
           {/* COLUNA ESQUERDA */}
           <div>
-
             {/* LOGIN */}
             <section className="bg-white rounded-3xl shadow-xl p-6 mb-6 border border-blue-100">
-              <h2 className="text-2xl font-bold text-blue-800 text-center mb-6 font-azonix">Login para Avaliar</h2>
+              <h2 className="text-2xl font-bold text-blue-800 text-center mb-6">Login para Avaliar</h2>
               <div className="flex flex-col space-y-4">
                 <LoginLinkedInButton
+                  onLoginSuccess={(userData) => {
+                    console.log('Login LinkedIn bem-sucedido:', userData);
+                    setIsAuthenticated(true);
+                    setError('');
+                  }}
+                  onLoginFailure={(err) => {
+                    console.error('Erro no login LinkedIn:', err);
+                    setError('Falha no login com LinkedIn. Tente novamente.');
+                    setIsAuthenticated(false);
+                  }}
                   clientId={linkedInClientId}
-                  onSuccess={handleLinkedInLogin}
-                  onError={(e) => console.error(e)}
                   redirectUri={linkedInRedirectUri}
                 />
               </div>
@@ -251,7 +250,7 @@ function TrabalheiLaDesktop({
 
             {/* FORMULÁRIO */}
             <section className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100">
-              <h2 className="text-2xl font-bold text-blue-800 text-center mb-6 font-azonix">Avalie uma Empresa</h2>
+              <h2 className="text-2xl font-bold text-blue-800 text-center mb-6">Avalie uma Empresa</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
 
                 <div>
@@ -266,8 +265,14 @@ function TrabalheiLaDesktop({
                   />
                 </div>
 
+                <button type="button" onClick={() => setShowNewCompanyInput(!showNewCompanyInput)}
+                  className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow transition-all">
+                  <FaPlus />
+                  {showNewCompanyInput ? "Cancelar" : "Adicionar Nova Empresa"}
+                </button>
+
                 {showNewCompanyInput && (
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 mt-2">
                     <input type="text"
                       className="flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Nome da nova empresa"
@@ -280,12 +285,6 @@ function TrabalheiLaDesktop({
                     </button>
                   </div>
                 )}
-
-                <button type="button" onClick={() => setShowNewCompanyInput(!showNewCompanyInput)}
-                  className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow transition-all">
-                  <FaPlus />
-                  {showNewCompanyInput ? "Cancelar" : "Adicionar Nova Empresa"}
-                </button>
 
                 {campos.map((campo, idx) => (
                   <div key={idx} className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
@@ -322,9 +321,9 @@ function TrabalheiLaDesktop({
           </div>
 
           {/* COLUNA DIREITA - RANKING */}
-          <div className="w-full"> {/* Alterado de w-80 para w-full para melhor responsividade */}
+          <div className="w-full">
             <div className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100 sticky top-6">
-              <h2 className="text-xl font-bold text-blue-800 text-center mb-4 font-azonix">🏆 Ranking de Empresas</h2>
+              <h2 className="text-xl font-bold text-blue-800 text-center mb-4">🏆 Ranking de Empresas</h2>
 
               {Array.isArray(top3) && top3.length > 0 && (
                 <div className="mb-4 space-y-2">
