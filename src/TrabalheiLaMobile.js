@@ -1,7 +1,8 @@
+// src/TrabalheiLaMobile.js
 import React, { useState } from 'react';
-import { FaGoogle, FaLinkedinIn, FaHandshake, FaMoneyBillWave, FaChartLine, FaLightbulb, FaPlus, FaMinus, FaChartBar, FaBuilding } from 'react-icons/fa';
-import LoginLinkedInButton from './LoginLinkedInButton'; // Certifique-se de que o caminho está correto
-import OutlinedStar from './OutlinedStar'; // Certifique-se de que o caminho está correto
+import { FaGoogle, FaLinkedinIn, FaHandshake, FaMoneyBillWave, FaChartLine, FaLightbulb, FaPlus, FaMinus, FaChartBar, FaBuilding, FaCheckCircle } from 'react-icons/fa';
+import LoginLinkedInButton from './components/LoginLinkedInButton'; // Caminho corrigido
+import OutlinedStar from './components/OutlinedStar'; // Caminho corrigido
 
 function TrabalheiLaMobile({
   empresas,
@@ -37,6 +38,15 @@ function TrabalheiLaMobile({
   const [isLoading, setIsLoading] = useState(false);
   const [showCommentInput, setShowCommentInput] = useState({});
   const [showAddNewCompany, setShowAddNewCompany] = useState(false);
+
+  // Array de campos de avaliação definido fora do JSX de retorno
+  const campos = [
+    { label: "Contato com RH", value: contatoRH, set: setContatoRH, comment: commentContatoRH, setComment: setCommentContatoRH, icon: <FaHandshake className="text-blue-500" /> },
+    { label: "Salário e Benefícios", value: salarioBeneficios, set: setSalarioBeneficios, comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios, icon: <FaMoneyBillWave className="text-green-500" /> },
+    { label: "Oportunidade de Crescimento", value: oportunidadeCrescimento, set: setOportunidadeCrescimento, comment: commentOportunidadeCrescimento, setComment: setCommentOportunidadeCrescimento, icon: <FaChartLine className="text-purple-500" /> },
+    { label: "Cultura e Valores", value: culturaValores, set: setCulturaValores, comment: commentCulturaValores, setComment: setCommentCulturaValores, icon: <FaBuilding className="text-red-500" /> },
+    { label: "Estímulo e Organização", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-orange-500" /> },
+  ];
 
   const renderStars = (currentRating, setRating, currentComment, setComment, label) => (
     <div className="flex items-center gap-2">
@@ -99,22 +109,20 @@ function TrabalheiLaMobile({
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erro ao adicionar empresa.');
+      const data = await response.json();
+      if (response.ok) {
+        setEmpresas(prev => [...prev, data.newCompany]);
+        setSelectedCompany({ value: data.newCompany.company, label: data.newCompany.company });
+        setNewCompanyName('');
+        setNewCompanyArea('');
+        setNewCompanyPeriodo('');
+        setNewCompanyDescription('');
+        setShowAddNewCompany(false);
+      } else {
+        setError(data.message || 'Erro ao adicionar nova empresa.');
       }
-
-      const newCompany = await response.json();
-      setEmpresas(prev => [...prev, newCompany]);
-      setSelectedCompany(newCompany.company);
-      setShowAddNewCompany(false);
-      setNewCompanyName('');
-      setNewCompanyArea('');
-      setNewCompanyPeriodo('');
-      setNewCompanyDescription('');
-      setError('');
     } catch (err) {
-      setError(err.message);
+      setError('Erro de rede ao adicionar nova empresa.');
     } finally {
       setIsLoading(false);
     }
@@ -123,30 +131,29 @@ function TrabalheiLaMobile({
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedCompany) {
-      setError('Por favor, selecione ou adicione uma empresa.');
+      setError('Por favor, selecione uma empresa para avaliar.');
       return;
     }
-    if (!isAuthenticated) {
-      setError('Você precisa estar logado para enviar uma avaliação.');
-      return;
-    }
-
     setIsLoading(true);
     setError('');
 
     const evaluationData = {
-      company: selectedCompany,
-      contatoRH,
-      salarioBeneficios,
-      oportunidadeCrescimento,
-      culturaValores,
-      estimulacaoOrganizacao,
-      commentContatoRH,
-      commentSalarioBeneficios,
-      commentOportunidadeCrescimento,
-      commentCulturaValores,
-      commentEstimulacaoOrganizacao,
-      generalComment,
+      company: selectedCompany.value,
+      ratings: {
+        contatoRH,
+        salarioBeneficios,
+        oportunidadeCrescimento,
+        culturaValores,
+        estimulacaoOrganizacao,
+      },
+      comments: {
+        commentContatoRH,
+        commentSalarioBeneficios,
+        commentOportunidadeCrescimento,
+        commentCulturaValores,
+        commentEstimulacaoOrganizacao,
+        generalComment,
+      },
     };
 
     try {
@@ -154,56 +161,48 @@ function TrabalheiLaMobile({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('linkedin_access_token')}`, // Exemplo de como enviar o token
         },
         body: JSON.stringify(evaluationData),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erro ao enviar avaliação.');
+      const data = await response.json();
+      if (response.ok) {
+        alert('Avaliação enviada com sucesso!');
+        // Resetar formulário
+        setSelectedCompany(null);
+        setContatoRH(0);
+        setSalarioBeneficios(0);
+        setOportunidadeCrescimento(0);
+        setCulturaValores(0);
+        setEstimulacaoOrganizacao(0);
+        setCommentContatoRH('');
+        setCommentSalarioBeneficios('');
+        setCommentOportunidadeCrescimento('');
+        setCommentCulturaValores('');
+        setCommentEstimulacaoOrganizacao('');
+        setGeneralComment('');
+        setShowCommentInput({});
+        // Atualizar lista de empresas ou ranking se necessário
+      } else {
+        setError(data.message || 'Erro ao enviar avaliação.');
       }
-
-      alert('Avaliação enviada com sucesso!');
-      // Resetar formulário
-      setContatoRH(0);
-      setSalarioBeneficios(0);
-      setOportunidadeCrescimento(0);
-      setCulturaValores(0);
-      setEstimulacaoOrganizacao(0);
-      setCommentContatoRH('');
-      setCommentSalarioBeneficios('');
-      setCommentOportunidadeCrescimento('');
-      setCommentCulturaValores('');
-      setCommentEstimulacaoOrganizacao('');
-      setGeneralComment('');
-      setSelectedCompany('');
-      setShowCommentInput({});
-      // Atualizar lista de empresas ou ranking se necessário
     } catch (err) {
-      setError(err.message);
+      setError('Erro de rede ao enviar avaliação.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Definição do array campos *fora* do JSX de retorno
-  const campos = [
-    { label: "Contato com RH", value: contatoRH, set: setContatoRH, comment: commentContatoRH, setComment: setCommentContatoRH, icon: <FaHandshake className="text-blue-500" /> },
-    { label: "Salário e Benefícios", value: salarioBeneficios, set: setSalarioBeneficios, comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios, icon: <FaMoneyBillWave className="text-green-500" /> },
-    { label: "Oportunidade de Crescimento", value: oportunidadeCrescimento, set: setOportunidadeCrescimento, comment: commentOportunidadeCrescimento, setComment: setCommentOportunidadeCrescimento, icon: <FaChartLine className="text-teal-500" /> },
-    { label: "Cultura e Valores", value: culturaValores, set: setCulturaValores, comment: commentCulturaValores, setComment: setCommentCulturaValores, icon: <FaBuilding className="text-indigo-500" /> },
-    { label: "Estímulo e Organização", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-orange-500" /> },
-  ];
+  const companyOptions = empresas.map(emp => ({ value: emp.company, label: emp.company }));
 
   return (
-    <div className="min-h-screen bg-gray-100 font-sans text-gray-800">
-      <div className="max-w-md mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 p-4">
+      <div className="max-w-md mx-auto"> {/* Max-width ajustado para mobile */}
 
-        {/* HEADER (MOBILE) - Adaptado do Desktop */}
+        {/* HEADER (ADAPTADO DO DESKTOP PARA MOBILE) */}
         <header className="bg-gradient-to-r from-indigo-700 via-purple-600 to-pink-500 rounded-3xl shadow-2xl p-6 mb-6 text-white">
-          <div className="flex flex-col items-center text-center">
-            <div className="flex items-center justify-center mb-4">
+          <div className="flex flex-col items-center text-center"> {/* flex-col para mobile */}
+            <div className="flex items-center justify-center mb-4"> {/* Centered logo/score */}
               <div className="bg-white/20 p-3 rounded-xl mr-3">
                 <FaBuilding className="text-white text-3xl" />
                 <p className="text-xs mt-1">Logo da Empresa</p>
@@ -211,162 +210,157 @@ function TrabalheiLaMobile({
               <p className="text-3xl font-extrabold">0.0/5 NOTA</p>
             </div>
 
-            <h1 className="text-4xl font-extrabold mb-2" style={{ fontFamily: 'Azonix, sans-serif' }}>TRABALHEI LÁ</h1>
+            <h1 className="text-4xl font-extrabold mb-2 font-azonix">TRABALHEI LÁ</h1>
             <p className="text-lg mb-2">Sua opinião é anônima e ajuda outros profissionais</p>
             <p className="text-sm mb-4">Avaliações anônimas feitas por profissionais verificados.</p>
 
-            <button className="bg-white text-purple-700 font-bold py-3 px-6 rounded-full shadow-lg hover:bg-gray-100 transition-all transform hover:scale-105 mb-6">
+            <div className="flex flex-col gap-2 mb-4"> {/* flex-col para os checks no mobile */}
+              <span className="flex items-center justify-center text-sm font-semibold"><FaCheckCircle className="text-green-300 mr-1" /> Anônimo</span>
+              <span className="flex items-center justify-center text-sm font-semibold"><FaCheckCircle className="text-green-300 mr-1" /> Verificado</span>
+              <span className="flex items-center justify-center text-sm font-semibold"><FaCheckCircle className="text-green-300 mr-1" /> Confiável</span>
+            </div>
+
+            <button className="bg-white text-purple-700 font-bold py-3 px-6 rounded-full shadow-lg hover:bg-gray-100 transition-all transform hover:scale-105">
               CLIQUE E SAIBA MAIS
             </button>
-
-            <div className="flex flex-col space-y-2 text-white font-semibold text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-green-300 text-xl">✓</span>
-                <span>Avaliações Anônimas</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-green-300 text-xl">✓</span>
-                <span>Dados Verificados</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-green-300 text-xl">✓</span>
-                <span>Comunidade Ativa</span>
-              </div>
-            </div>
           </div>
         </header>
 
         <div className="space-y-6">
-          {/* SEÇÃO DE FORMULÁRIO (MOBILE) */}
-          <section className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100">
-            <h2 className="text-2xl font-bold text-blue-800 text-center mb-6">Avalie uma Empresa</h2>
+          {/* SEÇÃO PRINCIPAL DE AVALIAÇÃO (MOBILE) */}
+          <div className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100">
+            <section className="mb-6">
+              <h2 className="text-2xl font-bold text-blue-800 mb-5 text-center">Avalie uma Empresa</h2>
 
-            {/* Botões de Login */}
-            <div className="flex flex-col gap-4 mb-6 justify-center">
-              <button className="flex items-center justify-center bg-red-600 text-white font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-red-700 transition-all transform hover:scale-105">
-                <FaGoogle className="mr-2" /> Entrar com Google
-              </button>
-              <LoginLinkedInButton
-                clientId={linkedInClientId}
-                redirectUri={linkedInRedirectUri}
-                onLoginSuccess={handleLinkedInLogin}
-                onLoginFailure={(error) => {
-                  console.error('LinkedIn login failed:', error);
-                  setError('Falha no login com LinkedIn. Tente novamente.');
-                }}
-                className="flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-blue-800 transition-all transform hover:scale-105"
-              />
-            </div>
+              {/* Login para Avaliar */}
+              <div className="mb-6 p-5 bg-blue-50 rounded-2xl border border-blue-100 text-center">
+                <h3 className="text-lg font-semibold text-blue-700 mb-3">Login para Avaliar</h3>
+                <div className="flex flex-col gap-3">
+                  <LoginLinkedInButton
+                    clientId={linkedInClientId}
+                    redirectUri={linkedInRedirectUri}
+                    onLoginSuccess={handleLinkedInLogin}
+                    onLoginFailure={(err) => setError(`Erro no login com LinkedIn: ${err.message}`)}
+                    className="flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-5 rounded-xl shadow-sm hover:bg-blue-800 transition-all transform hover:scale-105 text-sm"
+                  />
+                  <button
+                    // onClick={handleGoogleLogin} // Descomente se tiver a função handleGoogleLogin
+                    className="flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-5 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105 text-sm"
+                  >
+                    <FaGoogle className="mr-2 text-lg" /> Entrar com Google
+                  </button>
+                </div>
+              </div>
 
-            {/* Seleção de Empresa */}
-            <div className="mb-6">
-              <label htmlFor="company-select" className="text-slate-700 font-semibold text-base block mb-2">
-                Selecione a Empresa
-              </label>
-              <select
-                id="company-select"
-                className="w-full p-3 border border-gray-300 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-purple-500"
-                value={selectedCompany}
-                onChange={(e) => setSelectedCompany(e.target.value)}
-              >
-                <option value="">-- Selecione uma empresa --</option>
-                {empresas.map((emp, index) => (
-                  <option key={index} value={emp.company}>
-                    {emp.company}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={() => setShowAddNewCompany(!showAddNewCompany)}
-                className="mt-3 w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-xl hover:bg-blue-600 transition-colors"
-              >
-                {showAddNewCompany ? 'Cancelar' : 'Adicionar Nova Empresa'}
-              </button>
+              {/* Seleção de Empresa */}
+              <div className="mb-6">
+                <label className="text-slate-700 font-semibold text-base block mb-2">Empresa que você trabalhou:</label>
+                <Select
+                  options={companyOptions}
+                  value={selectedCompany}
+                  onChange={setSelectedCompany}
+                  placeholder="Selecione ou digite uma empresa..."
+                  isClearable
+                  className="mb-3"
+                />
+                {!selectedCompany && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddNewCompany(!showAddNewCompany)}
+                    className="w-full bg-purple-600 text-white font-bold py-2 px-5 rounded-xl hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 text-sm"
+                  >
+                    <FaPlus /> Adicionar Nova Empresa
+                  </button>
+                )}
+              </div>
 
+              {/* Formulário para Adicionar Nova Empresa */}
               {showAddNewCompany && (
-                <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <h3 className="font-bold text-lg mb-3 text-blue-700">Detalhes da Nova Empresa</h3>
+                <div className="mb-6 p-5 bg-purple-50 rounded-2xl border border-purple-100">
+                  <h3 className="text-lg font-semibold text-purple-700 mb-3">Adicionar Nova Empresa</h3>
                   <input
                     type="text"
+                    className="w-full p-2 border border-gray-300 rounded-xl mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                     placeholder="Nome da Empresa"
-                    className="w-full p-2 border border-gray-300 rounded-md mb-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                     value={newCompanyName}
                     onChange={(e) => setNewCompanyName(e.target.value)}
+                    required
                   />
                   <input
                     type="text"
-                    placeholder="Área de Atuação (Ex: Tecnologia)"
-                    className="w-full p-2 border border-gray-300 rounded-md mb-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full p-2 border border-gray-300 rounded-xl mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                    placeholder="Área de Atuação (Ex: Tecnologia, Finanças)"
                     value={newCompanyArea}
                     onChange={(e) => setNewCompanyArea(e.target.value)}
+                    required
                   />
                   <input
                     type="text"
+                    className="w-full p-2 border border-gray-300 rounded-xl mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                     placeholder="Período de Trabalho (Ex: 2020-2023)"
-                    className="w-full p-2 border border-gray-300 rounded-md mb-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                     value={newCompanyPeriodo}
                     onChange={(e) => setNewCompanyPeriodo(e.target.value)}
+                    required
                   />
                   <textarea
+                    className="w-full p-2 border border-gray-300 rounded-xl mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                     placeholder="Descrição da Empresa (opcional)"
-                    className="w-full p-2 border border-gray-300 rounded-md mb-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    rows="2"
+                    rows="3"
                     value={newCompanyDescription}
                     onChange={(e) => setNewCompanyDescription(e.target.value)}
                   />
                   <button
                     type="button"
                     onClick={handleAddNewCompany}
-                    className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-xl hover:bg-blue-700 transition-colors"
+                    className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-xl hover:bg-blue-700 transition-colors text-sm"
                   >
                     Adicionar Empresa
                   </button>
                 </div>
               )}
-            </div>
 
-            {/* Formulário de Avaliação */}
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-4 mb-6">
-                {campos.map((campo, index) => (
-                  <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-200">
-                    <label className="w-1/3 text-slate-700 font-semibold flex items-center gap-1 text-sm">
-                      {campo.icon} {campo.label}
-                    </label>
-                    {renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label)}
-                  </div>
-                ))}
-              </div>
+              {/* Formulário de Avaliação */}
+              <form onSubmit={handleSubmit}>
+                <div className="space-y-3 mb-5">
+                  {campos.map((campo, index) => (
+                    <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-200">
+                      <label className="w-1/3 text-slate-700 font-semibold flex items-center gap-1 text-xs">
+                        {campo.icon} {campo.label}
+                      </label>
+                      {renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label)}
+                    </div>
+                  ))}
+                </div>
 
-              <div className="mb-5">
-                <label className="text-slate-700 font-semibold text-base block mb-2">Comentário Geral</label>
-                <textarea
-                  className="w-full p-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="Deixe um comentário geral sobre a empresa (opcional)"
-                  rows="3"
-                  value={generalComment}
-                  onChange={(e) => setGeneralComment(e.target.value)}
-                />
-              </div>
+                <div className="mb-4">
+                  <label className="text-slate-700 font-semibold text-base block mb-2">Comentário Geral</label>
+                  <textarea
+                    className="w-full p-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Deixe um comentário geral sobre a empresa (opcional)"
+                    rows="3"
+                    value={generalComment}
+                    onChange={(e) => setGeneralComment(e.target.value)}
+                  />
+                </div>
 
-              {error && <p className="text-red-500 text-center mb-3 text-sm">{error}</p>}
+                {error && <p className="text-red-500 text-center mb-3 text-sm">{error}</p>}
 
-              <div className="text-center">
-                <button
-                  type="submit"
-                  className={`px-6 py-3 rounded-full font-extrabold text-white text-base transition-all transform ${
-                    isAuthenticated
-                      ? "bg-gradient-to-r from-purple-600 to-violet-600 hover:shadow-2xl hover:scale-[1.02]"
-                      : "bg-slate-400 cursor-not-allowed opacity-60"
-                  }`}
-                  disabled={!isAuthenticated || isLoading}
-                >
-                  {isLoading ? "Enviando..." : isAuthenticated ? "Enviar avaliação" : "Faça login para avaliar"}
-                </button>
-              </div>
-            </form>
-          </section>
+                <div className="text-center">
+                  <button
+                    type="submit"
+                    className={`px-5 py-2 rounded-full font-extrabold text-white text-sm transition-all transform ${
+                      isAuthenticated
+                        ? "bg-gradient-to-r from-purple-600 to-violet-600 hover:shadow-2xl hover:scale-[1.02]"
+                        : "bg-slate-400 cursor-not-allowed opacity-60"
+                    }`}
+                    disabled={!isAuthenticated || isLoading}
+                  >
+                    {isLoading ? "Enviando..." : isAuthenticated ? "Enviar avaliação" : "Faça login para avaliar"}
+                  </button>
+                </div>
+              </form>
+            </section>
+          </div>
 
           {/* SEÇÃO DE RANKING (MOBILE) */}
           <div className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100">
