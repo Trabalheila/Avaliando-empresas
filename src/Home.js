@@ -206,28 +206,4 @@ function Home() {
 }
 
 export default Home;
-  const urlParams = new URLSearchParams(window.location.search);
-  const code = urlParams.get("code");
-  const state = urlParams.get("state");
-
-  if (code && state) {
-    fetch("/api/linkedin-auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        code,
-        redirectUri: process.env.REACT_APP_LINKEDIN_REDIRECT_URI,
-      }),
-    })
-      .then((r) => r.json())
-      .then((userData) => {
-        if (userData.error) {
-          setError("Erro no login LinkedIn: " + userData.error);
-        } else {
-          setIsAuthenticated(true);
-          window.history.replaceState({}, document.title, "/");
-        }
-      })
-      .catch(() => setError("Erro ao conectar com LinkedIn."));
-  }
-}, []);
+  
