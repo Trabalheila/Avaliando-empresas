@@ -1,6 +1,6 @@
 // src/TrabalheiLaMobile.js
 import React, { useState } from 'react';
-import { FaHandshake, FaMoneyBillWave, FaChartLine, FaLightbulb, FaPlus, FaMinus, FaChartBar, FaBuilding, FaCheckCircle } from 'react-icons/fa';
+import { FaHandshake, FaMoneyBillWave, FaChartBar, FaLightbulb, FaPlus, FaMinus, FaBuilding, FaCheckCircle } from 'react-icons/fa';
 import Select from 'react-select';
 import LoginLinkedInButton from './components/LoginLinkedInButton';
 import OutlinedStar from './components/OutlinedStar';
@@ -9,7 +9,6 @@ function TrabalheiLaMobile({
   empresas,
   setEmpresas,
   top3,
-  setTop3,
   isAuthenticated,
   setIsAuthenticated,
   handleLinkedInLogin,
@@ -82,7 +81,7 @@ function TrabalheiLaMobile({
   const campos = [
     { label: "Contato com RH", value: contatoRH, set: setContatoRH, comment: commentContatoRH, setComment: setCommentContatoRH, icon: <FaHandshake className="text-blue-500" /> },
     { label: "Salário e Benefícios", value: salarioBeneficios, set: setSalarioBeneficios, comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios, icon: <FaMoneyBillWave className="text-green-500" /> },
-    { label: "Oportunidade de Crescimento", value: oportunidadeCrescimento, set: setOportunidadeCrescimento, comment: commentOportunidadeCrescimento, setComment: setCommentOportunidadeCrescimento, icon: <FaChartLine className="text-purple-500" /> },
+    { label: "Oportunidade de Crescimento", value: oportunidadeCrescimento, set: setOportunidadeCrescimento, comment: commentOportunidadeCrescimento, setComment: setCommentOportunidadeCrescimento, icon: <FaChartBar className="text-purple-500" /> },
     { label: "Cultura e Valores", value: culturaValores, set: setCulturaValores, comment: commentCulturaValores, setComment: setCommentCulturaValores, icon: <FaBuilding className="text-yellow-500" /> },
     { label: "Estímulo e Organização", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-orange-500" /> },
   ];
@@ -181,28 +180,31 @@ function TrabalheiLaMobile({
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 flex flex-col items-center py-8 px-4">
       <div className="max-w-4xl w-full space-y-8">
 
-        {/* HEADER (LAYOUT MOBILE ORIGINAL) */}
-        <header className="bg-white rounded-3xl shadow-xl p-6 mb-6 border border-blue-100 text-center">
+        {/* HEADER (ADAPTADO PARA MOBILE - LAYOUT ORIGINAL, SEM GOOGLE) */}
+        <header className="bg-white rounded-3xl shadow-xl p-6 mb-6 text-blue-800 flex flex-col items-center text-center">
+          {/* Logo e Nota */}
           <div className="flex flex-col items-center gap-2 mb-4">
-            <div className="bg-blue-50 p-2 rounded-xl flex flex-col items-center justify-center text-blue-700">
+            <div className="bg-blue-100 p-2 rounded-xl flex flex-col items-center justify-center text-blue-600">
               <FaBuilding size={20} />
               <span className="text-xs mt-1">Logo da Empresa</span>
             </div>
             <div>
-              <p className="text-3xl font-extrabold text-blue-800 drop-shadow tracking-wide mb-1 font-azonix">TRABALHEI LÁ</p>
-              <p className="text-sm text-blue-600">Sua opinião é anônima e ajuda outros profissionais</p>
-              <p className="text-xs text-blue-400 opacity-80">Avaliações anônimas feitas por profissionais verificados.</p>
+              <p className="text-3xl font-extrabold">TRABALHEI LÁ</p>
+              <p className="text-sm mt-1">Sua opinião é anônima e ajuda outros profissionais</p>
+              <p className="text-xs opacity-80">Avaliações anônimas feitas por profissionais verificados.</p>
             </div>
           </div>
 
-          <button className="bg-blue-700 text-white font-extrabold py-2 px-4 rounded-full shadow-lg hover:bg-blue-800 transition-all transform hover:scale-105 text-sm mb-4">
-            CLIQUE E SAIBA MAIS
-          </button>
-
-          <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs text-blue-700 font-semibold">
-            <span className="flex items-center gap-1"><FaCheckCircle className="text-green-500" /> Anônimo</span>
-            <span className="flex items-center gap-1"><FaCheckCircle className="text-green-500" /> Verificado</span>
-            <span className="flex items-center gap-1"><FaCheckCircle className="text-green-500" /> Confiável</span>
+          {/* Botão e Checkmarks */}
+          <div className="flex flex-col items-center gap-2">
+            <button className="bg-blue-600 text-white font-bold py-2 px-4 rounded-full shadow-lg hover:scale-105 transition-transform text-sm">
+              CLIQUE E SAIBA MAIS
+            </button>
+            <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs text-blue-700">
+              <span className="flex items-center gap-1"><FaCheckCircle className="text-green-500" /> Anônimo</span>
+              <span className="flex items-center gap-1"><FaCheckCircle className="text-green-500" /> Verificado</span>
+              <span className="flex items-center gap-1"><FaCheckCircle className="text-green-500" /> Confiável</span>
+            </div>
           </div>
         </header>
 
@@ -230,120 +232,145 @@ function TrabalheiLaMobile({
                     redirectUri={linkedInRedirectUri}
                     clientId={linkedInClientId}
                   />
+                  {/* Botão do Google removido conforme solicitado */}
                 </div>
               ) : (
-                <p className="text-green-600 font-semibold text-center mb-5">✓ Você está autenticado!</p>
+                <div className="text-center mb-5">
+                  <p className="text-lg font-semibold text-green-600">Você está logado!</p>
+                  <button
+                    onClick={() => setIsAuthenticated(false)}
+                    className="text-blue-600 hover:underline text-sm mt-1"
+                  >
+                    Sair
+                  </button>
+                </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="font-semibold text-slate-700 mb-2 block">Selecione a Empresa</label>
+              <form onSubmit={handleSubmit}>
+                <div className="mb-4">
+                  <label className="text-slate-700 font-semibold text-base block mb-2">Empresa que você trabalhou:</label>
                   <Select
                     options={companyOptions}
                     value={companyOptions.find(option => option.value === selectedCompany)}
-                    onChange={(option) => setSelectedCompany(option ? option.value : '')}
-                    placeholder="Buscar ou selecionar empresa..."
+                    onChange={(selectedOption) => setSelectedCompany(selectedOption ? selectedOption.value : '')}
+                    placeholder="Selecione ou digite uma empresa"
                     isClearable
+                    isSearchable
+                    className="text-sm"
                     styles={{
-                      control: (provided) => ({
-                        ...provided,
-                        padding: '0.25rem',
-                        borderRadius: '0.75rem',
-                        borderColor: '#d1d5db',
+                      control: (base) => ({
+                        ...base,
+                        borderRadius: '0.75rem', // rounded-xl
+                        padding: '0.25rem', // p-1
+                        borderColor: '#d1d5db', // border-gray-300
+                        '&:hover': { borderColor: '#a78bfa' }, // focus:ring-purple-500
                         boxShadow: 'none',
-                        '&:hover': { borderColor: '#9ca3af' },
-                        '&:focus': { borderColor: '#8b5cf6', boxShadow: '0 0 0 1px #8b5cf6' },
                       }),
-                      option: (provided, state) => ({
-                        ...provided,
-                        backgroundColor: state.isSelected ? '#ede9fe' : state.isFocused ? '#f3e8ff' : null,
-                        color: '#1f2937',
-                      }),
-                      singleValue: (provided) => ({
-                        ...provided,
-                        color: '#1f2937',
-                      }),
-                      placeholder: (provided) => ({
-                        ...provided,
-                        color: '#9ca3af',
+                      option: (base, state) => ({
+                        ...base,
+                        backgroundColor: state.isFocused ? '#ede9fe' : 'white', // bg-purple-100
+                        color: '#4a4a4a',
                       }),
                     }}
                   />
                 </div>
 
-                <button type="button" onClick={() => setShowAddNewCompany(!showAddNewCompany)}
-                  className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-xl shadow transition-all">
-                  <FaPlus />
-                  {showAddNewCompany ? "Cancelar" : "Adicionar Nova Empresa"}
+                <button
+                  type="button"
+                  onClick={() => setShowAddNewCompany(!showAddNewCompany)}
+                  className="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-xl hover:bg-blue-600 transition-colors mb-5 flex items-center justify-center gap-2"
+                >
+                  {showAddNewCompany ? <FaMinus /> : <FaPlus />} Adicionar Nova Empresa
                 </button>
 
                 {showAddNewCompany && (
-                  <div className="space-y-2">
-                    <input type="text"
-                      className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="Nome da nova empresa"
-                      value={newCompanyName}
-                      onChange={(e) => setNewCompanyName(e.target.value)}
-                    />
-                    <input type="text"
-                      className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="Área de atuação"
-                      value={newCompanyArea}
-                      onChange={(e) => setNewCompanyArea(e.target.value)}
-                    />
-                    <input type="text"
-                      className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="Período trabalhado (ex: 2020-2022)"
-                      value={newCompanyPeriodo}
-                      onChange={(e) => setNewCompanyPeriodo(e.target.value)}
-                    />
-                    <textarea
-                      className="w-full p-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="Descrição da empresa"
-                      rows={2}
-                      value={newCompanyDescription}
-                      onChange={(e) => setNewCompanyDescription(e.target.value)}
-                    />
-                    <button type="button" onClick={handleAddNewCompany}
-                      className="w-full px-4 py-3 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition-all">
+                  <div className="bg-blue-50 p-5 rounded-xl border border-blue-200 mb-6 space-y-4">
+                    <h3 className="text-lg font-bold text-blue-700 mb-3">Detalhes da Nova Empresa</h3>
+                    <div>
+                      <label className="text-slate-700 font-semibold text-base block mb-1">Nome da Empresa:</label>
+                      <input
+                        type="text"
+                        className="w-full p-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={newCompanyName}
+                        onChange={(e) => setNewCompanyName(e.target.value)}
+                        placeholder="Ex: Minha Empresa Inc."
+                      />
+                    </div>
+                    <div>
+                      <label className="text-slate-700 font-semibold text-base block mb-1">Área de Atuação:</label>
+                      <input
+                        type="text"
+                        className="w-full p-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={newCompanyArea}
+                        onChange={(e) => setNewCompanyArea(e.target.value)}
+                        placeholder="Ex: Tecnologia, Finanças"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-slate-700 font-semibold text-base block mb-1">Período Trabalhado:</label>
+                      <input
+                        type="text"
+                        className="w-full p-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={newCompanyPeriodo}
+                        onChange={(e) => setNewCompanyPeriodo(e.target.value)}
+                        placeholder="Ex: Jan/2020 - Dez/2023"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-slate-700 font-semibold text-base block mb-1">Descrição (Opcional):</label>
+                      <textarea
+                        className="w-full p-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        rows="3"
+                        value={newCompanyDescription}
+                        onChange={(e) => setNewCompanyDescription(e.target.value)}
+                        placeholder="Breve descrição da empresa ou sua função..."
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddNewCompany}
+                      className="w-full bg-green-500 text-white font-bold py-2 px-4 rounded-xl hover:bg-green-600 transition-colors text-base"
+                    >
                       Adicionar Empresa
                     </button>
                   </div>
                 )}
 
-                {campos.map((campo, idx) => (
-                  <div key={idx} className="flex flex-col items-start bg-gray-50 p-4 rounded-xl border border-gray-200">
-                    <label className="text-slate-700 font-semibold flex items-center gap-2 mb-2">
-                      {campo.icon} {campo.label}
-                    </label>
-                    {renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label)}
-                  </div>
-                ))}
+                {error && <p className="text-red-500 text-center mb-4 font-semibold">{error}</p>}
 
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                  <label className="text-slate-700 font-semibold text-lg block mb-2">Comentário Geral</label>
+                <div className="space-y-5 mb-6">
+                  {campos.map((campo, index) => (
+                    <div key={index} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <label className="text-slate-700 font-semibold text-base flex items-center gap-2 mb-2">
+                        {campo.icon} {campo.label}:
+                      </label>
+                      {renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label)}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mb-6">
+                  <label className="text-slate-700 font-semibold text-base block mb-2">Comentário Geral (Opcional):</label>
                   <textarea
-                    className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
-                    placeholder="Descreva sua experiência na empresa..."
-                    rows={3}
+                    className="w-full p-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    rows="4"
+                    placeholder="Compartilhe sua experiência geral na empresa..."
                     value={generalComment}
                     onChange={(e) => setGeneralComment(e.target.value)}
                   />
                 </div>
 
-                {error && <p className="text-red-500 text-center mb-3 text-sm">{error}</p>}
-
                 <div className="text-center">
                   <button
                     type="submit"
-                    className={`px-5 py-2 rounded-full font-extrabold text-white text-sm transition-all transform ${
+                    className={`w-full py-3 px-6 rounded-full font-extrabold text-white text-lg transition-all transform ${
                       isAuthenticated
                         ? "bg-gradient-to-r from-purple-600 to-violet-600 hover:shadow-2xl hover:scale-[1.02]"
                         : "bg-slate-400 cursor-not-allowed opacity-60"
                     }`}
                     disabled={!isAuthenticated || isLoading}
                   >
-                    {isLoading ? "Enviando..." : isAuthenticated ? "Enviar avaliação" : "Faça login para avaliar"}
+                    {isLoading ? "Enviando..." : isAuthenticated ? "Faça login para avaliar" : "Faça login para avaliar"}
                   </button>
                 </div>
               </form>
