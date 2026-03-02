@@ -1,9 +1,9 @@
 // src/TrabalheiLaDesktop.js
 import React, { useState } from 'react';
-import { FaGoogle, FaLinkedinIn, FaHandshake, FaMoneyBillWave, FaChartLine, FaLightbulb, FaPlus, FaMinus, FaChartBar, FaBuilding, FaCheckCircle } from 'react-icons/fa';
-import Select from 'react-select'; // Importa o componente Select
-import LoginLinkedInButton from './components/LoginLinkedInButton'; // Caminho corrigido
-import OutlinedStar from './components/OutlinedStar'; // Caminho corrigido
+import { FaGoogle, FaHandshake, FaMoneyBillWave, FaChartLine, FaLightbulb, FaPlus, FaMinus, FaChartBar, FaBuilding, FaCheckCircle } from 'react-icons/fa';
+import Select from 'react-select';
+import LoginLinkedInButton from './components/LoginLinkedInButton';
+import OutlinedStar from './components/OutlinedStar';
 
 function TrabalheiLaDesktop({
   empresas,
@@ -125,39 +125,28 @@ function TrabalheiLaDesktop({
     setError('');
 
     const newRating = {
-      company: selectedCompany,
       contatoRH,
-      commentContatoRH,
       salarioBeneficios,
-      commentSalarioBeneficios,
       oportunidadeCrescimento,
-      commentOportunidadeCrescimento,
       culturaValores,
-      commentCulturaValores,
       estimulacaoOrganizacao,
+      commentContatoRH,
+      commentSalarioBeneficios,
+      commentOportunidadeCrescimento,
+      commentCulturaValores,
       commentEstimulacaoOrganizacao,
       generalComment,
-      timestamp: new Date().toISOString(),
     };
 
-    // Lógica para enviar a avaliação para o backend
-    console.log('Avaliação enviada:', newRating);
+    const updatedEmpresas = empresas.map(emp =>
+      emp.company === selectedCompany
+        ? { ...emp, ratings: [...emp.ratings, newRating] }
+        : emp
+    );
+    setEmpresas(updatedEmpresas);
+    setTop3(updatedEmpresas.sort((a, b) => calcularMedia(b) - calcularMedia(a)).slice(0, 3));
 
-    // Atualiza o estado local das empresas (simulação)
-    setEmpresas(prevEmpresas => {
-      const updatedEmpresas = prevEmpresas.map(emp => {
-        if (emp.company === selectedCompany) {
-          return {
-            ...emp,
-            ratings: [...(emp.ratings || []), newRating]
-          };
-        }
-        return emp;
-      });
-      return updatedEmpresas;
-    });
-
-    // Resetar formulário
+    // Reset form
     setContatoRH(0);
     setSalarioBeneficios(0);
     setOportunidadeCrescimento(0);
@@ -171,91 +160,73 @@ function TrabalheiLaDesktop({
     setGeneralComment('');
     setSelectedCompany('');
     setShowCommentInput({});
-    setIsLoading(false);
-    alert('Avaliação enviada com sucesso!');
+
+    setTimeout(() => {
+      setIsLoading(false);
+      alert('Avaliação enviada com sucesso!');
+    }, 1000);
   };
 
   const companyOptions = empresas.map(emp => ({ value: emp.company, label: emp.company }));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 flex flex-col items-center py-8 px-4">
-      <div className="max-w-4xl w-full space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 p-4 flex flex-col items-center">
+      <div className="w-full max-w-6xl mx-auto space-y-8">
 
         {/* HEADER */}
-        <header className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-3xl shadow-2xl p-8 mb-8 text-white">
-          <div className="flex items-center justify-between">
-            {/* Logo e Nota */}
-            <div className="flex items-center gap-4">
-              <div className="bg-white/20 p-3 rounded-xl flex flex-col items-center justify-center text-purple-100">
-                <FaBuilding size={24} />
-                <span className="text-xs mt-1">Logo da Empresa</span>
-              </div>
-              <div>
-                <p className="text-4xl font-extrabold font-azonix">TRABALHEI LÁ</p>
-                <p className="text-sm mt-1">Sua opinião é anônima e ajuda outros profissionais</p>
-                <p className="text-xs opacity-80">Avaliações anônimas feitas por profissionais verificados.</p>
-              </div>
+        <header className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-3xl shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="bg-white/20 p-3 rounded-full">
+              <FaBuilding className="text-3xl" />
             </div>
-
-            {/* Botão e Checkmarks */}
-            <div className="flex flex-col items-end gap-2">
-              <button className="bg-white text-purple-700 font-bold py-2 px-5 rounded-full shadow-lg hover:scale-105 transition-transform text-sm">
-                CLIQUE E SAIBA MAIS
-              </button>
-              <div className="flex items-center gap-3 text-xs">
-                <span className="flex items-center gap-1"><FaCheckCircle className="text-green-300" /> Anônimo</span>
-                <span className="flex items-center gap-1"><FaCheckCircle className="text-green-300" /> Verificado</span>
-                <span className="flex items-center gap-1"><FaCheckCircle className="text-green-300" /> Confiável</span>
-              </div>
+            <div>
+              <h1 className="text-3xl font-extrabold">TRABALHEI LÁ</h1>
+              <p className="text-sm opacity-90">Sua opinião é anônima e ajuda outros profissionais</p>
+            </div>
+          </div>
+          <div className="text-right md:text-left">
+            <div className="flex items-center gap-2 mb-2">
+              <FaCheckCircle className="text-green-300 text-xl" />
+              <span className="font-semibold">Anônimo</span>
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              <FaCheckCircle className="text-green-300 text-xl" />
+              <span className="font-semibold">Verificado</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <FaCheckCircle className="text-green-300 text-xl" />
+              <span className="font-semibold">Confiável</span>
             </div>
           </div>
         </header>
 
-        {/* CONTEÚDO PRINCIPAL */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
+        <div className="lg:grid lg:grid-cols-2 lg:gap-8">
           {/* COLUNA ESQUERDA - FORMULÁRIO */}
-          <div className="lg:col-span-2 bg-white rounded-3xl shadow-xl p-8 border border-blue-100">
+          <div className="lg:col-span-1 bg-white rounded-3xl shadow-xl p-8 border border-blue-100 mb-8 lg:mb-0">
+            <h2 className="text-2xl font-bold text-blue-800 text-center mb-6">Avalie uma Empresa</h2>
+
+            {!isAuthenticated ? (
+              <div className="mb-6 space-y-4">
+                <LoginLinkedInButton
+                  onLoginSuccess={() => setIsAuthenticated(true)}
+                  onLoginFailure={(err) => setError(`Falha no login com LinkedIn: ${err.message}`)}
+                  redirectUri={linkedInRedirectUri}
+                  clientId={linkedInClientId}
+                />
+                <button
+                  onClick={() => alert('Login com Google ainda não implementado.')}
+                  className="flex items-center justify-center gap-3 bg-white text-gray-700 font-semibold py-3 px-4 rounded-full border border-gray-300 shadow-sm hover:bg-gray-50 transition-colors"
+                >
+                  <FcGoogle className="text-2xl" /> Entrar com Google
+                </button>
+              </div>
+            ) : (
+              <p className="text-center text-green-600 font-semibold mb-6">Você está logado! 🎉</p>
+            )}
+
             <section className="mb-8">
-              <h2 className="text-2xl font-bold text-blue-800 text-center mb-6">Avalie uma Empresa</h2>
-
-              {!isAuthenticated ? (
-                <div className="space-y-4 mb-6">
-                  <LoginLinkedInButton
-                    onLoginSuccess={(userData) => {
-                      console.log('Login LinkedIn bem-sucedido:', userData);
-                      setIsAuthenticated(true);
-                      setError('');
-                    }}
-                    onLoginFailure={(err) => {
-                      console.error('Login LinkedIn falhou:', err);
-                      setError('Falha no login com LinkedIn. Tente novamente.');
-                      setIsAuthenticated(false);
-                    }}
-                    redirectUri={linkedInRedirectUri}
-                    clientId={linkedInClientId}
-                  />
-                  <button
-                    onClick={() => console.log('Login com Google clicado')}
-                    className="flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-full shadow-sm hover:bg-gray-50 transition-colors text-base"
-                  >
-                    <FaGoogle className="text-lg" /> Entrar com Google
-                  </button>
-                </div>
-              ) : (
-                <div className="text-center mb-6">
-                  <p className="text-lg font-semibold text-green-600">Você está logado!</p>
-                  <button
-                    onClick={() => setIsAuthenticated(false)}
-                    className="text-blue-600 hover:underline text-sm mt-1"
-                  >
-                    Sair
-                  </button>
-                </div>
-              )}
-
               <form onSubmit={handleSubmit}>
-                <div className="mb-5">
+                <div className="mb-4">
                   <label className="text-slate-700 font-semibold text-base block mb-2">Empresa que você trabalhou:</label>
                   <Select
                     options={companyOptions}
@@ -264,70 +235,75 @@ function TrabalheiLaDesktop({
                     placeholder="Selecione ou digite uma empresa"
                     isClearable
                     isSearchable
-                    className="text-sm"
+                    className="react-select-container"
+                    classNamePrefix="react-select"
                     styles={{
                       control: (base) => ({
                         ...base,
                         borderRadius: '0.75rem', // rounded-xl
                         padding: '0.25rem', // p-1
                         borderColor: '#d1d5db', // border-gray-300
-                        '&:hover': { borderColor: '#a78bfa' }, // focus:ring-purple-500
                         boxShadow: 'none',
+                        '&:hover': {
+                          borderColor: '#a78bfa', // focus:ring-purple-500
+                        },
                       }),
                       option: (base, state) => ({
                         ...base,
-                        backgroundColor: state.isFocused ? '#ede9fe' : 'white', // bg-purple-100
-                        color: '#4a4a4a',
+                        backgroundColor: state.isSelected ? '#8b5cf6' : state.isFocused ? '#ede9fe' : null,
+                        color: state.isSelected ? 'white' : '#1f2937',
                       }),
                     }}
                   />
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setShowAddNewCompany(!showAddNewCompany)}
-                  className="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-xl hover:bg-blue-600 transition-colors mb-6 flex items-center justify-center gap-2"
-                >
-                  {showAddNewCompany ? <FaMinus /> : <FaPlus />} Adicionar Nova Empresa
-                </button>
+                <div className="text-center mb-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddNewCompany(!showAddNewCompany)}
+                    className="px-5 py-2 rounded-full font-extrabold text-white text-sm transition-all transform bg-gradient-to-r from-pink-500 to-red-500 hover:shadow-2xl hover:scale-[1.02]"
+                  >
+                    {showAddNewCompany ? "Cancelar" : "+ Adicionar Nova Empresa"}
+                  </button>
+                </div>
 
                 {showAddNewCompany && (
-                  <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                    <h3 className="text-lg font-bold text-blue-700 mb-3">Detalhes da Nova Empresa</h3>
-                    <div className="mb-3">
+                  <div className="bg-blue-50 p-6 rounded-xl border border-blue-200 mb-6 space-y-4">
+                    <h3 className="text-lg font-bold text-blue-700">Detalhes da Nova Empresa</h3>
+                    <div>
                       <label className="text-slate-700 font-semibold text-sm block mb-1">Nome da Empresa</label>
                       <input
                         type="text"
-                        className="w-full p-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full p-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         value={newCompanyName}
                         onChange={(e) => setNewCompanyName(e.target.value)}
-                        placeholder="Nome completo da empresa"
+                        placeholder="Ex: Minha Empresa Inc."
                       />
                     </div>
-                    <div className="mb-3">
+                    <div>
                       <label className="text-slate-700 font-semibold text-sm block mb-1">Área de Atuação</label>
                       <input
                         type="text"
-                        className="w-full p-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full p-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         value={newCompanyArea}
                         onChange={(e) => setNewCompanyArea(e.target.value)}
-                        placeholder="Ex: Tecnologia, Finanças, Saúde"
+                        placeholder="Ex: Tecnologia, Finanças, Varejo"
                       />
                     </div>
-                    <div className="mb-3">
+                    <div>
                       <label className="text-slate-700 font-semibold text-sm block mb-1">Período Trabalhado</label>
                       <input
                         type="text"
-                        className="w-full p-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full p-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         value={newCompanyPeriodo}
                         onChange={(e) => setNewCompanyPeriodo(e.target.value)}
-                        placeholder="Ex: Jan/2020 - Dez/2022"
+                        placeholder="Ex: Jan/2020 - Dez/2023"
                       />
                     </div>
-                    <div className="mb-4">
-                      <label className="text-slate-700 font-semibold text-sm block mb-1">Descrição</label>
+                    <div>
+                      <label className="text-slate-700 font-semibold text-sm block mb-1">Descrição da Empresa/Função</label>
                       <textarea
-                        className="w-full p-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full p-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         value={newCompanyDescription}
                         onChange={(e) => setNewCompanyDescription(e.target.value)}
                         placeholder="Breve descrição da empresa ou sua função."
@@ -337,7 +313,7 @@ function TrabalheiLaDesktop({
                     <button
                       type="button"
                       onClick={handleAddNewCompany}
-                      className="w-full bg-green-500 text-white font-bold py-2 px-4 rounded-xl hover:bg-green-600 transition-colors"
+                      className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-xl hover:bg-blue-700 transition-colors"
                     >
                       Adicionar Empresa
                     </button>
@@ -345,10 +321,10 @@ function TrabalheiLaDesktop({
                 )}
 
                 <h3 className="text-xl font-bold text-blue-800 mb-4 text-center">Sua Avaliação</h3>
-                <div className="space-y-4 mb-6">
+                <div className="space-y-3 mb-5">
                   {campos.map((campo, index) => (
                     <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-200">
-                      <label className="w-1/3 text-slate-700 font-semibold flex items-center gap-1 text-sm">
+                      <label className="w-1/3 text-slate-700 font-semibold flex items-center gap-1 text-xs">
                         {campo.icon} {campo.label}
                       </label>
                       {renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label)}
