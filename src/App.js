@@ -11,7 +11,17 @@ function CompanyDetailPage() {
   );
 }
 
-
-
+function App() {
+  return (
+    <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || ""}>
+      <div className="App">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/empresa/:companyName" element={<CompanyDetailPage />} />
+        </Routes>
+      </div>
+    </GoogleOAuthProvider>
+  );
+}
 
 export default App;
