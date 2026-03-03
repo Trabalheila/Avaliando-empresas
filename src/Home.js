@@ -98,9 +98,13 @@ function Home() {
     }, 1000);
   };
 
-  const handleLinkedInLogin = () => {
-    setIsAuthenticated(true);
-  };
+ const handleLinkedInLogin = (e) => {
+  e.preventDefault(); // 👈 impede submit do form
+
+  const linkedinUrl = `https://www.linkedin.com/oauth/v2/authorization?...`;
+
+  window.open(linkedinUrl, "_blank", "width=600,height=700");
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
