@@ -1,18 +1,19 @@
 // src/TrabalheiLaMobile.js
 import React, { useState, useEffect } from "react";
 import {
-  FaChartBar, FaHandshake, FaMoneyBillWave, FaLightbulb, FaPlus, FaMinus, FaCheckCircle
+  FaChartBar, FaHandshake, FaMoneyBillWave, FaLightbulb, FaPlus, FaMinus, FaCheckCircle, FaStar, FaHeart, FaBriefcase
 } from "react-icons/fa";
 import Select from "react-select";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
-import OutlinedStar from "./components/OutlinedStar"; // Importa o componente OutlinedStar
+import OutlinedStar from "./components/OutlinedStar";
 
 function TrabalheiLaMobile({
   empresas = [],
   setEmpresas,
   top3 = [],
+  setTop3, // setTop3 é um prop, usado para atualizar o estado top3 no componente pai
   isAuthenticated,
-  setIsAuthenticated, // Adicionado para poder mudar o estado de autenticação
+  setIsAuthenticated,
   linkedInClientId,
   linkedInRedirectUri,
   calcularMedia,
@@ -20,7 +21,7 @@ function TrabalheiLaMobile({
   getMedalColor,
   getMedalEmoji,
 }) {
-  const [selectedCompany, setSelectedCompany] = useState(null); // Alterado para null para Select
+  const [selectedCompany, setSelectedCompany] = useState(null);
   const [newCompanyName, setNewCompanyName] = useState('');
   const [newCompanyArea, setNewCompanyArea] = useState('');
   const [newCompanyPeriodo, setNewCompanyPeriodo] = useState('');
@@ -34,7 +35,7 @@ function TrabalheiLaMobile({
   const [commentSalarioBeneficios, setCommentSalarioBeneficios] = useState('');
   const [commentOportunidadeCrescimento, setCommentOportunidadeCrescimento] = useState('');
   const [commentCulturaValores, setCommentCulturaValores] = useState('');
-  const [commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao] = useState('');
+  const [commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao] = useState(''); // Corrigido o nome do setter
   const [generalComment, setGeneralComment] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -47,25 +48,20 @@ function TrabalheiLaMobile({
     const code = urlParams.get('code');
 
     if (code) {
-      // Aqui você enviaria o 'code' para o seu backend para trocar por um token de acesso
-      // Por enquanto, apenas simulamos o login
-      setIsAuthenticated(true);
-      // Limpa o código da URL para evitar reprocessamento e URLs feias
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.delete('code');
-      window.history.replaceState({}, document.title, newUrl.pathname);
+      console.log("LinkedIn code received:", code);
+      setIsAuthenticated(true); // Simula autenticação bem-sucedida
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [setIsAuthenticated]);
 
   const companyOptions = empresas.map((emp) => ({
     value: emp.company,
     label: emp.company,
-    original: emp, // Mantém o objeto original da empresa
+    data: emp,
   }));
 
-  const handleCompanySelect = (option) => {
+  const handleCompanyChange = (option) => {
     setSelectedCompany(option);
-    // Resetar avaliações ao mudar de empresa, se desejar
     setContatoRH(0);
     setSalarioBeneficios(0);
     setOportunidadeCrescimento(0);
@@ -77,42 +73,30 @@ function TrabalheiLaMobile({
     setCommentCulturaValores('');
     setCommentEstimulacaoOrganizacao('');
     setGeneralComment('');
+    setShowCommentInput({});
   };
 
-  const handleAddNewCompany = async () => {
-    if (!newCompanyName || !newCompanyArea || !newCompanyPeriodo || !newCompanyDescription) {
-      setError("Por favor, preencha todos os campos para adicionar uma nova empresa.");
-      return;
-    }
-    setIsLoading(true);
-    setError('');
-
-    const newCompanyData = {
-      company: newCompanyName,
-      area: newCompanyArea,
-      periodo: newCompanyPeriodo,
-      description: newCompanyDescription,
-      ratings: [], // Começa sem avaliações
-    };
-
-    try {
-      // Simulação de API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setEmpresas((prev) => [...prev, newCompanyData]);
-      setSelectedCompany({ value: newCompanyName, label: newCompanyName, original: newCompanyData });
+  const handleAddNewCompany = () => {
+    if (newCompanyName && newCompanyArea && newCompanyPeriodo && newCompanyDescription) {
+      const newCompany = {
+        company: newCompanyName,
+        area: newCompanyArea,
+        periodo: newCompanyPeriodo,
+        description: newCompanyDescription,
+        ratings: [],
+      };
+      setEmpresas((prev) => [...prev, newCompany]);
       setNewCompanyName('');
       setNewCompanyArea('');
       setNewCompanyPeriodo('');
       setNewCompanyDescription('');
       setShowAddNewCompany(false);
-    } catch (err) {
-      setError("Erro ao adicionar empresa.");
-    } finally {
-      setIsLoading(false);
+    } else {
+      setError("Por favor, preencha todos os campos da nova empresa.");
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!isAuthenticated) {
       setError("Você precisa estar logado para enviar uma avaliação.");
@@ -127,43 +111,41 @@ function TrabalheiLaMobile({
     setError('');
 
     const newRating = {
-      user: "anonymous_user", // Substituir por ID do usuário logado
+      company: selectedCompany.value,
       contatoRH,
-      salarioBeneficios,
-      oportunidadeCrescimento,
-      culturaValores,
-      estimulacaoOrganizacao,
       commentContatoRH,
+      salarioBeneficios,
       commentSalarioBeneficios,
+      oportunidadeCrescimento,
       commentOportunidadeCrescimento,
+      culturaValores,
       commentCulturaValores,
+      estimulacaoOrganizacao,
       commentEstimulacaoOrganizacao,
       generalComment,
-      date: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
     };
 
-    try {
-      // Simulação de API call para enviar avaliação
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      setEmpresas((prev) =>
-        prev.map((emp) =>
+    setTimeout(() => {
+      setEmpresas((prevEmpresas) =>
+        prevEmpresas.map((emp) =>
           emp.company === selectedCompany.value
             ? { ...emp, ratings: [...emp.ratings, newRating] }
             : emp
         )
       );
-      // Atualizar top3 se necessário
+      // Atualiza o top3 (simplificado)
       const updatedEmpresas = empresas.map((emp) =>
         emp.company === selectedCompany.value
           ? { ...emp, ratings: [...emp.ratings, newRating] }
           : emp
       );
-      const sortedEmpresas = [...updatedEmpresas].sort((a, b) => calcularMedia(b) - calcularMedia(a));
-      setTop3(sortedEmpresas.slice(0, 3));
+      const sorted = [...updatedEmpresas].sort((a, b) => calcularMedia(b) - calcularMedia(a));
+      setTop3(sorted.slice(0, 3)); // Usa setTop3 que é um prop
 
+      setIsLoading(false);
       alert("Avaliação enviada com sucesso!");
-      // Resetar formulário
+      setSelectedCompany(null);
       setContatoRH(0);
       setSalarioBeneficios(0);
       setOportunidadeCrescimento(0);
@@ -175,41 +157,35 @@ function TrabalheiLaMobile({
       setCommentCulturaValores('');
       setCommentEstimulacaoOrganizacao('');
       setGeneralComment('');
-      setSelectedCompany(null);
-
-    } catch (err) {
-      setError("Erro ao enviar avaliação.");
-    } finally {
-      setIsLoading(false);
-    }
+      setShowCommentInput({});
+    }, 1500);
   };
 
-  const campos = [
-    { label: "Contato com RH", value: contatoRH, set: setContatoRH, icon: <FaHandshake />, comment: commentContatoRH, setComment: setCommentContatoRH },
-    { label: "Salário e Benefícios", value: salarioBeneficios, set: setSalarioBeneficios, icon: <FaMoneyBillWave />, comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios },
-    { label: "Oportunidade de Crescimento", value: oportunidadeCrescimento, set: setOportunidadeCrescimento, icon: <FaLightbulb />, comment: commentOportunidadeCrescimento, setComment: setCommentOportunidadeCrescimento },
-    { label: "Cultura e Valores", value: culturaValores, set: setCulturaValores, icon: <FaCheckCircle />, comment: commentCulturaValores, setComment: setCommentCulturaValores },
-    { label: "Estímulo à Inovação e Organização", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, icon: <FaLightbulb />, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao },
-  ];
-
-  const renderStars = (currentValue, setter, commentValue, commentSetter, label) => (
-    <div className="flex items-center gap-1 mt-1">
-      {[...Array(5)].map((_, i) => (
-        <OutlinedStar
-          key={i}
-          active={i < currentValue}
-          onClick={() => {
-            setter(i + 1);
-            setShowCommentInput(prev => ({ ...prev, [label]: true }));
-          }}
-          label={`${i + 1} estrelas para ${label}`}
-        />
-      ))}
+  const renderStars = (value, setter, commentValue, commentSetter, label) => (
+    <div className="flex flex-col">
+      <div className="flex items-center gap-1 mb-1">
+        {[...Array(5)].map((_, i) => (
+          <span
+            key={i}
+            className="cursor-pointer text-xl"
+            onClick={() => setter(i + 1)}
+          >
+            {i < value ? <FaStar className="text-yellow-400" /> : <OutlinedStar className="text-gray-300" />}
+          </span>
+        ))}
+        <button
+          type="button"
+          onClick={() => setShowCommentInput(prev => ({ ...prev, [label]: !prev[label] }))}
+          className="ml-2 text-blue-500 hover:text-blue-700 text-xs font-semibold"
+        >
+          {showCommentInput[label] ? <FaMinus /> : <FaPlus />} Comentário
+        </button>
+      </div>
       {showCommentInput[label] && (
         <textarea
-          className="ml-2 p-1 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-purple-400 flex-grow"
-          rows="1"
-          placeholder={`Comentário para ${label}...`}
+          className="w-full p-2 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-2"
+          rows="2"
+          placeholder={`Seu comentário sobre ${label.toLowerCase()}...`}
           value={commentValue}
           onChange={(e) => commentSetter(e.target.value)}
         />
@@ -217,71 +193,71 @@ function TrabalheiLaMobile({
     </div>
   );
 
+  const campos = [
+    { label: "Contato com RH", icon: <FaHandshake />, value: contatoRH, set: setContatoRH, comment: commentContatoRH, setComment: setCommentContatoRH },
+    { label: "Salário e Benefícios", icon: <FaMoneyBillWave />, value: salarioBeneficios, set: setSalarioBeneficios, comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios },
+    { label: "Oportunidade de Crescimento", icon: <FaBriefcase />, value: oportunidadeCrescimento, set: setOportunidadeCrescimento, comment: commentOportunidadeCrescimento, setComment: setCommentOportunidadeCrescimento },
+    { label: "Cultura e Valores", icon: <FaHeart />, value: culturaValores, set: setCulturaValores, comment: commentCulturaValores, setComment: setCommentCulturaValores },
+    { label: "Estimulação e Organização", icon: <FaLightbulb />, value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 p-4 font-sans">
-      <div className="max-w-md mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 flex flex-col items-center p-4 font-sans">
+      <div className="w-full max-w-md mx-auto">
 
         {/* HEADER SECTION (MOBILE) */}
-        <header className="bg-gradient-to-r from-purple-600 to-violet-600 text-white rounded-3xl shadow-xl p-6 mb-6 border border-blue-100">
-          <h1 className="text-4xl font-extrabold text-center mb-2 font-azonix">TRABALHEI LÁ</h1>
-          <p className="text-center text-sm mb-4">Sua opinião é anônima e ajuda outros profissionais.</p>
-          <div className="flex justify-center items-center gap-4 text-xs font-semibold mb-4">
-            <span className="flex items-center gap-1"><FaCheckCircle /> Anônimo</span>
-            <span className="flex items-center gap-1"><FaCheckCircle /> Verificado</span>
-            <span className="flex items-center gap-1"><FaCheckCircle /> Confiável</span>
-          </div>
+        <header className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-2xl shadow-xl mb-6 text-center">
+          <h1 className="text-3xl font-extrabold font-azonix tracking-wide">TRABALHEI LÁ</h1>
+          <p className="text-sm mt-1">Avalie empresas de forma anônima e ajude outros profissionais.</p>
         </header>
 
-        {/* FORM SECTION */}
+        {/* AVALIATION FORM SECTION (MOBILE) */}
         <section className="bg-white rounded-3xl shadow-xl p-6 mb-6 border border-blue-100">
           <h2 className="text-xl font-bold text-blue-800 text-center mb-4 font-azonix">
             Avalie uma Empresa
           </h2>
-
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-              <strong className="font-bold">Erro!</strong>
-              <span className="block sm:inline"> {error}</span>
-            </div>
-          )}
+          {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label htmlFor="company-select" className="text-slate-700 font-semibold text-sm block mb-1">
-                Selecione a empresa:
-              </label>
+              <label className="text-slate-700 font-semibold text-sm block mb-1">Selecione a empresa:</label>
               <Select
-                id="company-select"
                 options={companyOptions}
                 value={selectedCompany}
-                onChange={handleCompanySelect}
+                onChange={handleCompanyChange}
                 placeholder="Buscar ou selecionar empresa..."
                 isClearable
                 className="text-sm"
                 styles={{
-                  control: (base) => ({ ...base, borderColor: '#d1d5db', '&:hover': { borderColor: '#a78bfa' } }),
+                  control: (base) => ({
+                    ...base,
+                    borderColor: '#e2e8f0',
+                    '&:hover': { borderColor: '#93c5fd' },
+                    boxShadow: 'none',
+                  }),
                   option: (base, state) => ({
                     ...base,
-                    backgroundColor: state.isFocused ? '#ede9fe' : 'white',
-                    color: '#4a5568',
+                    backgroundColor: state.isFocused ? '#e0e7ff' : 'white',
+                    color: '#334155',
                   }),
+                  singleValue: (base) => ({ ...base, color: '#334155' }),
                 }}
               />
             </div>
 
-            <div className="text-center mb-4">
+            <div className="mb-4 text-center">
               <button
                 type="button"
                 onClick={() => setShowAddNewCompany(!showAddNewCompany)}
-                className="text-blue-600 hover:text-blue-800 font-semibold text-sm flex items-center mx-auto"
+                className="text-blue-600 hover:text-blue-800 font-semibold text-sm flex items-center justify-center mx-auto"
               >
                 {showAddNewCompany ? <FaMinus className="mr-1" /> : <FaPlus className="mr-1" />} Adicionar nova empresa
               </button>
             </div>
 
             {showAddNewCompany && (
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6">
-                <h3 className="font-bold text-gray-800 mb-3 text-base">Detalhes da Nova Empresa</h3>
+              <div className="bg-blue-50 p-4 rounded-xl mb-4 border border-blue-200">
+                <h3 className="font-bold text-blue-700 mb-3 text-sm">Detalhes da Nova Empresa:</h3>
                 <input
                   type="text"
                   className="w-full p-2 border border-gray-300 rounded-md text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -358,7 +334,7 @@ function TrabalheiLaMobile({
           </form>
         </section>
 
-        {/* LOGIN SECTION */}
+        {/* LOGIN SECTION (MOBILE) */}
         <section className="bg-white rounded-3xl shadow-xl p-6 mb-6 border border-blue-100">
           <h2 className="text-xl font-bold text-blue-800 text-center mb-4 font-azonix">
             Login para Avaliar
@@ -371,7 +347,7 @@ function TrabalheiLaMobile({
           </div>
         </section>
 
-        {/* RANKING SECTION */}
+        {/* RANKING SECTION (MOBILE) */}
         <section className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100">
           <h2 className="text-xl font-bold text-blue-800 text-center mb-4">
             🏆 Melhores Empresas
