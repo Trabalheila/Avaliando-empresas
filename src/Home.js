@@ -1,3 +1,4 @@
+// src/Home.js
 import React, { useState, useEffect, useCallback } from "react";
 import TrabalheiLaMobile from "./TrabalheiLaMobile";
 import TrabalheiLaDesktop from "./TrabalheiLaDesktop";
@@ -87,20 +88,9 @@ function Home() {
     }
   };
 
-  const linkedInClientId = "86l0151f148013";
+  const linkedInClientId = "86l0151f148013"; // Seu Client ID do LinkedIn
 
-  const handleGoogleLogin = () => {
-    setIsLoading(true);
-    setError("");
-    setTimeout(() => {
-      setIsAuthenticated(true);
-      setIsLoading(false);
-    }, 1000);
-  };
-
-  const handleLinkedInLogin = () => {
-    setIsAuthenticated(true);
-  };
+  // Removido handleGoogleLogin e handleLinkedInLogin daqui, pois o botão gerencia o redirecionamento
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -142,6 +132,43 @@ function Home() {
     (e) => e.company === (typeof company === "object" ? company.value : company)
   );
 
+  // ---------- useEffect que trata o callback do LinkedIn (AGORA DENTRO DA FUNÇÃO HOME) ----------
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get("code");
+    const state = urlParams.get("state");
+    const storedState = sessionStorage.getItem('linkedin_oauth_state'); // Pega o estado salvo
+
+    if (code && state && state === storedState) { // Valida o estado para segurança
+      fetch("/api/linkedin-auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          redirectUri: process.env.REACT_APP_LINKEDIN_REDIRECT_URI,
+        }),
+      })
+        .then((r) => r.json())
+        .then((userData) => {
+          if (userData.error) {
+            setError("Erro no login LinkedIn: " + userData.error);
+          } else {
+            setIsAuthenticated(true);
+            // Opcional: Salvar dados do usuário no localStorage ou contexto
+            localStorage.setItem('userProfile', JSON.stringify(userData));
+            window.history.replaceState({}, document.title, "/"); // Limpa a URL
+          }
+        })
+        .catch(() => setError("Erro ao conectar com LinkedIn."));
+    } else if (code && state && state !== storedState) {
+      setError("State inválido – possível ataque CSRF.");
+      window.history.replaceState({}, document.title, "/"); // Limpa a URL mesmo com erro
+    }
+    // Limpa o estado salvo após a tentativa de login
+    sessionStorage.removeItem('linkedin_oauth_state');
+  }, []); // Dependências vazias para rodar apenas uma vez na montagem do componente
+  // -----------------------------------------------------------------------------------------
+
   const commonProps = {
     company, setCompany,
     newCompany, setNewCompany,
@@ -164,8 +191,8 @@ function Home() {
     generalComment, setGeneralComment,
     handleSubmit, isLoading, empresas, top3,
     showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany,
-    linkedInClientId, handleLinkedInLogin, handleGoogleLogin,
-    error, isAuthenticated,
+    linkedInClientId, // Não precisa mais passar handleLinkedInLogin ou handleGoogleLogin
+    error, isAuthenticated, setIsAuthenticated, // Passa setIsAuthenticated para logout, se necessário
     selectedCompanyData, calcularMedia,
     getMedalColor, getMedalEmoji, getBadgeColor,
     safeCompanyOptions,
@@ -178,4 +205,4 @@ function Home() {
   );
 }
 
-export default Home;
+export default Home; // Apenas uma ocorrência de export default
