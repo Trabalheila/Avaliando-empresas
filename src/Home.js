@@ -15,184 +15,298 @@ function Home() {
   const [company, setCompany] = useState(null);
   const [newCompany, setNewCompany] = useState("");
   const [rating, setRating] = useState(0);
-  const [contatoRH, setContatoRH] = useState(0);
-  const [salarioBeneficios, setSalarioBeneficios] = useState(0);
-  const [estruturaEmpresa, setEstruturaEmpresa] = useState(0);
-  const [acessibilidadeLideranca, setAcessibilidadeLideranca] = useState(0);
-  const [planoCarreiras, setPlanoCarreiras] = useState(0);
-  const [bemestar, setBemestar] = useState(0);
-  const [estimulacaoOrganizacao, setEstimulacaoOrganizacao] = useState(0);
   const [commentRating, setCommentRating] = useState("");
-  const [commentContatoRH, setCommentContatoRH] = useState("");
-  const [commentSalarioBeneficios, setCommentSalarioBeneficios] = useState("");
-  const [commentEstruturaEmpresa, setCommentEstruturaEmpresa] = useState("");
-  const [commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca] = useState("");
-  const [commentPlanoCarreiras, setCommentPlanoCarreiras] = useState("");
-  const [commentBemestar, setCommentBemestar] = useState("");
-  const [commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao] = useState("");
+  const [salario, setSalario] = useState(0);
+  const [commentSalario, setCommentSalario] = useState("");
+  const [beneficios, setBeneficios] = useState(0);
+  const [commentBeneficios, setCommentBeneficios] = useState("");
+  const [cultura, setCultura] = useState(0);
+  const [commentCultura, setCommentCultura] = useState("");
+  const [oportunidades, setOportunidades] = useState(0);
+  const [commentOportunidades, setCommentOportunidades] = useState("");
+  const [inovacao, setInovacao] = useState(0);
+  const [commentInovacao, setCommentInovacao] = useState("");
+  const [lideranca, setLideranca] = useState(0);
+  const [commentLideranca, setCommentLideranca] = useState("");
+  const [diversidade, setDiversidade] = useState(0);
+  const [commentDiversidade, setCommentDiversidade] = useState("");
+  const [ambiente, setAmbiente] = useState(0);
+  const [commentAmbiente, setCommentAmbiente] = useState("");
+  const [equilibrio, setEquilibrio] = useState(0);
+  const [commentEquilibrio, setCommentEquilibrio] = useState("");
+  const [reconhecimento, setReconhecimento] = useState(0);
+  const [commentReconhecimento, setCommentReconhecimento] = useState("");
+  const [comunicacao, setComunicacao] = useState(0);
+  const [commentComunicacao, setCommentComunicacao] = useState("");
+  const [etica, setEtica] = useState(0);
+  const [commentEtica, setCommentEtica] = useState("");
+  const [desenvolvimento, setDesenvolvimento] = useState(0);
+  const [commentDesenvolvimento, setCommentDesenvolvimento] = useState("");
+  const [saudeBemEstar, setSaudeBemEstar] = useState(0);
+  const [commentSaudeBemEstar, setCommentSaudeBemEstar] = useState("");
+  const [impactoSocial, setImpactoSocial] = useState(0);
+  const [commentImpactoSocial, setCommentImpactoSocial] = useState("");
+  const [reputacao, setReputacao] = useState(0);
+  const [commentReputacao, setCommentReputacao] = useState("");
+  const [estimacaoOrganizacao, setEstimacaoOrganizacao] = useState(0);
+  const [commentEstimacaoOrganizacao, setCommentEstimulacaoOrganizacao] = useState("");
   const [generalComment, setGeneralComment] = useState("");
+
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showNewCompanyInput, setShowNewCompanyInput] = useState(false);
-  const [top3, setTop3] = useState([]);
+
+  // Dados de exemplo para empresas (você pode carregar de uma API ou arquivo)
   const [empresas, setEmpresas] = useState([
-    { company: "Petrobras", rating: 4.5, contatoRH: 4.0, salarioBeneficios: 4.8, estruturaEmpresa: 4.2, acessibilidadeLideranca: 3.9, planoCarreiras: 4.1, bemestar: 4.3, estimulacaoOrganizacao: 4.6, comment: "Ótima empresa.", area: "Engenharia", periodo: "2015-Atual" },
-    { company: "Vale", rating: 3.8, contatoRH: 3.5, salarioBeneficios: 4.0, estruturaEmpresa: 3.7, acessibilidadeLideranca: 3.2, planoCarreiras: 3.5, bemestar: 3.8, estimulacaoOrganizacao: 3.9, comment: "Ambiente desafiador.", area: "Mineração", periodo: "2010-2020" },
-    { company: "Ambev", rating: 4.0, contatoRH: 4.2, salarioBeneficios: 4.1, estruturaEmpresa: 4.0, acessibilidadeLideranca: 4.0, planoCarreiras: 3.8, bemestar: 4.2, estimulacaoOrganizacao: 4.1, comment: "Cultura forte.", area: "Bebidas", periodo: "2018-Atual" },
+    {
+      company: "Empresa A",
+      rating: 4,
+      salario: 3,
+      beneficios: 4,
+      cultura: 5,
+      oportunidades: 4,
+      inovacao: 3,
+      lideranca: 4,
+      diversidade: 5,
+      ambiente: 4,
+      equilibrio: 4,
+      reconhecimento: 3,
+      comunicacao: 4,
+      etica: 5,
+      desenvolvimento: 4,
+      saudeBemEstar: 4,
+      impactoSocial: 3,
+      reputacao: 4,
+      estimacaoOrganizacao: 4,
+    },
+    {
+      company: "Empresa B",
+      rating: 3,
+      salario: 4,
+      beneficios: 3,
+      cultura: 4,
+      oportunidades: 3,
+      inovacao: 4,
+      lideranca: 3,
+      diversidade: 4,
+      ambiente: 3,
+      equilibrio: 3,
+      reconhecimento: 4,
+      comunicacao: 3,
+      etica: 4,
+      desenvolvimento: 3,
+      saudeBemEstar: 3,
+      impactoSocial: 4,
+      reputacao: 3,
+      estimacaoOrganizacao: 3,
+    },
   ]);
 
+  // Função para calcular a média de uma empresa
   const calcularMedia = useCallback((emp) => {
-    if (!emp) return 0;
-    const sum = emp.rating + emp.contatoRH + emp.salarioBeneficios +
-      emp.estruturaEmpresa + emp.acessibilidadeLideranca +
-      emp.planoCarreiras + emp.bemestar + emp.estimulacaoOrganizacao;
-    return (sum / 8).toFixed(1);
+    const ratings = [
+      emp.rating, emp.salario, emp.beneficios, emp.cultura, emp.oportunidades,
+      emp.inovacao, emp.lideranca, emp.diversidade, emp.ambiente, emp.equilibrio,
+      emp.reconhecimento, emp.comunicacao, emp.etica, emp.desenvolvimento,
+      emp.saudeBemEstar, emp.impactoSocial, emp.reputacao, emp.estimacaoOrganizacao,
+    ].filter(val => typeof val === 'number' && !isNaN(val)); // Filtra valores válidos
+
+    if (ratings.length === 0) return "0.0";
+    const sum = ratings.reduce((acc, curr) => acc + curr, 0);
+    return (sum / ratings.length).toFixed(1);
   }, []);
 
-  useEffect(() => {
-    const sorted = [...empresas].sort((a, b) => calcularMedia(b) - calcularMedia(a));
-    setTop3(sorted.slice(0, 3));
-  }, [empresas, calcularMedia]);
+  // Ordena as empresas para o ranking
+  const top3 = [...empresas].sort((a, b) => calcularMedia(b) - calcularMedia(a)).slice(0, 3);
 
-  const getMedalColor = (i) => {
-    if (i === 0) return "from-yellow-400 to-yellow-600";
-    if (i === 1) return "from-gray-300 to-gray-500";
-    if (i === 2) return "from-orange-300 to-orange-500";
-    return "from-blue-300 to-blue-500";
+  // Cores para medalhas do ranking
+  const getMedalColor = (index) => {
+    if (index === 0) return "from-yellow-400 to-yellow-600";
+    if (index === 1) return "from-gray-400 to-gray-600";
+    if (index === 2) return "from-orange-400 to-orange-600";
+    return "from-blue-400 to-blue-600";
   };
 
-  const getMedalEmoji = (i) => {
-    if (i === 0) return "🥇";
-    if (i === 1) return "🥈";
-    if (i === 2) return "🥉";
+  // Emojis para medalhas do ranking
+  const getMedalEmoji = (index) => {
+    if (index === 0) return "🥇";
+    if (index === 1) return "🥈";
+    if (index === 2) return "🥉";
     return "🏅";
   };
 
+  // Cores para badges de média
   const getBadgeColor = (media) => {
-    if (media >= 4.5) return "bg-green-500";
-    if (media >= 3.5) return "bg-yellow-500";
-    return "bg-red-500";
+    if (media >= 4.5) return "bg-green-600";
+    if (media >= 3.5) return "bg-blue-600";
+    if (media >= 2.5) return "bg-yellow-600";
+    return "bg-red-600";
   };
 
-  const handleAddNewCompany = () => {
-    if (newCompany && !empresas.some((e) => e.company === newCompany)) {
-      setEmpresas((prev) => [...prev, {
-        company: newCompany, rating: 0, contatoRH: 0, salarioBeneficios: 0,
-        estruturaEmpresa: 0, acessibilidadeLideranca: 0, planoCarreiras: 0,
-        bemestar: 0, estimulacaoOrganizacao: 0, comment: "", area: "Nova", periodo: "Atual"
-      }]);
-      setCompany({ value: newCompany, label: newCompany });
-      setNewCompany("");
-      setShowNewCompanyInput(false);
+  // Opções de empresa para o Select
+  const safeCompanyOptions = empresas.map((emp) => ({
+    value: emp.company,
+    label: emp.company,
+  }));
+
+  // Estado para a empresa selecionada no dropdown
+  const [selectedCompanyData, setSelectedCompanyData] = useState(null);
+
+  // Efeito para carregar dados da empresa selecionada
+  useEffect(() => {
+    if (company) {
+      const data = empresas.find((emp) => emp.company === company.value);
+      setSelectedCompanyData(data);
+    } else {
+      setSelectedCompanyData(null);
     }
+  }, [company, empresas]);
+
+  // Função para adicionar nova empresa
+  const handleAddNewCompany = useCallback(() => {
+    if (newCompany.trim() === "") {
+      alert("Por favor, insira o nome da nova empresa.");
+      return;
+    }
+    const newCompanyData = {
+      company: newCompany.trim(),
+      rating: 0,
+      salario: 0,
+      beneficios: 0,
+      cultura: 0,
+      oportunidades: 0,
+      inovacao: 0,
+      lideranca: 0,
+      diversidade: 0,
+      ambiente: 0,
+      equilibrio: 0,
+      reconhecimento: 0,
+      comunicacao: 0,
+      etica: 0,
+      desenvolvimento: 0,
+      saudeBemEstar: 0,
+      impactoSocial: 0,
+      reputacao: 0,
+    estimacaoOrganizacao: 0,
   };
+  setEmpresas([...empresas, newCompanyData]);
+  setNewCompany("");
+  setShowNewCompanyInput(false);
+  setCompany({ value: newCompanyData.company, label: newCompanyData.company });
+}, [newCompany, empresas]);
 
-  const linkedInCli; // Seu Client ID do LinkedIn
-
-  // Removido handleGoogleLogin e handleLinkedInLogin daqui, pois o botão gerencia o redirecionamento
-
-  const handleSubmit = async (e) => {
+// Função para lidar com o envio do formulário
+const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
-    if (!company) { setError("Selecione ou adicione uma empresa."); return; }
-    if (!isAuthenticated) { setError("Faça login para enviar uma avaliação."); return; }
+    if (!isAuthenticated) {
+      setError("Por favor, faça login para enviar sua avaliação.");
+      return;
+    }
+    if (!company) {
+      setError("Por favor, selecione uma empresa para avaliar.");
+      return;
+    }
+
     setIsLoading(true);
-    setError("");
+    setError(null);
+
+    const evaluationData = {
+      company: company.value,
+      rating, commentRating,
+      salario, commentSalario,
+      beneficios, commentBeneficios,
+      cultura, commentCultura,
+      oportunidades, commentOportunidades,
+      inovacao, commentInovacao,
+      lideranca, commentLideranca,
+      diversidade, commentDiversidade,
+      ambiente, commentAmbiente,
+      equilibrio, commentEquilibrio,
+      reconhecimento, commentReconhecimento,
+      comunicacao, commentComunicacao,
+      etica, commentEtica,
+      desenvolvimento, commentDesenvolvimento,
+      saudeBemEstar, commentSaudeBemEstar,
+      impactoSocial, commentImpactoSocial,
+      reputacao, commentReputacao,
+      estimacaoOrganizacao, commentEstimacaoOrganizacao,
+      generalComment,
+      // userId: "anonimo_hash_do_usuario_logado", // Isso viria do backend após o login
+      timestamp: new Date().toISOString(),
+    };
+
+    console.log("Dados da avaliação a serem enviados:", evaluationData);
+
+    // Simulação de envio para um backend
     try {
-      const newEval = {
-        company: typeof company === "object" ? company.value : company,
-        rating, contatoRH, salarioBeneficios, estruturaEmpresa,
-        acessibilidadeLideranca, planoCarreiras, bemestar, estimulacaoOrganizacao,
-        comment: generalComment, area: "Geral", periodo: "Atual",
-      };
-      await new Promise((r) => setTimeout(r, 1000));
-      setEmpresas((prev) => {
-        const idx = prev.findIndex((e) => e.company === newEval.company);
-        if (idx >= 0) { const u = [...prev]; u[idx] = { ...u[idx], ...newEval }; return u; }
-        return [...prev, newEval];
-      });
-      setCompany(null);
-      setRating(0); setContatoRH(0); setSalarioBeneficios(0);
-      setEstruturaEmpresa(0); setAcessibilidadeLideranca(0);
-      setPlanoCarreiras(0); setBemestar(0); setEstimulacaoOrganizacao(0);
-      setCommentRating(""); setCommentContatoRH(""); setCommentSalarioBeneficios("");
-      setCommentEstruturaEmpresa(""); setCommentAcessibilidadeLideranca("");
-      setCommentPlanoCarreiras(""); setCommentBemestar(""); setCommentEstimulacaoOrganizacao("");
-      setGeneralComment("");
-      alert("Avaliação enviada com sucesso!");
+      // Aqui você faria uma requisição POST para sua API de avaliações
+      // Ex: const response = await fetch('/api/submit-evaluation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(evaluationData) });
+      // const result = await response.json();
+      // if (result.error) throw new Error(result.error);
+
+      // Simula sucesso
+      alert("Avaliação enviada com sucesso! Obrigado por sua contribuição.");
+      // Resetar formulário (opcional)
     } catch (err) {
-      setError("Erro ao enviar avaliação. Tente novamente.");
+      setError("Erro ao enviar avaliação: " + err.message);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated, company, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment]);
 
-  const safeCompanyOptions = empresas.map((e) => ({ value: e.company, label: e.company }));
-  const selectedCompanyData = company && empresas.find(
-    (e) => e.company === (typeof company === "object" ? company.value : company)
-  );
+  // --- Lógica de Login LinkedIn ---
+  // O Client ID e Redirect URI devem vir das variáveis de ambiente
+  const linkedInClientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID;
+  const linkedInRedirectUri = process.env.REACT_APP_LINKEDIN_REDIRECT_URI;
 
-  // ---------- useEffect que trata o callback do LinkedIn (AGORA DENTRO DA FUNÇÃO HOME) ----------
+  // Se o login for bem-sucedido via AuthLinkedIn.jsx, ele setará isAuthenticated para true
+  // e salvará o userProfile no localStorage.
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get("code");
-    const state = urlParams.get("state");
-    const storedState = sessionStorage.getItem('linkedin_oauth_state'); // Pega o estado salvo
-
-    if (code && state && state === storedState) { // Valida o estado para segurança
-      fetch("/api/linkedin-auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code,
-          redirectUri: process.env.REACT_APP_LINKEDIN_REDIRECT_URI,
-        }),
-      })
-        .then((r) => r.json())
-        .then((userData) => {
-          if (userData.error) {
-            setError("Erro no login LinkedIn: " + userData.error);
-          } else {
-            setIsAuthenticated(true);
-            // Opcional: Salvar dados do usuário no localStorage ou contexto
-            localStorage.setItem('userProfile', JSON.stringify(userData));
-            window.history.replaceState({}, document.title, "/"); // Limpa a URL
-          }
-        })
-        .catch(() => setError("Erro ao conectar com LinkedIn."));
-    } else if (code && state && state !== storedState) {
-      setError("State inválido – possível ataque CSRF.");
-      window.history.replaceState({}, document.title, "/"); // Limpa a URL mesmo com erro
+    const userProfile = localStorage.getItem("userProfile");
+    if (userProfile) {
+      setIsAuthenticated(true);
+      // Opcional: Você pode parsear o userProfile e usar os dados do usuário aqui
+      // const user = JSON.parse(userProfile);
+      // console.log("Usuário logado:", user.name);
+    } else {
+      setIsAuthenticated(false);
     }
-    // Limpa o estado salvo após a tentativa de login
-    sessionStorage.removeItem('linkedin_oauth_state');
-  }, []); // Dependências vazias para rodar apenas uma vez na montagem do componente
-  // -----------------------------------------------------------------------------------------
+  }, []); // Executa apenas uma vez ao montar o componente
 
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem("userProfile");
+    setIsAuthenticated(false);
+    // Opcional: Limpar estados de avaliação ou redirecionar
+  }, []);
+
+
+  // Propriedades comuns para ambos os layouts (Mobile e Desktop)
   const commonProps = {
     company, setCompany,
-    newCompany, setNewCompany,
-    rating, setRating,
-    contatoRH, setContatoRH,
-    salarioBeneficios, setSalarioBeneficios,
-    estruturaEmpresa, setEstruturaEmpresa,
-    acessibilidadeLideranca, setAcessibilidadeLideranca,
-    planoCarreiras, setPlanoCarreiras,
-    bemestar, setBemestar,
-    estimulacaoOrganizacao, setEstimulacaoOrganizacao,
-    commentRating, setCommentRating,
-    commentContatoRH, setCommentContatoRH,
-    commentSalarioBeneficios, setCommentSalarioBeneficios,
-    commentEstruturaEmpresa, setCommentEstruturaEmpresa,
-    commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca,
-    commentPlanoCarreiras, setCommentPlanoCarreiras,
-    commentBemestar, setCommentBemestar,
-    commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao,
+    rating, setRating, commentRating, setCommentRating,
+    salario, setSalario, commentSalario, setCommentSalario,
+    beneficios, setBeneficios, commentBeneficios, setCommentBeneficios,
+    cultura, setCultura, commentCultura, setCommentCultura,
+    oportunidades, setOportunidades, commentOportunidades, setCommentOportunidades,
+    inovacao, setInovacao, commentInovacao, setCommentInovacao,
+    lideranca, setLideranca, commentLideranca, setCommentLideranca,
+    diversidade, setDiversidade, commentDiversidade, setCommentDiversidade,
+    ambiente, setAmbiente, commentAmbiente, setCommentAmbiente,
+    equilibrio, setEquilibrio, commentEquilibrio, setCommentEquilibrio,
+    reconhecimento, setReconhecimento, commentReconhecimento, setCommentReconhecimento,
+    comunicacao, setComunicacao, commentComunicacao, setCommentComunicacao,
+    etica, setEtica, commentEtica, setCommentEtica,
+    desenvolvimento, setDesenvolvimento, commentDesenvolvimento, setCommentDesenvolvimento,
+    saudeBemEstar, setSaudeBemEstar, commentSaudeBemEstar, setCommentSaudeBemEstar,
+    impactoSocial, setImpactoSocial, commentImpactoSocial, setCommentImpactoSocial,
+    reputacao, setReputacao, commentReputacao, setCommentReputacao,
+    estimacaoOrganizacao, setEstimacaoOrganizacao, commentEstimacaoOrganizacao, setCommentEstimulacaoOrganizacao,
     generalComment, setGeneralComment,
     handleSubmit, isLoading, empresas, top3,
     showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany,
-    linkedInClientId, // Não precisa mais passar handleLinkedInLogin ou handleGoogleLogin
-    error, isAuthenticated, setIsAuthenticated, // Passa setIsAuthenticated para logout, se necessário
+    linkedInClientId, linkedInRedirectUri, // Passa ambos para o LoginLinkedInButton
+    error, isAuthenticated, setIsAuthenticated, handleLogout,
     selectedCompanyData, calcularMedia,
     getMedalColor, getMedalEmoji, getBadgeColor,
     safeCompanyOptions,
@@ -205,4 +319,4 @@ function Home() {
   );
 }
 
-export default Home; // Apenas uma ocorrência de export default
+export default Home;
