@@ -2,139 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-/* =========================================================
-   BASE (mínimo necessário — sem “esticar” tudo)
-   ========================================================= */
-@layer base {
-  *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
-  }
-
-  html,
-  body {
-    height: 100%;
-  }
-
-  body {
-    margin: 0;
-    overflow-x: hidden;
-    max-width: 100vw;
-
-    /* Fonte do app (você já colocou no index.html: Inter/Plus Jakarta) */
-    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-    line-height: 1.5;
-    text-rendering: optimizeLegibility;
-  }
-
-  /* Evita imagens estourarem containers */
-  img {
-    max-width: 100%;
-    height: auto;
-    display: block;
-  }
-
-  /* Links mais consistentes */
-  a {
-    color: inherit;
-    text-decoration: none;
-  }
-
-  a:hover {
-    text-decoration: underline;
-  }
-
-  /* IMPORTANTÍSSIMO:
-     NÃO estilize button/select/textarea globalmente com width:100%
-     (isso causa os “campos esticados” e quebra botões pequenos como estrelas) */
+/* Você pode adicionar seus próprios estilos globais aqui, se necessário */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* =========================================================
-   COMPONENTES REUTILIZÁVEIS (classes)
-   ========================================================= */
-@layer components {
-  .tl-glass {
-    @apply bg-white/90 backdrop-blur-xl border border-white/25 shadow-2xl;
-  }
-
-  .tl-card {
-    @apply bg-white rounded-2xl border border-slate-200/70 shadow-sm;
-  }
-
-  .tl-card-hover {
-    @apply hover:shadow-lg hover:-translate-y-[1px] transition-all;
-  }
-
-  .tl-label {
-    @apply block text-sm font-extrabold text-slate-800;
-  }
-
-  .tl-input {
-    @apply w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm
-           focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent;
-  }
-
-  .tl-textarea {
-    @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm
-           focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent;
-  }
-
-  .tl-btn {
-    @apply inline-flex items-center justify-center rounded-xl font-extrabold transition-all;
-  }
-
-  .tl-btn-primary {
-    @apply tl-btn text-white px-6 py-3
-           bg-gradient-to-r from-cyan-500 to-blue-600
-           hover:shadow-xl hover:scale-[1.02];
-  }
-
-  .tl-btn-secondary {
-    @apply tl-btn text-slate-800 px-5 py-2.5 bg-white border-2 border-slate-200
-           hover:border-slate-300 hover:shadow-md;
-  }
-}
-
-/* =========================================================
-   ESTRELAS (contorno preto em SVG)
-   - Funciona com react-icons (SVG)
-   - Aplica um “outline” via múltiplos drop-shadows
-   ========================================================= */
-.tl-star-outline {
-  filter:
-    drop-shadow( 1px  0   0 #000)
-    drop-shadow(-1px  0   0 #000)
-    drop-shadow( 0    1px 0 #000)
-    drop-shadow( 0   -1px 0 #000);
-}
-
-/* Se quiser aplicar automaticamente só dentro do bloco de rating: 
-   Basta colocar className="tl-rating-stars" no container das estrelas */
-.tl-rating-stars svg {
-  filter:
-    drop-shadow( 1px  0   0 #000)
-    drop-shadow(-1px  0   0 #000)
-    drop-shadow( 0    1px 0 #000)
-    drop-shadow( 0   -1px 0 #000);
-}
-
-/* =========================================================
-   REACT-SELECT (ajuste leve: não deixa “quadradão” e harmoniza)
-   OBS: você já está usando styles={} no componente; isso aqui é só “fallback”
-   ========================================================= */
-.react-select__control {
-  border-radius: 14px !important;
-}
-
-.react-select__menu {
-  border-radius: 14px !important;
-  overflow: hidden;
-}
-
-/* =========================================================
-   FOOTER
-   ========================================================= */
-footer a {
-  font-weight: 800;
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
 }

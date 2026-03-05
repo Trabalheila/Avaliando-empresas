@@ -5,8 +5,8 @@ import {
   FaBuilding,
   FaUserTie,
   FaLightbulb,
-  FaCheckCircle,
   FaChartBar,
+  FaCheckCircle,
 } from "react-icons/fa";
 import Select from "react-select";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
@@ -21,7 +21,6 @@ function TrabalheiLaDesktop({
   linkedInRedirectUri,
   calcularMedia,
   getBadgeColor,
-  getMedalColor,
   getMedalEmoji,
 }) {
   const [selectedCompany, setSelectedCompany] = useState("");
@@ -41,6 +40,20 @@ function TrabalheiLaDesktop({
     value: emp.company,
     label: emp.company,
   }));
+
+  const renderStars = (key) => (
+    <div className="flex gap-2 mt-2">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <OutlinedStar
+          key={star}
+          active={star <= ratings[key]}
+          onClick={() =>
+            setRatings((prev) => ({ ...prev, [key]: star }))
+          }
+        />
+      ))}
+    </div>
+  );
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -84,40 +97,39 @@ function TrabalheiLaDesktop({
     setIsLoading(false);
   };
 
-  const renderStars = (key) => (
-    <div className="flex gap-2">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <OutlinedStar
-          key={star}
-          active={star <= ratings[key]}
-          onClick={() =>
-            setRatings((prev) => ({ ...prev, [key]: star }))
-          }
-        />
-      ))}
-    </div>
-  );
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 px-10 py-10">
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-10">
       <div className="max-w-7xl mx-auto">
 
         {/* HEADER */}
-        <header className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-3xl shadow-lg mb-10 flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <img src="/trofeu-new.png" alt="Logo" className="h-14 w-14" />
-            <h1 className="text-4xl font-extrabold">Trabalhei Lá</h1>
+        <header className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl shadow-2xl p-10 mb-10 border border-slate-700">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <img
+                src="/trofeu-new.png"
+                alt="Logo"
+                className="h-16 w-16"
+              />
+              <h1 className="text-5xl font-black tracking-tight text-white">
+                TRABALHEI LÁ
+              </h1>
+            </div>
+
+            <div className="flex items-center gap-3 bg-blue-600 px-6 py-3 rounded-2xl text-white font-bold text-2xl shadow-lg">
+              4.8 ⭐
+              <FaCheckCircle className="text-green-300 text-2xl" />
+            </div>
           </div>
-          <div className="flex items-center gap-3 text-2xl font-bold">
-            4.8 ⭐
-            <FaCheckCircle className="text-green-300 text-3xl" />
-          </div>
+
+          <p className="text-slate-400 mt-6 text-lg">
+            Avaliações anônimas verificadas por profissionais reais.
+          </p>
         </header>
 
         <div className="grid grid-cols-2 gap-10">
 
-          {/* FORMULÁRIO COMPLETO */}
-          <section className="bg-white rounded-3xl shadow-xl p-8 border border-blue-100">
+          {/* FORMULÁRIO */}
+          <section className="bg-white text-slate-800 rounded-3xl shadow-2xl p-8 border border-slate-200">
             <h2 className="text-2xl font-bold text-blue-800 mb-6">
               Avalie uma Empresa
             </h2>
@@ -142,45 +154,43 @@ function TrabalheiLaDesktop({
                 isClearable
               />
 
-              <div className="space-y-4">
-                <div>
-                  <label className="font-semibold flex items-center gap-2">
-                    <FaHandshake /> Contato com RH
-                  </label>
-                  {renderStars("rh")}
-                </div>
+              <div>
+                <label className="font-semibold flex items-center gap-2">
+                  <FaHandshake /> Contato com RH
+                </label>
+                {renderStars("rh")}
+              </div>
 
-                <div>
-                  <label className="font-semibold flex items-center gap-2">
-                    <FaMoneyBillWave /> Salário e Benefícios
-                  </label>
-                  {renderStars("salario")}
-                </div>
+              <div>
+                <label className="font-semibold flex items-center gap-2">
+                  <FaMoneyBillWave /> Salário e Benefícios
+                </label>
+                {renderStars("salario")}
+              </div>
 
-                <div>
-                  <label className="font-semibold flex items-center gap-2">
-                    <FaBuilding /> Crescimento
-                  </label>
-                  {renderStars("crescimento")}
-                </div>
+              <div>
+                <label className="font-semibold flex items-center gap-2">
+                  <FaBuilding /> Crescimento
+                </label>
+                {renderStars("crescimento")}
+              </div>
 
-                <div>
-                  <label className="font-semibold flex items-center gap-2">
-                    <FaUserTie /> Cultura
-                  </label>
-                  {renderStars("cultura")}
-                </div>
+              <div>
+                <label className="font-semibold flex items-center gap-2">
+                  <FaUserTie /> Cultura
+                </label>
+                {renderStars("cultura")}
+              </div>
 
-                <div>
-                  <label className="font-semibold flex items-center gap-2">
-                    <FaLightbulb /> Organização
-                  </label>
-                  {renderStars("organizacao")}
-                </div>
+              <div>
+                <label className="font-semibold flex items-center gap-2">
+                  <FaLightbulb /> Organização
+                </label>
+                {renderStars("organizacao")}
               </div>
 
               <textarea
-                className="w-full p-4 border rounded-xl"
+                className="w-full p-4 border border-slate-300 rounded-xl"
                 rows="4"
                 placeholder="Comentário geral..."
                 value={generalComment}
@@ -190,10 +200,10 @@ function TrabalheiLaDesktop({
               <button
                 type="submit"
                 disabled={!isAuthenticated || isLoading}
-                className={`w-full py-4 rounded-xl font-bold text-white ${
+                className={`w-full py-4 rounded-xl font-bold text-white transition ${
                   isAuthenticated
-                    ? "bg-gradient-to-r from-purple-600 to-pink-500"
-                    : "bg-gray-400"
+                    ? "bg-blue-700 hover:bg-blue-800"
+                    : "bg-gray-400 cursor-not-allowed"
                 }`}
               >
                 {isLoading ? "Enviando..." : "Enviar avaliação"}
@@ -208,8 +218,8 @@ function TrabalheiLaDesktop({
             </div>
           </section>
 
-          {/* RANKING COMPLETO */}
-          <section className="bg-white rounded-3xl shadow-xl p-8 border border-blue-100">
+          {/* RANKING */}
+          <section className="bg-white text-slate-800 rounded-3xl shadow-2xl p-8 border border-slate-200">
             <h2 className="text-2xl font-bold text-blue-800 mb-6 flex items-center gap-2">
               <FaChartBar /> Ranking das Empresas
             </h2>
@@ -217,17 +227,27 @@ function TrabalheiLaDesktop({
             <div className="space-y-4 mb-6">
               {top3.map((emp, i) => {
                 const media = calcularMedia(emp);
+
                 return (
                   <div
                     key={i}
-                    className={`bg-gradient-to-r ${getMedalColor(
-                      i
-                    )} p-4 rounded-2xl text-white flex justify-between`}
+                    className="bg-slate-100 rounded-2xl p-4 border border-slate-300"
                   >
-                    <span>
-                      {getMedalEmoji(i)} {emp.company}
-                    </span>
-                    <span>{media} ⭐</span>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-bold">
+                        {getMedalEmoji(i)} {emp.company}
+                      </span>
+                      <span className="font-extrabold text-blue-700">
+                        {media} ⭐
+                      </span>
+                    </div>
+
+                    <div className="w-full bg-slate-300 h-2 rounded-full">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full"
+                        style={{ width: `${media * 20}%` }}
+                      />
+                    </div>
                   </div>
                 );
               })}
@@ -236,12 +256,14 @@ function TrabalheiLaDesktop({
             <div className="space-y-2 max-h-72 overflow-y-auto">
               {empresas.slice(3).map((emp, i) => {
                 const media = calcularMedia(emp);
+
                 return (
                   <div
                     key={i}
-                    className="bg-gray-50 p-3 rounded-xl flex justify-between border"
+                    className="bg-slate-50 p-3 rounded-xl flex justify-between border"
                   >
                     <span>{emp.company}</span>
+
                     <span
                       className={`${getBadgeColor(
                         media
