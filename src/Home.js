@@ -87,7 +87,7 @@ function Home() {
     }
   };
 
-  const linkedInClientId = "77dv5urtc8ixj3";
+  const linkedInClientId = "86l0151f148013";
 
   const handleGoogleLogin = () => {
     setIsLoading(true);
@@ -98,13 +98,9 @@ function Home() {
     }, 1000);
   };
 
- const handleLinkedInLogin = (e) => {
-  e.preventDefault(); // 👈 impede submit do form
-
-  const linkedinUrl = `https://www.linkedin.com/oauth/v2/authorization?...`;
-
-  window.open(linkedinUrl, "_blank", "width=600,height=700");
-};
+  const handleLinkedInLogin = () => {
+    setIsAuthenticated(true);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -175,33 +171,6 @@ function Home() {
     safeCompanyOptions,
   };
 
-  useEffect(() => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const code = urlParams.get("code");
-  const state = urlParams.get("state");
-
-  if (code && state) {
-    fetch("/api/linkedin-auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        code,
-        redirectUri: process.env.REACT_APP_LINKEDIN_REDIRECT_URI,
-      }),
-    })
-      .then((r) => r.json())
-      .then((userData) => {
-        if (userData.error) {
-          setError("Erro no login LinkedIn: " + userData.error);
-        } else {
-          setIsAuthenticated(true);
-          window.history.replaceState({}, document.title, "/");
-        }
-      })
-      .catch(() => setError("Erro ao conectar com LinkedIn."));
-  }
-}, []);
-
   return isMobile ? (
     <TrabalheiLaMobile {...commonProps} />
   ) : (
@@ -210,4 +179,3 @@ function Home() {
 }
 
 export default Home;
-  
