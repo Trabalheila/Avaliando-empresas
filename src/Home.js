@@ -88,7 +88,7 @@ function Home() {
     }
   };
 
-  const linkedInClientId = "86l0151f148013"; // Seu Client ID do LinkedIn
+  const linkedInCli; // Seu Client ID do LinkedIn
 
   // Removido handleGoogleLogin e handleLinkedInLogin daqui, pois o botão gerencia o redirecionamento
 
