@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import TrabalheiLaMobile from "./TrabalheiLaMobile";
 import TrabalheiLaDesktop from "./TrabalheiLaDesktop";
+import { empresasBrasileiras } from "./empresas";
 
 function Home() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -57,70 +58,32 @@ function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showNewCompanyInput, setShowNewCompanyInput] = useState(false);
 
-  // Dados de exemplo para empresas (você pode carregar de uma API ou arquivo)
-  const [empresas, setEmpresas] = useState([
-    {
-      company: "Empresa A",
-      rating: 4,
-      salario: 3,
-      beneficios: 4,
-      cultura: 5,
-      oportunidades: 4,
-      inovacao: 3,
-      lideranca: 4,
-      diversidade: 5,
-      ambiente: 4,
-      equilibrio: 4,
-      reconhecimento: 3,
-      comunicacao: 4,
-      etica: 5,
-      desenvolvimento: 4,
-      saudeBemEstar: 4,
-      impactoSocial: 3,
-      reputacao: 4,
-      estimacaoOrganizacao: 4,
-    },
-    {
-      company: "Empresa B",
-      rating: 3,
-      salario: 4,
-      beneficios: 3,
-      cultura: 4,
-      oportunidades: 3,
-      inovacao: 4,
-      lideranca: 3,
-      diversidade: 4,
-      ambiente: 3,
-      equilibrio: 3,
-      reconhecimento: 4,
-      comunicacao: 3,
-      etica: 4,
-      desenvolvimento: 3,
-      saudeBemEstar: 3,
-      impactoSocial: 4,
-      reputacao: 3,
-      estimacaoOrganizacao: 3,
-    },
-  ]);
+  // Carrega a lista externa e cria a estrutura de notas zeradas
+  const [empresas, setEmpresas] = useState(() => {
+    return empresasBrasileiras.map((nome) => ({
+      company: nome,
+      rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
+      inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
+      reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
+      saudeBemEstar: 0, impactoSocial: 0, reputacao: 0, estimacaoOrganizacao: 0,
+    }));
+  });
 
-  // Função para calcular a média de uma empresa
   const calcularMedia = useCallback((emp) => {
     const ratings = [
       emp.rating, emp.salario, emp.beneficios, emp.cultura, emp.oportunidades,
       emp.inovacao, emp.lideranca, emp.diversidade, emp.ambiente, emp.equilibrio,
       emp.reconhecimento, emp.comunicacao, emp.etica, emp.desenvolvimento,
       emp.saudeBemEstar, emp.impactoSocial, emp.reputacao, emp.estimacaoOrganizacao,
-    ].filter(val => typeof val === 'number' && !isNaN(val)); // Filtra valores válidos
+    ].filter(val => typeof val === 'number' && !isNaN(val));
 
     if (ratings.length === 0) return "0.0";
     const sum = ratings.reduce((acc, curr) => acc + curr, 0);
     return (sum / ratings.length).toFixed(1);
   }, []);
 
-  // Ordena as empresas para o ranking
   const top3 = [...empresas].sort((a, b) => calcularMedia(b) - calcularMedia(a)).slice(0, 3);
 
-  // Cores para medalhas do ranking
   const getMedalColor = (index) => {
     if (index === 0) return "from-yellow-400 to-yellow-600";
     if (index === 1) return "from-gray-400 to-gray-600";
@@ -128,7 +91,6 @@ function Home() {
     return "from-blue-400 to-blue-600";
   };
 
-  // Emojis para medalhas do ranking
   const getMedalEmoji = (index) => {
     if (index === 0) return "🥇";
     if (index === 1) return "🥈";
@@ -136,7 +98,6 @@ function Home() {
     return "🏅";
   };
 
-  // Cores para badges de média
   const getBadgeColor = (media) => {
     if (media >= 4.5) return "bg-green-600";
     if (media >= 3.5) return "bg-blue-600";
@@ -144,16 +105,13 @@ function Home() {
     return "bg-red-600";
   };
 
-  // Opções de empresa para o Select
   const safeCompanyOptions = empresas.map((emp) => ({
     value: emp.company,
     label: emp.company,
   }));
 
-  // Estado para a empresa selecionada no dropdown
   const [selectedCompanyData, setSelectedCompanyData] = useState(null);
 
-  // Efeito para carregar dados da empresa selecionada
   useEffect(() => {
     if (company) {
       const data = empresas.find((emp) => emp.company === company.value);
@@ -163,7 +121,6 @@ function Home() {
     }
   }, [company, empresas]);
 
-  // Função para adicionar nova empresa
   const handleAddNewCompany = useCallback(() => {
     if (newCompany.trim() === "") {
       alert("Por favor, insira o nome da nova empresa.");
@@ -171,33 +128,18 @@ function Home() {
     }
     const newCompanyData = {
       company: newCompany.trim(),
-      rating: 0,
-      salario: 0,
-      beneficios: 0,
-      cultura: 0,
-      oportunidades: 0,
-      inovacao: 0,
-      lideranca: 0,
-      diversidade: 0,
-      ambiente: 0,
-      equilibrio: 0,
-      reconhecimento: 0,
-      comunicacao: 0,
-      etica: 0,
-      desenvolvimento: 0,
-      saudeBemEstar: 0,
-      impactoSocial: 0,
-      reputacao: 0,
-    estimacaoOrganizacao: 0,
-  };
-  setEmpresas([...empresas, newCompanyData]);
-  setNewCompany("");
-  setShowNewCompanyInput(false);
-  setCompany({ value: newCompanyData.company, label: newCompanyData.company });
-}, [newCompany, empresas]);
+      rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
+      inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
+      reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
+      saudeBemEstar: 0, impactoSocial: 0, reputacao: 0, estimacaoOrganizacao: 0,
+    };
+    setEmpresas([...empresas, newCompanyData]);
+    setNewCompany("");
+    setShowNewCompanyInput(false);
+    setCompany({ value: newCompanyData.company, label: newCompanyData.company });
+  }, [newCompany, empresas]);
 
-// Função para lidar com o envio do formulário
-const handleSubmit = useCallback(async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     if (!isAuthenticated) {
       setError("Por favor, faça login para enviar sua avaliação.");
@@ -213,41 +155,18 @@ const handleSubmit = useCallback(async (e) => {
 
     const evaluationData = {
       company: company.value,
-      rating, commentRating,
-      salario, commentSalario,
-      beneficios, commentBeneficios,
-      cultura, commentCultura,
-      oportunidades, commentOportunidades,
-      inovacao, commentInovacao,
-      lideranca, commentLideranca,
-      diversidade, commentDiversidade,
-      ambiente, commentAmbiente,
-      equilibrio, commentEquilibrio,
-      reconhecimento, commentReconhecimento,
-      comunicacao, commentComunicacao,
-      etica, commentEtica,
-      desenvolvimento, commentDesenvolvimento,
-      saudeBemEstar, commentSaudeBemEstar,
-      impactoSocial, commentImpactoSocial,
-      reputacao, commentReputacao,
-      estimacaoOrganizacao, commentEstimacaoOrganizacao,
+      rating, commentRating, salario, commentSalario, beneficios, commentBeneficios,
+      cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao,
+      lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente,
+      equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao,
+      etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar,
+      impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao,
       generalComment,
-      // userId: "anonimo_hash_do_usuario_logado", // Isso viria do backend após o login
       timestamp: new Date().toISOString(),
     };
 
-    console.log("Dados da avaliação a serem enviados:", evaluationData);
-
-    // Simulação de envio para um backend
     try {
-      // Aqui você faria uma requisição POST para sua API de avaliações
-      // Ex: const response = await fetch('/api/submit-evaluation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(evaluationData) });
-      // const result = await response.json();
-      // if (result.error) throw new Error(result.error);
-
-      // Simula sucesso
       alert("Avaliação enviada com sucesso! Obrigado por sua contribuição.");
-      // Resetar formulário (opcional)
     } catch (err) {
       setError("Erro ao enviar avaliação: " + err.message);
     } finally {
@@ -255,61 +174,68 @@ const handleSubmit = useCallback(async (e) => {
     }
   }, [isAuthenticated, company, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment]);
 
-  // --- Lógica de Login LinkedIn ---
-  // O Client ID e Redirect URI devem vir das variáveis de ambiente
   const linkedInClientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID;
   const linkedInRedirectUri = process.env.REACT_APP_LINKEDIN_REDIRECT_URI;
 
-  // Se o login for bem-sucedido via AuthLinkedIn.jsx, ele setará isAuthenticated para true
-  // e salvará o userProfile no localStorage.
   useEffect(() => {
     const userProfile = localStorage.getItem("userProfile");
     if (userProfile) {
       setIsAuthenticated(true);
-      // Opcional: Você pode parsear o userProfile e usar os dados do usuário aqui
-      // const user = JSON.parse(userProfile);
-      // console.log("Usuário logado:", user.name);
     } else {
       setIsAuthenticated(false);
     }
-  }, []); // Executa apenas uma vez ao montar o componente
+  }, []); 
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem("userProfile");
     setIsAuthenticated(false);
-    // Opcional: Limpar estados de avaliação ou redirecionar
   }, []);
 
+  const handleLoginSuccess = useCallback(async ({ code }) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/linkedin-auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          redirectUri: process.env.REACT_APP_LINKEDIN_REDIRECT_URI,
+        }),
+      });
 
-  // Propriedades comuns para ambos os layouts (Mobile e Desktop)
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      localStorage.setItem("userProfile", JSON.stringify(data));
+      setIsAuthenticated(true);
+
+    } catch (err) {
+      console.error("Erro ao validar login no backend:", err);
+      setError("Falha ao conectar com o LinkedIn.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const commonProps = {
-    company, setCompany,
-    rating, setRating, commentRating, setCommentRating,
-    salario, setSalario, commentSalario, setCommentSalario,
-    beneficios, setBeneficios, commentBeneficios, setCommentBeneficios,
-    cultura, setCultura, commentCultura, setCommentCultura,
-    oportunidades, setOportunidades, commentOportunidades, setCommentOportunidades,
-    inovacao, setInovacao, commentInovacao, setCommentInovacao,
-    lideranca, setLideranca, commentLideranca, setCommentLideranca,
-    diversidade, setDiversidade, commentDiversidade, setCommentDiversidade,
-    ambiente, setAmbiente, commentAmbiente, setCommentAmbiente,
-    equilibrio, setEquilibrio, commentEquilibrio, setCommentEquilibrio,
-    reconhecimento, setReconhecimento, commentReconhecimento, setCommentReconhecimento,
-    comunicacao, setComunicacao, commentComunicacao, setCommentComunicacao,
-    etica, setEtica, commentEtica, setCommentEtica,
-    desenvolvimento, setDesenvolvimento, commentDesenvolvimento, setCommentDesenvolvimento,
-    saudeBemEstar, setSaudeBemEstar, commentSaudeBemEstar, setCommentSaudeBemEstar,
-    impactoSocial, setImpactoSocial, commentImpactoSocial, setCommentImpactoSocial,
-    reputacao, setReputacao, commentReputacao, setCommentReputacao,
+    company, setCompany, rating, setRating, commentRating, setCommentRating,
+    salario, setSalario, commentSalario, setCommentSalario, beneficios, setBeneficios, commentBeneficios, setCommentBeneficios,
+    cultura, setCultura, commentCultura, setCommentCultura, oportunidades, setOportunidades, commentOportunidades, setCommentOportunidades,
+    inovacao, setInovacao, commentInovacao, setCommentInovacao, lideranca, setLideranca, commentLideranca, setCommentLideranca,
+    diversidade, setDiversidade, commentDiversidade, setCommentDiversidade, ambiente, setAmbiente, commentAmbiente, setCommentAmbiente,
+    equilibrio, setEquilibrio, commentEquilibrio, setCommentEquilibrio, reconhecimento, setReconhecimento, commentReconhecimento, setCommentReconhecimento,
+    comunicacao, setComunicacao, commentComunicacao, setCommentComunicacao, etica, setEtica, commentEtica, setCommentEtica,
+    desenvolvimento, setDesenvolvimento, commentDesenvolvimento, setCommentDesenvolvimento, saudeBemEstar, setSaudeBemEstar, commentSaudeBemEstar, setCommentSaudeBemEstar,
+    impactoSocial, setImpactoSocial, commentImpactoSocial, setCommentImpactoSocial, reputacao, setReputacao, commentReputacao, setCommentReputacao,
     estimacaoOrganizacao, setEstimacaoOrganizacao, commentEstimacaoOrganizacao, setCommentEstimulacaoOrganizacao,
-    generalComment, setGeneralComment,
-    handleSubmit, isLoading, empresas, top3,
+    generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
     showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany,
-    linkedInClientId, linkedInRedirectUri, // Passa ambos para o LoginLinkedInButton
-    error, isAuthenticated, setIsAuthenticated, handleLogout,
-    selectedCompanyData, calcularMedia,
-    getMedalColor, getMedalEmoji, getBadgeColor,
-    safeCompanyOptions,
+    linkedInClientId, linkedInRedirectUri, error, isAuthenticated, setIsAuthenticated, handleLogout,
+    onLoginSuccess: handleLoginSuccess, selectedCompanyData, calcularMedia,
+    getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
   };
 
   return isMobile ? (
