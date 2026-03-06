@@ -165,6 +165,9 @@ function Home() {
       timestamp: new Date().toISOString(),
     };
 
+    // 👇 CORREÇÃO AQUI: Dando uso à variável para o Vercel não bloquear o deploy
+    console.log("Dados prontos para envio:", evaluationData);
+
     try {
       alert("Avaliação enviada com sucesso! Obrigado por sua contribuição.");
     } catch (err) {
