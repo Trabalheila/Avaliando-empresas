@@ -2,23 +2,30 @@
 import React, { useCallback } from "react";
 import { FaLinkedinIn } from "react-icons/fa";
 
-function LoginLinkedInButton({ clientId, redirectUri }) { // Recebe como props
+function LoginLinkedInButton({ clientId, redirectUri }) {
   const handleLogin = useCallback(() => {
-    if (!clientId || !redirectUri) {
+    // Garante que vai pegar a chave, seja por prop ou direto do .env
+    const finalClientId = clientId || process.env.REACT_APP_LINKEDIN_CLIENT_ID;
+    const finalRedirectUri = redirectUri || process.env.REACT_APP_LINKEDIN_REDIRECT_URI;
+
+    if (!finalClientId || !finalRedirectUri) {
       console.error("Client ID ou Redirect URI do LinkedIn não configurados.");
-      alert("Erro de configuração do LinkedIn. Por favor, tente novamente mais tarde.");
+      alert("Erro de configuração do LinkedIn. Verifique as variáveis de ambiente.");
       return;
     }
-const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-sessionStorage.setItem("linkedin_oauth_state", state);
 
-const scope = "openid profile email"; // Escopos mínimos para OpenID Connect
+    const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    sessionStorage.setItem("linkedin_oauth_state", state);
 
-const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&amp;client_id=${clientId}&amp;redirect_uri=${encodeURIComponent(redirectUri)}&amp;state=${state}&amp;scope=${encodeURIComponent(scope)}`;
+    const scope = "openid profile email";
 
-window.location.href = authUrl;
+    // CORREÇÃO CRÍTICA: Usando apenas '&' para separar os parâmetros
+    const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${finalClientId}&redirect_uri=${encodeURIComponent(finalRedirectUri)}&state=${state}&scope=${encodeURIComponent(scope)}`;
 
-  }, [clientId, redirectUri]); // Adiciona dependências
+    // Redireciona o usuário para a página do LinkedIn
+    window.location.href = authUrl;
+
+  }, [clientId, redirectUri]);
 
   return (
     <button

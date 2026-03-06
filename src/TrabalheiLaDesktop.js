@@ -1,134 +1,71 @@
 import React from "react";
-import {
-  FaStar, FaChartBar, FaHandshake, FaMoneyBillWave,
-  FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb, FaPlus,
-} from "react-icons/fa";
-import { FcGoogle } from "react-icons/fc";
 import Select from "react-select";
+import { FaBuilding, FaPlus, FaChartBar, FaStar, FaRegStar, FaMoneyBillWave, FaGift, FaUsers, FaChartLine, FaLightbulb, FaUserTie, FaGlobe, FaLeaf, FaBalanceScale, FaTrophy, FaComments, FaHandshake, FaGraduationCap, FaHeart } from "react-icons/fa";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
 
-function OutlinedStar({ active, onClick, size = 20, label }) {
-  const outlineScale = 1.24;
-  return (
-    <button type="button" onClick={onClick} aria-label={label} title={label}
-      style={{ padding: 0, margin: 0, border: 0, background: "transparent", cursor: "pointer", lineHeight: 0 }}>
-      <span style={{ position: "relative", display: "inline-block", width: size, height: size, verticalAlign: "middle" }}>
-        <span style={{ position: "absolute", left: 0, top: 0, transform: `scale(${outlineScale})`, transformOrigin: "center" }} aria-hidden="true">
-          <FaStar size={size} color="#000" />
-        </span>
-        <span style={{ position: "relative" }} aria-hidden="true">
-          <FaStar size={size} color={active ? "#facc15" : "#e5e7eb"} />
-        </span>
-      </span>
-    </button>
-  );
-}
-
 function TrabalheiLaDesktop({
-  company, setCompany,
-  newCompany, setNewCompany,
-  rating, setRating,
-  contatoRH, setContatoRH,
-  salarioBeneficios, setSalarioBeneficios,
-  estruturaEmpresa, setEstruturaEmpresa,
-  acessibilidadeLideranca, setAcessibilidadeLideranca,
-  planoCarreiras, setPlanoCarreiras,
-  bemestar, setBemestar,
-  estimulacaoOrganizacao, setEstimulacaoOrganizacao,
-  commentRating, setCommentRating,
-  commentContatoRH, setCommentContatoRH,
-  commentSalarioBeneficios, setCommentSalarioBeneficios,
-  commentEstruturaEmpresa, setCommentEstruturaEmpresa,
-  commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca,
-  commentPlanoCarreiras, setCommentPlanoCarreiras,
-  commentBemestar, setCommentBemestar,
-  commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao,
-  generalComment, setGeneralComment,
-  handleSubmit, isLoading,
-  empresas, top3,
-  showNewCompanyInput, setShowNewCompanyInput,
-  handleAddNewCompany,
-  linkedInClientId,
-  handleLinkedInLogin, handleGoogleLogin,
-  error, isAuthenticated,
-  selectedCompanyData,
-  safeCompanyOptions,
+  company, setCompany, rating, setRating, commentRating, setCommentRating,
+  salario, setSalario, commentSalario, setCommentSalario, beneficios, setBeneficios, commentBeneficios, setCommentBeneficios,
+  cultura, setCultura, commentCultura, setCommentCultura, oportunidades, setOportunidades, commentOportunidades, setCommentOportunidades,
+  inovacao, setInovacao, commentInovacao, setCommentInovacao, lideranca, setLideranca, commentLideranca, setCommentLideranca,
+  diversidade, setDiversidade, commentDiversidade, setCommentDiversidade, ambiente, setAmbiente, commentAmbiente, setCommentAmbiente,
+  equilibrio, setEquilibrio, commentEquilibrio, setCommentEquilibrio, reconhecimento, setReconhecimento, commentReconhecimento, setCommentReconhecimento,
+  comunicacao, setComunicacao, commentComunicacao, setCommentComunicacao, etica, setEtica, commentEtica, setCommentEtica,
+  desenvolvimento, setDesenvolvimento, commentDesenvolvimento, setCommentDesenvolvimento, saudeBemEstar, setSaudeBemEstar, commentSaudeBemEstar, setCommentSaudeBemEstar,
+  impactoSocial, setImpactoSocial, commentImpactoSocial, setCommentImpactoSocial, reputacao, setReputacao, commentReputacao, setCommentReputacao,
+  estimacaoOrganizacao, setEstimacaoOrganizacao, commentEstimacaoOrganizacao, setCommentEstimulacaoOrganizacao,
+  generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
+  showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany, newCompany, setNewCompany,
+  linkedInClientId, error, isAuthenticated, onLoginSuccess, selectedCompanyData, calcularMedia,
+  getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions
 }) {
-  const calcularMedia = (emp) => {
-    if (!emp) return 0;
-    const sum = emp.rating + emp.contatoRH + emp.salarioBeneficios +
-      emp.estruturaEmpresa + emp.acessibilidadeLideranca +
-      emp.planoCarreiras + emp.bemestar + emp.estimulacaoOrganizacao;
-    return (sum / 8).toFixed(1);
-  };
-
-  const getBadgeColor = (media) => {
-    if (media >= 4.5) return "bg-green-500";
-    if (media >= 3.5) return "bg-yellow-500";
-    return "bg-red-500";
-  };
-
-  const getMedalColor = (index) => {
-    if (index === 0) return "from-yellow-400 to-yellow-600";
-    if (index === 1) return "from-gray-300 to-gray-500";
-    if (index === 2) return "from-orange-300 to-orange-500";
-    return "from-blue-300 to-blue-500";
-  };
-
-  const getMedalEmoji = (index) => {
-    if (index === 0) return "🥇";
-    if (index === 1) return "🥈";
-    if (index === 2) return "🥉";
-    return "🏅";
-  };
-
-  const companyNote = selectedCompanyData ? calcularMedia(selectedCompanyData) : "—";
 
   const selectStyles = {
-    control: (base, state) => ({
-      ...base,
-      borderRadius: "0.75rem",
-      padding: "0.25rem",
-      borderColor: state.isFocused ? "#1d4ed8" : "#e5e7eb",
-      boxShadow: state.isFocused ? "0 0 0 1px #1d4ed8" : "none",
-      "&:hover": { borderColor: state.isFocused ? "#1d4ed8" : "#d1d5db" },
-    }),
-    option: (base, state) => ({
-      ...base,
-      backgroundColor: state.isFocused ? "#dbeafe" : "white",
-      color: "#1e3a8a",
-    }),
-    singleValue: (base) => ({ ...base, color: "#1e3a8a" }),
-    placeholder: (base) => ({ ...base, color: "#9ca3af" }),
+    control: (base) => ({ ...base, borderRadius: "0.75rem", padding: "0.25rem", borderColor: "#d1d5db", boxShadow: "none", "&:hover": { borderColor: "#3b82f6" } }),
+    option: (base, state) => ({ ...base, backgroundColor: state.isFocused ? "#eff6ff" : "white", color: "#1e293b", cursor: "pointer" }),
   };
 
-  const renderStars = (value, setValue, commentValue, setCommentValue, label) => (
-    <div className="flex flex-col items-end w-full md:w-2/3">
-      <div className="flex items-center space-x-1 mb-2">
-        {[...Array(5)].map((_, i) => (
-          <OutlinedStar key={i} active={i < value} onClick={() => setValue(i + 1)} label={`${i + 1} estrelas para ${label}`} />
+  const renderStars = (value, setValue, comment, setComment, label) => (
+    <div className="flex flex-col w-full md:w-2/3 gap-2">
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button key={star} type="button" onClick={() => setValue(star)} className="focus:outline-none transition-transform hover:scale-110">
+            {star <= value ? <FaStar className="text-yellow-400 text-2xl drop-shadow-sm" /> : <FaRegStar className="text-gray-300 text-2xl hover:text-yellow-200" />}
+          </button>
         ))}
-        <span className="ml-2 text-slate-700 font-medium">{value}/5</span>
       </div>
-      <textarea
-        className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 mt-1"
-        placeholder={`Comentário sobre ${label} (opcional)`}
-        value={commentValue}
-        onChange={(e) => setCommentValue(e.target.value)}
-      />
+      <input type="text" placeholder={`Comentário sobre ${label.toLowerCase()} (opcional)`} value={comment} onChange={(e) => setComment(e.target.value)} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white" />
     </div>
   );
 
   const campos = [
-    { label: "Cultura e Valores", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FaStar className="text-yellow-400" /> },
-    { label: "Contato com RH", value: contatoRH, set: setContatoRH, comment: commentContatoRH, setComment: setCommentContatoRH, icon: <FaHandshake className="text-blue-400" /> },
-    { label: "Salário e Benefícios", value: salarioBeneficios, set: setSalarioBeneficios, comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios, icon: <FaMoneyBillWave className="text-green-400" /> },
-    { label: "Estrutura da Empresa", value: estruturaEmpresa, set: setEstruturaEmpresa, comment: commentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa, icon: <FaBuilding className="text-indigo-400" /> },
-    { label: "Acessibilidade à Liderança", value: acessibilidadeLideranca, set: setAcessibilidadeLideranca, comment: commentAcessibilidadeLideranca, setComment: setCommentAcessibilidadeLideranca, icon: <FaUserTie className="text-red-400" /> },
-    { label: "Plano de Carreira", value: planoCarreiras, set: setPlanoCarreiras, comment: commentPlanoCarreiras, setComment: setCommentPlanoCarreiras, icon: <FaBriefcase className="text-indigo-400" /> },
-    { label: "Bem-estar", value: bemestar, set: setBemestar, comment: commentBemestar, setComment: setCommentBemestar, icon: <FaHeart className="text-pink-400" /> },
-    { label: "Estímulo e Organização", value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimulacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-orange-400" /> },
+    { label: "Avaliação Geral", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FaStar className="text-yellow-500" /> },
+    { label: "Salário", value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario, icon: <FaMoneyBillWave className="text-green-500" /> },
+    { label: "Benefícios", value: beneficios, set: setBeneficios, comment: commentBeneficios, setComment: setCommentBeneficios, icon: <FaGift className="text-red-400" /> },
+    { label: "Cultura", value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura, icon: <FaUsers className="text-purple-500" /> },
+    { label: "Oportunidades", value: oportunidades, set: setOportunidades, comment: commentOportunidades, setComment: setCommentOportunidades, icon: <FaChartLine className="text-blue-500" /> },
+    { label: "Inovação", value: inovacao, set: setInovacao, comment: commentInovacao, setComment: setCommentInovacao, icon: <FaLightbulb className="text-yellow-400" /> },
+    { label: "Liderança", value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca, icon: <FaUserTie className="text-indigo-500" /> },
+    { label: "Diversidade", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade, icon: <FaGlobe className="text-teal-500" /> },
+    { label: "Ambiente", value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente, icon: <FaLeaf className="text-green-400" /> },
+    { label: "Equilíbrio", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio, icon: <FaBalanceScale className="text-gray-500" /> },
+    { label: "Reconhecimento", value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento, icon: <FaTrophy className="text-yellow-600" /> },
+    { label: "Comunicação", value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao, icon: <FaComments className="text-blue-400" /> },
+    { label: "Ética", value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica, icon: <FaHandshake className="text-orange-500" /> },
+    { label: "Desenvolvimento", value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento, icon: <FaGraduationCap className="text-red-500" /> },
+    { label: "Saúde e Bem-estar", value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar, icon: <FaHeart className="text-pink-500" /> },
+    { label: "Impacto Social", value: impactoSocial, set: setImpactoSocial, comment: commentImpactoSocial, setComment: setCommentImpactoSocial, icon: <FaGlobe className="text-green-600" /> },
+    { label: "Reputação", value: reputacao, set: setReputacao, comment: commentReputacao, setComment: setCommentReputacao, icon: <FaStar className="text-yellow-500" /> },
+    { label: "Estímulo e Organização", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-orange-400" /> },
   ];
+
+  const companyNote = selectedCompanyData ? calcularMedia(selectedCompanyData) : "0.0";
+
+  // Lógica para gerar a Logo baseada no nome da empresa
+  const companyNameForLogo = selectedCompanyData ? selectedCompanyData.company : "Logo da Empresa";
+  const logoUrl = selectedCompanyData 
+    ? `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedCompanyData.company)}&background=0D8ABC&color=fff&size=128&font-size=0.4` 
+    : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center p-6">
@@ -139,10 +76,19 @@ function TrabalheiLaDesktop({
         <header className="bg-white rounded-3xl shadow-2xl p-8 mb-8 border-2 border-blue-200">
           <div className="flex items-center justify-between">
             <div className="flex flex-col items-center">
-              <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center border-2 border-blue-200">
-                <FaBuilding className="text-blue-700 text-4xl" />
+
+              {/* ÁREA DA LOGO ATUALIZADA */}
+              <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center border-2 border-blue-200 overflow-hidden">
+                {logoUrl ? (
+                  <img src={logoUrl} alt={`Logo ${companyNameForLogo}`} className="w-full h-full object-cover" />
+                ) : (
+                  <FaBuilding className="text-blue-700 text-4xl" />
+                )}
               </div>
-              <span className="text-xs mt-2 text-blue-400">Logo da Empresa</span>
+              <span className="text-xs mt-2 text-blue-400 text-center max-w-[100px] truncate" title={companyNameForLogo}>
+                {companyNameForLogo}
+              </span>
+
               <div className="mt-2 bg-blue-700 rounded-xl px-3 py-1 text-center">
                 <p className="text-xl font-extrabold text-white">{companyNote}/5</p>
                 <p className="text-xs text-blue-200">NOTA</p>
@@ -174,19 +120,14 @@ function TrabalheiLaDesktop({
           {/* COLUNA ESQUERDA */}
           <div className="flex-1">
 
-            {/* LOGIN */}
+            {/* LOGIN ATUALIZADO (Sem Google, LinkedIn Corrigido) */}
             <section className="bg-white rounded-3xl shadow-xl p-6 mb-6 border border-blue-100">
               <h2 className="text-2xl font-bold text-blue-800 text-center mb-6 font-azonix">Login para Avaliar</h2>
-              <div className="flex flex-col space-y-4">
-                <button onClick={handleGoogleLogin}
-                  className="flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-gray-50 transition-all transform hover:scale-105">
-                  <FcGoogle className="mr-3 text-2xl" />
-                  Entrar com Google
-                </button>
+              <div className="flex flex-col items-center space-y-4">
                 <LoginLinkedInButton
                   clientId={linkedInClientId}
-                  onSuccess={handleLinkedInLogin}
-                  onError={(e) => console.error(e)}
+                  onLoginSuccess={onLoginSuccess}
+                  onLoginFailure={(e) => console.error("Erro no LinkedIn:", e)}
                 />
               </div>
               {isAuthenticated && (
