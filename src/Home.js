@@ -58,9 +58,8 @@ function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showNewCompanyInput, setShowNewCompanyInput] = useState(false);
 
-  // Carrega a lista externa e cria a estrutura de notas zeradas
   const [empresas, setEmpresas] = useState(() => {
-    return empresasBrasileiras.map((nome) => ({
+    return (empresasBrasileiras || []).map((nome) => ({
       company: nome,
       rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
       inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
@@ -165,7 +164,6 @@ function Home() {
       timestamp: new Date().toISOString(),
     };
 
-    // 👇 CORREÇÃO AQUI: Dando uso à variável para o Vercel não bloquear o deploy
     console.log("Dados prontos para envio:", evaluationData);
 
     try {
