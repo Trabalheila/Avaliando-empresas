@@ -1,6 +1,7 @@
 import React, { useCallback, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { saveUserProfile } from "../services/users";
+import { extractResumeText, parseResumeText } from "../utils/resumeParser";
 
 const predefinedAvatars = [
   "🧑", "🧑‍💼", "🧑‍🔧", "🧑‍💻", "🧑‍🔬", "👩‍🏫", "👨‍🍳", "👩‍⚕️", "👨‍🚀", "👩‍🎨",
@@ -11,6 +12,13 @@ function ChoosePseudonym() {
   const [pseudonym, setPseudonym] = useState("");
   const [cpf, setCpf] = useState("");
   const [linkedInUrl, setLinkedInUrl] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [educationLevel, setEducationLevel] = useState("");
+  const [resumeExperiences, setResumeExperiences] = useState([]);
+  const [resumeFileName, setResumeFileName] = useState("");
+  const [resumeText, setResumeText] = useState("");
+  const [isParsingResume, setIsParsingResume] = useState(false);
   const [avatar, setAvatar] = useState(predefinedAvatars[0]);
   const [confirmedHuman, setConfirmedHuman] = useState(false);
   const [error, setError] = useState(null);
@@ -32,6 +40,24 @@ function ChoosePseudonym() {
       }
       if (parsed?.linkedInUrl) {
         setLinkedInUrl(parsed.linkedInUrl);
+      }
+      if (parsed?.email) {
+        setEmail(parsed.email);
+      }
+      if (parsed?.phone) {
+        setPhone(parsed.phone);
+      }
+      if (parsed?.educationLevel) {
+        setEducationLevel(parsed.educationLevel);
+      }
+      if (Array.isArray(parsed?.resumeData?.experiences)) {
+        setResumeExperiences(parsed.resumeData.experiences);
+      }
+      if (parsed?.resumeData?.fileName) {
+        setResumeFileName(parsed.resumeData.fileName);
+      }
+      if (parsed?.resumeData?.rawText) {
+        setResumeText(parsed.resumeData.rawText);
       }
       if (parsed?.avatar) {
         setAvatar(parsed.avatar);
@@ -57,6 +83,45 @@ function ChoosePseudonym() {
       setAvatar(dataUrl);
     } catch {
       // ignore
+    }
+  };
+
+  const handleResumeUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setError(null);
+    setIsParsingResume(true);
+
+    try {
+      const text = await extractResumeText(file);
+      const storedCompanies = JSON.parse(localStorage.getItem("empresasData") || "[]");
+      const knownCompanyNames = (storedCompanies || []).map((emp) => emp?.company).filter(Boolean);
+      const parsed = parseResumeText(text, knownCompanyNames);
+
+      if (!pseudonym.trim() && parsed.email) {
+        const nickname = parsed.email.split("@")[0].replace(/[._-]+/g, " ");
+        setPseudonym(
+          nickname
+            .split(" ")
+            .filter(Boolean)
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+            .join(" ")
+        );
+      }
+
+      if (!cpf && parsed.cpf) setCpf(parsed.cpf);
+      if (!linkedInUrl && parsed.linkedInUrl) setLinkedInUrl(parsed.linkedInUrl);
+      if (!email && parsed.email) setEmail(parsed.email);
+      if (!phone && parsed.phone) setPhone(parsed.phone);
+      if (parsed.educationLevel) setEducationLevel(parsed.educationLevel);
+      setResumeExperiences(parsed.experiences || []);
+      setResumeFileName(file.name || "curriculo");
+      setResumeText(parsed.rawText || "");
+    } catch (err) {
+      setError(err?.message || "Nao foi possivel ler o curriculo automaticamente.");
+    } finally {
+      setIsParsingResume(false);
     }
   };
 
@@ -86,8 +151,17 @@ function ChoosePseudonym() {
         ...existingProfile,
         name: trimmed,
         cpf: cpfNumbers || undefined,
+        email: email.trim() || undefined,
+        phone: phone.trim() || undefined,
+        educationLevel: educationLevel.trim() || undefined,
         linkedInUrl: linkedInUrl.trim() || undefined,
         avatar,
+        resumeData: {
+          fileName: resumeFileName || undefined,
+          experiences: resumeExperiences,
+          rawText: resumeText,
+          parsedAt: new Date().toISOString(),
+        },
       };
 
       localStorage.setItem("userProfile", JSON.stringify(nextProfile));
@@ -107,7 +181,20 @@ function ChoosePseudonym() {
 
       navigate("/");
     },
-    [navigate, pseudonym, cpf, linkedInUrl, avatar, confirmedHuman]
+    [
+      navigate,
+      pseudonym,
+      cpf,
+      email,
+      phone,
+      educationLevel,
+      linkedInUrl,
+      avatar,
+      confirmedHuman,
+      resumeFileName,
+      resumeExperiences,
+      resumeText,
+    ]
   );
 
   return (
@@ -155,6 +242,72 @@ function ChoosePseudonym() {
             <p className="text-xs text-slate-500 mt-1">
               Isso ajuda a dar mais credibilidade às avaliações (não será exibido publicamente).
             </p>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Carregar curriculo (PDF, DOCX, TXT, MD, RTF)</label>
+            <input
+              type="file"
+              accept=".pdf,.docx,.txt,.md,.rtf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+              onChange={handleResumeUpload}
+              className="w-full"
+            />
+            <p className="text-xs text-slate-500 mt-2">
+              O sistema tenta ler e preencher automaticamente os campos essenciais do curriculo.
+            </p>
+            {isParsingResume && <p className="text-sm text-blue-700 mt-2">Lendo e interpretando curriculo...</p>}
+            {resumeFileName && !isParsingResume && (
+              <p className="text-sm text-emerald-700 mt-2">Arquivo processado: {resumeFileName}</p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700">Email</label>
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="email@exemplo.com"
+                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700">Telefone</label>
+              <input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="(11) 99999-9999"
+                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700">Nivel escolar</label>
+            <input
+              value={educationLevel}
+              onChange={(e) => setEducationLevel(e.target.value)}
+              placeholder="Ex.: Ensino Superior"
+              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700">Experiencias identificadas</label>
+            <textarea
+              value={(resumeExperiences || []).join("\n")}
+              onChange={(e) =>
+                setResumeExperiences(
+                  e.target.value
+                    .split("\n")
+                    .map((line) => line.trim())
+                    .filter(Boolean)
+                )
+              }
+              placeholder="Experiencias detectadas automaticamente do curriculo"
+              rows={5}
+              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
 
           <div>

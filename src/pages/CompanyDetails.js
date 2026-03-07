@@ -3,6 +3,97 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { getCompanyLogoCandidates } from "../utils/getCompanyLogo";
 import { db } from "../firebase";
 import { collection, doc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
+import { hasCompanyInResumeExperiences } from "../utils/resumeParser";
+
+function normalizeKey(value) {
+  return (value || "")
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+async function fetchWikidataLabels(ids) {
+  if (!ids.length) return {};
+  const url = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${ids.join("|")}&format=json&props=labels&languages=pt|en&origin=*`;
+  const response = await fetch(url);
+  if (!response.ok) return {};
+  const data = await response.json();
+  const entities = data?.entities || {};
+
+  const labels = {};
+  Object.keys(entities).forEach((id) => {
+    labels[id] =
+      entities[id]?.labels?.pt?.value ||
+      entities[id]?.labels?.en?.value ||
+      id;
+  });
+
+  return labels;
+}
+
+async function fetchCompanyInsightsByName(companyName) {
+  if (!companyName) return null;
+
+  const searchUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(
+    companyName
+  )}&language=pt&uselang=pt&type=item&limit=5&format=json&origin=*`;
+
+  const searchRes = await fetch(searchUrl);
+  if (!searchRes.ok) return null;
+  const searchData = await searchRes.json();
+  const items = searchData?.search || [];
+  if (!items.length) return null;
+
+  const normalizedCompanyName = normalizeKey(companyName);
+  const bestMatch =
+    items.find((item) => normalizeKey(item.label).includes(normalizedCompanyName)) ||
+    items[0];
+
+  const entityId = bestMatch?.id;
+  if (!entityId) return null;
+
+  const detailsUrl = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${entityId}&format=json&props=labels|descriptions|claims&languages=pt|en&origin=*`;
+  const detailsRes = await fetch(detailsUrl);
+  if (!detailsRes.ok) return null;
+  const detailsData = await detailsRes.json();
+  const entity = detailsData?.entities?.[entityId];
+  if (!entity) return null;
+
+  const getClaimValue = (claimKey) => {
+    const claim = entity?.claims?.[claimKey]?.[0];
+    return claim?.mainsnak?.datavalue?.value;
+  };
+
+  const industryValue = getClaimValue("P452");
+  const hqValue = getClaimValue("P159");
+  const websiteValue = getClaimValue("P856");
+  const linkedinValue = getClaimValue("P6634");
+  const twitterValue = getClaimValue("P2002");
+  const instagramValue = getClaimValue("P2003");
+  const facebookValue = getClaimValue("P2013");
+
+  const idCandidates = [industryValue?.id, hqValue?.id].filter(Boolean);
+  const labelsMap = await fetchWikidataLabels(idCandidates);
+
+  return {
+    description:
+      entity?.descriptions?.pt?.value ||
+      entity?.descriptions?.en?.value ||
+      bestMatch?.description ||
+      "Nao identificado automaticamente",
+    sector: industryValue?.id ? labelsMap[industryValue.id] : "Nao identificado automaticamente",
+    location: hqValue?.id ? labelsMap[hqValue.id] : "Nao identificado automaticamente",
+    website: typeof websiteValue === "string" ? websiteValue : "Nao identificado automaticamente",
+    socialLinks: [
+      { label: "LinkedIn", value: linkedinValue ? `https://www.linkedin.com/company/${linkedinValue}` : "Nao identificado automaticamente" },
+      { label: "X / Twitter", value: twitterValue ? `https://twitter.com/${twitterValue}` : "Nao identificado automaticamente" },
+      { label: "Instagram", value: instagramValue ? `https://instagram.com/${instagramValue}` : "Nao identificado automaticamente" },
+      { label: "Facebook", value: facebookValue ? `https://facebook.com/${facebookValue}` : "Nao identificado automaticamente" },
+    ],
+  };
+}
 
 function CompanyDetails() {
   const navigate = useNavigate();
@@ -67,6 +158,8 @@ function CompanyDetails() {
   const [replyTo, setReplyTo] = React.useState(null);
   const [replyText, setReplyText] = React.useState("");
   const [reactionRegistry, setReactionRegistry] = React.useState({});
+  const [insights, setInsights] = React.useState(null);
+  const [insightsLoading, setInsightsLoading] = React.useState(false);
   const logoCandidates = company
     ? getCompanyLogoCandidates(company.company, { size: 128, website: company.website })
     : [];
@@ -76,6 +169,36 @@ function CompanyDetails() {
   React.useEffect(() => {
     setLogoIndex(0);
   }, [company?.company, company?.website]);
+
+  React.useEffect(() => {
+    let alive = true;
+
+    const loadInsights = async () => {
+      if (!company?.company) {
+        setInsights(null);
+        return;
+      }
+
+      setInsightsLoading(true);
+      try {
+        const remote = await fetchCompanyInsightsByName(company.company);
+        if (!alive) return;
+        setInsights(remote);
+      } catch (err) {
+        if (!alive) return;
+        setInsights(null);
+      } finally {
+        if (!alive) return;
+        setInsightsLoading(false);
+      }
+    };
+
+    loadInsights();
+
+    return () => {
+      alive = false;
+    };
+  }, [company?.company]);
 
   const reactions = [
     { key: "thumbsDown", label: "👎" },
@@ -93,22 +216,34 @@ function CompanyDetails() {
     if (!company) return null;
 
     const sector =
+      insights?.sector ||
       company.ramo ||
       company.setor ||
       company.segmento ||
       company.industry ||
-      "Não informado";
+      "Nao identificado automaticamente";
 
-    const location = [company.cidade, company.estado, company.pais].filter(Boolean).join(" - ") || "Não informado";
+    const location =
+      insights?.location ||
+      [company.cidade, company.estado, company.pais].filter(Boolean).join(" - ") ||
+      "Nao identificado automaticamente";
 
-    const website = company.website || company.site || company.url || "Não informado";
-    const cnpj = company.cnpj || "Não informado";
+    const website =
+      insights?.website ||
+      company.website ||
+      company.site ||
+      company.url ||
+      "Nao identificado automaticamente";
 
-    const socialLinks = [
-      { label: "LinkedIn", value: company.linkedin || "Não informado" },
-      { label: "Instagram", value: company.instagram || "Não informado" },
-      { label: "Facebook", value: company.facebook || "Não informado" },
+    const cnpj = company.cnpj || "Nao informado";
+
+    const socialLinks = insights?.socialLinks || [
+      { label: "LinkedIn", value: company.linkedin || "Nao identificado automaticamente" },
+      { label: "Instagram", value: company.instagram || "Nao identificado automaticamente" },
+      { label: "Facebook", value: company.facebook || "Nao identificado automaticamente" },
     ];
+
+    const description = insights?.description || "Informacao automatica ainda nao identificada para esta empresa.";
 
     return {
       sector,
@@ -116,8 +251,19 @@ function CompanyDetails() {
       website,
       cnpj,
       socialLinks,
+      description,
     };
-  }, [company]);
+  }, [company, insights]);
+
+  const userHasResumeProof = useMemo(() => {
+    if (!company?.company) return false;
+    try {
+      const userProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      return hasCompanyInResumeExperiences(company.company, userProfile?.resumeData);
+    } catch {
+      return false;
+    }
+  }, [company?.company]);
 
   const getCommentsKey = React.useCallback(() => {
     return company ? `comments_${company.company}` : null;
@@ -452,6 +598,14 @@ function CompanyDetails() {
           </button>
         </div>
 
+        {userHasResumeProof && (
+          <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+            <p className="text-emerald-800 font-bold">
+              Experiencia comprovada: esta empresa aparece no curriculo carregado pelo profissional.
+            </p>
+          </div>
+        )}
+
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
           {scoreFields.map((field) => {
             const value = company[field.key];
@@ -478,6 +632,13 @@ function CompanyDetails() {
         <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
           <h2 className="text-lg font-bold text-blue-800 font-azonix tracking-[0.08em] mb-4">Sobre a empresa</h2>
           <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 space-y-3">
+            {insightsLoading && (
+              <p className="text-sm text-blue-700 font-semibold">Buscando dados automaticos da empresa...</p>
+            )}
+            <div>
+              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Descricao automatica</p>
+              <p className="text-sm text-slate-800 font-medium">{companyInfo?.description}</p>
+            </div>
             <div>
               <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Ramo</p>
               <p className="text-sm text-slate-800 font-medium">{companyInfo?.sector}</p>

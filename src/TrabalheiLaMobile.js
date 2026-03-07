@@ -501,7 +501,11 @@ function TrabalheiLaMobile({
         }}
       />
 
-      <footer className="text-center text-xs text-slate-500 mt-6">
+      <footer className="text-center text-xs text-slate-500 mt-6 space-x-2">
+        <a href="/politica-de-privacidade.html" className="text-blue-600 hover:underline font-semibold">
+          Política de Privacidade
+        </a>
+        <span>•</span>
         <a href="/purpose" className="text-blue-600 hover:underline">
           Qual o nosso propósito?
         </a>

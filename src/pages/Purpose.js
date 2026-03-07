@@ -27,6 +27,8 @@ export default function Purpose() {
           - Identifique pontos de melhoria e oportunidades de crescimento.
           <br />
           - Aumente sua atratividade no mercado ao mostrar que você está aberto ao diálogo e à evolução.
+          <br />
+          - Empresas com alta pontuação podem atrair mais participantes em testes seletivos, permitindo processos mais criteriosos e melhor captação de profissionais.
         </p>
         <div className="text-center">
           <Link
