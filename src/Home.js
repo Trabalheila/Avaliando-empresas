@@ -268,7 +268,7 @@ function Home() {
     console.log("Dados prontos para envio:", evaluationData);
 
     try {
-      // Atualiza a empresa localmente para refletir a nova avaliação
+      // Atualiza a empresa localment2e para refletir a nova avaliação
       setEmpresas((prev) =>
         prev.map((emp) => {
           if (emp.company !== company.value) return emp;
