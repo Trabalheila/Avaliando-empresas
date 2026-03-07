@@ -1,7 +1,7 @@
 import React from "react";
 import Select from "react-select";
 import { getCompanyLogoCandidates } from "./utils/getCompanyLogo";
-import { FaBuilding, FaPlus, FaChartBar, FaStar, FaRegStar, FaMoneyBillWave, FaGift, FaUsers, FaChartLine, FaLightbulb, FaUserTie, FaGlobe, FaLeaf, FaBalanceScale, FaTrophy, FaComments, FaHandshake, FaGraduationCap, FaHeart } from "react-icons/fa";
+import { FaBuilding, FaPlus, FaStar, FaRegStar, FaMoneyBillWave, FaGift, FaUsers, FaChartLine, FaLightbulb, FaUserTie, FaGlobe, FaLeaf, FaBalanceScale, FaTrophy, FaComments, FaHandshake, FaGraduationCap, FaHeart } from "react-icons/fa";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
 
