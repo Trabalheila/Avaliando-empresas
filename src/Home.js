@@ -164,6 +164,10 @@ function Home({ theme, toggleTheme }) {
 
     const syncFromFirestore = async () => {
       try {
+        if (!auth.currentUser) {
+          await signInAnonymously(auth);
+        }
+
         const [remoteCompanies, remoteReviews] = await Promise.all([
           listCompanies(500),
           listRecentReviews(1500),
@@ -339,6 +343,9 @@ function Home({ theme, toggleTheme }) {
         await saveCompany({ company: companyName, cnpj: cleanedCnpj });
       } catch (saveErr) {
         console.warn("Falha ao salvar empresa no Firebase:", saveErr);
+        setError(
+          "Empresa adicionada localmente, mas falhou ao sincronizar com o Firebase. Tente novamente em alguns segundos."
+        );
       }
     } catch (err) {
       setCnpjError(err.message);
