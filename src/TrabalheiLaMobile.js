@@ -50,7 +50,7 @@ function TrabalheiLaMobile({
   handleSaibaMais,
   linkedInClientId, linkedInRedirectUri,
   error, isAuthenticated, onLoginSuccess, safeCompanyOptions,
-  selectedCompanyData, calcularMedia,
+  selectedCompanyData,
 }) {
   const calcularMedia = (emp) => {
     if (!emp) return "0.0";
