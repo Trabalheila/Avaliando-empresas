@@ -11,7 +11,6 @@ function ChoosePseudonym() {
   const navigate = useNavigate();
   const [pseudonym, setPseudonym] = useState("");
   const [cpf, setCpf] = useState("");
-  const [linkedInUrl, setLinkedInUrl] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [educationLevel, setEducationLevel] = useState("");
@@ -37,9 +36,6 @@ function ChoosePseudonym() {
       }
       if (parsed?.cpf) {
         setCpf(parsed.cpf);
-      }
-      if (parsed?.linkedInUrl) {
-        setLinkedInUrl(parsed.linkedInUrl);
       }
       if (parsed?.email) {
         setEmail(parsed.email);
@@ -111,7 +107,6 @@ function ChoosePseudonym() {
       }
 
       if (!cpf && parsed.cpf) setCpf(parsed.cpf);
-      if (!linkedInUrl && parsed.linkedInUrl) setLinkedInUrl(parsed.linkedInUrl);
       if (!email && parsed.email) setEmail(parsed.email);
       if (!phone && parsed.phone) setPhone(parsed.phone);
       if (parsed.educationLevel) setEducationLevel(parsed.educationLevel);
@@ -154,7 +149,6 @@ function ChoosePseudonym() {
         email: email.trim() || undefined,
         phone: phone.trim() || undefined,
         educationLevel: educationLevel.trim() || undefined,
-        linkedInUrl: linkedInUrl.trim() || undefined,
         avatar,
         resumeData: {
           fileName: resumeFileName || undefined,
@@ -188,7 +182,6 @@ function ChoosePseudonym() {
       email,
       phone,
       educationLevel,
-      linkedInUrl,
       avatar,
       confirmedHuman,
       resumeFileName,
@@ -231,16 +224,9 @@ function ChoosePseudonym() {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-slate-700">Link do seu LinkedIn (opcional)</label>
-            <input
-              value={linkedInUrl}
-              onChange={(e) => setLinkedInUrl(e.target.value)}
-              placeholder="https://www.linkedin.com/in/seu-perfil"
-              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p className="text-xs text-slate-500 mt-1">
-              Isso ajuda a dar mais credibilidade às avaliações (não será exibido publicamente).
+          <div className="bg-sky-50 border border-sky-100 rounded-2xl p-3">
+            <p className="text-sm text-slate-700">
+              Seu LinkedIn ja foi validado no login e vinculado automaticamente ao seu perfil.
             </p>
           </div>
 
