@@ -1,4 +1,5 @@
-import { db } from "../firebase";
+import { auth, db } from "../firebase";
+import { signInAnonymously } from "firebase/auth";
 import {
   collection,
   query,
@@ -54,6 +55,11 @@ export async function listReviewsByCompanySlug(slug, take = 80) {
 export async function saveReview(review) {
   if (!review?.company || !review?.pseudonym) {
     throw new Error("Empresa e pseudônimo são obrigatórios para salvar a avaliação.");
+  }
+
+  // Certifica que há um usuário autenticado (pode ser anônimo) antes de gravar no Firestore.
+  if (!auth.currentUser) {
+    await signInAnonymously(auth);
   }
 
   const companySlug = slugifyCompany(review.company);

@@ -89,11 +89,10 @@ function TrabalheiLaDesktop({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-6">
-      <style>{`@import url('https://fonts.cdnfonts.com/css/azonix'); .font-azonix { font-family: 'Azonix', sans-serif; }`}</style>
       <div className="w-full max-w-6xl">
 
         {/* HEADER */}
-        <header className="bg-white rounded-3xl shadow-2xl p-8 mb-8 border-2 border-blue-200">
+        <header className="bg-blue-50 dark:bg-slate-900 rounded-3xl shadow-2xl p-8 mb-8 border-2 border-blue-200 dark:border-slate-700">
           <div className="flex items-center justify-between">
             <div className="flex flex-col items-center">
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Home from './Home';
 import AuthLinkedIn from './pages/AuthLinkedIn';
@@ -10,7 +10,8 @@ function getPreferredTheme() {
   if (typeof window === 'undefined') return 'light';
   const stored = window.localStorage.getItem('trabalheiLa_theme');
   if (stored === 'dark' || stored === 'light') return stored;
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  // Valor padrão: dia (azul claro). Não seguimos o esquema de cores do sistema automaticamente.
+  return 'light';
 }
 
 function applyTheme(theme) {

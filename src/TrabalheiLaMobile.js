@@ -205,8 +205,8 @@ function TrabalheiLaMobile({
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans pb-10">
-      <header className="bg-white dark:bg-slate-900 shadow-sm px-4 py-4 mb-4 flex flex-col md:flex-row items-start md:items-center justify-between sticky top-0 z-50">
+    <div className="min-h-screen bg-blue-50 dark:bg-slate-950 font-sans pb-10">
+      <header className="bg-blue-50 dark:bg-slate-900 shadow-sm px-4 py-4 mb-4 flex flex-col md:flex-row items-start md:items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100 overflow-hidden">
             {companyLogoUrl ? (

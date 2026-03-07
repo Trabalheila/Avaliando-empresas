@@ -10,7 +10,7 @@ import { auth, db } from "./firebase";
 import { signInAnonymously } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
-// Pequena alteração para forçar novo deiploy (sem impacto funcional)
+// Pequena alteração para forçar novo depiloy (sem impacto funcional)
 function Home({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
