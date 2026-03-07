@@ -80,16 +80,26 @@ function ChoosePseudonym() {
       }
 
       localStorage.setItem("userPseudonym", trimmed);
-      localStorage.setItem(
-        "userProfile",
-        JSON.stringify({
-          ...JSON.parse(localStorage.getItem("userProfile") || "{}"),
-          name: trimmed,
-          cpf: cpfNumbers || undefined,
-          linkedInUrl: linkedInUrl.trim() || undefined,
-          avatar,
-        })
-      );
+      const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      const nextProfile = {
+        ...existingProfile,
+        name: trimmed,
+        cpf: cpfNumbers || undefined,
+        linkedInUrl: linkedInUrl.trim() || undefined,
+        avatar,
+      };
+
+      localStorage.setItem("userProfile", JSON.stringify(nextProfile));
+
+      // Salva no Firebase para persistência centralizada
+      try {
+        await saveUserProfile({
+          id: nextProfile.id || nextProfile.email || `anon_${Date.now()}`,
+          ...nextProfile,
+        });
+      } catch (err) {
+        console.warn("Falha ao salvar perfil no Firebase:", err);
+      }
 
       // Dispara evento para que outras partes do app atualizem o estado de login
       window.dispatchEvent(new Event("trabalheiLa_user_updated"));

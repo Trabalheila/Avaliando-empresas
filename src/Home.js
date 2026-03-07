@@ -4,8 +4,10 @@ import TrabalheiLaMobile from "./TrabalheiLaMobile";
 import TrabalheiLaDesktop from "./TrabalheiLaDesktop";
 import { empresasBrasileiras } from "./empresas";
 import { saveReview } from "./services/reviews";
+import { saveCompany } from "./services/companies";
+import { saveUserProfile } from "./services/users";
 
-// Pequena alteração para forçar novo deploy (sem impacto funcional)
+// Pequena alteração para forçar novo d1eploy (sem impacto funcional)
 function Home() {
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -201,6 +203,13 @@ function Home() {
       setNewCompanyCnpj("");
       setShowNewCompanyInput(false);
       setCompany({ value: newCompanyData.company, label: newCompanyData.company });
+
+      // Salva a empresa no Firestore para que outros usuários também vejam
+      try {
+        await saveCompany({ company: companyName, cnpj: cleanedCnpj });
+      } catch (saveErr) {
+        console.warn("Falha ao salvar empresa no Firebase:", saveErr);
+      }
     } catch (err) {
       setCnpjError(err.message);
     } finally {
@@ -374,6 +383,20 @@ function Home() {
         setUserProfile(data);
         setIsAuthenticated(true);
 
+        // Salva o usuário no Firestore (para acompanhar perfis)
+        try {
+          await saveUserProfile({
+            id: data.id,
+            name: data.name,
+            email: data.email,
+            picture: data.picture,
+            linkedinProfile: data.linkedInUrl || null,
+            updatedAt: new Date().toISOString(),
+          });
+        } catch (err) {
+          console.warn("Falha ao salvar perfil no Firebase:", err);
+        }
+
         const pseudonym = localStorage.getItem("userPseudonym");
         if (!pseudonym) {
           navigate("/pseudonym");
@@ -386,7 +409,6 @@ function Home() {
       setIsLoading(false);
     }
   }, [navigate]);
-
   const commonProps = {
     company, setCompany, rating, setRating, commentRating, setCommentRating,
     salario, setSalario, commentSalario, setCommentSalario, beneficios, setBeneficios, commentBeneficios, setCommentBeneficios,
