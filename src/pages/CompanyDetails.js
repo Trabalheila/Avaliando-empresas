@@ -75,9 +75,9 @@ function CompanyDetails() {
     return Object.values(comment.reactions || {}).reduce((sum, v) => sum + (v || 0), 0);
   };
 
-  const getCommentsKey = () => {
+  const getCommentsKey = React.useCallback(() => {
     return company ? `comments_${company.company}` : null;
-  };
+  }, [company]);
 
   const saveComments = (nextComments) => {
     setComments(nextComments);
@@ -109,7 +109,7 @@ function CompanyDetails() {
       console.warn("Falha ao carregar comentários:", err);
       setComments([]);
     }
-  }, [company]);
+  }, [getCommentsKey]);
 
   const handleAddComment = () => {
     if (!newComment.trim()) return;
