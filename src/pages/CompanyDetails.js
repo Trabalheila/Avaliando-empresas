@@ -91,12 +91,31 @@ function CompanyDetails() {
 
   const companyInfo = useMemo(() => {
     if (!company) return null;
-    const location = [company.cidade, company.estado, company.pais].filter(Boolean).join(" ");
-    const googleQuery = [company.company, location].filter(Boolean).join(" ");
-    const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(googleQuery)}`;
+
+    const sector =
+      company.ramo ||
+      company.setor ||
+      company.segmento ||
+      company.industry ||
+      "Não informado";
+
+    const location = [company.cidade, company.estado, company.pais].filter(Boolean).join(" - ") || "Não informado";
+
+    const website = company.website || company.site || company.url || "Não informado";
+    const cnpj = company.cnpj || "Não informado";
+
+    const socialLinks = [
+      { label: "LinkedIn", value: company.linkedin || "Não informado" },
+      { label: "Instagram", value: company.instagram || "Não informado" },
+      { label: "Facebook", value: company.facebook || "Não informado" },
+    ];
 
     return {
-      googleSearchUrl,
+      sector,
+      location,
+      website,
+      cnpj,
+      socialLinks,
     };
   }, [company]);
 
@@ -457,22 +476,39 @@ function CompanyDetails() {
         </div>
 
         <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
-          <h2 className="text-lg font-bold text-blue-800 mb-4">Sobre a empresa</h2>
-          <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-            <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Resultados do Google</p>
-            <a
-              href={companyInfo?.googleSearchUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-2 inline-block text-sm font-semibold text-blue-700 hover:text-blue-900 underline"
-            >
-              Ver resultados da empresa no Google
-            </a>
+          <h2 className="text-lg font-bold text-blue-800 font-azonix tracking-[0.08em] mb-4">Sobre a empresa</h2>
+          <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 space-y-3">
+            <div>
+              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Ramo</p>
+              <p className="text-sm text-slate-800 font-medium">{companyInfo?.sector}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Localização</p>
+              <p className="text-sm text-slate-800 font-medium">{companyInfo?.location}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">CNPJ</p>
+              <p className="text-sm text-slate-800 font-medium">{companyInfo?.cnpj}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Site</p>
+              <p className="text-sm text-slate-800 font-medium break-all">{companyInfo?.website}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Redes sociais</p>
+              <div className="mt-1 space-y-1">
+                {(companyInfo?.socialLinks || []).map((item) => (
+                  <p key={item.label} className="text-sm text-slate-800 font-medium">
+                    {item.label}: {item.value}
+                  </p>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
         <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
-          <h2 className="text-lg font-bold text-blue-800 dark:text-slate-100 mb-4">Comentários</h2>
+          <h2 className="text-lg font-bold text-blue-800 dark:text-slate-100 font-azonix tracking-[0.08em] mb-4">Comentários</h2>
           <div className="space-y-4">
             <div className="flex flex-col gap-2">
               <label className="text-sm font-semibold text-slate-700">
