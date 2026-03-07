@@ -19,7 +19,7 @@ function TrabalheiLaDesktop({
   estimacaoOrganizacao, setEstimacaoOrganizacao, commentEstimacaoOrganizacao, setCommentEstimulacaoOrganizacao,
   generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
   filterText, setFilterText, handleSaibaMais,
-  showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany, newCompany, setNewCompany, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
+  showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany, handleConfirmNewCompany, pendingCompanyData, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
   linkedInClientId, error, setError, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, selectedCompanyData, calcularMedia,
   getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed
@@ -227,24 +227,33 @@ function TrabalheiLaDesktop({
                     <div className="flex gap-2">
                       <input type="text"
                         className="flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Nome da nova empresa"
-                        value={newCompany}
-                        onChange={(e) => setNewCompany(e.target.value)}
-                      />
-                      <button type="button" onClick={handleAddNewCompany}
-                        className="px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all">
-                        Adicionar
-                      </button>
-                    </div>
-                    <div className="flex gap-2">
-                      <input type="text"
-                        className="flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="CNPJ (apenas números)"
                         value={newCompanyCnpj}
                         onChange={(e) => setNewCompanyCnpj(e.target.value)}
                       />
+                      <button type="button" onClick={handleAddNewCompany}
+                        disabled={isLoading}
+                        className="px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all">
+                        {isLoading ? "Consultando..." : "Consultar CNPJ"}
+                      </button>
                     </div>
                     {cnpjError && <p className="text-sm text-red-600">{cnpjError}</p>}
+
+                    {pendingCompanyData && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-900">
+                        <p className="font-semibold">Empresa encontrada: {pendingCompanyData.company}</p>
+                        <p className="text-xs text-blue-700 mt-1">CNPJ: {pendingCompanyData.cnpj}</p>
+                        <p className="mt-2 font-medium">👍 Está correto?</p>
+                        <button
+                          type="button"
+                          onClick={handleConfirmNewCompany}
+                          disabled={isLoading}
+                          className="mt-2 px-4 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition"
+                        >
+                          {isLoading ? "Confirmando..." : "Confirmar empresa"}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 

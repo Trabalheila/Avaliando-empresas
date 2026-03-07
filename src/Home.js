@@ -65,6 +65,7 @@ function Home({ theme, toggleTheme }) {
   const [newCompany, setNewCompany] = useState("");
   const [newCompanyCnpj, setNewCompanyCnpj] = useState("");
   const [cnpjError, setCnpjError] = useState(null);
+  const [pendingCompanyData, setPendingCompanyData] = useState(null);
   const [rating, setRating] = useState(0);
   const [commentRating, setCommentRating] = useState("");
   const [salario, setSalario] = useState(0);
@@ -293,14 +294,24 @@ function Home({ theme, toggleTheme }) {
     }
   }, [company, empresas]);
 
-  const handleAddNewCompany = useCallback(async () => {
-    const name = newCompany.trim();
-    const cleanedCnpj = newCompanyCnpj.replace(/\D/g, "");
+  const normalizeCompanyName = useCallback((name) => {
+    if (!name) return "";
 
-    if (!name) {
-      setCnpjError("Por favor, insira o nome da nova empresa.");
-      return;
-    }
+    const lowerWords = new Set(["de", "da", "do", "das", "dos", "e"]);
+    return name
+      .toString()
+      .trim()
+      .split(/\s+/)
+      .map((word, idx) => {
+        const w = word.toLowerCase();
+        if (idx > 0 && lowerWords.has(w)) return w;
+        return w.charAt(0).toUpperCase() + w.slice(1);
+      })
+      .join(" ");
+  }, []);
+
+  const handleAddNewCompany = useCallback(async () => {
+    const cleanedCnpj = newCompanyCnpj.replace(/\D/g, "");
 
     if (cleanedCnpj.length !== 14) {
       setCnpjError("Por favor, informe um CNPJ válido com 14 dígitos.");
@@ -322,38 +333,65 @@ function Home({ theme, toggleTheme }) {
         throw new Error(data.error || "CNPJ inválido ou não encontrado.");
       }
 
-      const companyName = data.nome || name;
+      const rawName = data.fantasia || data.nome_fantasia || data.nome || data.razao_social;
+      const companyName = normalizeCompanyName(rawName || "");
 
-      const newCompanyData = {
+      if (!companyName) {
+        throw new Error("Não foi possível identificar o nome fantasia pelo CNPJ informado.");
+      }
+
+      setPendingCompanyData({
         company: companyName,
         cnpj: cleanedCnpj,
-        rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
-        inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
-        reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
-        saudeBemEstar: 0, impactoSocial: 0, reputacao: 0, estimacaoOrganizacao: 0,
-      };
-
-      setEmpresas([...empresas, newCompanyData]);
-      setNewCompany("");
-      setNewCompanyCnpj("");
-      setShowNewCompanyInput(false);
-      setCompany({ value: newCompanyData.company, label: newCompanyData.company });
-
-      // Salva a empresa no Firestore para que outros usuários também vejam
-      try {
-        await saveCompany({ company: companyName, cnpj: cleanedCnpj });
-      } catch (saveErr) {
-        console.warn("Falha ao salvar empresa no Firebase:", saveErr);
-        setError(
-          "Empresa adicionada localmente, mas falhou ao sincronizar com o Firebase. Tente novamente em alguns segundos."
-        );
-      }
+      });
     } catch (err) {
       setCnpjError(err.message);
     } finally {
       setIsLoading(false);
     }
-  }, [newCompany, newCompanyCnpj, empresas]);
+  }, [newCompanyCnpj, normalizeCompanyName]);
+
+  const handleConfirmNewCompany = useCallback(async () => {
+    if (!pendingCompanyData?.company || !pendingCompanyData?.cnpj) {
+      setCnpjError("Consulte um CNPJ válido antes de confirmar.");
+      return;
+    }
+
+    setIsLoading(true);
+    setCnpjError(null);
+
+    const newCompanyData = {
+      company: pendingCompanyData.company,
+      cnpj: pendingCompanyData.cnpj,
+      rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
+      inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
+      reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
+      saudeBemEstar: 0, impactoSocial: 0, reputacao: 0, estimacaoOrganizacao: 0,
+    };
+
+    setEmpresas((prev) => {
+      const exists = prev.some((emp) => emp.company === pendingCompanyData.company || emp.cnpj === pendingCompanyData.cnpj);
+      if (exists) return prev;
+      return [...prev, newCompanyData];
+    });
+
+    setCompany({ value: newCompanyData.company, label: newCompanyData.company });
+    setNewCompany("");
+    setNewCompanyCnpj("");
+    setPendingCompanyData(null);
+    setShowNewCompanyInput(false);
+
+    try {
+      await saveCompany({ company: newCompanyData.company, cnpj: newCompanyData.cnpj });
+    } catch (saveErr) {
+      console.warn("Falha ao salvar empresa no Firebase:", saveErr);
+      setError(
+        "Empresa adicionada localmente, mas falhou ao sincronizar com o Firebase. Tente novamente em alguns segundos."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [pendingCompanyData]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -568,6 +606,7 @@ function Home({ theme, toggleTheme }) {
     generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
     filterText, setFilterText, newCompany, setNewCompany, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
     showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany,
+    handleConfirmNewCompany, pendingCompanyData,
     linkedInClientId, linkedInRedirectUri, error, setError, isAuthenticated, setIsAuthenticated, handleLogout,
     showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
     theme, toggleTheme,

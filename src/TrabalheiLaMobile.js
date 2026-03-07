@@ -99,7 +99,7 @@ function TrabalheiLaMobile({
   handleSubmit, isLoading,
   empresas, top3,
   filterText, setFilterText, showNewCompanyInput, setShowNewCompanyInput,
-  handleAddNewCompany, newCompany, setNewCompany, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
+  handleAddNewCompany, handleConfirmNewCompany, pendingCompanyData, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
   handleSaibaMais,
   linkedInClientId, linkedInRedirectUri,
   error, setError, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, safeCompanyOptions,
@@ -328,12 +328,6 @@ function TrabalheiLaMobile({
               {showNewCompanyInput && (
                 <div className="mt-3 space-y-2">
                   <input
-                    value={newCompany}
-                    onChange={(e) => setNewCompany(e.target.value)}
-                    placeholder="Nome da empresa"
-                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <input
                     value={newCompanyCnpj}
                     onChange={(e) => setNewCompanyCnpj(e.target.value)}
                     placeholder="CNPJ (apenas números)"
@@ -343,10 +337,27 @@ function TrabalheiLaMobile({
                   <button
                     type="button"
                     onClick={handleAddNewCompany}
+                    disabled={isLoading}
                     className="w-full py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition"
                   >
-                    Adicionar empresa
+                    {isLoading ? "Consultando CNPJ..." : "Consultar CNPJ"}
                   </button>
+
+                  {pendingCompanyData && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-900">
+                      <p className="font-semibold">Empresa encontrada: {pendingCompanyData.company}</p>
+                      <p className="text-xs text-blue-700 mt-1">CNPJ: {pendingCompanyData.cnpj}</p>
+                      <p className="mt-2 font-medium">👍 Está correto?</p>
+                      <button
+                        type="button"
+                        onClick={handleConfirmNewCompany}
+                        disabled={isLoading}
+                        className="mt-2 w-full py-2 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition"
+                      >
+                        {isLoading ? "Confirmando..." : "Confirmar empresa"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
