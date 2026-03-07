@@ -118,7 +118,8 @@ function Home({ theme, toggleTheme }) {
   });
   const userPseudonym = localStorage.getItem("userPseudonym") || "";
 
-  // Inicializa as empiresaas dinamic1amente sem 1erro de map
+  // Inicializa as empresa3s dinamicamente sem erro de map
+  
   const [empresas, setEmpresas] = useState(() => {
     try {
       const stored = localStorage.getItem("empresasData");
