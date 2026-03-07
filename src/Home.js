@@ -6,16 +6,47 @@ import { empresasBrasileiras } from "./empresas";
 import { saveReview } from "./services/reviews";
 import { saveCompany } from "./services/companies";
 import { saveUserProfile } from "./services/users";
+import { auth, db } from "./firebase";
+import { signInAnonymously } from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 // Pequena alteração para forçar novo d1eploy (sem impacto funcional)
-function Home() {
+function Home({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [firebaseStatus, setFirebaseStatus] = useState("verificando...");
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+
+    const testFirebase = async () => {
+      try {
+        // Caso as regras do Firestore exijam autenticação, faz login anônimo primeiro.
+        if (!auth.currentUser) {
+          await signInAnonymously(auth);
+        }
+
+        const ref = doc(db, "app_test", "ping");
+        await setDoc(ref, { ts: serverTimestamp() }, { merge: true });
+        if (!alive) return;
+        setFirebaseStatus("Firebase conectado com sucesso 🤖");
+      } catch (err) {
+        if (!alive) return;
+        console.error("Erro de conexão com Firebase:", err);
+        setFirebaseStatus(`Erro no Firebase: ${err?.message || err}`);
+      }
+    };
+
+    testFirebase();
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const [company, setCompany] = useState(null);
@@ -425,6 +456,8 @@ function Home() {
     showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany,
     linkedInClientId, linkedInRedirectUri, error, isAuthenticated, setIsAuthenticated, handleLogout,
     showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
+    theme, toggleTheme,
+    firebaseStatus,
     userProfile, userPseudonym,
     onLoginSuccess: handleLoginSuccess, selectedCompanyData, calcularMedia,
     getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,

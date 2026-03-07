@@ -6,6 +6,7 @@ import LoginLinkedInButton from "./components/LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
 
 function TrabalheiLaDesktop({
+  theme, toggleTheme, firebaseStatus,
   company, setCompany, rating, setRating, commentRating, setCommentRating,
   salario, setSalario, commentSalario, setCommentSalario, beneficios, setBeneficios, commentBeneficios, setCommentBeneficios,
   cultura, setCultura, commentCultura, setCommentCultura, oportunidades, setOportunidades, commentOportunidades, setCommentOportunidades,
@@ -87,7 +88,7 @@ function TrabalheiLaDesktop({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-6">
       <style>{`@import url('https://fonts.cdnfonts.com/css/azonix'); .font-azonix { font-family: 'Azonix', sans-serif; }`}</style>
       <div className="w-full max-w-6xl">
 
@@ -119,26 +120,38 @@ function TrabalheiLaDesktop({
                 TRABALHEI LÁ
               </h1>
               {isAuthenticated && (
-                <div className="flex items-center justify-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-xl">
-                    {userProfile?.avatar ? (
-                      typeof userProfile.avatar === "string" && userProfile.avatar.startsWith("data:") ? (
-                        <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-xl">
+                      {userProfile?.avatar ? (
+                        typeof userProfile.avatar === "string" && userProfile.avatar.startsWith("data:") ? (
+                          <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+                        ) : (
+                          <span>{userProfile.avatar}</span>
+                        )
                       ) : (
-                        <span>{userProfile.avatar}</span>
-                      )
-                    ) : (
-                      <span className="text-blue-600">👤</span>
-                    )}
+                        <span className="text-blue-600">👤</span>
+                      )}
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-semibold text-blue-800">{userPseudonym || userProfile?.name || "Usuário"}</p>
+                      <a href="/pseudonym" className="text-xs text-blue-600 hover:underline">
+                        Editar perfil
+                      </a>
+                    </div>
                   </div>
-                  <div className="text-left">
-                    <p className="text-sm font-semibold text-blue-800">{userPseudonym || userProfile?.name || "Usuário"}</p>
-                    <a href="/pseudonym" className="text-xs text-blue-600 hover:underline">
-                      Editar perfil
-                    </a>
-                  </div>
+
+                  <button
+                    type="button"
+                    onClick={toggleTheme}
+                    className="px-3 py-2 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                    aria-label="Alternar tema"
+                  >
+                    {theme === 'dark' ? '☀️' : '🌙'}
+                  </button>
                 </div>
               )}
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">{firebaseStatus}</p>
               <p className="text-blue-600 text-lg mb-2">Sua opinião é anônima e ajuda outros profissionais</p>
               <p className="text-blue-400 text-sm mb-6">Avaliações anônimas feitas por profissionais verificados.</p>
               <button
@@ -185,6 +198,7 @@ function TrabalheiLaDesktop({
                   clientId={linkedInClientId}
                   onLoginSuccess={onLoginSuccess}
                   onLoginFailure={(e) => console.error("Erro no LinkedIn:", e)}
+                  disabled={isLoading}
                 />
               </div>
               {isAuthenticated && (

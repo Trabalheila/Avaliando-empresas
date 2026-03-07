@@ -5,13 +5,30 @@ import { getAnalytics, isSupported } from "firebase/analytics";
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: "trabalheila.firebaseapp.com",
-  projectId: "trabalheila",
-  storageBucket: "trabalheila.appspot.com",
-  messagingSenderId: "338684255438",
-  appId: "1:338684255438:web:88a03cf43a04adfe23449f",
-  measurementId: "G-3H8CY15WLE",
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "trabalheila.firebaseapp.com",
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "trabalheila",
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "trabalheila.appspot.com",
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "338684255438",
+  appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:338684255438:web:88a03cf43a04adfe23449f",
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID || "G-3H8CY15WLE",
 };
+
+const requiredKeys = [
+  "apiKey",
+  "authDomain",
+  "projectId",
+  "storageBucket",
+  "messagingSenderId",
+  "appId",
+];
+
+const missingKeys = requiredKeys.filter((key) => !firebaseConfig[key]);
+if (missingKeys.length > 0) {
+  console.warn(
+    "Firebase não está totalmente configurado. Defina as variáveis de ambiente REACT_APP_FIREBASE_<KEY>:",
+    missingKeys
+  );
+}
 
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 

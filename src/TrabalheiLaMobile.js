@@ -57,6 +57,7 @@ function OutlinedStar({ active, onClick, size = 18, label }) {
 
 
 function TrabalheiLaMobile({
+  theme, toggleTheme, firebaseStatus,
   company, setCompany,
   rating, setRating,
   salario, setSalario,
@@ -205,7 +206,7 @@ function TrabalheiLaMobile({
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans pb-10">
-      <header className="bg-white shadow-sm px-4 py-4 mb-4 flex flex-col md:flex-row items-start md:items-center justify-between sticky top-0 z-50">
+      <header className="bg-white dark:bg-slate-900 shadow-sm px-4 py-4 mb-4 flex flex-col md:flex-row items-start md:items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100 overflow-hidden">
             {companyLogoUrl ? (
@@ -241,31 +242,43 @@ function TrabalheiLaMobile({
                 </a>
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="px-3 py-2 bg-slate-200 rounded-full text-sm font-semibold text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 transition"
+              aria-label="Alternar tema claro/escuro"
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
           </div>
         )}
 
-        {company && (
-          <div className="mt-3 md:mt-0 flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-sm font-semibold text-slate-700">{company.value}</p>
-              <p className="text-xs text-slate-500">Média: <span className={`font-bold ${getBadgeColor(companyAverage)}`}>{companyAverage}</span></p>
+        <div className="flex items-center justify-between w-full">
+          {company && (
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-100">{company.value}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Média: <span className={`font-bold ${getBadgeColor(companyAverage)}`}>{companyAverage}</span></p>
+              </div>
+              <button
+                type="button"
+                onClick={handleSaibaMais}
+                className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition"
+              >
+                Saiba mais
+              </button>
+              <button
+                type="button"
+                onClick={openLinkedInJobs}
+                className="px-4 py-2 bg-slate-200 text-slate-800 text-xs font-bold rounded-xl hover:bg-slate-300 transition dark:bg-slate-800 dark:text-slate-200"
+              >
+                Ver vagas no LinkedIn
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={handleSaibaMais}
-              className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition"
-            >
-              Saiba mais
-            </button>
-            <button
-              type="button"
-              onClick={openLinkedInJobs}
-              className="px-4 py-2 bg-slate-200 text-slate-800 text-xs font-bold rounded-xl hover:bg-slate-300 transition"
-            >
-              Ver vagas no LinkedIn
-            </button>
-          </div>
-        )}
+          )}
+        </div>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 text-center">{firebaseStatus}</p>
       </header>
 
       <main className="px-4 space-y-6">
@@ -276,7 +289,9 @@ function TrabalheiLaMobile({
             <LoginLinkedInButton 
               clientId={linkedInClientId} 
               redirectUri={linkedInRedirectUri}
-              onLoginSuccess={onLoginSuccess} 
+              onLoginSuccess={onLoginSuccess}
+              onLoginFailure={(err) => setError(err?.message || String(err))}
+              disabled={isLoading}
             />
           </div>
           {isAuthenticated && <p className="text-green-600 font-semibold text-center mt-3 text-sm">✓ Autenticado!</p>}
