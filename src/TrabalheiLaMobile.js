@@ -50,7 +50,7 @@ function TrabalheiLaMobile({
   handleSaibaMais,
   linkedInClientId, linkedInRedirectUri,
   error, isAuthenticated, onLoginSuccess, safeCompanyOptions,
-  selectedCompanyData,
+  selectedCompanyData, calcularMedia,
 }) {
   const calcularMedia = (emp) => {
     if (!emp) return "0.0";
@@ -151,7 +151,7 @@ function TrabalheiLaMobile({
           <div className="mt-3 md:mt-0 flex items-center gap-3">
             <div className="text-right">
               <p className="text-sm font-semibold text-slate-700">{company.value}</p>
-              <p className="text-xs text-slate-500">Média: <span className={`font-bold ${getScoreColor(companyAverage)}`}>{companyAverage}</span></p>
+              <p className="text-xs text-slate-500">Média: <span className={`font-bold ${getBadgeColor(companyAverage)}`}>{companyAverage}</span></p>
             </div>
             <button
               type="button"
