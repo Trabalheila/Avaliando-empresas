@@ -19,7 +19,7 @@ function TrabalheiLaDesktop({
   generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
   filterText, setFilterText, handleSaibaMais,
   showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany, newCompany, setNewCompany, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
-  linkedInClientId, error, isAuthenticated, onLoginSuccess, selectedCompanyData, calcularMedia,
+  linkedInClientId, error, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, selectedCompanyData, calcularMedia,
   getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed
 }) {
@@ -118,6 +118,27 @@ function TrabalheiLaDesktop({
               <h1 className="text-5xl font-extrabold text-blue-800 drop-shadow tracking-wide mb-3 font-azonix">
                 TRABALHEI LÁ
               </h1>
+              {isAuthenticated && (
+                <div className="flex items-center justify-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-xl">
+                    {userProfile?.avatar ? (
+                      typeof userProfile.avatar === "string" && userProfile.avatar.startsWith("data:") ? (
+                        <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+                      ) : (
+                        <span>{userProfile.avatar}</span>
+                      )
+                    ) : (
+                      <span className="text-blue-600">👤</span>
+                    )}
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-blue-800">{userPseudonym || userProfile?.name || "Usuário"}</p>
+                    <a href="/pseudonym" className="text-xs text-blue-600 hover:underline">
+                      Editar perfil
+                    </a>
+                  </div>
+                </div>
+              )}
               <p className="text-blue-600 text-lg mb-2">Sua opinião é anônima e ajuda outros profissionais</p>
               <p className="text-blue-400 text-sm mb-6">Avaliações anônimas feitas por profissionais verificados.</p>
               <button

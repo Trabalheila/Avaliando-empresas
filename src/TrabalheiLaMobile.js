@@ -51,7 +51,7 @@ function TrabalheiLaMobile({
   handleAddNewCompany, newCompany, setNewCompany, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
   handleSaibaMais,
   linkedInClientId, linkedInRedirectUri,
-  error, isAuthenticated, onLoginSuccess, safeCompanyOptions,
+  error, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, safeCompanyOptions,
   selectedCompanyData,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
 }) {
@@ -153,6 +153,30 @@ function TrabalheiLaMobile({
             <p className="text-[10px] text-blue-500 font-medium">Avaliações anônimas</p>
           </div>
         </div>
+
+        {isAuthenticated && (
+          <div className="flex items-center justify-between mt-4 px-3">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-lg">
+                {userProfile?.avatar ? (
+                  typeof userProfile.avatar === "string" && userProfile.avatar.startsWith("data:") ? (
+                    <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+                  ) : (
+                    <span>{userProfile.avatar}</span>
+                  )
+                ) : (
+                  <span className="text-blue-600">👤</span>
+                )}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-700">{userPseudonym || userProfile?.name || "Usuário"}</p>
+                <a href="/pseudonym" className="text-xs text-blue-600 hover:underline">
+                  Editar perfil
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
 
         {company && (
           <div className="mt-3 md:mt-0 flex items-center gap-3">

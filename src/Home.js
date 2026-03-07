@@ -64,6 +64,14 @@ function Home() {
   const [showNewCompanyInput, setShowNewCompanyInput] = useState(false);
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [captchaConfirmed, setCaptchaConfirmed] = useState(false);
+  const [userProfile, setUserProfile] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("userProfile") || "{}");
+    } catch {
+      return {};
+    }
+  });
+  const userPseudonym = localStorage.getItem("userPseudonym") || "";
 
   // Inicializa as empresaas dinamicamente sem erro de map
   const [empresas, setEmpresas] = useState(() => {
@@ -278,7 +286,7 @@ function Home() {
       setIsLoading(false);
       setCaptchaConfirmed(false);
     }
-  }, [isAuthenticated, company, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment]);
+  }, [isAuthenticated, captchaConfirmed, company, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment]);
 
   const handleSaibaMais = useCallback(() => {
     if (!company) {
@@ -296,19 +304,27 @@ function Home() {
     const pseudonym = localStorage.getItem("userPseudonym");
 
     if (userProfile) {
-      if (!pseudonym) {
-        // Redireciona para definir pseudônimo ao logar pela primeira vez
-        navigate("/pseudonym");
+      try {
+        setUserProfile(JSON.parse(userProfile));
+      } catch {
+        setUserProfile({});
       }
-      setIsAuthenticated(!!pseudonym);
     } else {
-      setIsAuthenticated(false);
+      setUserProfile({});
     }
+
+    if (userProfile && !pseudonym) {
+      // Redireciona para definir pseudônimo ao logar pela primeira vez
+      navigate("/pseudonym");
+    }
+
+    setIsAuthenticated(!!pseudonym);
   }, [navigate]);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem("userProfile");
     localStorage.removeItem("userPseudonym");
+    setUserProfile({});
     setIsAuthenticated(false);
   }, []);
 
@@ -336,6 +352,7 @@ function Home() {
 
       if (data) {
         localStorage.setItem("userProfile", JSON.stringify(data));
+        setUserProfile(data);
         setIsAuthenticated(true);
 
         const pseudonym = localStorage.getItem("userPseudonym");
@@ -367,6 +384,7 @@ function Home() {
     showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany,
     linkedInClientId, linkedInRedirectUri, error, isAuthenticated, setIsAuthenticated, handleLogout,
     showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
+    userProfile, userPseudonym,
     onLoginSuccess: handleLoginSuccess, selectedCompanyData, calcularMedia,
     getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
     handleSaibaMais,
