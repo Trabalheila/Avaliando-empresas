@@ -207,7 +207,7 @@ function TrabalheiLaMobile({
   return (
     <div className="min-h-screen bg-blue-50 dark:bg-slate-950 font-sans pb-10">
       <header className="bg-blue-50 dark:bg-slate-900 shadow-sm px-4 py-4 mb-4 flex flex-col md:flex-row items-start md:items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-3">
+        <div className="w-full flex items-center justify-center gap-3 text-center">
           <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100 overflow-hidden">
             {companyLogoUrl ? (
               <img src={companyLogoUrl} alt="Logo da empresa" className="w-full h-full object-cover" />
@@ -215,8 +215,10 @@ function TrabalheiLaMobile({
               <FaBuilding className="text-blue-700 text-2xl" />
             )}
           </div>
-          <div>
-            <h1 className="text-xl font-black text-blue-900 font-azonix tracking-wider">TRABALHEI LÁ</h1>
+          <div className="text-center">
+            <h1 className="text-2xl font-black text-blue-900 font-azonix tracking-[0.12em] drop-shadow-[0_2px_0_rgba(37,99,235,0.25)]">
+              TRABALHEI LÁ
+            </h1>
             <p className="text-[10px] text-blue-500 font-medium">Avaliações anônimas</p>
           </div>
         </div>
