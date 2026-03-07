@@ -61,7 +61,6 @@ function Home({ theme, toggleTheme }) {
   }, []);
 
   const [company, setCompany] = useState(null);
-  const [filterText, setFilterText] = useState("");
   const [newCompanyCnpj, setNewCompanyCnpj] = useState("");
   const [cnpjError, setCnpjError] = useState(null);
   const [pendingCompanyData, setPendingCompanyData] = useState(null);
@@ -611,7 +610,7 @@ function Home({ theme, toggleTheme }) {
     impactoSocial, setImpactoSocial, commentImpactoSocial, setCommentImpactoSocial, reputacao, setReputacao, commentReputacao, setCommentReputacao,
     estimacaoOrganizacao, setEstimacaoOrganizacao, commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao,
     generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
-    filterText, setFilterText, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
+    newCompanyCnpj, setNewCompanyCnpj, cnpjError,
     showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany,
     handleConfirmNewCompany, pendingCompanyData,
     linkedInClientId, linkedInRedirectUri, error, setError, isAuthenticated, setIsAuthenticated, handleLogout,

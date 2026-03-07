@@ -98,7 +98,7 @@ function TrabalheiLaMobile({
   generalComment, setGeneralComment,
   handleSubmit, isLoading,
   empresas, top3,
-  filterText, setFilterText, showNewCompanyInput, setShowNewCompanyInput,
+  showNewCompanyInput, setShowNewCompanyInput,
   handleAddNewCompany, handleConfirmNewCompany, pendingCompanyData, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
   handleSaibaMais,
   linkedInClientId, linkedInRedirectUri,
@@ -216,8 +216,8 @@ function TrabalheiLaMobile({
   ];
 
   return (
-    <div className="min-h-screen bg-blue-50 dark:bg-slate-950 font-sans pb-10">
-      <header className="bg-blue-50 dark:bg-slate-900 shadow-sm px-4 py-4 mb-4 flex flex-col md:flex-row items-start md:items-center justify-between sticky top-0 z-50">
+    <div className="min-h-screen bg-blue-50 dark:bg-[#1e1e1e] font-sans pb-10">
+      <header className="bg-blue-50 dark:bg-[#252526] shadow-sm px-4 py-4 mb-4 flex flex-col md:flex-row items-start md:items-center justify-between sticky top-0 z-50">
         <div className="w-full flex items-center justify-center gap-3 text-center">
           <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100 overflow-hidden">
             {companyLogoUrl ? (
@@ -305,7 +305,7 @@ function TrabalheiLaMobile({
 
       <main className="px-4 space-y-6">
         {/* LOGIN */}
-        <section className="bg-white rounded-2xl shadow-md p-5 border border-blue-50">
+        <section className="bg-white dark:bg-[#252526] rounded-2xl shadow-md p-5 border border-blue-50 dark:border-[#3c3c3c]">
           <h2 className="text-lg font-bold text-blue-800 text-center mb-4 font-azonix">Login para Avaliar</h2>
           <div className="flex flex-col items-center space-y-3">
             <LoginLinkedInButton 
@@ -320,7 +320,7 @@ function TrabalheiLaMobile({
         </section>
 
         {/* FORMULÁRIO */}
-        <section className="bg-white rounded-2xl shadow-md p-5 border border-blue-50">
+        <section className="bg-white dark:bg-[#252526] rounded-2xl shadow-md p-5 border border-blue-50 dark:border-[#3c3c3c]">
           <h2 className="text-lg font-bold text-blue-800 text-center mb-4 font-azonix">Avalie uma Empresa</h2>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
@@ -415,7 +415,7 @@ function TrabalheiLaMobile({
         </section>
 
         {/* RANKING */}
-        <section className="bg-white rounded-2xl shadow-md p-5 border border-blue-50">
+        <section className="bg-white dark:bg-[#252526] rounded-2xl shadow-md p-5 border border-blue-50 dark:border-[#3c3c3c]">
           <h2 className="text-lg font-bold text-blue-800 text-center mb-4 font-azonix">🏆 Ranking</h2>
           {Array.isArray(top3) && top3.length > 0 && (
             <div className="mb-4 space-y-2">
@@ -435,41 +435,14 @@ function TrabalheiLaMobile({
           )}
         </section>
 
-        {/* LISTA DE EMPRESAS */}
-        <section className="bg-white rounded-2xl shadow-md p-5 border border-blue-50">
-          <h2 className="text-lg font-bold text-blue-800 text-center mb-4 font-azonix">🏢 Lista de Empresas</h2>
-
-          <div className="mb-4">
-            <input
-              value={filterText}
-              onChange={(e) => setFilterText(e.target.value)}
-              placeholder="Filtrar empresas..."
-              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {Array.isArray(empresas) && empresas.length > 0 ? (
-            <div className="space-y-2 max-h-56 overflow-y-auto">
-              {empresas
-                .filter((emp) => !filterText || emp.company.toLowerCase().includes(filterText.toLowerCase()))
-                .map((emp, i) => {
-                  const media = calcularMedia(emp);
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      className="w-full text-left bg-gray-50 rounded-xl p-3 border border-gray-200 hover:border-blue-300 transition-all flex items-center justify-between"
-                      onClick={() => setCompany({ value: emp.company, label: emp.company })}
-                    >
-                      <p className="font-semibold text-sm truncate max-w-[180px]">{emp.company}</p>
-                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${getBadgeColor(media)}`}>{media} ⭐</span>
-                    </button>
-                  );
-                })}
-            </div>
-          ) : (
-            <p className="text-center text-sm text-gray-500">Nenhuma empresa disponível</p>
-          )}
+        {/* AUTOCOMPLETAÇÃO */}
+        <section className="bg-white dark:bg-[#252526] rounded-2xl shadow-md p-5 border border-blue-50 dark:border-[#3c3c3c]">
+          <h2 className="text-lg font-bold text-blue-800 dark:text-slate-100 text-center mb-3 font-azonix">🏢 Empresas por Autocompletação</h2>
+          <p className="text-sm text-slate-700 dark:text-slate-300 text-center leading-relaxed">
+            Para encontrar empresas em bases maiores, use o campo
+            <span className="font-semibold"> "Selecione a Empresa"</span> acima.
+            Digite parte do nome e escolha na lista sugerida.
+          </p>
         </section>
       </main>
 

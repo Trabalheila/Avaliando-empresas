@@ -18,7 +18,7 @@ function TrabalheiLaDesktop({
   impactoSocial, setImpactoSocial, commentImpactoSocial, setCommentImpactoSocial, reputacao, setReputacao, commentReputacao, setCommentReputacao,
   estimacaoOrganizacao, setEstimacaoOrganizacao, commentEstimacaoOrganizacao, setCommentEstimulacaoOrganizacao,
   generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
-  filterText, setFilterText, handleSaibaMais,
+  handleSaibaMais,
   showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany, handleConfirmNewCompany, pendingCompanyData, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
   linkedInClientId, error, setError, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, selectedCompanyData, calcularMedia,
   getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
@@ -48,11 +48,6 @@ function TrabalheiLaDesktop({
       />
     </div>
   );
-
-  const filteredEmpresas = (empresas || []).filter((emp) => {
-    if (!filterText) return true;
-    return emp.company.toLowerCase().includes(filterText.toLowerCase());
-  });
 
   const campos = [
     { label: "Avaliação Geral", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FaStar className="text-yellow-500" /> },
@@ -339,46 +334,14 @@ function TrabalheiLaDesktop({
                 </div>
               )}
 
-              <div className="mb-4">
-                <input
-                  value={filterText}
-                  onChange={(e) => setFilterText(e.target.value)}
-                  placeholder="Filtrar empresas..."
-                  className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+              <div className="bg-blue-50 rounded-2xl p-4 border border-blue-200">
+                <h3 className="text-sm font-bold text-blue-800 mb-2">Empresas por Autocompletação</h3>
+                <p className="text-sm text-blue-900 leading-relaxed">
+                  Para manter performance com muitas empresas, a seleção agora é feita pelo campo
+                  <span className="font-semibold"> "Selecione a Empresa"</span> no formulário.
+                  Digite parte do nome para buscar rapidamente.
+                </p>
               </div>
-
-              <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
-                {Array.isArray(filteredEmpresas) && filteredEmpresas.length === 0 ? (
-                  <div className="text-center py-6">
-                    <FaChartBar className="text-gray-300 text-4xl mx-auto mb-2" />
-                    <p className="text-gray-500 text-sm">Nenhuma empresa encontrada</p>
-                  </div>
-                ) : (
-                  (filteredEmpresas || []).map((emp, i) => {
-                    const media = calcularMedia(emp);
-                    return (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => setCompany({ value: emp.company, label: emp.company })}
-                        className="w-full text-left bg-gray-50 rounded-xl p-3 border border-gray-200 hover:border-blue-300 transition-all"
-                      >
-                        <div className="flex items-center justify-between">
-                          <p className="font-bold text-gray-800 text-sm truncate">{emp.company}</p>
-                          <div className={`${getBadgeColor(media)} px-2 py-1 rounded-full text-white font-bold text-xs`}>{media} ⭐</div>
-                        </div>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-
-              <style>{`
-                .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-                .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #1d4ed8, #3b82f6); border-radius: 10px; }
-              `}</style>
             </div>
           </div>
 
