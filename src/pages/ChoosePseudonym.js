@@ -11,6 +11,7 @@ function ChoosePseudonym() {
   const [cpf, setCpf] = useState("");
   const [linkedInUrl, setLinkedInUrl] = useState("");
   const [avatar, setAvatar] = useState(predefinedAvatars[0]);
+  const [confirmedHuman, setConfirmedHuman] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -67,6 +68,11 @@ function ChoosePseudonym() {
         return;
       }
 
+      if (!confirmedHuman) {
+        setError("Por favor, confirme que você é um humano.");
+        return;
+      }
+
       const cpfNumbers = cpf.replace(/\D/g, "");
       if (cpfNumbers && cpfNumbers.length !== 11) {
         setError("CPF deve conter 11 dígitos.");
@@ -87,7 +93,7 @@ function ChoosePseudonym() {
 
       navigate("/");
     },
-    [navigate, pseudonym, cpf, linkedInUrl, avatar]
+    [navigate, pseudonym, cpf, linkedInUrl, avatar, confirmedHuman]
   );
 
   return (
@@ -159,6 +165,19 @@ function ChoosePseudonym() {
                 <span className="text-sm text-slate-600">Imagem carregada</span>
               )}
             </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="confirm-human"
+              checked={confirmedHuman}
+              onChange={(e) => setConfirmedHuman(e.target.checked)}
+              className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+            />
+            <label htmlFor="confirm-human" className="text-sm text-slate-700">
+              Não sou um robô e concordo em enviar uma avaliação sincera.
+            </label>
           </div>
 
           {error && <p className="text-red-600 text-sm">{error}</p>}
