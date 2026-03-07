@@ -1,6 +1,11 @@
 import mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
 
+// Prevent runtime error: No "GlobalWorkerOptions.workerSrc" specified.
+if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+}
+
 function normalizeText(value) {
   return (value || "")
     .toString()
@@ -11,8 +16,14 @@ function normalizeText(value) {
 
 async function readPdfText(file) {
   const arrayBuffer = await file.arrayBuffer();
-  // In CRA/Vercel, worker CDN imports can fail due CSP/cross-origin. Disable worker for reliability.
-  const doc = await pdfjsLib.getDocument({ data: arrayBuffer, disableWorker: true }).promise;
+  let doc;
+
+  try {
+    doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  } catch {
+    // Fallback if worker cannot be loaded in restricted environments.
+    doc = await pdfjsLib.getDocument({ data: arrayBuffer, disableWorker: true }).promise;
+  }
 
   let fullText = "";
   for (let pageIndex = 1; pageIndex <= doc.numPages; pageIndex += 1) {
