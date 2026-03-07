@@ -91,50 +91,11 @@ function CompanyDetails() {
 
   const companyInfo = useMemo(() => {
     if (!company) return null;
-
-    const sector =
-      company.ramo ||
-      company.setor ||
-      company.segmento ||
-      company.industry ||
-      "Não informado";
-
-    const locationParts = [company.cidade, company.estado, company.pais].filter(Boolean);
-    const location = locationParts.length ? locationParts.join(" - ") : "Não informado";
-
-    const websiteRaw = company.website || company.site || company.url || "";
-    const website = websiteRaw
-      ? /^https?:\/\//i.test(websiteRaw)
-        ? websiteRaw
-        : `https://${websiteRaw}`
-      : "";
-
-    const socialFields = [
-      { key: "linkedin", label: "LinkedIn" },
-      { key: "instagram", label: "Instagram" },
-      { key: "facebook", label: "Facebook" },
-      { key: "twitter", label: "X / Twitter" },
-      { key: "tiktok", label: "TikTok" },
-      { key: "youtube", label: "YouTube" },
-    ];
-
-    const socials = socialFields
-      .map((item) => {
-        const raw = company[item.key];
-        if (!raw) return null;
-        const href = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-        return { label: item.label, href };
-      })
-      .filter(Boolean);
-
-    const googleQuery = [company.company, location !== "Não informado" ? location : ""].filter(Boolean).join(" ");
+    const location = [company.cidade, company.estado, company.pais].filter(Boolean).join(" ");
+    const googleQuery = [company.company, location].filter(Boolean).join(" ");
     const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(googleQuery)}`;
 
     return {
-      sector,
-      location,
-      website,
-      socials,
       googleSearchUrl,
     };
   }, [company]);
@@ -497,56 +458,13 @@ function CompanyDetails() {
 
         <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
           <h2 className="text-lg font-bold text-blue-800 mb-4">Sobre a empresa</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Ramo</p>
-              <p className="mt-1 text-slate-800 font-medium">{companyInfo?.sector || "Não informado"}</p>
-            </div>
-            <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Localização</p>
-              <p className="mt-1 text-slate-800 font-medium">{companyInfo?.location || "Não informado"}</p>
-            </div>
-          </div>
-
-          <div className="mt-4 bg-blue-50 rounded-xl p-4 border border-blue-100">
-            <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Site e redes sociais</p>
-
-            {companyInfo?.website ? (
-              <a
-                href={companyInfo.website}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-2 inline-block text-blue-700 hover:text-blue-900 underline font-medium"
-              >
-                Site oficial
-              </a>
-            ) : (
-              <p className="mt-2 text-slate-600">Site oficial não informado.</p>
-            )}
-
-            {companyInfo?.socials?.length ? (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {companyInfo.socials.map((social) => (
-                  <a
-                    key={social.label}
-                    href={social.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-3 py-1.5 rounded-full text-xs font-semibold border border-blue-200 text-blue-700 hover:bg-blue-100 transition"
-                  >
-                    {social.label}
-                  </a>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-2 text-slate-600">Redes sociais não informadas.</p>
-            )}
-
+          <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+            <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Resultados do Google</p>
             <a
               href={companyInfo?.googleSearchUrl}
               target="_blank"
               rel="noreferrer"
-              className="mt-3 inline-block text-sm font-semibold text-blue-700 hover:text-blue-900 underline"
+              className="mt-2 inline-block text-sm font-semibold text-blue-700 hover:text-blue-900 underline"
             >
               Ver resultados da empresa no Google
             </a>
@@ -554,7 +472,7 @@ function CompanyDetails() {
         </div>
 
         <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
-          <h2 className="text-lg font-bold text-blue-800 dark:text-slate-100 mb-4">Comentários mais votados</h2>
+          <h2 className="text-lg font-bold text-blue-800 dark:text-slate-100 mb-4">Comentários</h2>
           <div className="space-y-4">
             <div className="flex flex-col gap-2">
               <label className="text-sm font-semibold text-slate-700">
@@ -568,8 +486,8 @@ function CompanyDetails() {
                 rows={3}
               />
 
-              <label className="text-sm font-semibold text-slate-700">
-                Comentário obrigatório
+              <label className="text-sm font-semibold text-blue-800 font-azonix">
+                Comentários mais bem avaliado
               </label>
               <textarea
                 value={mandatoryComment}
