@@ -52,6 +52,13 @@ export async function listReviewsByCompanySlug(slug, take = 80) {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+export async function listRecentReviews(take = 1000) {
+  const ref = collection(db, "reviews");
+  const q = query(ref, orderBy("createdAt", "desc"), limit(take));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
 export async function saveReview(review) {
   if (!review?.company || !review?.pseudonym) {
     throw new Error("Empresa e pseudônimo são obrigatórios para salvar a avaliação.");

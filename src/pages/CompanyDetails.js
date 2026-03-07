@@ -1,6 +1,8 @@
 import React, { useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getCompanyLogoUrl } from "../utils/getCompanyLogo";
+import { db } from "../firebase";
+import { collection, doc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
 
 function CompanyDetails() {
   const navigate = useNavigate();
@@ -80,6 +82,19 @@ function CompanyDetails() {
     return company ? `comments_${company.company}` : null;
   }, [company]);
 
+  const getCompanySlug = React.useCallback(() => {
+    if (!company?.company) return "";
+    return company.company
+      .toString()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+/g, "")
+      .replace(/-+$/g, "");
+  }, [company]);
+
   const getReactionsKey = React.useCallback(() => {
     return company ? `comment_reactions_${company.company}` : null;
   }, [company]);
@@ -93,6 +108,30 @@ function CompanyDetails() {
       }
     } catch (err) {
       console.warn("Falha ao salvar comentários:", err);
+    }
+  };
+
+  const syncCommentsToFirestore = async (nextComments) => {
+    try {
+      const companySlug = getCompanySlug();
+      if (!companySlug) return;
+
+      await Promise.all(
+        (nextComments || []).map((comment) =>
+          setDoc(
+            doc(db, "comments", comment.id),
+            {
+              ...comment,
+              companySlug,
+              companyName: company.company,
+              updatedAt: new Date().toISOString(),
+            },
+            { merge: true }
+          )
+        )
+      );
+    } catch (err) {
+      console.warn("Falha ao sincronizar comentários no Firebase:", err);
     }
   };
 
@@ -115,6 +154,53 @@ function CompanyDetails() {
       setComments([]);
     }
   }, [getCommentsKey]);
+
+  React.useEffect(() => {
+    const fetchRemoteComments = async () => {
+      try {
+        const companySlug = getCompanySlug();
+        if (!companySlug) return;
+
+        const ref = collection(db, "comments");
+        const q = query(
+          ref,
+          where("companySlug", "==", companySlug),
+          orderBy("createdAt", "desc"),
+          limit(120)
+        );
+
+        const snap = await getDocs(q);
+        if (snap.empty) return;
+
+        const normalized = snap.docs.map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            author: data.author || "Anônimo",
+            text: data.text || "",
+            createdAt:
+              typeof data.createdAt?.toDate === "function"
+                ? data.createdAt.toDate().toISOString()
+                : data.createdAt || new Date().toISOString(),
+            reactions: {
+              thumbsDown: data.reactions?.thumbsDown || 0,
+              laugh: data.reactions?.laugh || 0,
+              thumbsUp: data.reactions?.thumbsUp || 0,
+              cry: data.reactions?.cry || 0,
+              clap: data.reactions?.clap || 0,
+            },
+            replies: Array.isArray(data.replies) ? data.replies : [],
+          };
+        });
+
+        saveComments(normalized);
+      } catch (err) {
+        console.warn("Falha ao carregar comentários do Firebase:", err);
+      }
+    };
+
+    fetchRemoteComments();
+  }, [getCompanySlug]);
 
   React.useEffect(() => {
     const key = getReactionsKey();
@@ -156,6 +242,7 @@ function CompanyDetails() {
       replies: [],
     };
     saveComments([comment, ...comments]);
+    syncCommentsToFirestore([comment, ...comments]);
     setNewComment("");
   };
 
@@ -195,6 +282,7 @@ function CompanyDetails() {
 
     const nextComments = incrementReactionById(comments, targetId, reactionKey);
     saveComments(nextComments);
+    syncCommentsToFirestore(nextComments);
     saveReactionRegistry({
       ...reactionRegistry,
       [registryKey]: reactionKey,
@@ -231,6 +319,7 @@ function CompanyDetails() {
     };
     const next = addReplyToItem(comments, targetId, reply);
     saveComments(next);
+    syncCommentsToFirestore(next);
     setReplyText("");
     setReplyTo(null);
   };

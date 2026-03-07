@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import TrabalheiLaMobile from "./TrabalheiLaMobile";
 import TrabalheiLaDesktop from "./TrabalheiLaDesktop";
 import { empresasBrasileiras } from "./empresas";
-import { saveReview } from "./services/reviews";
-import { saveCompany } from "./services/companies";
+import { saveReview, listRecentReviews } from "./services/reviews";
+import { saveCompany, listCompanies } from "./services/companies";
 import { saveUserProfile } from "./services/users";
 import { auth, db } from "./firebase";
 import { signInAnonymously } from "firebase/auth";
@@ -146,6 +146,94 @@ function Home({ theme, toggleTheme }) {
       console.warn("Falha ao salvar empresas no localStorage:", err);
     }
   }, [empresas]);
+
+  useEffect(() => {
+    let alive = true;
+
+    const toNumberOrZero = (v) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    };
+
+    const metricKeys = [
+      "rating", "salario", "beneficios", "cultura", "oportunidades",
+      "inovacao", "lideranca", "diversidade", "ambiente", "equilibrio",
+      "reconhecimento", "comunicacao", "etica", "desenvolvimento",
+      "saudeBemEstar", "impactoSocial", "reputacao", "estimacaoOrganizacao",
+    ];
+
+    const syncFromFirestore = async () => {
+      try {
+        const [remoteCompanies, remoteReviews] = await Promise.all([
+          listCompanies(500),
+          listRecentReviews(1500),
+        ]);
+
+        if (!alive) return;
+
+        setEmpresas((prev) => {
+          const map = new Map((prev || []).map((emp) => [emp.company, { ...emp }]));
+
+          for (const rc of remoteCompanies) {
+            const companyName = rc?.name || rc?.company || rc?.slug;
+            if (!companyName) continue;
+
+            if (!map.has(companyName)) {
+              map.set(companyName, {
+                company: companyName,
+                cnpj: rc?.cnpj || null,
+                rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
+                inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
+                reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
+                saudeBemEstar: 0, impactoSocial: 0, reputacao: 0, estimacaoOrganizacao: 0,
+              });
+            }
+          }
+
+          const agg = new Map();
+          for (const review of remoteReviews) {
+            const companyName = review?.company;
+            if (!companyName) continue;
+
+            if (!agg.has(companyName)) {
+              const entry = { count: 0 };
+              for (const key of metricKeys) {
+                entry[key] = 0;
+              }
+              agg.set(companyName, entry);
+            }
+
+            const bucket = agg.get(companyName);
+            bucket.count += 1;
+            for (const key of metricKeys) {
+              bucket[key] += toNumberOrZero(review[key]);
+            }
+          }
+
+          for (const [companyName, bucket] of agg.entries()) {
+            const current = map.get(companyName) || { company: companyName };
+            const next = { ...current };
+
+            for (const key of metricKeys) {
+              next[key] = bucket.count > 0 ? Number((bucket[key] / bucket.count).toFixed(2)) : 0;
+            }
+
+            map.set(companyName, next);
+          }
+
+          return Array.from(map.values());
+        });
+      } catch (err) {
+        console.warn("Falha ao sincronizar empresas/reviews do Firebase:", err);
+      }
+    };
+
+    syncFromFirestore();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const calcularMedia = useCallback((emp) => {
     const ratings = [
