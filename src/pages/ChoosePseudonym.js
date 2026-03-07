@@ -11,10 +11,13 @@ function ChoosePseudonym() {
   const navigate = useNavigate();
   const [pseudonym, setPseudonym] = useState("");
   const [cpf, setCpf] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [professionalObjective, setProfessionalObjective] = useState("");
+  const [educationAndProfession, setEducationAndProfession] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [educationLevel, setEducationLevel] = useState("");
-  const [resumeExperiences, setResumeExperiences] = useState([]);
+  const [structuredExperiences, setStructuredExperiences] = useState([]);
   const [resumeFileName, setResumeFileName] = useState("");
   const [resumeMimeType, setResumeMimeType] = useState("");
   const [resumePreviewUrl, setResumePreviewUrl] = useState("");
@@ -24,6 +27,7 @@ function ChoosePseudonym() {
   const [isParsingResume, setIsParsingResume] = useState(false);
   const [avatar, setAvatar] = useState(predefinedAvatars[0]);
   const [confirmedHuman, setConfirmedHuman] = useState(false);
+  const [info, setInfo] = useState("");
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -49,6 +53,15 @@ function ChoosePseudonym() {
       if (parsed?.cpf) {
         setCpf(parsed.cpf);
       }
+      if (parsed?.resumeData?.name) {
+        setFullName(parsed.resumeData.name);
+      }
+      if (parsed?.resumeData?.objective) {
+        setProfessionalObjective(parsed.resumeData.objective);
+      }
+      if (parsed?.resumeData?.educationSummary) {
+        setEducationAndProfession(parsed.resumeData.educationSummary);
+      }
       if (parsed?.email) {
         setEmail(parsed.email);
       }
@@ -58,8 +71,8 @@ function ChoosePseudonym() {
       if (parsed?.educationLevel) {
         setEducationLevel(parsed.educationLevel);
       }
-      if (Array.isArray(parsed?.resumeData?.experiences)) {
-        setResumeExperiences(parsed.resumeData.experiences);
+      if (Array.isArray(parsed?.resumeData?.experiencesStructured)) {
+        setStructuredExperiences(parsed.resumeData.experiencesStructured);
       }
       if (parsed?.resumeData?.fileName) {
         setResumeFileName(parsed.resumeData.fileName);
@@ -105,6 +118,7 @@ function ChoosePseudonym() {
     if (!file) return;
 
     setError(null);
+    setInfo("");
     setIsParsingResume(true);
     setResumeReadConfirmed(false);
 
@@ -137,9 +151,13 @@ function ChoosePseudonym() {
       if (!email && parsed.email) setEmail(parsed.email);
       if (!phone && parsed.phone) setPhone(parsed.phone);
       if (parsed.educationLevel) setEducationLevel(parsed.educationLevel);
-      setResumeExperiences(parsed.experiences || []);
+      setFullName(parsed.name || "");
+      setProfessionalObjective(parsed.objective || "");
+      setEducationAndProfession(parsed.educationSummary || "");
+      setStructuredExperiences(parsed.experiencesStructured || []);
       setResumeFileName(file.name || "curriculo");
       setResumeText(parsed.rawText || "");
+      setInfo("Currículo lido e organizado. Revise os campos antes de confirmar.");
     } catch (err) {
       setError(err?.message || "Nao foi possivel ler o curriculo automaticamente.");
     } finally {
@@ -150,20 +168,49 @@ function ChoosePseudonym() {
   const handleFillFromLinkedIn = useCallback(() => {
     try {
       const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
-      if (existingProfile?.name && !pseudonym.trim()) {
-        setPseudonym(existingProfile.name);
-      }
-      if (existingProfile?.email && !email.trim()) {
-        setEmail(existingProfile.email);
-      }
-      if (existingProfile?.phone && !phone.trim()) {
-        setPhone(existingProfile.phone);
-      }
+      let loadedCount = 0;
+      setInfo("");
       setError(null);
+
+      if (existingProfile?.name) {
+        setPseudonym(existingProfile.name);
+        setFullName(existingProfile.name);
+        loadedCount += 1;
+      }
+      if (existingProfile?.email) {
+        setEmail(existingProfile.email);
+        loadedCount += 1;
+      }
+      if (existingProfile?.phone) {
+        setPhone(existingProfile.phone);
+        loadedCount += 1;
+      }
+
+      if (loadedCount > 0) {
+        setInfo("Informações carregadas do LinkedIn com sucesso.");
+      } else {
+        setError("Não encontramos novos dados do LinkedIn para preencher.");
+      }
     } catch {
-      setError("Nao foi possivel carregar dados do LinkedIn no momento.");
+      setError("Não foi possível carregar dados do LinkedIn no momento.");
     }
-  }, [pseudonym, email, phone]);
+  }, []);
+
+  const handleExperienceFieldChange = (idx, key, value) => {
+    const next = [...structuredExperiences];
+    next[idx] = { ...next[idx], [key]: value };
+    setStructuredExperiences(next);
+  };
+
+  const handleAddExperience = () => {
+    const next = [...structuredExperiences, { company: "", role: "", details: "" }];
+    setStructuredExperiences(next);
+  };
+
+  const handleRemoveExperience = (idx) => {
+    const next = structuredExperiences.filter((_, i) => i !== idx);
+    setStructuredExperiences(next);
+  };
 
   const handleSubmit = useCallback(
     async (e) => {
@@ -195,16 +242,21 @@ function ChoosePseudonym() {
       const nextProfile = {
         ...existingProfile,
         name: trimmed,
+        fullName: fullName.trim() || undefined,
         cpf: cpfNumbers || undefined,
         email: email.trim() || undefined,
         phone: phone.trim() || undefined,
         educationLevel: educationLevel.trim() || undefined,
         avatar,
         resumeData: {
+          name: fullName.trim() || undefined,
+          objective: professionalObjective.trim() || undefined,
+          educationSummary: educationAndProfession.trim() || undefined,
           fileName: resumeFileName || undefined,
           mimeType: resumeMimeType || undefined,
           readConfirmed: resumeReadConfirmed,
-          experiences: resumeExperiences,
+          experiences: structuredExperiences.map((item) => item.company).filter(Boolean),
+          experiencesStructured: structuredExperiences,
           rawText: resumeText,
           parsedAt: new Date().toISOString(),
         },
@@ -231,6 +283,9 @@ function ChoosePseudonym() {
       navigate,
       pseudonym,
       cpf,
+      fullName,
+      professionalObjective,
+      educationAndProfession,
       email,
       phone,
       educationLevel,
@@ -239,7 +294,7 @@ function ChoosePseudonym() {
       resumeFileName,
       resumeMimeType,
       resumeReadConfirmed,
-      resumeExperiences,
+      structuredExperiences,
       resumeText,
     ]
   );
@@ -268,7 +323,7 @@ function ChoosePseudonym() {
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-slate-700">Nivel escolar</label>
+        <label className="block text-sm font-semibold text-slate-700">Nível escolar</label>
         <input
           value={educationLevel}
           onChange={(e) => setEducationLevel(e.target.value)}
@@ -278,29 +333,87 @@ function ChoosePseudonym() {
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-slate-700">Experiencias identificadas (editavel)</label>
-        <textarea
-          value={(resumeExperiences || []).join("\n")}
-          onChange={(e) =>
-            setResumeExperiences(
-              e.target.value
-                .split("\n")
-                .map((line) => line.trim())
-                .filter(Boolean)
-            )
-          }
-          placeholder="Experiencias detectadas automaticamente do curriculo"
-          rows={5}
+        <label className="block text-sm font-semibold text-slate-700">Nome</label>
+        <input
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          placeholder="Nome completo"
           className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-slate-700">Texto extraido do curriculo (editavel)</label>
+        <label className="block text-sm font-semibold text-slate-700">Objetivo profissional</label>
+        <textarea
+          value={professionalObjective}
+          onChange={(e) => setProfessionalObjective(e.target.value)}
+          placeholder="Objetivo profissional extraido do curriculo"
+          rows={4}
+          className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-slate-700">Última formação e profissão</label>
+        <input
+          value={educationAndProfession}
+          onChange={(e) => setEducationAndProfession(e.target.value)}
+          placeholder="Ex.: Bacharel - Analista de Dados"
+          className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-slate-700">Experiência profissional (empresa e cargo)</label>
+        <div className="space-y-3">
+          {structuredExperiences.map((exp, idx) => (
+            <div key={`${idx}_${exp.company}`} className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <input
+                  value={exp.company || ""}
+                  onChange={(e) => handleExperienceFieldChange(idx, "company", e.target.value)}
+                  placeholder="Empresa"
+                  className="w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  value={exp.role || ""}
+                  onChange={(e) => handleExperienceFieldChange(idx, "role", e.target.value)}
+                  placeholder="Cargo"
+                  className="w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <textarea
+                value={exp.details || ""}
+                onChange={(e) => handleExperienceFieldChange(idx, "details", e.target.value)}
+                placeholder="Detalhes (periodo, atividades, resultados)"
+                rows={2}
+                className="mt-2 w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                onClick={() => handleRemoveExperience(idx)}
+                className="mt-2 text-xs text-red-600 font-semibold hover:underline"
+              >
+                Remover experiência
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={handleAddExperience}
+            className="px-3 py-2 border border-blue-200 text-blue-700 font-semibold rounded-lg hover:bg-blue-50"
+          >
+            + Adicionar experiência
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-slate-700">Texto extraído do currículo (editável)</label>
         <textarea
           value={resumeText}
           onChange={(e) => setResumeText(e.target.value)}
-          placeholder="Texto lido do curriculo para conferencia"
+          placeholder="Texto lido do currículo para conferência"
           rows={7}
           className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
@@ -347,7 +460,7 @@ function ChoosePseudonym() {
           </div>
 
           <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Carregar curriculo (PDF, DOCX, TXT, MD, RTF)</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Carregar currículo (PDF, DOCX, TXT, MD, RTF)</label>
             <input
               type="file"
               accept=".pdf,.docx,.txt,.md,.rtf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
@@ -355,20 +468,20 @@ function ChoosePseudonym() {
               className="w-full"
             />
             <p className="text-xs text-slate-500 mt-2">
-              O sistema tenta ler e preencher automaticamente os campos essenciais do curriculo.
+              O sistema tenta ler e preencher automaticamente os campos essenciais do currículo.
             </p>
             <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               <div className={`px-2 py-1 rounded-lg border ${hasResumeFile ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-white border-gray-200 text-gray-500"}`}>
                 1. Arquivo carregado: {hasResumeFile ? "OK" : "Pendente"}
               </div>
               <div className={`px-2 py-1 rounded-lg border ${hasResumeParsed ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-white border-gray-200 text-gray-500"}`}>
-                2. Leitura concluida: {hasResumeParsed ? "OK" : "Pendente"}
+                2. Leitura concluída: {hasResumeParsed ? "OK" : "Pendente"}
               </div>
               <div className={`sm:col-span-2 px-2 py-1 rounded-lg border ${resumeReadConfirmed ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-amber-50 border-amber-200 text-amber-700"}`}>
-                3. Confirmacao do usuario: {resumeReadConfirmed ? "Confirmada" : "Pendente"}
+                3. Confirmação do usuário: {resumeReadConfirmed ? "Confirmada" : "Pendente"}
               </div>
             </div>
-            {isParsingResume && <p className="text-sm text-blue-700 mt-2">Lendo e interpretando curriculo...</p>}
+            {isParsingResume && <p className="text-sm text-blue-700 mt-2">Lendo e interpretando currículo...</p>}
             {resumeFileName && !isParsingResume && (
               <p className="text-sm text-emerald-700 mt-2">Arquivo processado: {resumeFileName}</p>
             )}
@@ -378,11 +491,11 @@ function ChoosePseudonym() {
                 onClick={() => setResumeReadConfirmed(true)}
                 className="mt-3 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700"
               >
-                Confirmar carregamento e leitura do curriculo
+                Confirmar carregamento e leitura do currículo
               </button>
             )}
             {resumeReadConfirmed && (
-              <p className="text-sm text-emerald-700 mt-2 font-semibold">Leitura do curriculo confirmada.</p>
+              <p className="text-sm text-emerald-700 mt-2 font-semibold">Leitura do currículo confirmada.</p>
             )}
           </div>
 
@@ -391,7 +504,7 @@ function ChoosePseudonym() {
             onClick={handleFillFromLinkedIn}
             className="w-full py-2.5 rounded-xl border border-blue-200 text-blue-700 font-semibold hover:bg-blue-50 transition"
           >
-            Carregar informacoes do proprio LinkedIn
+            Carregar informações do próprio LinkedIn
           </button>
 
           <div className="hidden md:block space-y-4">
@@ -400,7 +513,7 @@ function ChoosePseudonym() {
 
           <details className="md:hidden bg-gray-50 border border-gray-200 rounded-2xl p-4">
             <summary className="cursor-pointer font-semibold text-slate-700">
-              Verificar e editar dados extraidos do curriculo
+              Verificar e editar dados extraídos do currículo
             </summary>
             <div className="mt-3 space-y-4">
               {renderEditableResumeData()}
@@ -444,6 +557,7 @@ function ChoosePseudonym() {
             </label>
           </div>
 
+          {info && <p className="text-emerald-700 text-sm">{info}</p>}
           {error && <p className="text-red-600 text-sm">{error}</p>}
 
           <button
