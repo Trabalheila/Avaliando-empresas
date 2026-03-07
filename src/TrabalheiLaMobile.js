@@ -245,8 +245,14 @@ function TrabalheiLaMobile({
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-sky-50 to-blue-100 font-sans pb-10">
-      <header className="bg-blue-50/95 backdrop-blur-sm shadow-sm px-4 py-4 mb-4 flex flex-col md:flex-row items-start md:items-center justify-between sticky top-0 z-50 border-b border-blue-100">
+    <div
+      className={`min-h-screen font-sans pb-10 ${
+        theme === "dark"
+          ? "bg-slate-800"
+          : "bg-gradient-to-b from-blue-50 via-sky-50 to-blue-100"
+      }`}
+    >
+      <header className="bg-white shadow-sm px-4 py-4 mb-4 flex flex-col md:flex-row items-start md:items-center justify-between sticky top-0 z-50 border-b border-blue-100">
         <div className="w-full flex items-center justify-center gap-3 text-center">
           <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100 overflow-hidden">
             {companyLogoUrl ? (
@@ -309,8 +315,14 @@ function TrabalheiLaMobile({
           {company && (
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <p className="text-sm font-semibold text-blue-800">{company.value}</p>
-                <p className="text-xs text-slate-600">Média: <span className={`font-bold ${getBadgeColor(companyAverage)}`}>{companyAverage}</span></p>
+                <p className="text-base font-bold text-blue-800">{company.value}</p>
+                <div className="mt-1 flex items-center justify-end gap-2">
+                  <span className="text-sm font-semibold text-slate-700">Nota</span>
+                  <span className={`px-2.5 py-1 rounded-lg text-lg leading-none font-extrabold text-white ${getBadgeColor(companyAverage)}`}>
+                    {companyAverage}
+                  </span>
+                  <span className="text-sm font-semibold text-slate-700">/5</span>
+                </div>
               </div>
               <button
                 type="button"

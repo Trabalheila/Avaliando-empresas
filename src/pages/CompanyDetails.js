@@ -61,7 +61,9 @@ function CompanyDetails() {
   };
 
   const [comments, setComments] = React.useState([]);
-  const [newComment, setNewComment] = React.useState("");
+  const [mandatoryComment, setMandatoryComment] = React.useState("");
+  const [experienceComment, setExperienceComment] = React.useState("");
+  const [commentError, setCommentError] = React.useState("");
   const [replyTo, setReplyTo] = React.useState(null);
   const [replyText, setReplyText] = React.useState("");
   const [reactionRegistry, setReactionRegistry] = React.useState({});
@@ -86,6 +88,56 @@ function CompanyDetails() {
   const getTotalReactions = (comment) => {
     return Object.values(comment.reactions || {}).reduce((sum, v) => sum + (v || 0), 0);
   };
+
+  const companyInfo = useMemo(() => {
+    if (!company) return null;
+
+    const sector =
+      company.ramo ||
+      company.setor ||
+      company.segmento ||
+      company.industry ||
+      "Não informado";
+
+    const locationParts = [company.cidade, company.estado, company.pais].filter(Boolean);
+    const location = locationParts.length ? locationParts.join(" - ") : "Não informado";
+
+    const websiteRaw = company.website || company.site || company.url || "";
+    const website = websiteRaw
+      ? /^https?:\/\//i.test(websiteRaw)
+        ? websiteRaw
+        : `https://${websiteRaw}`
+      : "";
+
+    const socialFields = [
+      { key: "linkedin", label: "LinkedIn" },
+      { key: "instagram", label: "Instagram" },
+      { key: "facebook", label: "Facebook" },
+      { key: "twitter", label: "X / Twitter" },
+      { key: "tiktok", label: "TikTok" },
+      { key: "youtube", label: "YouTube" },
+    ];
+
+    const socials = socialFields
+      .map((item) => {
+        const raw = company[item.key];
+        if (!raw) return null;
+        const href = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+        return { label: item.label, href };
+      })
+      .filter(Boolean);
+
+    const googleQuery = [company.company, location !== "Não informado" ? location : ""].filter(Boolean).join(" ");
+    const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(googleQuery)}`;
+
+    return {
+      sector,
+      location,
+      website,
+      socials,
+      googleSearchUrl,
+    };
+  }, [company]);
 
   const getCommentsKey = React.useCallback(() => {
     return company ? `comments_${company.company}` : null;
@@ -240,19 +292,34 @@ function CompanyDetails() {
   };
 
   const handleAddComment = () => {
-    if (!newComment.trim()) return;
+    const mandatoryText = mandatoryComment.trim();
+    const experienceText = experienceComment.trim();
+
+    if (!mandatoryText) {
+      setCommentError("O campo de comentário obrigatório precisa ser preenchido.");
+      return;
+    }
+
+    setCommentError("");
+
     const pseudonym = localStorage.getItem("userPseudonym") || "Anônimo";
+
+    const finalText = experienceText
+      ? `${mandatoryText}\n\nVocê trabalhou lá? Quer compartilhar sua experiência?\n${experienceText}`
+      : mandatoryText;
+
     const comment = {
       id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
       author: pseudonym,
-      text: newComment.trim(),
+      text: finalText,
       createdAt: new Date().toISOString(),
       reactions: { thumbsDown: 0, laugh: 0, thumbsUp: 0, cry: 0, clap: 0 },
       replies: [],
     };
     saveComments([comment, ...comments]);
     syncCommentsToFirestore([comment, ...comments]);
-    setNewComment("");
+    setMandatoryComment("");
+    setExperienceComment("");
   };
 
   const incrementReactionById = (items, targetId, reactionKey) => {
@@ -429,16 +496,94 @@ function CompanyDetails() {
         </div>
 
         <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
+          <h2 className="text-lg font-bold text-blue-800 mb-4">Sobre a empresa</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Ramo</p>
+              <p className="mt-1 text-slate-800 font-medium">{companyInfo?.sector || "Não informado"}</p>
+            </div>
+            <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Localização</p>
+              <p className="mt-1 text-slate-800 font-medium">{companyInfo?.location || "Não informado"}</p>
+            </div>
+          </div>
+
+          <div className="mt-4 bg-blue-50 rounded-xl p-4 border border-blue-100">
+            <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Site e redes sociais</p>
+
+            {companyInfo?.website ? (
+              <a
+                href={companyInfo.website}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-block text-blue-700 hover:text-blue-900 underline font-medium"
+              >
+                Site oficial
+              </a>
+            ) : (
+              <p className="mt-2 text-slate-600">Site oficial não informado.</p>
+            )}
+
+            {companyInfo?.socials?.length ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {companyInfo.socials.map((social) => (
+                  <a
+                    key={social.label}
+                    href={social.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold border border-blue-200 text-blue-700 hover:bg-blue-100 transition"
+                  >
+                    {social.label}
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 text-slate-600">Redes sociais não informadas.</p>
+            )}
+
+            <a
+              href={companyInfo?.googleSearchUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-block text-sm font-semibold text-blue-700 hover:text-blue-900 underline"
+            >
+              Ver resultados da empresa no Google
+            </a>
+          </div>
+        </div>
+
+        <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
           <h2 className="text-lg font-bold text-blue-800 dark:text-slate-100 mb-4">Comentários mais votados</h2>
           <div className="space-y-4">
             <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-slate-700">
+                Você trabalhou lá? Quer compartilhar sua experiência? Digite aqui.
+              </label>
               <textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Escreva um comentário sobre essa empresa..."
+                value={experienceComment}
+                onChange={(e) => setExperienceComment(e.target.value)}
+                placeholder="Conte como foi sua experiência na empresa (opcional)."
                 className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                 rows={3}
               />
+
+              <label className="text-sm font-semibold text-slate-700">
+                Comentário obrigatório
+              </label>
+              <textarea
+                value={mandatoryComment}
+                onChange={(e) => {
+                  setMandatoryComment(e.target.value);
+                  if (commentError) setCommentError("");
+                }}
+                placeholder="Escreva um comentário sobre essa empresa..."
+                className={`w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${commentError ? "border-red-400" : "border-gray-200"}`}
+                rows={3}
+                required
+              />
+              {commentError && <p className="text-sm text-red-600">{commentError}</p>}
+
               <button
                 type="button"
                 onClick={handleAddComment}
