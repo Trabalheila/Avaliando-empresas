@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import TrabalheiLaMobile from "./TrabalheiLaMobile";
 import TrabalheiLaDesktop from "./TrabalheiLaDesktop";
 import { empresasBrasileiras } from "./empresas";
-import { getCompanyLogoUrl } from "./utils/getCompanyLogo";
 
 function Home() {
   const navigate = useNavigate();

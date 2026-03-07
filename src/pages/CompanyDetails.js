@@ -79,22 +79,6 @@ function CompanyDetails() {
     return company ? `comments_${company.company}` : null;
   };
 
-  const loadComments = () => {
-    const key = getCommentsKey();
-    if (!key) return;
-    try {
-      const stored = localStorage.getItem(key);
-      if (stored) {
-        setComments(JSON.parse(stored));
-      } else {
-        setComments([]);
-      }
-    } catch (err) {
-      console.warn("Falha ao carregar comentários:", err);
-      setComments([]);
-    }
-  };
-
   const saveComments = (nextComments) => {
     setComments(nextComments);
     try {
@@ -108,7 +92,23 @@ function CompanyDetails() {
   };
 
   React.useEffect(() => {
-    loadComments();
+    const key = getCommentsKey();
+    if (!key) {
+      setComments([]);
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        setComments(JSON.parse(stored));
+      } else {
+        setComments([]);
+      }
+    } catch (err) {
+      console.warn("Falha ao carregar comentários:", err);
+      setComments([]);
+    }
   }, [company]);
 
   const handleAddComment = () => {
@@ -184,27 +184,6 @@ function CompanyDetails() {
     { key: "estimacaoOrganizacao", label: "Estímulo e Organização" },
   ];
 
-  const commentFields = [
-    { key: "commentRating", label: "Comentário Avaliação Geral" },
-    { key: "commentSalario", label: "Comentário Salário" },
-    { key: "commentBeneficios", label: "Comentário Benefícios" },
-    { key: "commentCultura", label: "Comentário Cultura" },
-    { key: "commentOportunidades", label: "Comentário Oportunidades" },
-    { key: "commentInovacao", label: "Comentário Inovação" },
-    { key: "commentLideranca", label: "Comentário Liderança" },
-    { key: "commentDiversidade", label: "Comentário Diversidade" },
-    { key: "commentAmbiente", label: "Comentário Ambiente" },
-    { key: "commentEquilibrio", label: "Comentário Equilíbrio" },
-    { key: "commentReconhecimento", label: "Comentário Reconhecimento" },
-    { key: "commentComunicacao", label: "Comentário Comunicação" },
-    { key: "commentEtica", label: "Comentário Ética" },
-    { key: "commentDesenvolvimento", label: "Comentário Desenvolvimento" },
-    { key: "commentSaudeBemEstar", label: "Comentário Saúde e Bem-estar" },
-    { key: "commentImpactoSocial", label: "Comentário Impacto Social" },
-    { key: "commentReputacao", label: "Comentário Reputação" },
-    { key: "commentEstimacaoOrganizacao", label: "Comentário Estímulo e Organização" },
-    { key: "generalComment", label: "Comentário Geral" },
-  ];
 
   if (!company) {
     return (
