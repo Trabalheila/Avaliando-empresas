@@ -4,6 +4,7 @@ import TrabalheiLaMobile from "./TrabalheiLaMobile";
 import TrabalheiLaDesktop from "./TrabalheiLaDesktop";
 import { empresasBrasileiras } from "./empresas";
 
+// Pequena alteração para forçar novo deploy (sem impacto funcional)
 function Home() {
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
