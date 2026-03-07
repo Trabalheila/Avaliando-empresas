@@ -63,7 +63,7 @@ function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showNewCompanyInput, setShowNewCompanyInput] = useState(false);
 
-  // Inicializa as empresas dinamicamente sem erro de map
+  // Inicializa as empresaas dinamicamente sem erro de map
   const [empresas, setEmpresas] = useState(() => {
     try {
       const stored = localStorage.getItem("empresasData");
