@@ -70,7 +70,7 @@ export function parseResumeText(rawText, knownCompanies = []) {
 
   const emailMatch = compactText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
   const linkedInMatch = compactText.match(/https?:\/\/(www\.)?linkedin\.com\/[\w\-/?=&%.]+/i);
-  const cpfMatch = compactText.match(/\b\d{3}[.\-]?\d{3}[.\-]?\d{3}[\-]?\d{2}\b/);
+  const cpfMatch = compactText.match(/\b\d{3}[.-]?\d{3}[.-]?\d{3}[-]?\d{2}\b/);
   const phoneMatch = compactText.match(/(?:\+55\s?)?(?:\(?\d{2}\)?\s?)?(?:9\d{4}|\d{4})[-\s]?\d{4}/);
 
   const educationKeywords = [

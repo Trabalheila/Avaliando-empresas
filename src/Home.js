@@ -470,7 +470,7 @@ function Home({ theme, toggleTheme }) {
       timestamp: new Date().toISOString(),
     };
 
-    // Não permite que o mesmo pseudôniimo avalie a mesma empresa mais de uma vez (cache local rápido)
+    // Não permite que o mesmo pseudônimo avalie a mesma empresa mais de uma vez (cache local rápido)
     const evaluationsKey = `evaluations_${company.value}`;
     const storedEvals = localStorage.getItem(evaluationsKey);
     const existingEvals = storedEvals ? JSON.parse(storedEvals) : {};
