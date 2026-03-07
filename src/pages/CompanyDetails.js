@@ -669,7 +669,7 @@ function CompanyDetails() {
         </div>
 
         <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
-          <h2 className="text-lg font-bold text-blue-800 dark:text-slate-100 font-azonix tracking-[0.08em] mb-4">Comentários</h2>
+          <h2 className="text-lg font-bold text-blue-800 font-azonix tracking-[0.08em] mb-4">Comentários</h2>
           <div className="space-y-4">
             <div className="flex flex-col gap-2">
               <label className="text-sm font-semibold text-slate-700">
