@@ -5,7 +5,7 @@ import TrabalheiLaDesktop from "./TrabalheiLaDesktop";
 import { empresasBrasileiras } from "./empresas";
 import { saveReview } from "./services/reviews";
 
-// Pequena alteração para forçar novio deploy (sem impacto funcional)
+// Pequena alteração para forçar novo deploy (sem impacto funcional)
 function Home() {
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
