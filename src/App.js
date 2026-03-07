@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Home from './Home';
 import AuthLinkedIn from './pages/AuthLinkedIn';
