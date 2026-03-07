@@ -306,7 +306,7 @@ function TrabalheiLaMobile({
               className="px-3 py-2 bg-slate-200 rounded-full text-sm font-semibold text-slate-700 hover:bg-slate-300 transition"
               aria-label="Alternar tema claro/escuro"
             >
-              {theme === 'dark' ? '☀️ Tema' : '🌙 Tema'}
+              {theme === 'dark' ? '🌙 Tema' : '☀️ Tema'}
             </button>
           </div>
         )}

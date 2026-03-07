@@ -158,6 +158,8 @@ function CompanyDetails() {
   const [replyTo, setReplyTo] = React.useState(null);
   const [replyText, setReplyText] = React.useState("");
   const [reactionRegistry, setReactionRegistry] = React.useState({});
+  const [animatedReactionKey, setAnimatedReactionKey] = React.useState("");
+  const reactionAnimationTimeout = React.useRef(null);
   const [insights, setInsights] = React.useState(null);
   const [insightsLoading, setInsightsLoading] = React.useState(false);
   const logoCandidates = company
@@ -169,6 +171,14 @@ function CompanyDetails() {
   React.useEffect(() => {
     setLogoIndex(0);
   }, [company?.company, company?.website]);
+
+  React.useEffect(() => {
+    return () => {
+      if (reactionAnimationTimeout.current) {
+        clearTimeout(reactionAnimationTimeout.current);
+      }
+    };
+  }, []);
 
   React.useEffect(() => {
     let alive = true;
@@ -485,6 +495,14 @@ function CompanyDetails() {
     const nextComments = incrementReactionById(comments, targetId, reactionKey);
     saveComments(nextComments);
     syncCommentsToFirestore(nextComments);
+    const animationKey = `${targetId}__${reactionKey}`;
+    setAnimatedReactionKey(animationKey);
+    if (reactionAnimationTimeout.current) {
+      clearTimeout(reactionAnimationTimeout.current);
+    }
+    reactionAnimationTimeout.current = setTimeout(() => {
+      setAnimatedReactionKey("");
+    }, 450);
     saveReactionRegistry({
       ...reactionRegistry,
       [registryKey]: reactionKey,
@@ -733,17 +751,23 @@ function CompanyDetails() {
 
                     <div className="flex flex-wrap gap-3 mt-3">
                       {reactions.map((reaction) => (
+                        (() => {
+                          const animKey = `${comment.id}__${reaction.key}`;
+                          const isAnimated = animatedReactionKey === animKey;
+                          return (
                         <button
                           key={reaction.key}
                           type="button"
                           onClick={() => handleReact(comment.id, reaction.key)}
-                          className="flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700"
+                          className={`flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-transform ${isAnimated ? "reaction-burst" : ""}`}
                         >
                           <span className="text-2xl">{reaction.label}</span>
                           <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                             {comment.reactions?.[reaction.key] || 0}
                           </span>
                         </button>
+                          );
+                        })()
                       ))}
                     </div>
 
@@ -798,17 +822,23 @@ function CompanyDetails() {
                             <p className="mt-1 text-sm text-slate-800 dark:text-slate-100">{reply.text}</p>
                             <div className="flex flex-wrap gap-3 mt-3">
                               {reactions.map((reaction) => (
+                                (() => {
+                                  const animKey = `${reply.id}__${reaction.key}`;
+                                  const isAnimated = animatedReactionKey === animKey;
+                                  return (
                                 <button
                                   key={reaction.key}
                                   type="button"
                                   onClick={() => handleReact(reply.id, reaction.key)}
-                                  className="flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700"
+                                  className={`flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-transform ${isAnimated ? "reaction-burst" : ""}`}
                                 >
                                   <span className="text-2xl">{reaction.label}</span>
                                   <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                                     {reply.reactions?.[reaction.key] || 0}
                                   </span>
                                 </button>
+                                  );
+                                })()
                               ))}
                             </div>
                           </div>

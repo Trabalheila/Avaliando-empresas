@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { saveUserProfile } from "../services/users";
 import { extractResumeText, parseResumeText } from "../utils/resumeParser";
@@ -6,6 +6,26 @@ import { extractResumeText, parseResumeText } from "../utils/resumeParser";
 const predefinedAvatars = [
   "🧑", "🧑‍💼", "🧑‍🔧", "🧑‍💻", "🧑‍🔬", "👩‍🏫", "👨‍🍳", "👩‍⚕️", "👨‍🚀", "👩‍🎨",
 ];
+
+function normalizeExperiencesForReview(items) {
+  return (items || []).map((item) => {
+    const confidence = (item?.confidenceLevel || "").toLowerCase();
+    const defaultStatus = confidence === "alta" ? "confirmada" : "pendente";
+    return {
+      ...item,
+      reviewStatus: item?.reviewStatus || defaultStatus,
+    };
+  });
+}
+
+function getPeriodSortScore(period) {
+  const text = (period || "").toString();
+  if (/atual|presente/i.test(text)) return 9999;
+
+  const years = Array.from(text.matchAll(/(19|20)\d{2}/g)).map((m) => Number(m[0]));
+  if (years.length) return Math.max(...years);
+  return -1;
+}
 
 function ChoosePseudonym() {
   const navigate = useNavigate();
@@ -72,7 +92,7 @@ function ChoosePseudonym() {
         setEducationLevel(parsed.educationLevel);
       }
       if (Array.isArray(parsed?.resumeData?.experiencesStructured)) {
-        setStructuredExperiences(parsed.resumeData.experiencesStructured);
+        setStructuredExperiences(normalizeExperiencesForReview(parsed.resumeData.experiencesStructured));
       }
       if (parsed?.resumeData?.fileName) {
         setResumeFileName(parsed.resumeData.fileName);
@@ -136,28 +156,14 @@ function ChoosePseudonym() {
       const knownCompanyNames = (storedCompanies || []).map((emp) => emp?.company).filter(Boolean);
       const parsed = parseResumeText(text, knownCompanyNames);
 
-      if (!pseudonym.trim() && parsed.email) {
-        const nickname = parsed.email.split("@")[0].replace(/[._-]+/g, " ");
-        setPseudonym(
-          nickname
-            .split(" ")
-            .filter(Boolean)
-            .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-            .join(" ")
-        );
-      }
-
-      if (!cpf && parsed.cpf) setCpf(parsed.cpf);
-      if (!email && parsed.email) setEmail(parsed.email);
-      if (!phone && parsed.phone) setPhone(parsed.phone);
-      if (parsed.educationLevel) setEducationLevel(parsed.educationLevel);
-      setFullName(parsed.name || "");
-      setProfessionalObjective(parsed.objective || "");
-      setEducationAndProfession(parsed.educationSummary || "");
-      setStructuredExperiences(parsed.experiencesStructured || []);
+      setStructuredExperiences(normalizeExperiencesForReview(parsed.experiencesStructured || []));
       setResumeFileName(file.name || "curriculo");
-      setResumeText(parsed.rawText || "");
-      setInfo("Currículo lido e organizado. Revise os campos antes de confirmar.");
+      setResumeText(parsed.experienceText || "");
+      if ((parsed.experiencesStructured || []).length === 0) {
+        setInfo("Nao encontramos experiencias com confianca. Voce pode adicionar manualmente abaixo.");
+      } else {
+        setInfo("Importacao concluida em modo experiencia. Revise os cards e confirme.");
+      }
     } catch (err) {
       setError(err?.message || "Nao foi possivel ler o curriculo automaticamente.");
     } finally {
@@ -198,12 +204,14 @@ function ChoosePseudonym() {
 
   const handleExperienceFieldChange = (idx, key, value) => {
     const next = [...structuredExperiences];
-    next[idx] = { ...next[idx], [key]: value };
+    const current = next[idx] || {};
+    const nextStatus = current.reviewStatus === "confirmada" ? "corrigir" : (current.reviewStatus || "pendente");
+    next[idx] = { ...current, [key]: value, reviewStatus: nextStatus };
     setStructuredExperiences(next);
   };
 
   const handleAddExperience = () => {
-    const next = [...structuredExperiences, { company: "", role: "", details: "" }];
+    const next = [...structuredExperiences, { company: "", role: "", period: "", details: "", reviewStatus: "pendente" }];
     setStructuredExperiences(next);
   };
 
@@ -211,6 +219,32 @@ function ChoosePseudonym() {
     const next = structuredExperiences.filter((_, i) => i !== idx);
     setStructuredExperiences(next);
   };
+
+  const handleSetExperienceReviewStatus = (idx, status) => {
+    const next = [...structuredExperiences];
+    const current = next[idx] || {};
+    next[idx] = { ...current, reviewStatus: status };
+    setStructuredExperiences(next);
+  };
+
+  const sortedExperiences = useMemo(() => {
+    return (structuredExperiences || [])
+      .map((exp, originalIndex) => ({ exp, originalIndex, sortScore: getPeriodSortScore(exp?.period) }))
+      .sort((a, b) => b.sortScore - a.sortScore || a.originalIndex - b.originalIndex);
+  }, [structuredExperiences]);
+
+  const reviewCounters = useMemo(() => {
+    return (structuredExperiences || []).reduce(
+      (acc, item) => {
+        const status = (item?.reviewStatus || "pendente").toLowerCase();
+        if (status === "confirmada") acc.confirmadas += 1;
+        else if (status === "corrigir") acc.corrigir += 1;
+        else acc.pendentes += 1;
+        return acc;
+      },
+      { confirmadas: 0, corrigir: 0, pendentes: 0 }
+    );
+  }, [structuredExperiences]);
 
   const handleSubmit = useCallback(
     async (e) => {
@@ -301,103 +335,111 @@ function ChoosePseudonym() {
 
   const renderEditableResumeData = () => (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div>
-          <label className="block text-sm font-semibold text-slate-700">Email</label>
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="email@exemplo.com"
-            className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-semibold text-slate-700">Experiências profissionais importadas</label>
+          <span className="text-xs text-slate-500">
+            {(structuredExperiences || []).length} item(ns)
+          </span>
         </div>
-        <div>
-          <label className="block text-sm font-semibold text-slate-700">Telefone</label>
-          <input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="(11) 99999-9999"
-            className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+        <p className="text-xs text-slate-500 mb-3">
+          Modo inovador ativo: apenas experiências são importadas para evitar ruído no currículo.
+        </p>
+        <div className="grid grid-cols-3 gap-2 mb-3 text-[11px]">
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 px-2 py-1 font-semibold text-center">
+            Confirmadas: {reviewCounters.confirmadas}
+          </div>
+          <div className="rounded-lg border border-amber-200 bg-amber-50 text-amber-700 px-2 py-1 font-semibold text-center">
+            Corrigir: {reviewCounters.corrigir}
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 text-slate-700 px-2 py-1 font-semibold text-center">
+            Pendentes: {reviewCounters.pendentes}
+          </div>
         </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-semibold text-slate-700">Nível escolar</label>
-        <input
-          value={educationLevel}
-          onChange={(e) => setEducationLevel(e.target.value)}
-          placeholder="Ex.: Ensino Superior"
-          className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-semibold text-slate-700">Nome</label>
-        <input
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          placeholder="Nome completo"
-          className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-semibold text-slate-700">Objetivo profissional</label>
-        <textarea
-          value={professionalObjective}
-          onChange={(e) => setProfessionalObjective(e.target.value)}
-          placeholder="Objetivo profissional extraido do curriculo"
-          rows={4}
-          className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-semibold text-slate-700">Última formação e profissão</label>
-        <input
-          value={educationAndProfession}
-          onChange={(e) => setEducationAndProfession(e.target.value)}
-          placeholder="Ex.: Bacharel - Analista de Dados"
-          className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-semibold text-slate-700">Experiência profissional (empresa e cargo)</label>
         <div className="space-y-3">
-          {structuredExperiences.map((exp, idx) => (
-            <div key={`${idx}_${exp.company}`} className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+          {sortedExperiences.map(({ exp, originalIndex }, timelineIndex) => {
+            const confidenceLevel = (exp.confidenceLevel || "media").toLowerCase();
+            const confidenceClass = confidenceLevel === "alta"
+              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+              : confidenceLevel === "baixa"
+                ? "bg-amber-50 text-amber-700 border-amber-200"
+                : "bg-blue-50 text-blue-700 border-blue-200";
+            const reviewStatus = (exp.reviewStatus || "pendente").toLowerCase();
+            const reviewClass = reviewStatus === "confirmada"
+              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+              : reviewStatus === "corrigir"
+                ? "bg-amber-50 text-amber-700 border-amber-200"
+                : "bg-slate-50 text-slate-700 border-slate-200";
+
+            return (
+            <div key={`${originalIndex}_${exp.company}_${exp.role}`} className="border border-gray-200 rounded-xl p-3 bg-gray-50 relative overflow-hidden">
+              <div className="absolute left-0 top-0 h-full w-1 bg-blue-300" />
+              <div className="flex items-center justify-between mb-2 gap-2">
+                <span className="text-[11px] px-2 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-700 font-semibold">
+                  Timeline #{timelineIndex + 1}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[11px] px-2 py-1 rounded-full border font-semibold ${reviewClass}`}>
+                    Revisao: {reviewStatus}
+                  </span>
+                  <span className={`text-[11px] px-2 py-1 rounded-full border font-semibold ${confidenceClass}`}>
+                    Confianca {confidenceLevel}
+                  </span>
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <input
                   value={exp.company || ""}
-                  onChange={(e) => handleExperienceFieldChange(idx, "company", e.target.value)}
+                  onChange={(e) => handleExperienceFieldChange(originalIndex, "company", e.target.value)}
                   placeholder="Empresa"
                   className="w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <input
                   value={exp.role || ""}
-                  onChange={(e) => handleExperienceFieldChange(idx, "role", e.target.value)}
+                  onChange={(e) => handleExperienceFieldChange(originalIndex, "role", e.target.value)}
                   placeholder="Cargo"
                   className="w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+              <input
+                value={exp.period || ""}
+                onChange={(e) => handleExperienceFieldChange(originalIndex, "period", e.target.value)}
+                placeholder="Periodo (ex.: 2020 - 2023)"
+                className="mt-2 w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
               <textarea
                 value={exp.details || ""}
-                onChange={(e) => handleExperienceFieldChange(idx, "details", e.target.value)}
+                onChange={(e) => handleExperienceFieldChange(originalIndex, "details", e.target.value)}
                 placeholder="Detalhes (periodo, atividades, resultados)"
                 rows={2}
                 className="mt-2 w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              <div className="mt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleSetExperienceReviewStatus(originalIndex, "confirmada")}
+                  className="px-3 py-1 text-xs rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 font-semibold hover:bg-emerald-100"
+                >
+                  Confirmar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetExperienceReviewStatus(originalIndex, "corrigir")}
+                  className="px-3 py-1 text-xs rounded-lg border border-amber-200 bg-amber-50 text-amber-700 font-semibold hover:bg-amber-100"
+                >
+                  Corrigir
+                </button>
+              </div>
               <button
                 type="button"
-                onClick={() => handleRemoveExperience(idx)}
+                onClick={() => handleRemoveExperience(originalIndex)}
                 className="mt-2 text-xs text-red-600 font-semibold hover:underline"
               >
                 Remover experiência
               </button>
             </div>
-          ))}
+            );
+          })}
           <button
             type="button"
             onClick={handleAddExperience}
@@ -407,22 +449,11 @@ function ChoosePseudonym() {
           </button>
         </div>
       </div>
-
-      <div>
-        <label className="block text-sm font-semibold text-slate-700">Texto extraído do currículo (editável)</label>
-        <textarea
-          value={resumeText}
-          onChange={(e) => setResumeText(e.target.value)}
-          placeholder="Texto lido do currículo para conferência"
-          rows={7}
-          className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
     </>
   );
 
   const hasResumeFile = Boolean(resumeFileName);
-  const hasResumeParsed = Boolean((resumeText || "").trim().length);
+  const hasResumeParsed = Array.isArray(structuredExperiences) && structuredExperiences.length > 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-6">
@@ -468,7 +499,7 @@ function ChoosePseudonym() {
               className="w-full"
             />
             <p className="text-xs text-slate-500 mt-2">
-              O sistema tenta ler e preencher automaticamente os campos essenciais do currículo.
+              O sistema importa apenas experiencias profissionais para facilitar a revisao.
             </p>
             <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               <div className={`px-2 py-1 rounded-lg border ${hasResumeFile ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-white border-gray-200 text-gray-500"}`}>
