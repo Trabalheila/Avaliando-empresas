@@ -10,7 +10,7 @@ import { auth, db } from "./firebase";
 import { signInAnonymously } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
-// Pequena alteração para forçar novo d1eploy (sem impacto funcional)
+// Pequena alteração para forçar novo d1eiploy (sem impacto funcional)
 function Home({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -454,7 +454,7 @@ function Home({ theme, toggleTheme }) {
     generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
     filterText, setFilterText, newCompany, setNewCompany, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
     showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany,
-    linkedInClientId, linkedInRedirectUri, error, isAuthenticated, setIsAuthenticated, handleLogout,
+    linkedInClientId, linkedInRedirectUri, error, setError, isAuthenticated, setIsAuthenticated, handleLogout,
     showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
     theme, toggleTheme,
     firebaseStatus,

@@ -20,7 +20,7 @@ function TrabalheiLaDesktop({
   generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
   filterText, setFilterText, handleSaibaMais,
   showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany, newCompany, setNewCompany, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
-  linkedInClientId, error, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, selectedCompanyData, calcularMedia,
+  linkedInClientId, error, setError, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, selectedCompanyData, calcularMedia,
   getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed
 }) {

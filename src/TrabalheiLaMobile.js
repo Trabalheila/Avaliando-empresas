@@ -102,7 +102,7 @@ function TrabalheiLaMobile({
   handleAddNewCompany, newCompany, setNewCompany, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
   handleSaibaMais,
   linkedInClientId, linkedInRedirectUri,
-  error, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, safeCompanyOptions,
+  error, setError, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, safeCompanyOptions,
   selectedCompanyData,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
 }) {
