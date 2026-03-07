@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import TrabalheiLaMobile from "./TrabalheiLaMobile";
 import TrabalheiLaDesktop from "./TrabalheiLaDesktop";
 import { empresasBrasileiras } from "./empresas";
+import { saveReview } from "./services/reviews";
 
-// Pequena alteração para forçar novo deploy (sem impacto funcional)
+// Pequena alteração para forçar novio deploy (sem impacto funcional)
 function Home() {
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -247,7 +248,7 @@ function Home() {
       timestamp: new Date().toISOString(),
     };
 
-    // Não permite que o mesmo pseudônimo avalie a mesma empresa mais de uma vez
+    // Não permite que o mesmo pseudônimo avalie a mesma empresa mais de uma vez (cache local rápido)
     const evaluationsKey = `evaluations_${company.value}`;
     const storedEvals = localStorage.getItem(evaluationsKey);
     const existingEvals = storedEvals ? JSON.parse(storedEvals) : {};
@@ -263,11 +264,17 @@ function Home() {
       [pseudonym]: evaluationData,
     };
 
-    localStorage.setItem(evaluationsKey, JSON.stringify(nextEvals));
+    try {
+      localStorage.setItem(evaluationsKey, JSON.stringify(nextEvals));
+    } catch {
+      // Ignore falha em salvar localmente
+    }
 
-    console.log("Dados prontos para envio:", evaluationData);
+    console.log("Dados prontos para envio (Firestore):", evaluationData);
 
     try {
+      await saveReview(evaluationData);
+
       // Atualiza a empresa localmente para refletir a nova avaliação
       setEmpresas((prev) =>
         prev.map((emp) => {
@@ -281,7 +288,7 @@ function Home() {
 
       alert("Avaliação enviada com sucesso! Obrigado por sua contribuição.");
     } catch (err) {
-      setError("Erro ao enviar avaliação: " + err.message);
+      setError("Erro ao enviar avaliação: " + (err?.message || "Erro desconhecido"));
     } finally {
       setIsLoading(false);
       setCaptchaConfirmed(false);

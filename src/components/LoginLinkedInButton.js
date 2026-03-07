@@ -22,8 +22,21 @@ function LoginLinkedInButton({ clientId, redirectUri }) {
     // CORREÇÃO CRÍTICA: Usando apenas '&' para separar os parâmetros
     const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${finalClientId}&redirect_uri=${encodeURIComponent(finalRedirectUri)}&state=${state}&scope=${encodeURIComponent(scope)}`;
 
-    // Redireciona o usuário para a página do LinkedIn
-    window.location.href = authUrl;
+    // Abre o fluxo em uma janela popup (sem sair da página)
+    const width = 500;
+    const height = 650;
+    const left = Math.max(0, window.screen.width / 2 - width / 2);
+    const top = Math.max(0, window.screen.height / 2 - height / 2);
+
+    const popup = window.open(
+      authUrl,
+      "LinkedIn Login",
+      `width=${width},height=${height},left=${left},top=${top},resizable,scrollbars`
+    );
+
+    if (!popup) {
+      alert("Popup bloqueado. Permita popups para continuar o login.");
+    }
 
   }, [clientId, redirectUri]);
 

@@ -51,6 +51,31 @@ export async function listReviewsByCompanySlug(slug, take = 80) {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+export async function saveReview(review) {
+  if (!review?.company || !review?.pseudonym) {
+    throw new Error("Empresa e pseudônimo são obrigatórios para salvar a avaliação.");
+  }
+
+  const companySlug = slugifyCompany(review.company);
+  const pseudonymSlug = slugifyCompany(review.pseudonym);
+  const reviewId = `${companySlug}_${pseudonymSlug}`;
+  const reviewRef = doc(db, "reviews", reviewId);
+
+  const existing = await getDoc(reviewRef);
+  if (existing.exists()) {
+    throw new Error("Você já avaliou essa empresa com este pseudônimo.");
+  }
+
+  const payload = {
+    ...review,
+    companySlug,
+    createdAt: serverTimestamp(),
+  };
+
+  await setDoc(reviewRef, payload);
+  return { id: reviewId, ...payload };
+}
+
 export async function reactToReview({ reviewId, uid, reaction }) {
   // Guarda 1 reação por usuário por review (evita inflar contador repetindo clique)
   const reactionId = `${reviewId}_${uid}`;
