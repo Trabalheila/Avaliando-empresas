@@ -50,24 +50,24 @@ function TrabalheiLaDesktop({
   );
 
   const campos = [
-    { label: "Avaliação Geral", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FaStar className="text-yellow-500" /> },
-    { label: "Salário", value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario, icon: <FaMoneyBillWave className="text-green-500" /> },
-    { label: "Benefícios", value: beneficios, set: setBeneficios, comment: commentBeneficios, setComment: setCommentBeneficios, icon: <FaGift className="text-red-400" /> },
-    { label: "Cultura", value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura, icon: <FaUsers className="text-purple-500" /> },
-    { label: "Oportunidades", value: oportunidades, set: setOportunidades, comment: commentOportunidades, setComment: setCommentOportunidades, icon: <FaChartLine className="text-blue-500" /> },
-    { label: "Inovação", value: inovacao, set: setInovacao, comment: commentInovacao, setComment: setCommentInovacao, icon: <FaLightbulb className="text-yellow-400" /> },
-    { label: "Liderança", value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca, icon: <FaUserTie className="text-indigo-500" /> },
-    { label: "Diversidade", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade, icon: <FaGlobe className="text-teal-500" /> },
-    { label: "Ambiente", value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente, icon: <FaLeaf className="text-green-400" /> },
-    { label: "Equilíbrio", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio, icon: <FaBalanceScale className="text-gray-500" /> },
-    { label: "Reconhecimento", value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento, icon: <FaTrophy className="text-yellow-600" /> },
-    { label: "Comunicação", value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao, icon: <FaComments className="text-blue-400" /> },
-    { label: "Ética", value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica, icon: <FaHandshake className="text-orange-500" /> },
-    { label: "Desenvolvimento", value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento, icon: <FaGraduationCap className="text-red-500" /> },
-    { label: "Saúde e Bem-estar", value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar, icon: <FaHeart className="text-pink-500" /> },
-    { label: "Impacto Social", value: impactoSocial, set: setImpactoSocial, comment: commentImpactoSocial, setComment: setCommentImpactoSocial, icon: <FaGlobe className="text-green-600" /> },
-    { label: "Reputação", value: reputacao, set: setReputacao, comment: commentReputacao, setComment: setCommentReputacao, icon: <FaStar className="text-yellow-500" /> },
-    { label: "Estímulo e Organização", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-orange-400" /> },
+    { label: "Avaliação Geral", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FaStar className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200" },
+    { label: "Salário", value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario, icon: <FaMoneyBillWave className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200" },
+    { label: "Benefícios", value: beneficios, set: setBeneficios, comment: commentBeneficios, setComment: setCommentBeneficios, icon: <FaGift className="text-rose-600" />, iconBg: "from-rose-50 to-red-100 border-rose-200" },
+    { label: "Cultura", value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura, icon: <FaUsers className="text-violet-600" />, iconBg: "from-violet-50 to-fuchsia-100 border-violet-200" },
+    { label: "Oportunidades", value: oportunidades, set: setOportunidades, comment: commentOportunidades, setComment: setCommentOportunidades, icon: <FaChartLine className="text-blue-600" />, iconBg: "from-blue-50 to-sky-100 border-blue-200" },
+    { label: "Inovação", value: inovacao, set: setInovacao, comment: commentInovacao, setComment: setCommentInovacao, icon: <FaLightbulb className="text-yellow-600" />, iconBg: "from-yellow-50 to-amber-100 border-yellow-200" },
+    { label: "Liderança", value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca, icon: <FaUserTie className="text-indigo-600" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200" },
+    { label: "Diversidade", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade, icon: <FaGlobe className="text-teal-600" />, iconBg: "from-teal-50 to-cyan-100 border-teal-200" },
+    { label: "Ambiente", value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente, icon: <FaLeaf className="text-green-600" />, iconBg: "from-green-50 to-emerald-100 border-green-200" },
+    { label: "Equilíbrio", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio, icon: <FaBalanceScale className="text-slate-600" />, iconBg: "from-slate-50 to-gray-100 border-slate-300" },
+    { label: "Reconhecimento", value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento, icon: <FaTrophy className="text-amber-700" />, iconBg: "from-amber-50 to-orange-100 border-amber-200" },
+    { label: "Comunicação", value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao, icon: <FaComments className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200" },
+    { label: "Ética", value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica, icon: <FaHandshake className="text-orange-600" />, iconBg: "from-orange-50 to-amber-100 border-orange-200" },
+    { label: "Desenvolvimento", value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento, icon: <FaGraduationCap className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200" },
+    { label: "Saúde e Bem-estar", value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar, icon: <FaHeart className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200" },
+    { label: "Impacto Social", value: impactoSocial, set: setImpactoSocial, comment: commentImpactoSocial, setComment: setCommentImpactoSocial, icon: <FaGlobe className="text-green-700" />, iconBg: "from-emerald-50 to-green-100 border-emerald-200" },
+    { label: "Reputação", value: reputacao, set: setReputacao, comment: commentReputacao, setComment: setCommentReputacao, icon: <FaStar className="text-yellow-600" />, iconBg: "from-yellow-50 to-amber-100 border-yellow-200" },
+    { label: "Estímulo e Organização", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-lime-700" />, iconBg: "from-lime-50 to-green-100 border-lime-200" },
   ];
 
   const companyNote = selectedCompanyData ? calcularMedia(selectedCompanyData) : "0.0";
@@ -279,7 +279,10 @@ function TrabalheiLaDesktop({
                 {campos.map((campo, idx) => (
                   <div key={idx} className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
                     <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center gap-2 mb-2 md:mb-0">
-                      {campo.icon} {campo.label}
+                      <span className={`w-9 h-9 rounded-xl border bg-gradient-to-br ${campo.iconBg} flex items-center justify-center shadow-sm`}>
+                        {campo.icon}
+                      </span>
+                      {campo.label}
                     </label>
                     {renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label)}
                   </div>

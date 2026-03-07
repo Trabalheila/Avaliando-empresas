@@ -10,6 +10,42 @@ import { auth, db } from "./firebase";
 import { signInAnonymously } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
+const CONNECTOR_WORDS = new Set(["de", "da", "do", "das", "dos", "e"]);
+const LEGAL_SUFFIXES = new Set(["S.A", "SA", "S/A", "LTDA", "ME", "MEI", "EPP", "EIRELI", "SPE", "SCP"]);
+
+function normalizeCompanyName(name) {
+  if (!name) return "";
+
+  return name
+    .toString()
+    .trim()
+    .split(/\s+/)
+    .map((word, idx) => {
+      const cleanWord = word.replace(/[.,]/g, "");
+      const upperClean = cleanWord.toUpperCase();
+      const lowerWord = word.toLowerCase();
+
+      if (idx > 0 && CONNECTOR_WORDS.has(lowerWord)) {
+        return lowerWord;
+      }
+
+      if (LEGAL_SUFFIXES.has(upperClean)) {
+        return upperClean;
+      }
+
+      if (/^[IVXLCDM]+$/i.test(cleanWord)) {
+        return cleanWord.toUpperCase();
+      }
+
+      if (/^[A-Z]{2,}$/.test(cleanWord) && cleanWord.length <= 4) {
+        return cleanWord;
+      }
+
+      return lowerWord.charAt(0).toUpperCase() + lowerWord.slice(1);
+    })
+    .join(" ");
+}
+
 // Pequena alteração para forçar novo deploy (sem impacto funcional)
 function Home({ theme, toggleTheme }) {
   const navigate = useNavigate();
@@ -123,14 +159,20 @@ function Home({ theme, toggleTheme }) {
     try {
       const stored = localStorage.getItem("empresasData");
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          return parsed.map((emp) => ({
+            ...emp,
+            company: normalizeCompanyName(emp?.company || ""),
+          }));
+        }
       }
     } catch (err) {
       console.warn("Falha ao carregar empresas do localStorage:", err);
     }
 
     return (empresasBrasileiras || []).map((nome) => ({
-      company: nome,
+      company: normalizeCompanyName(nome),
       cnpj: null,
       rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
       inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
@@ -176,10 +218,15 @@ function Home({ theme, toggleTheme }) {
         if (!alive) return;
 
         setEmpresas((prev) => {
-          const map = new Map((prev || []).map((emp) => [emp.company, { ...emp }]));
+          const map = new Map(
+            (prev || []).map((emp) => {
+              const normalized = normalizeCompanyName(emp?.company || "");
+              return [normalized, { ...emp, company: normalized }];
+            })
+          );
 
           for (const rc of remoteCompanies) {
-            const companyName = rc?.name || rc?.company || rc?.slug;
+            const companyName = normalizeCompanyName(rc?.name || rc?.company || rc?.slug || "");
             if (!companyName) continue;
 
             if (!map.has(companyName)) {
@@ -197,7 +244,7 @@ function Home({ theme, toggleTheme }) {
 
           const agg = new Map();
           for (const review of remoteReviews) {
-            const companyName = review?.company;
+            const companyName = normalizeCompanyName(review?.company || "");
             if (!companyName) continue;
 
             if (!agg.has(companyName)) {
@@ -293,22 +340,6 @@ function Home({ theme, toggleTheme }) {
     }
   }, [company, empresas]);
 
-  const normalizeCompanyName = useCallback((name) => {
-    if (!name) return "";
-
-    const lowerWords = new Set(["de", "da", "do", "das", "dos", "e"]);
-    return name
-      .toString()
-      .trim()
-      .split(/\s+/)
-      .map((word, idx) => {
-        const w = word.toLowerCase();
-        if (idx > 0 && lowerWords.has(w)) return w;
-        return w.charAt(0).toUpperCase() + w.slice(1);
-      })
-      .join(" ");
-  }, []);
-
   const handleAddNewCompany = useCallback(async () => {
     const cleanedCnpj = newCompanyCnpj.replace(/\D/g, "");
 
@@ -351,7 +382,7 @@ function Home({ theme, toggleTheme }) {
     } finally {
       setIsLoading(false);
     }
-  }, [newCompanyCnpj, normalizeCompanyName]);
+  }, [newCompanyCnpj]);
 
   const handleConfirmNewCompany = useCallback(async () => {
     if (!pendingCompanyData?.company || !pendingCompanyData?.cnpj) {
@@ -439,7 +470,7 @@ function Home({ theme, toggleTheme }) {
       timestamp: new Date().toISOString(),
     };
 
-    // Não permite que o mesmo pseudônimo avalie a mesma empresa mais de uma vez (cache local rápido)
+    // Não permite que o mesmo pseudônimo avaliie a mesma empresa mais de uma vez (cache local rápido)
     const evaluationsKey = `evaluations_${company.value}`;
     const storedEvals = localStorage.getItem(evaluationsKey);
     const existingEvals = storedEvals ? JSON.parse(storedEvals) : {};

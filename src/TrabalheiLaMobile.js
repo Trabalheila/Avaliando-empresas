@@ -173,6 +173,35 @@ function TrabalheiLaMobile({
       padding: "0.25rem",
       borderColor: state.isFocused ? "#1d4ed8" : "#e5e7eb",
       boxShadow: state.isFocused ? "0 0 0 1px #1d4ed8" : "none",
+      backgroundColor: "#ffffff",
+    }),
+    menu: (base) => ({
+      ...base,
+      borderRadius: "0.75rem",
+      overflow: "hidden",
+      border: "1px solid #dbeafe",
+      boxShadow: "0 10px 30px rgba(30, 58, 138, 0.12)",
+    }),
+    option: (base, state) => ({
+      ...base,
+      color: "#1e3a8a",
+      backgroundColor: state.isSelected ? "#dbeafe" : state.isFocused ? "#eff6ff" : "#ffffff",
+      fontWeight: state.isSelected ? 700 : 500,
+      cursor: "pointer",
+    }),
+    singleValue: (base) => ({
+      ...base,
+      color: "#1e3a8a",
+      fontWeight: 600,
+    }),
+    input: (base) => ({
+      ...base,
+      color: "#1e3a8a",
+    }),
+    placeholder: (base) => ({
+      ...base,
+      color: "#1e3a8a",
+      fontWeight: 500,
     }),
   };
 
@@ -195,29 +224,29 @@ function TrabalheiLaMobile({
   );
 
   const campos = [
-    { label: "Avaliação Geral", icon: <FaStar className="text-yellow-500" />, value: rating, set: setRating, comment: commentRating, setComment: setCommentRating },
-    { label: "Salário e Benefícios", icon: <FaMoneyBillWave className="text-green-500" />, value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario },
-    { label: "Benefícios", icon: <FaHandshake className="text-blue-500" />, value: beneficios, set: setBeneficios, comment: commentBeneficios, setComment: setCommentBeneficios },
-    { label: "Cultura", icon: <FaBuilding className="text-gray-500" />, value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura },
-    { label: "Oportunidades", icon: <FaBriefcase className="text-orange-500" />, value: oportunidades, set: setOportunidades, comment: commentOportunidades, setComment: setCommentOportunidades },
-    { label: "Inovação", icon: <FaLightbulb className="text-yellow-400" />, value: inovacao, set: setInovacao, comment: commentInovacao, setComment: setCommentInovacao },
-    { label: "Liderança", icon: <FaUserTie className="text-purple-500" />, value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca },
-    { label: "Diversidade", icon: <FaHeart className="text-red-500" />, value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade },
-    { label: "Ambiente", icon: <FaBuilding className="text-slate-500" />, value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente },
-    { label: "Equilíbrio", icon: <FaHandshake className="text-indigo-500" />, value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio },
-    { label: "Reconhecimento", icon: <FaStar className="text-amber-500" />, value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento },
-    { label: "Comunicação", icon: <FaLightbulb className="text-cyan-500" />, value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao },
-    { label: "Ética", icon: <FaBuilding className="text-emerald-500" />, value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica },
-    { label: "Desenvolvimento", icon: <FaBriefcase className="text-fuchsia-500" />, value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento },
-    { label: "Saúde e Bem-estar", icon: <FaHeart className="text-red-500" />, value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar },
-    { label: "Impacto Social", icon: <FaHeart className="text-rose-500" />, value: impactoSocial, set: setImpactoSocial, comment: commentImpactoSocial, setComment: setCommentImpactoSocial },
-    { label: "Reputação", icon: <FaBuilding className="text-slate-500" />, value: reputacao, set: setReputacao, comment: commentReputacao, setComment: setCommentReputacao },
-    { label: "Estimativa na Organização", icon: <FaStar className="text-lime-500" />, value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao },
+    { label: "Avaliação Geral", icon: <FaStar className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating },
+    { label: "Salário e Benefícios", icon: <FaMoneyBillWave className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200", value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario },
+    { label: "Benefícios", icon: <FaHandshake className="text-blue-700" />, iconBg: "from-blue-50 to-cyan-100 border-blue-200", value: beneficios, set: setBeneficios, comment: commentBeneficios, setComment: setCommentBeneficios },
+    { label: "Cultura", icon: <FaBuilding className="text-slate-700" />, iconBg: "from-slate-50 to-slate-100 border-slate-300", value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura },
+    { label: "Oportunidades", icon: <FaBriefcase className="text-orange-600" />, iconBg: "from-orange-50 to-amber-100 border-orange-200", value: oportunidades, set: setOportunidades, comment: commentOportunidades, setComment: setCommentOportunidades },
+    { label: "Inovação", icon: <FaLightbulb className="text-yellow-600" />, iconBg: "from-yellow-50 to-amber-100 border-yellow-200", value: inovacao, set: setInovacao, comment: commentInovacao, setComment: setCommentInovacao },
+    { label: "Liderança", icon: <FaUserTie className="text-violet-700" />, iconBg: "from-violet-50 to-indigo-100 border-violet-200", value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca },
+    { label: "Diversidade", icon: <FaHeart className="text-rose-600" />, iconBg: "from-rose-50 to-pink-100 border-rose-200", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade },
+    { label: "Ambiente", icon: <FaBuilding className="text-teal-700" />, iconBg: "from-teal-50 to-emerald-100 border-teal-200", value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente },
+    { label: "Equilíbrio", icon: <FaHandshake className="text-indigo-700" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio },
+    { label: "Reconhecimento", icon: <FaStar className="text-amber-600" />, iconBg: "from-amber-50 to-orange-100 border-amber-200", value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento },
+    { label: "Comunicação", icon: <FaLightbulb className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao },
+    { label: "Ética", icon: <FaBuilding className="text-emerald-700" />, iconBg: "from-emerald-50 to-green-100 border-emerald-200", value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica },
+    { label: "Desenvolvimento", icon: <FaBriefcase className="text-fuchsia-700" />, iconBg: "from-fuchsia-50 to-pink-100 border-fuchsia-200", value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento },
+    { label: "Saúde e Bem-estar", icon: <FaHeart className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200", value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar },
+    { label: "Impacto Social", icon: <FaHeart className="text-rose-700" />, iconBg: "from-rose-50 to-red-100 border-rose-200", value: impactoSocial, set: setImpactoSocial, comment: commentImpactoSocial, setComment: setCommentImpactoSocial },
+    { label: "Reputação", icon: <FaBuilding className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300", value: reputacao, set: setReputacao, comment: commentReputacao, setComment: setCommentReputacao },
+    { label: "Estimativa na Organização", icon: <FaStar className="text-lime-700" />, iconBg: "from-lime-50 to-green-100 border-lime-200", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao },
   ];
 
   return (
-    <div className="min-h-screen bg-blue-50 dark:bg-[#1e1e1e] font-sans pb-10">
-      <header className="bg-blue-50 dark:bg-[#252526] shadow-sm px-4 py-4 mb-4 flex flex-col md:flex-row items-start md:items-center justify-between sticky top-0 z-50">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-sky-50 to-blue-100 font-sans pb-10">
+      <header className="bg-blue-50/95 backdrop-blur-sm shadow-sm px-4 py-4 mb-4 flex flex-col md:flex-row items-start md:items-center justify-between sticky top-0 z-50 border-b border-blue-100">
         <div className="w-full flex items-center justify-center gap-3 text-center">
           <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100 overflow-hidden">
             {companyLogoUrl ? (
@@ -268,7 +297,7 @@ function TrabalheiLaMobile({
             <button
               type="button"
               onClick={toggleTheme}
-              className="px-3 py-2 bg-slate-200 rounded-full text-sm font-semibold text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 transition"
+              className="px-3 py-2 bg-slate-200 rounded-full text-sm font-semibold text-slate-700 hover:bg-slate-300 transition"
               aria-label="Alternar tema claro/escuro"
             >
               {theme === 'dark' ? '☀️ Tema' : '🌙 Tema'}
@@ -280,8 +309,8 @@ function TrabalheiLaMobile({
           {company && (
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <p className="text-sm font-semibold text-slate-700 dark:text-slate-100">{company.value}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Média: <span className={`font-bold ${getBadgeColor(companyAverage)}`}>{companyAverage}</span></p>
+                <p className="text-sm font-semibold text-blue-800">{company.value}</p>
+                <p className="text-xs text-slate-600">Média: <span className={`font-bold ${getBadgeColor(companyAverage)}`}>{companyAverage}</span></p>
               </div>
               <button
                 type="button"
@@ -293,19 +322,19 @@ function TrabalheiLaMobile({
               <button
                 type="button"
                 onClick={openLinkedInJobs}
-                className="px-4 py-2 bg-slate-200 text-slate-800 text-xs font-bold rounded-xl hover:bg-slate-300 transition dark:bg-slate-800 dark:text-slate-200"
+                className="px-4 py-2 bg-slate-200 text-slate-800 text-xs font-bold rounded-xl hover:bg-slate-300 transition"
               >
                 Ver vagas no LinkedIn
               </button>
             </div>
           )}
         </div>
-        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 text-center">{firebaseStatus}</p>
+        <p className="text-[11px] text-slate-600 mt-2 text-center">{firebaseStatus}</p>
       </header>
 
       <main className="px-4 space-y-6">
         {/* LOGIN */}
-        <section className="bg-white dark:bg-[#252526] rounded-2xl shadow-md p-5 border border-blue-50 dark:border-[#3c3c3c]">
+        <section className="bg-white rounded-2xl shadow-md p-5 border border-blue-50">
           <h2 className="text-lg font-bold text-blue-800 text-center mb-4 font-azonix">Login para Avaliar</h2>
           <div className="flex flex-col items-center space-y-3">
             <LoginLinkedInButton 
@@ -320,7 +349,7 @@ function TrabalheiLaMobile({
         </section>
 
         {/* FORMULÁRIO */}
-        <section className="bg-white dark:bg-[#252526] rounded-2xl shadow-md p-5 border border-blue-50 dark:border-[#3c3c3c]">
+        <section className="bg-white rounded-2xl shadow-md p-5 border border-blue-50">
           <h2 className="text-lg font-bold text-blue-800 text-center mb-4 font-azonix">Avalie uma Empresa</h2>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
@@ -386,7 +415,10 @@ function TrabalheiLaMobile({
               {campos.map((campo, idx) => (
                 <div key={idx} className="bg-gray-50 p-3 rounded-xl border border-gray-200">
                   <label className="text-slate-700 font-semibold flex items-center gap-2 text-sm">
-                    {campo.icon} {campo.label}
+                    <span className={`w-9 h-9 rounded-xl border bg-gradient-to-br ${campo.iconBg} flex items-center justify-center shadow-sm`}>
+                      {campo.icon}
+                    </span>
+                    {campo.label}
                   </label>
                   {renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label)}
                 </div>
@@ -415,7 +447,7 @@ function TrabalheiLaMobile({
         </section>
 
         {/* RANKING */}
-        <section className="bg-white dark:bg-[#252526] rounded-2xl shadow-md p-5 border border-blue-50 dark:border-[#3c3c3c]">
+        <section className="bg-white rounded-2xl shadow-md p-5 border border-blue-50">
           <h2 className="text-lg font-bold text-blue-800 text-center mb-4 font-azonix">🏆 Ranking</h2>
           {Array.isArray(top3) && top3.length > 0 && (
             <div className="mb-4 space-y-2">
@@ -436,9 +468,9 @@ function TrabalheiLaMobile({
         </section>
 
         {/* AUTOCOMPLETAÇÃO */}
-        <section className="bg-white dark:bg-[#252526] rounded-2xl shadow-md p-5 border border-blue-50 dark:border-[#3c3c3c]">
-          <h2 className="text-lg font-bold text-blue-800 dark:text-slate-100 text-center mb-3 font-azonix">🏢 Empresas por Autocompletação</h2>
-          <p className="text-sm text-slate-700 dark:text-slate-300 text-center leading-relaxed">
+        <section className="bg-white rounded-2xl shadow-md p-5 border border-blue-50">
+          <h2 className="text-lg font-bold text-blue-800 text-center mb-3 font-azonix">🏢 Empresas por Autocompletação</h2>
+          <p className="text-sm text-slate-700 text-center leading-relaxed">
             Para encontrar empresas em bases maiores, use o campo
             <span className="font-semibold"> "Selecione a Empresa"</span> acima.
             Digite parte do nome e escolha na lista sugerida.
