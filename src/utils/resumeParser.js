@@ -111,7 +111,7 @@ function extractProfession(lines) {
   });
 
   if (!roleLine) return "Nao identificado";
-  return cleanLine(roleLine).replace(/^(cargo|profissao|funcao)\s*[:\-]?\s*/i, "") || "Nao identificado";
+  return cleanLine(roleLine).replace(/^(cargo|profissao|funcao)\s*[:-]?\s*/i, "") || "Nao identificado";
 }
 
 function splitExperienceBlocks(text) {
@@ -157,7 +157,7 @@ function inferRoleFromBlock(lines) {
     );
   });
 
-  if (roleLine) return cleanLine(roleLine).replace(/^(cargo|funcao)\s*[:\-]?\s*/i, "");
+  if (roleLine) return cleanLine(roleLine).replace(/^(cargo|funcao)\s*[:-]?\s*/i, "");
   return cleanLine(candidates[1] || "") || "Nao identificado";
 }
 
