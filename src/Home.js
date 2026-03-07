@@ -44,6 +44,10 @@ function Home({ theme, toggleTheme }) {
           setFirebaseStatus(
             "Firebase Auth não configurado: ative 'Anonymous' em Authentication > Sign-in method."
           );
+        } else if (rawMessage.toLowerCase().includes("missing or insufficient permissions")) {
+          setFirebaseStatus(
+            "Sem permissão no Firestore: publique regras permitindo escrita para usuário autenticado (request.auth != null)."
+          );
         } else {
           setFirebaseStatus(`Erro no Firebase: ${rawMessage}`);
         }
@@ -322,7 +326,7 @@ function Home({ theme, toggleTheme }) {
     try {
       await saveReview(evaluationData);
 
-      // Atualiza a empresa localmente para refletir a nova avaliação
+      // Atualiza a empresa localmente para refleti1r a nova avaliação
       setEmpresas((prev) =>
         prev.map((emp) => {
           if (emp.company !== company.value) return emp;
@@ -335,7 +339,14 @@ function Home({ theme, toggleTheme }) {
 
       alert("Avaliação enviada com sucesso! Obrigado por sua contribuição.");
     } catch (err) {
-      setError("Erro ao enviar avaliação: " + (err?.message || "Erro desconhecido"));
+      const rawMessage = String(err?.message || "Erro desconhecido");
+      if (rawMessage.toLowerCase().includes("missing or insufficient permissions")) {
+        setError(
+          "Sem permissão no Firestore. Ajuste as Rules para permitir escrita com usuário autenticado (request.auth != null)."
+        );
+      } else {
+        setError("Erro ao enviar avaliação: " + rawMessage);
+      }
     } finally {
       setIsLoading(false);
       setCaptchaConfirmed(false);
