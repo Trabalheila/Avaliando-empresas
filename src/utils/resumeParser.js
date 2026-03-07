@@ -29,7 +29,7 @@ const COMPANY_HINT_PATTERN =
   /(ltda|s\/a|sa\b|eireli|mei|empresa|grupo|group|industria|comercio|comercial|consultoria|servicos|engenharia|hospital|clinica|instituto|prefeitura|secretaria|universidade|faculdade|banco)/i;
 
 const DATE_RANGE_PATTERN =
-  /\b((?:19|20)\d{2}|\d{2}\/\d{4}|\d{2}\/\d{2}\/\d{4})\b\s*(?:a|ate|até|\-|\/|\u2013|\u2014)\s*\b((?:19|20)\d{2}|atual|presente|\d{2}\/\d{4}|\d{2}\/\d{2}\/\d{4})\b/i;
+  /\b((?:19|20)\d{2}|\d{2}\/\d{4}|\d{2}\/\d{2}\/\d{4})\b\s*(?:a|ate|até|-|\/|\u2013|\u2014)\s*\b((?:19|20)\d{2}|atual|presente|\d{2}\/\d{4}|\d{2}\/\d{2}\/\d{4})\b/i;
 
 const NOISE_LINE_PATTERN =
   /(linkedin\.com|github\.com|@|email|e-mail|telefone|celular|whatsapp|cpf|rg\b|endereco|rua\b|avenida\b|bairro|cep\b|contato)/i;
@@ -99,8 +99,8 @@ function enhanceLineBreaks(rawText) {
   // Some PDFs merge all text into one line; inject breaks around date ranges and common labels.
   return text
     .replace(/\s+(?=(?:experiencia|historico profissional|cargo|empresa)\s*:)/gi, "\n")
-    .replace(/\s+(?=(?:19|20)\d{2}\s*(?:a|ate|até|\-|\/|\u2013|\u2014)\s*(?:19|20)\d{2}|atual|presente)/gi, "\n")
-    .replace(/\s+(?=\d{2}\/\d{4}\s*(?:a|ate|até|\-|\/|\u2013|\u2014)\s*(?:\d{2}\/\d{4}|atual|presente))/gi, "\n");
+    .replace(/\s+(?=(?:19|20)\d{2}\s*(?:a|ate|até|-|\/|\u2013|\u2014)\s*(?:19|20)\d{2}|atual|presente)/gi, "\n")
+    .replace(/\s+(?=\d{2}\/\d{4}\s*(?:a|ate|até|-|\/|\u2013|\u2014)\s*(?:\d{2}\/\d{4}|atual|presente))/gi, "\n");
 }
 
 function extractExperienceLines(rawText) {
