@@ -73,7 +73,7 @@ function Home() {
   });
   const userPseudonym = localStorage.getItem("userPseudonym") || "";
 
-  // Inicializa as empresas dinamicamente sem erro de map
+  // Inicializa as empresaas dinamicamente sem erro de map
   const [empresas, setEmpresas] = useState(() => {
     try {
       const stored = localStorage.getItem("empresasData");
