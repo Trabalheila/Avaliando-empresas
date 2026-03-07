@@ -91,6 +91,9 @@ function ChoosePseudonym() {
         })
       );
 
+      // Dispara evento para que outras partes do app atualizem o estado de login
+      window.dispatchEvent(new Event("trabalheiLa_user_updated"));
+
       navigate("/");
     },
     [navigate, pseudonym, cpf, linkedInUrl, avatar, confirmedHuman]

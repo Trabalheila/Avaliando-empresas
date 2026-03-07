@@ -300,25 +300,32 @@ function Home() {
   const linkedInRedirectUri = process.env.REACT_APP_LINKEDIN_REDIRECT_URI;
 
   useEffect(() => {
-    const userProfile = localStorage.getItem("userProfile");
-    const pseudonym = localStorage.getItem("userPseudonym");
+    const updateFromStorage = () => {
+      const storedProfile = localStorage.getItem("userProfile");
+      const storedPseudonym = localStorage.getItem("userPseudonym");
 
-    if (userProfile) {
-      try {
-        setUserProfile(JSON.parse(userProfile));
-      } catch {
+      if (storedProfile) {
+        try {
+          setUserProfile(JSON.parse(storedProfile));
+        } catch {
+          setUserProfile({});
+        }
+      } else {
         setUserProfile({});
       }
-    } else {
-      setUserProfile({});
-    }
 
-    if (userProfile && !pseudonym) {
-      // Redireciona para definir pseudônimo ao logar pela primeira vez
-      navigate("/pseudonym");
-    }
+      setIsAuthenticated(!!storedPseudonym);
 
-    setIsAuthenticated(!!pseudonym);
+      if (storedProfile && !storedPseudonym) {
+        // Redireciona para definir pseudônimo ao logar pela primeira vez
+        navigate("/pseudonym");
+      }
+    };
+
+    updateFromStorage();
+
+    window.addEventListener("trabalheiLa_user_updated", updateFromStorage);
+    return () => window.removeEventListener("trabalheiLa_user_updated", updateFromStorage);
   }, [navigate]);
 
   const handleLogout = useCallback(() => {
