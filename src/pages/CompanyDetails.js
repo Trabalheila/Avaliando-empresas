@@ -99,7 +99,7 @@ function CompanyDetails() {
     return company ? `comment_reactions_${company.company}` : null;
   }, [company]);
 
-  const saveComments = (nextComments) => {
+  const saveComments = React.useCallback((nextComments) => {
     setComments(nextComments);
     try {
       const key = getCommentsKey();
@@ -109,7 +109,7 @@ function CompanyDetails() {
     } catch (err) {
       console.warn("Falha ao salvar comentários:", err);
     }
-  };
+  }, [getCommentsKey]);
 
   const syncCommentsToFirestore = async (nextComments) => {
     try {
@@ -200,7 +200,7 @@ function CompanyDetails() {
     };
 
     fetchRemoteComments();
-  }, [getCompanySlug]);
+  }, [getCompanySlug, saveComments]);
 
   React.useEffect(() => {
     const key = getReactionsKey();
