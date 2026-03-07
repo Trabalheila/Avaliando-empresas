@@ -62,6 +62,7 @@ function CompanyDetails() {
   const [newComment, setNewComment] = React.useState("");
   const [replyTo, setReplyTo] = React.useState(null);
   const [replyText, setReplyText] = React.useState("");
+  const [reactionRegistry, setReactionRegistry] = React.useState({});
 
   const reactions = [
     { key: "thumbsDown", label: "👎" },
@@ -77,6 +78,10 @@ function CompanyDetails() {
 
   const getCommentsKey = React.useCallback(() => {
     return company ? `comments_${company.company}` : null;
+  }, [company]);
+
+  const getReactionsKey = React.useCallback(() => {
+    return company ? `comment_reactions_${company.company}` : null;
   }, [company]);
 
   const saveComments = (nextComments) => {
@@ -111,6 +116,34 @@ function CompanyDetails() {
     }
   }, [getCommentsKey]);
 
+  React.useEffect(() => {
+    const key = getReactionsKey();
+    if (!key) {
+      setReactionRegistry({});
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem(key);
+      setReactionRegistry(stored ? JSON.parse(stored) : {});
+    } catch (err) {
+      console.warn("Falha ao carregar reações:", err);
+      setReactionRegistry({});
+    }
+  }, [getReactionsKey]);
+
+  const saveReactionRegistry = (next) => {
+    setReactionRegistry(next);
+    try {
+      const key = getReactionsKey();
+      if (key) {
+        localStorage.setItem(key, JSON.stringify(next));
+      }
+    } catch (err) {
+      console.warn("Falha ao salvar reações:", err);
+    }
+  };
+
   const handleAddComment = () => {
     if (!newComment.trim()) return;
     const pseudonym = localStorage.getItem("userPseudonym") || "Anônimo";
@@ -126,18 +159,46 @@ function CompanyDetails() {
     setNewComment("");
   };
 
-  const handleReact = (commentId, reactionKey) => {
-    const next = comments.map((c) => {
-      if (c.id !== commentId) return c;
-      return {
-        ...c,
-        reactions: {
-          ...c.reactions,
-          [reactionKey]: (c.reactions?.[reactionKey] || 0) + 1,
-        },
-      };
+  const incrementReactionById = (items, targetId, reactionKey) => {
+    return items.map((item) => {
+      if (item.id === targetId) {
+        return {
+          ...item,
+          reactions: {
+            thumbsDown: item.reactions?.thumbsDown || 0,
+            laugh: item.reactions?.laugh || 0,
+            thumbsUp: item.reactions?.thumbsUp || 0,
+            cry: item.reactions?.cry || 0,
+            clap: item.reactions?.clap || 0,
+            [reactionKey]: (item.reactions?.[reactionKey] || 0) + 1,
+          },
+        };
+      }
+
+      if (item.replies && item.replies.length) {
+        return {
+          ...item,
+          replies: incrementReactionById(item.replies, targetId, reactionKey),
+        };
+      }
+
+      return item;
     });
-    saveComments(next);
+  };
+
+  const handleReact = (targetId, reactionKey) => {
+    const pseudonym = localStorage.getItem("userPseudonym") || "anon";
+    const registryKey = `${targetId}__${pseudonym}`;
+
+    // Uma reação por usuário por post/resposta.
+    if (reactionRegistry[registryKey]) return;
+
+    const nextComments = incrementReactionById(comments, targetId, reactionKey);
+    saveComments(nextComments);
+    saveReactionRegistry({
+      ...reactionRegistry,
+      [registryKey]: reactionKey,
+    });
   };
 
   const addReplyToItem = (items, targetId, replyObj) => {
@@ -372,6 +433,21 @@ function CompanyDetails() {
                               </div>
                             </div>
                             <p className="mt-1 text-sm text-slate-800 dark:text-slate-100">{reply.text}</p>
+                            <div className="flex flex-wrap gap-3 mt-3">
+                              {reactions.map((reaction) => (
+                                <button
+                                  key={reaction.key}
+                                  type="button"
+                                  onClick={() => handleReact(reply.id, reaction.key)}
+                                  className="flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700"
+                                >
+                                  <span className="text-2xl">{reaction.label}</span>
+                                  <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                                    {reply.reactions?.[reaction.key] || 0}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         ))}
                       </div>

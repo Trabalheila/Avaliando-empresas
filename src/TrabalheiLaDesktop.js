@@ -146,7 +146,7 @@ function TrabalheiLaDesktop({
                     className="px-3 py-2 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                     aria-label="Alternar tema"
                   >
-                    {theme === 'dark' ? '☀️' : '🌙'}
+                    {theme === 'dark' ? '☀️ Tema' : '🌙 Tema'}
                   </button>
                 </div>
               )}
@@ -191,7 +191,7 @@ function TrabalheiLaDesktop({
 
             {/* LOGIN ATUALIZADO (Sem Google, LinkedIn Corrigido) */}
             <section className="bg-white rounded-3xl shadow-xl p-6 mb-6 border border-blue-100">
-              <h2 className="text-2xl font-bold text-blue-800 text-center mb-6 font-azonix">Login para Avaliar</h2>
+              <h2 className="text-2xl font-bold text-blue-800 text-center mb-6">Login para Avaliar</h2>
               <div className="flex flex-col items-center space-y-4">
                 <LoginLinkedInButton
                   clientId={linkedInClientId}
@@ -207,7 +207,7 @@ function TrabalheiLaDesktop({
 
             {/* FORMULÁRIO */}
             <section className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100">
-              <h2 className="text-2xl font-bold text-blue-800 text-center mb-6 font-azonix">Avalie uma Empresa</h2>
+              <h2 className="text-2xl font-bold text-blue-800 text-center mb-6">Avalie uma Empresa</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
 
                 <div>

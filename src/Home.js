@@ -39,7 +39,14 @@ function Home({ theme, toggleTheme }) {
       } catch (err) {
         if (!alive) return;
         console.error("Erro de conexão com Firebase:", err);
-        setFirebaseStatus(`Erro no Firebase: ${err?.message || err}`);
+        const rawMessage = String(err?.message || err || "");
+        if (rawMessage.includes("auth/configuration-not-found")) {
+          setFirebaseStatus(
+            "Firebase Auth não configurado: ative 'Anonymous' em Authentication > Sign-in method."
+          );
+        } else {
+          setFirebaseStatus(`Erro no Firebase: ${rawMessage}`);
+        }
       }
     };
 
@@ -107,7 +114,7 @@ function Home({ theme, toggleTheme }) {
   });
   const userPseudonym = localStorage.getItem("userPseudonym") || "";
 
-  // Inicializa as empresaas dinamicamente sem erro de map
+  // Inicializa as empresaas dinamicamente sem e1rro de map
   const [empresas, setEmpresas] = useState(() => {
     try {
       const stored = localStorage.getItem("empresasData");
