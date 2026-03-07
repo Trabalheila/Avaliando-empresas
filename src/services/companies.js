@@ -11,7 +11,7 @@ export async function listCompanies(take = 200) {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-export async function saveCompany({ company, cnpj }) {
+export async function saveCompany({ company, cnpj, website = null }) {
   if (!company) {
     throw new Error("Nome da empresa é obrigatório");
   }
@@ -28,6 +28,7 @@ export async function saveCompany({ company, cnpj }) {
     name: company,
     slug,
     cnpj: cnpj || null,
+    website: website || null,
     updatedAt: serverTimestamp(),
     createdAt: serverTimestamp(),
   };

@@ -31,13 +31,41 @@ const COMPANY_DOMAINS = {
 };
 
 export function getCompanyLogoUrl(companyName, size = 128) {
-  const domain = COMPANY_DOMAINS[companyName];
+  return getCompanyLogoCandidates(companyName, { size })[0];
+}
 
-  // Prefer Google favicons API (biblioteca do Google) quando houver domínio conhecido.
+function normalizeUrlToDomain(website) {
+  if (!website) return "";
+  const withProtocol = /^https?:\/\//i.test(website) ? website : `https://${website}`;
+  try {
+    return new URL(withProtocol).hostname.replace(/^www\./i, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+export function getCompanyLogoCandidates(companyName, options = {}) {
+  const size = options.size || 128;
+  const websiteDomain = normalizeUrlToDomain(options.website);
+  const mappedDomain = COMPANY_DOMAINS[companyName];
+  const domain = websiteDomain || mappedDomain;
+
+  const candidates = [];
   if (domain) {
-    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=${size}`;
+    // 1) Logo Clearbit (melhor resolução para marcas conhecidas)
+    candidates.push(`https://logo.clearbit.com/${encodeURIComponent(domain)}?size=${size}`);
+
+    // 2) Google favicon em alta (boa cobertura geral)
+    candidates.push(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=${size}`);
+
+    // 3) DuckDuckGo icon endpoint (fallback adicional)
+    candidates.push(`https://icons.duckduckgo.com/ip3/${encodeURIComponent(domain)}.ico`);
   }
 
-  // Fallback para avatar gerado (caso não exista domínio conhecido)
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(companyName)}&background=0D8ABC&color=fff&size=${size}&font-size=0.4`;
+  // 4) Fallback garantido para qualquer empresa
+  candidates.push(
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(companyName)}&background=0D8ABC&color=fff&size=${size}&font-size=0.4`
+  );
+
+  return [...new Set(candidates)];
 }

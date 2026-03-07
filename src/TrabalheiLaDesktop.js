@@ -1,6 +1,6 @@
 import React from "react";
 import Select from "react-select";
-import { getCompanyLogoUrl } from "./utils/getCompanyLogo";
+import { getCompanyLogoCandidates } from "./utils/getCompanyLogo";
 import { FaBuilding, FaPlus, FaChartBar, FaStar, FaRegStar, FaMoneyBillWave, FaGift, FaUsers, FaChartLine, FaLightbulb, FaUserTie, FaGlobe, FaLeaf, FaBalanceScale, FaTrophy, FaComments, FaHandshake, FaGraduationCap, FaHeart } from "react-icons/fa";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
@@ -79,7 +79,16 @@ function TrabalheiLaDesktop({
 
   // Lógica para gerar a Logo baseada no nome da empresa
   const companyNameForLogo = selectedCompanyData ? selectedCompanyData.company : "Logo da Empresa";
-  const logoUrl = getCompanyLogoUrl(companyNameForLogo, 128);
+  const logoCandidates = getCompanyLogoCandidates(companyNameForLogo, {
+    size: 128,
+    website: selectedCompanyData?.website,
+  });
+  const [logoIndex, setLogoIndex] = React.useState(0);
+  const logoUrl = logoCandidates[logoIndex] || null;
+
+  React.useEffect(() => {
+    setLogoIndex(0);
+  }, [companyNameForLogo, selectedCompanyData?.website]);
 
   const openLinkedInJobs = () => {
     if (!company?.value) return;
@@ -99,7 +108,16 @@ function TrabalheiLaDesktop({
               {/* ÁREA DA LOGO ATUALIZADA */}
               <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center border-2 border-blue-200 overflow-hidden">
                 {logoUrl ? (
-                  <img src={logoUrl} alt={`Logo ${companyNameForLogo}`} className="w-full h-full object-cover" />
+                  <img
+                    src={logoUrl}
+                    alt={`Logo ${companyNameForLogo}`}
+                    className="w-full h-full object-cover"
+                    onError={() => {
+                      if (logoIndex < logoCandidates.length - 1) {
+                        setLogoIndex((prev) => prev + 1);
+                      }
+                    }}
+                  />
                 ) : (
                   <FaBuilding className="text-blue-700 text-4xl" />
                 )}

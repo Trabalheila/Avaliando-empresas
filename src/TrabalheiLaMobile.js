@@ -6,7 +6,7 @@ import {
 import Select from "react-select";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
-import { getCompanyLogoUrl } from "./utils/getCompanyLogo";
+import { getCompanyLogoCandidates } from "./utils/getCompanyLogo";
 
 function OutlinedStar({ active, onClick, size = 18, label }) {
   const outlineScale = 1.24;
@@ -121,7 +121,18 @@ function TrabalheiLaMobile({
     return (sum / ratings.length).toFixed(1);
   };
 
-  const companyLogoUrl = selectedCompanyData ? getCompanyLogoUrl(selectedCompanyData.company, 128) : null;
+  const logoCandidates = selectedCompanyData
+    ? getCompanyLogoCandidates(selectedCompanyData.company, {
+      size: 128,
+      website: selectedCompanyData.website,
+    })
+    : [];
+  const [logoIndex, setLogoIndex] = React.useState(0);
+  const companyLogoUrl = logoCandidates[logoIndex] || null;
+
+  React.useEffect(() => {
+    setLogoIndex(0);
+  }, [selectedCompanyData?.company, selectedCompanyData?.website]);
   const companyAverage = selectedCompanyData ? calcularMedia(selectedCompanyData) : "0.0";
 
 
@@ -210,7 +221,16 @@ function TrabalheiLaMobile({
         <div className="w-full flex items-center justify-center gap-3 text-center">
           <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100 overflow-hidden">
             {companyLogoUrl ? (
-              <img src={companyLogoUrl} alt="Logo da empresa" className="w-full h-full object-cover" />
+              <img
+                src={companyLogoUrl}
+                alt="Logo da empresa"
+                className="w-full h-full object-cover"
+                onError={() => {
+                  if (logoIndex < logoCandidates.length - 1) {
+                    setLogoIndex((prev) => prev + 1);
+                  }
+                }}
+              />
             ) : (
               <FaBuilding className="text-blue-700 text-2xl" />
             )}

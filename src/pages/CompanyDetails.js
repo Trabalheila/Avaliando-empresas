@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { getCompanyLogoUrl } from "../utils/getCompanyLogo";
+import { getCompanyLogoCandidates } from "../utils/getCompanyLogo";
 import { db } from "../firebase";
 import { collection, doc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
 
@@ -65,6 +65,15 @@ function CompanyDetails() {
   const [replyTo, setReplyTo] = React.useState(null);
   const [replyText, setReplyText] = React.useState("");
   const [reactionRegistry, setReactionRegistry] = React.useState({});
+  const logoCandidates = company
+    ? getCompanyLogoCandidates(company.company, { size: 128, website: company.website })
+    : [];
+  const [logoIndex, setLogoIndex] = React.useState(0);
+  const companyLogo = logoCandidates[logoIndex] || null;
+
+  React.useEffect(() => {
+    setLogoIndex(0);
+  }, [company?.company, company?.website]);
 
   const reactions = [
     { key: "thumbsDown", label: "👎" },
@@ -372,9 +381,14 @@ function CompanyDetails() {
           <div className="flex items-center gap-4">
             <div className="w-20 h-20 rounded-2xl overflow-hidden border border-blue-200">
               <img
-                src={getCompanyLogoUrl(company.company, 128)}
+                src={companyLogo}
                 alt={`Logo ${company.company}`}
                 className="w-full h-full object-cover"
+                onError={() => {
+                  if (logoIndex < logoCandidates.length - 1) {
+                    setLogoIndex((prev) => prev + 1);
+                  }
+                }}
               />
             </div>
             <div>

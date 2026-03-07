@@ -62,7 +62,6 @@ function Home({ theme, toggleTheme }) {
 
   const [company, setCompany] = useState(null);
   const [filterText, setFilterText] = useState("");
-  const [newCompany, setNewCompany] = useState("");
   const [newCompanyCnpj, setNewCompanyCnpj] = useState("");
   const [cnpjError, setCnpjError] = useState(null);
   const [pendingCompanyData, setPendingCompanyData] = useState(null);
@@ -188,6 +187,7 @@ function Home({ theme, toggleTheme }) {
               map.set(companyName, {
                 company: companyName,
                 cnpj: rc?.cnpj || null,
+                website: rc?.website || null,
                 rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
                 inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
                 reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
@@ -340,9 +340,12 @@ function Home({ theme, toggleTheme }) {
         throw new Error("Não foi possível identificar o nome fantasia pelo CNPJ informado.");
       }
 
+      const website = data.site || data.website || null;
+
       setPendingCompanyData({
         company: companyName,
         cnpj: cleanedCnpj,
+        website,
       });
     } catch (err) {
       setCnpjError(err.message);
@@ -363,6 +366,7 @@ function Home({ theme, toggleTheme }) {
     const newCompanyData = {
       company: pendingCompanyData.company,
       cnpj: pendingCompanyData.cnpj,
+      website: pendingCompanyData.website || null,
       rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
       inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
       reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
@@ -376,13 +380,16 @@ function Home({ theme, toggleTheme }) {
     });
 
     setCompany({ value: newCompanyData.company, label: newCompanyData.company });
-    setNewCompany("");
     setNewCompanyCnpj("");
     setPendingCompanyData(null);
     setShowNewCompanyInput(false);
 
     try {
-      await saveCompany({ company: newCompanyData.company, cnpj: newCompanyData.cnpj });
+      await saveCompany({
+        company: newCompanyData.company,
+        cnpj: newCompanyData.cnpj,
+        website: newCompanyData.website,
+      });
     } catch (saveErr) {
       console.warn("Falha ao salvar empresa no Firebase:", saveErr);
       setError(
@@ -604,7 +611,7 @@ function Home({ theme, toggleTheme }) {
     impactoSocial, setImpactoSocial, commentImpactoSocial, setCommentImpactoSocial, reputacao, setReputacao, commentReputacao, setCommentReputacao,
     estimacaoOrganizacao, setEstimacaoOrganizacao, commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao,
     generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
-    filterText, setFilterText, newCompany, setNewCompany, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
+    filterText, setFilterText, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
     showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany,
     handleConfirmNewCompany, pendingCompanyData,
     linkedInClientId, linkedInRedirectUri, error, setError, isAuthenticated, setIsAuthenticated, handleLogout,
