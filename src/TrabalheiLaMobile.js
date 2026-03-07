@@ -1,6 +1,6 @@
 import React from "react";
 import {
-  FaStar, FaChartBar, FaHandshake, FaMoneyBillWave,
+  FaStar, FaHandshake, FaMoneyBillWave,
   FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb,
 } from "react-icons/fa";
 import Select from "react-select";
@@ -50,7 +50,7 @@ function TrabalheiLaMobile({
   handleSaibaMais,
   linkedInClientId, linkedInRedirectUri,
   error, isAuthenticated, onLoginSuccess, safeCompanyOptions,
-  selectedCompanyData, calcularMedia,
+  selectedCompanyData,
 }) {
   const calcularMedia = (emp) => {
     if (!emp) return "0.0";
@@ -64,10 +64,6 @@ function TrabalheiLaMobile({
   const companyLogoUrl = selectedCompanyData ? getCompanyLogoUrl(selectedCompanyData.company, 128) : null;
   const companyAverage = selectedCompanyData ? calcularMedia(selectedCompanyData) : "0.0";
 
-  const filteredEmpresas = (empresas || []).filter((emp) => {
-    if (!filterText) return true;
-    return emp.company.toLowerCase().includes(filterText.toLowerCase());
-  });
 
   const getBadgeColor = (media) => {
     if (media >= 4.5) return "bg-emerald-700";
@@ -151,7 +147,7 @@ function TrabalheiLaMobile({
           <div className="mt-3 md:mt-0 flex items-center gap-3">
             <div className="text-right">
               <p className="text-sm font-semibold text-slate-700">{company.value}</p>
-              <p className="text-xs text-slate-500">Média: <span className={`font-bold ${getScoreColor(companyAverage)}`}>{companyAverage}</span></p>
+              <p className="text-xs text-slate-500">Média: <span className={`font-bold ${getBadgeColor(companyAverage)}`}>{companyAverage}</span></p>
             </div>
             <button
               type="button"
