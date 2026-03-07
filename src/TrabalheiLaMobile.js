@@ -1,11 +1,11 @@
 import React from "react";
 import {
   FaStar, FaChartBar, FaHandshake, FaMoneyBillWave,
-  FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb, FaPlus,
+  FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb,
 } from "react-icons/fa";
-import { FcGoogle } from "react-icons/fc";
 import Select from "react-select";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
+import { getCompanyLogoUrl } from "./utils/getCompanyLogo";
 
 function OutlinedStar({ active, onClick, size = 18, label }) {
   const outlineScale = 1.24;
@@ -26,7 +26,6 @@ function OutlinedStar({ active, onClick, size = 18, label }) {
 
 function TrabalheiLaMobile({
   company, setCompany,
-  newCompany, setNewCompany,
   rating, setRating,
   contatoRH, setContatoRH,
   salarioBeneficios, setSalarioBeneficios,
@@ -42,28 +41,40 @@ function TrabalheiLaMobile({
   commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca,
   commentPlanoCarreiras, setCommentPlanoCarreiras,
   commentBemestar, setCommentBemestar,
-  commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao,
+  commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao,
   generalComment, setGeneralComment,
   handleSubmit, isLoading,
   empresas, top3,
-  showNewCompanyInput, setShowNewCompanyInput,
-  handleAddNewCompany,
-  linkedInClientId,
-  handleLinkedInLogin, handleGoogleLogin,
-  error, isAuthenticated,
+  filterText, setFilterText, showNewCompanyInput, setShowNewCompanyInput,
+  handleAddNewCompany, newCompany, setNewCompany, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
+  handleSaibaMais,
+  linkedInClientId, linkedInRedirectUri,
+  error, isAuthenticated, onLoginSuccess, safeCompanyOptions,
+  selectedCompanyData, calcularMedia,
 }) {
   const calcularMedia = (emp) => {
-    if (!emp) return 0;
+    if (!emp) return "0.0";
     const sum = emp.rating + emp.contatoRH + emp.salarioBeneficios +
       emp.estruturaEmpresa + emp.acessibilidadeLideranca +
       emp.planoCarreiras + emp.bemestar + emp.estimulacaoOrganizacao;
-    return (sum / 8).toFixed(1);
+    const avg = sum / 8;
+    return Number.isFinite(avg) ? avg.toFixed(1) : "0.0";
   };
 
+  const companyLogoUrl = selectedCompanyData ? getCompanyLogoUrl(selectedCompanyData.company, 128) : null;
+  const companyAverage = selectedCompanyData ? calcularMedia(selectedCompanyData) : "0.0";
+
+  const filteredEmpresas = (empresas || []).filter((emp) => {
+    if (!filterText) return true;
+    return emp.company.toLowerCase().includes(filterText.toLowerCase());
+  });
+
   const getBadgeColor = (media) => {
-    if (media >= 4.5) return "bg-green-500";
-    if (media >= 3.5) return "bg-yellow-500";
-    return "bg-red-500";
+    if (media >= 4.5) return "bg-emerald-700";
+    if (media >= 4) return "bg-lime-600";
+    if (media >= 3) return "bg-yellow-600";
+    if (media >= 2) return "bg-purple-600";
+    return "bg-red-600";
   };
 
   const getMedalColor = (index) => {
@@ -87,291 +98,228 @@ function TrabalheiLaMobile({
       padding: "0.25rem",
       borderColor: state.isFocused ? "#1d4ed8" : "#e5e7eb",
       boxShadow: state.isFocused ? "0 0 0 1px #1d4ed8" : "none",
-      "&:hover": { borderColor: state.isFocused ? "#1d4ed8" : "#d1d5db" },
     }),
-    option: (base, state) => ({
-      ...base,
-      backgroundColor: state.isFocused ? "#dbeafe" : "white",
-      color: "#1e3a8a",
-    }),
-    singleValue: (base) => ({ ...base, color: "#1e3a8a" }),
-    placeholder: (base) => ({ ...base, color: "#9ca3af" }),
   };
 
   const renderStars = (value, setValue, commentValue, setCommentValue, label) => (
-    <div className="flex flex-col items-end w-full md:w-2/3">
+    <div className="flex flex-col items-end w-full mt-2">
       <div className="flex items-center space-x-1 mb-2">
         {[...Array(5)].map((_, i) => (
-          <OutlinedStar key={i} active={i < value} onClick={() => setValue(i + 1)} label={`${i + 1} estrelas para ${label}`} />
+          <OutlinedStar key={i} active={i < value} onClick={() => setValue(i + 1)} label={`${i + 1} estrelas`} />
         ))}
         <span className="ml-2 text-slate-700 font-medium">{value}/5</span>
       </div>
       <textarea
-        className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 mt-1"
-        placeholder={`Comentário sobre ${label} (opcional)`}
+        className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 mt-2"
+        placeholder={`Comentário sobre ${label.toLowerCase()} (opcional)`}
+        rows={3}
         value={commentValue}
         onChange={(e) => setCommentValue(e.target.value)}
       />
     </div>
   );
 
+  const campos = [
+    { label: "Avaliação Geral", icon: <FaStar className="text-yellow-500" />, value: rating, set: setRating, comment: commentRating, setComment: setCommentRating },
+    { label: "Contato com RH", icon: <FaHandshake className="text-blue-500" />, value: contatoRH, set: setContatoRH, comment: commentContatoRH, setComment: setCommentContatoRH },
+    { label: "Salário e Benefícios", icon: <FaMoneyBillWave className="text-green-500" />, value: salarioBeneficios, set: setSalarioBeneficios, comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios },
+    { label: "Estrutura da Empresa", icon: <FaBuilding className="text-gray-500" />, value: estruturaEmpresa, set: setEstruturaEmpresa, comment: commentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa },
+    { label: "Acessibilidade da Liderança", icon: <FaUserTie className="text-purple-500" />, value: acessibilidadeLideranca, set: setAcessibilidadeLideranca, comment: commentAcessibilidadeLideranca, setComment: setCommentAcessibilidadeLideranca },
+    { label: "Plano de Carreiras", icon: <FaBriefcase className="text-orange-500" />, value: planoCarreiras, set: setPlanoCarreiras, comment: commentPlanoCarreiras, setComment: setCommentPlanoCarreiras },
+    { label: "Saúde e Bem-estar", icon: <FaHeart className="text-red-500" />, value: bemestar, set: setBemestar, comment: commentBemestar, setComment: setCommentBemestar },
+    { label: "Estímulo à Organização", icon: <FaLightbulb className="text-yellow-400" />, value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center p-4">
-      <style>{`
-        @import url('https://fonts.cdnfonts.com/css/azonix');
-        .font-azonix { font-family: 'Azonix', sans-serif; }
-      `}</style>
-      <div className="w-full max-w-lg">
-
-        {/* HEADER */}
-        <header className="bg-white rounded-3xl shadow-xl p-6 mb-6 border-2 border-blue-200">
-          <div className="flex flex-col items-center text-center">
-            <h1 className="text-3xl font-extrabold text-blue-800 mb-1 font-azonix">
-              TRABALHEI LÁ
-            </h1>
-            <p className="text-blue-600 text-sm mb-1">Sua opinião é anônima e ajuda outros profissionais</p>
-            <p className="text-blue-400 text-xs mb-4">Avaliações anônimas feitas por profissionais verificados.</p>
-            <p className="text-blue-700 text-sm font-semibold flex items-center gap-3">
-              <span>✓ Anônimo</span>
-              <span>✓ Verificado</span>
-              <span>✓ Confiável</span>
-            </p>
+    <div className="min-h-screen bg-slate-50 font-sans pb-10">
+      <header className="bg-white shadow-sm px-4 py-4 mb-4 flex flex-col md:flex-row items-start md:items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100 overflow-hidden">
+            {companyLogoUrl ? (
+              <img src={companyLogoUrl} alt="Logo da empresa" className="w-full h-full object-cover" />
+            ) : (
+              <FaBuilding className="text-blue-700 text-2xl" />
+            )}
           </div>
+          <div>
+            <h1 className="text-xl font-black text-blue-900 font-azonix tracking-wider">TRABALHEI LÁ</h1>
+            <p className="text-[10px] text-blue-500 font-medium">Avaliações anônimas</p>
+          </div>
+        </div>
 
-          {/* Top 3 no header mobile */}
-          {Array.isArray(top3) && top3.length > 0 && (
-            <div className="mt-4 space-y-2">
-              <h2 className="text-base font-bold text-blue-800 text-center font-azonix">🏆 Melhores Empresas</h2>
-              {top3.map((emp, index) => (
-                <div key={index} className="flex items-center justify-between bg-blue-50 rounded-lg p-2 border border-blue-200">
-                  <span className="text-lg mr-2">{getMedalEmoji(index)}</span>
-                  <span className="font-medium text-blue-800 flex-1 text-left text-sm">{emp.company}</span>
-                  <span className="text-yellow-500 font-bold text-sm">{calcularMedia(emp)} ⭐</span>
-                </div>
-              ))}
+        {company && (
+          <div className="mt-3 md:mt-0 flex items-center gap-3">
+            <div className="text-right">
+              <p className="text-sm font-semibold text-slate-700">{company.value}</p>
+              <p className="text-xs text-slate-500">Média: <span className={`font-bold ${getScoreColor(companyAverage)}`}>{companyAverage}</span></p>
             </div>
-          )}
-        </header>
-
-        {/* LOGIN */}
-        <section className="bg-white rounded-3xl shadow-2xl p-6 border border-blue-100 mb-6">
-          <h2 className="text-xl font-bold text-blue-800 text-center mb-4 font-azonix">Login para Avaliar</h2>
-          <div className="flex flex-col space-y-3">
             <button
-              onClick={handleGoogleLogin}
-              className="flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-gray-50 transition-all"
+              type="button"
+              onClick={handleSaibaMais}
+              className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition"
             >
-              <FcGoogle className="mr-3 text-2xl" />
-              Entrar com Google
+              Saiba mais
             </button>
-            <LoginLinkedInButton
-              clientId={linkedInClientId}
-              onLoginSuccess={handleLinkedInLogin}
-              className="flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-blue-800 transition-all"
+          </div>
+        )}
+      </header>
+
+      <main className="px-4 space-y-6">
+        {/* LOGIN */}
+        <section className="bg-white rounded-2xl shadow-md p-5 border border-blue-50">
+          <h2 className="text-lg font-bold text-blue-800 text-center mb-4 font-azonix">Login para Avaliar</h2>
+          <div className="flex flex-col items-center space-y-3">
+            <LoginLinkedInButton 
+              clientId={linkedInClientId} 
+              redirectUri={linkedInRedirectUri}
+              onLoginSuccess={onLoginSuccess} 
             />
           </div>
+          {isAuthenticated && <p className="text-green-600 font-semibold text-center mt-3 text-sm">✓ Autenticado!</p>}
         </section>
 
         {/* FORMULÁRIO */}
-        <section className="bg-white rounded-3xl shadow-2xl p-6 border border-blue-100 mb-6">
-          <h2 className="text-xl font-bold text-blue-800 text-center mb-4 font-azonix">Avalie uma Empresa</h2>
-
-          <div className="mb-4">
-            <label className="block text-slate-700 font-semibold mb-2">Selecione a Empresa</label>
-            <Select
-              options={(empresas || []).map((emp) => ({ value: emp.company, label: emp.company }))}
-              value={company ? { value: company, label: company } : null}
-              onChange={(opt) => opt && setCompany(opt.value)}
-              placeholder="Buscar empresa..."
-              isClearable
-              styles={selectStyles}
-            />
-          </div>
-
-          {showNewCompanyInput ? (
-            <div className="mb-4">
-              <input
-                type="text"
-                className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
-                placeholder="Nome da nova empresa"
-                value={newCompany}
-                onChange={(e) => setNewCompany(e.target.value)}
+        <section className="bg-white rounded-2xl shadow-md p-5 border border-blue-50">
+          <h2 className="text-lg font-bold text-blue-800 text-center mb-4 font-azonix">Avalie uma Empresa</h2>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="font-semibold text-slate-700 mb-2 block text-sm">Selecione a Empresa</label>
+              <Select
+                options={safeCompanyOptions}
+                value={company}
+                onChange={setCompany}
+                placeholder="Buscar empresa..."
+                styles={selectStyles}
+                isClearable
+                noOptionsMessage={() => "Empresa não encontrada"}
               />
-              <div className="flex gap-2">
-                <button onClick={handleAddNewCompany}
-                  className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-xl transition-all">
-                  Confirmar
+
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowNewCompanyInput(!showNewCompanyInput)}
+                  className="w-full py-2 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition"
+                >
+                  {showNewCompanyInput ? "Cancelar" : "+ Adicionar nova empresa"}
                 </button>
-                <button onClick={() => setShowNewCompanyInput(false)}
-                  className="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-xl transition-all">
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button onClick={() => setShowNewCompanyInput(true)}
-              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl transition-all mb-4">
-              <FaPlus /> Adicionar Nova Empresa
-            </button>
-          )}
-
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4 mb-6">
-
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="text-slate-700 font-semibold flex items-center mb-2">
-                  <FaStar className="mr-2 text-yellow-500" /> Avaliação Geral
-                </label>
-                {renderStars(rating, setRating, commentRating, setCommentRating, "Avaliação Geral")}
               </div>
 
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="text-slate-700 font-semibold flex items-center mb-2">
-                  <FaHandshake className="mr-2 text-blue-500" /> Contato com RH
-                </label>
-                {renderStars(contatoRH, setContatoRH, commentContatoRH, setCommentContatoRH, "Contato com RH")}
-              </div>
-
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="text-slate-700 font-semibold flex items-center mb-2">
-                  <FaMoneyBillWave className="mr-2 text-green-500" /> Salário e Benefícios
-                </label>
-                {renderStars(salarioBeneficios, setSalarioBeneficios, commentSalarioBeneficios, setCommentSalarioBeneficios, "Salário e Benefícios")}
-              </div>
-
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="text-slate-700 font-semibold flex items-center mb-2">
-                  <FaBuilding className="mr-2 text-indigo-500" /> Estrutura da Empresa
-                </label>
-                {renderStars(estruturaEmpresa, setEstruturaEmpresa, commentEstruturaEmpresa, setCommentEstruturaEmpresa, "Estrutura da Empresa")}
-              </div>
-
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="text-slate-700 font-semibold flex items-center mb-2">
-                  <FaUserTie className="mr-2 text-red-500" /> Acessibilidade à Liderança
-                </label>
-                {renderStars(acessibilidadeLideranca, setAcessibilidadeLideranca, commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca, "Acessibilidade à Liderança")}
-              </div>
-
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="text-slate-700 font-semibold flex items-center mb-2">
-                  <FaBriefcase className="mr-2 text-purple-500" /> Plano de Carreiras
-                </label>
-                {renderStars(planoCarreiras, setPlanoCarreiras, commentPlanoCarreiras, setCommentPlanoCarreiras, "Plano de Carreiras")}
-              </div>
-
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="text-slate-700 font-semibold flex items-center mb-2">
-                  <FaHeart className="mr-2 text-pink-500" /> Bem-estar
-                </label>
-                {renderStars(bemestar, setBemestar, commentBemestar, setCommentBemestar, "Bem-estar")}
-              </div>
-
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="text-slate-700 font-semibold flex items-center mb-2">
-                  <FaLightbulb className="mr-2 text-orange-500" /> Estímulo e Organização
-                </label>
-                {renderStars(estimulacaoOrganizacao, setEstimulacaoOrganizacao, commentEstimulacaoOrganizacao, setCommentEstimulacaoOrganizacao, "Estímulo e Organização")}
-              </div>
-
+              {showNewCompanyInput && (
+                <div className="mt-3 space-y-2">
+                  <input
+                    value={newCompany}
+                    onChange={(e) => setNewCompany(e.target.value)}
+                    placeholder="Nome da empresa"
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    value={newCompanyCnpj}
+                    onChange={(e) => setNewCompanyCnpj(e.target.value)}
+                    placeholder="CNPJ (apenas números)"
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {cnpjError && <p className="text-sm text-red-600">{cnpjError}</p>}
+                  <button
+                    type="button"
+                    onClick={handleAddNewCompany}
+                    className="w-full py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition"
+                  >
+                    Adicionar empresa
+                  </button>
+                </div>
+              )}
             </div>
 
-            <div className="mb-4">
-              <label className="text-slate-700 font-semibold block mb-2">Comentário Geral</label>
+            <div className="space-y-4">
+              {campos.map((campo, idx) => (
+                <div key={idx} className="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                  <label className="text-slate-700 font-semibold flex items-center gap-2 text-sm">
+                    {campo.icon} {campo.label}
+                  </label>
+                  {renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label)}
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
+              <label className="text-slate-700 font-semibold text-sm block mb-2">Comentário Geral</label>
               <textarea
-                className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="Descreva sua experiência na empresa..."
                 rows={3}
-                placeholder="Compartilhe sua experiência geral..."
                 value={generalComment}
                 onChange={(e) => setGeneralComment(e.target.value)}
               />
             </div>
 
-            {error && (
-              <p className="text-red-500 text-sm text-center mb-4">{error}</p>
-            )}
+            {error && <p className="text-red-600 text-center text-xs font-medium">{error}</p>}
 
-            <div className="text-center">
-              <button
-                type="submit"
-                disabled={!isAuthenticated || isLoading}
-                className={`w-full py-4 rounded-2xl font-extrabold text-white text-lg transition-all font-azonix ${
-                  isAuthenticated
-                    ? "bg-blue-700 hover:bg-blue-800 hover:shadow-xl"
-                    : "bg-slate-400 cursor-not-allowed opacity-60"
-                }`}
-              >
-                {isLoading ? "Enviando..." : isAuthenticated ? "Enviar Avaliação" : "Faça login para avaliar"}
-              </button>
-            </div>
+            <button type="submit"
+              className={`w-full py-3 rounded-xl font-bold text-white transition-all ${isAuthenticated ? "bg-blue-600 hover:bg-blue-700" : "bg-slate-400"}`}
+              disabled={!isAuthenticated || isLoading}>
+              {isLoading ? "Enviando..." : isAuthenticated ? "Enviar Avaliação" : "Faça login para avaliar"}
+            </button>
           </form>
         </section>
 
         {/* RANKING */}
-        <section className="bg-white rounded-3xl shadow-2xl p-6 border border-blue-100 mb-6">
-          <h2 className="text-xl font-bold text-blue-800 text-center mb-4 font-azonix">🏆 Ranking de Empresas</h2>
-
+        <section className="bg-white rounded-2xl shadow-md p-5 border border-blue-50">
+          <h2 className="text-lg font-bold text-blue-800 text-center mb-4 font-azonix">🏆 Ranking</h2>
           {Array.isArray(top3) && top3.length > 0 && (
             <div className="mb-4 space-y-2">
               {top3.map((emp, i) => {
                 const media = calcularMedia(emp);
                 return (
-                  <div key={i} className={`bg-gradient-to-r ${getMedalColor(i)} rounded-2xl p-3 text-white`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{getMedalEmoji(i)}</span>
-                        <p className="font-bold text-sm">{emp.company}</p>
-                      </div>
-                      <div className="bg-white/20 px-2 py-1 rounded-full font-bold text-xs">{media} ⭐</div>
+                  <div key={i} className={`bg-gradient-to-r ${getMedalColor(i)} rounded-xl p-3 text-white flex justify-between items-center`}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{getMedalEmoji(i)}</span>
+                      <p className="font-bold text-sm truncate max-w-[120px]">{emp.company}</p>
                     </div>
+                    <div className="bg-white/20 px-2 py-1 rounded-lg font-bold text-xs">{media} ⭐</div>
                   </div>
                 );
               })}
             </div>
           )}
-
-          <div className="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
-            {Array.isArray(empresas) && empresas.length === 0 ? (
-              <div className="text-center py-6">
-                <FaChartBar className="text-gray-300 text-4xl mx-auto mb-2" />
-                <p className="text-gray-500 text-sm">Nenhuma avaliação ainda</p>
-              </div>
-            ) : (
-              (empresas || []).slice(3).map((emp, i) => {
-                const media = calcularMedia(emp);
-                return (
-                  <div key={i} className="bg-gray-50 rounded-xl p-3 border border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <p className="font-bold text-gray-800 text-sm">{emp.company}</p>
-                      <div className={`${getBadgeColor(media)} px-2 py-1 rounded-full text-white font-bold text-xs`}>{media} ⭐</div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          <style>{`
-            .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-            .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-            .custom-scrollbar::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #1d4ed8, #3b82f6); border-radius: 10px; }
-          `}</style>
         </section>
 
-        {/* FOOTER */}
-        <footer className="mb-6 text-center">
-          <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-5 border border-blue-100">
-            <p className="text-slate-700 text-sm">
-              <a href="/politica-de-privacidade.html" className="text-blue-700 hover:text-blue-900 font-extrabold underline">
-                Política de Privacidade
-              </a>
-              {" • "}
-              <span>© 2026 Trabalhei Lá - Todos os direitos reservados</span>
-            </p>
-          </div>
-        </footer>
+        {/* LISTA DE EMPRESAS */}
+        <section className="bg-white rounded-2xl shadow-md p-5 border border-blue-50">
+          <h2 className="text-lg font-bold text-blue-800 text-center mb-4 font-azonix">🏢 Lista de Empresas</h2>
 
-      </div>
+          <div className="mb-4">
+            <input
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+              placeholder="Filtrar empresas..."
+              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {Array.isArray(empresas) && empresas.length > 0 ? (
+            <div className="space-y-2 max-h-56 overflow-y-auto">
+              {empresas
+                .filter((emp) => !filterText || emp.company.toLowerCase().includes(filterText.toLowerCase()))
+                .map((emp, i) => {
+                  const media = calcularMedia(emp);
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      className="w-full text-left bg-gray-50 rounded-xl p-3 border border-gray-200 hover:border-blue-300 transition-all flex items-center justify-between"
+                      onClick={() => setCompany({ value: emp.company, label: emp.company })}
+                    >
+                      <p className="font-semibold text-sm truncate max-w-[180px]">{emp.company}</p>
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${getBadgeColor(media)}`}>{media} ⭐</span>
+                    </button>
+                  );
+                })}
+            </div>
+          ) : (
+            <p className="text-center text-sm text-gray-500">Nenhuma empresa disponível</p>
+          )}
+        </section>
+      </main>
     </div>
   );
 }

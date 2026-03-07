@@ -32,7 +32,9 @@ function AuthLinkedIn() {
           navigate("/");
         } else {
           sessionStorage.removeItem("linkedin_oauth_state");
-          navigate("/");
+          localStorage.setItem("userProfile", JSON.stringify(data));
+          // Redireciona para a página de pseudônimo para garantir anonimato.
+          navigate("/pseudonym");
         }
       })
       .catch(() => {

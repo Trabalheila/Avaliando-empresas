@@ -1,10 +1,12 @@
-// src/Home.js
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import TrabalheiLaMobile from "./TrabalheiLaMobile";
 import TrabalheiLaDesktop from "./TrabalheiLaDesktop";
 import { empresasBrasileiras } from "./empresas";
+import { getCompanyLogoUrl } from "./utils/getCompanyLogo";
 
 function Home() {
+  const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -14,7 +16,10 @@ function Home() {
   }, []);
 
   const [company, setCompany] = useState(null);
+  const [filterText, setFilterText] = useState("");
   const [newCompany, setNewCompany] = useState("");
+  const [newCompanyCnpj, setNewCompanyCnpj] = useState("");
+  const [cnpjError, setCnpjError] = useState(null);
   const [rating, setRating] = useState(0);
   const [commentRating, setCommentRating] = useState("");
   const [salario, setSalario] = useState(0);
@@ -50,7 +55,7 @@ function Home() {
   const [reputacao, setReputacao] = useState(0);
   const [commentReputacao, setCommentReputacao] = useState("");
   const [estimacaoOrganizacao, setEstimacaoOrganizacao] = useState(0);
-  const [commentEstimacaoOrganizacao, setCommentEstimulacaoOrganizacao] = useState("");
+  const [commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao] = useState("");
   const [generalComment, setGeneralComment] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
@@ -58,9 +63,20 @@ function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showNewCompanyInput, setShowNewCompanyInput] = useState(false);
 
+  // Inicializa as empresas dinamicamente sem erro de map
   const [empresas, setEmpresas] = useState(() => {
+    try {
+      const stored = localStorage.getItem("empresasData");
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (err) {
+      console.warn("Falha ao carregar empresas do localStorage:", err);
+    }
+
     return (empresasBrasileiras || []).map((nome) => ({
       company: nome,
+      cnpj: null,
       rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
       inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
       reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
@@ -68,13 +84,21 @@ function Home() {
     }));
   });
 
+  useEffect(() => {
+    try {
+      localStorage.setItem("empresasData", JSON.stringify(empresas));
+    } catch (err) {
+      console.warn("Falha ao salvar empresas no localStorage:", err);
+    }
+  }, [empresas]);
+
   const calcularMedia = useCallback((emp) => {
     const ratings = [
       emp.rating, emp.salario, emp.beneficios, emp.cultura, emp.oportunidades,
       emp.inovacao, emp.lideranca, emp.diversidade, emp.ambiente, emp.equilibrio,
       emp.reconhecimento, emp.comunicacao, emp.etica, emp.desenvolvimento,
       emp.saudeBemEstar, emp.impactoSocial, emp.reputacao, emp.estimacaoOrganizacao,
-    ].filter(val => typeof val === 'number' && !isNaN(val));
+    ].filter(val => typeof val === 'number' && !isNaN(val) && val > 0); 
 
     if (ratings.length === 0) return "0.0";
     const sum = ratings.reduce((acc, curr) => acc + curr, 0);
@@ -98,9 +122,10 @@ function Home() {
   };
 
   const getBadgeColor = (media) => {
-    if (media >= 4.5) return "bg-green-600";
-    if (media >= 3.5) return "bg-blue-600";
-    if (media >= 2.5) return "bg-yellow-600";
+    if (media >= 4.5) return "bg-emerald-700";
+    if (media >= 4) return "bg-lime-600";
+    if (media >= 3) return "bg-yellow-600";
+    if (media >= 2) return "bg-purple-600";
     return "bg-red-600";
   };
 
@@ -120,23 +145,57 @@ function Home() {
     }
   }, [company, empresas]);
 
-  const handleAddNewCompany = useCallback(() => {
-    if (newCompany.trim() === "") {
-      alert("Por favor, insira o nome da nova empresa.");
+  const handleAddNewCompany = useCallback(async () => {
+    const name = newCompany.trim();
+    const cleanedCnpj = newCompanyCnpj.replace(/\D/g, "");
+
+    if (!name) {
+      setCnpjError("Por favor, insira o nome da nova empresa.");
       return;
     }
-    const newCompanyData = {
-      company: newCompany.trim(),
-      rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
-      inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
-      reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
-      saudeBemEstar: 0, impactoSocial: 0, reputacao: 0, estimacaoOrganizacao: 0,
-    };
-    setEmpresas([...empresas, newCompanyData]);
-    setNewCompany("");
-    setShowNewCompanyInput(false);
-    setCompany({ value: newCompanyData.company, label: newCompanyData.company });
-  }, [newCompany, empresas]);
+
+    if (cleanedCnpj.length !== 14) {
+      setCnpjError("Por favor, informe um CNPJ válido com 14 dígitos.");
+      return;
+    }
+
+    setCnpjError(null);
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/cnpj", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cnpj: cleanedCnpj }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "CNPJ inválido ou não encontrado.");
+      }
+
+      const companyName = data.nome || name;
+
+      const newCompanyData = {
+        company: companyName,
+        cnpj: cleanedCnpj,
+        rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
+        inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
+        reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
+        saudeBemEstar: 0, impactoSocial: 0, reputacao: 0, estimacaoOrganizacao: 0,
+      };
+
+      setEmpresas([...empresas, newCompanyData]);
+      setNewCompany("");
+      setNewCompanyCnpj("");
+      setShowNewCompanyInput(false);
+      setCompany({ value: newCompanyData.company, label: newCompanyData.company });
+    } catch (err) {
+      setCnpjError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [newCompany, newCompanyCnpj, empresas]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -149,11 +208,19 @@ function Home() {
       return;
     }
 
+    const pseudonym = localStorage.getItem("userPseudonym");
+    if (!pseudonym) {
+      setError("Por favor, defina um pseudônimo antes de avaliar.");
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
     const evaluationData = {
       company: company.value,
+      pseudonym,
       rating, commentRating, salario, commentSalario, beneficios, commentBeneficios,
       cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao,
       lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente,
@@ -164,9 +231,38 @@ function Home() {
       timestamp: new Date().toISOString(),
     };
 
+    // Não permite que o mesmo pseudônimo avalie a mesma empresa mais de uma vez
+    const evaluationsKey = `evaluations_${company.value}`;
+    const storedEvals = localStorage.getItem(evaluationsKey);
+    const existingEvals = storedEvals ? JSON.parse(storedEvals) : {};
+
+    if (existingEvals[pseudonym]) {
+      setError("Você já avaliou essa empresa com este pseudônimo.");
+      setIsLoading(false);
+      return;
+    }
+
+    const nextEvals = {
+      ...existingEvals,
+      [pseudonym]: evaluationData,
+    };
+
+    localStorage.setItem(evaluationsKey, JSON.stringify(nextEvals));
+
     console.log("Dados prontos para envio:", evaluationData);
 
     try {
+      // Atualiza a empresa localmente para refletir a nova avaliação
+      setEmpresas((prev) =>
+        prev.map((emp) => {
+          if (emp.company !== company.value) return emp;
+          return {
+            ...emp,
+            ...evaluationData,
+          };
+        })
+      );
+
       alert("Avaliação enviada com sucesso! Obrigado por sua contribuição.");
     } catch (err) {
       setError("Erro ao enviar avaliação: " + err.message);
@@ -175,17 +271,31 @@ function Home() {
     }
   }, [isAuthenticated, company, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment]);
 
+  const handleSaibaMais = useCallback(() => {
+    if (!company) {
+      setError("Selecione uma empresa para ver mais detalhes.");
+      return;
+    }
+    navigate(`/empresa?name=${encodeURIComponent(company.value)}`);
+  }, [company, navigate]);
+
   const linkedInClientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID;
   const linkedInRedirectUri = process.env.REACT_APP_LINKEDIN_REDIRECT_URI;
 
   useEffect(() => {
     const userProfile = localStorage.getItem("userProfile");
+    const pseudonym = localStorage.getItem("userPseudonym");
+
     if (userProfile) {
-      setIsAuthenticated(true);
+      if (!pseudonym) {
+        // Redireciona para definir pseudônimo ao logar pela primeira vez
+        navigate("/pseudonym");
+      }
+      setIsAuthenticated(!!pseudonym);
     } else {
       setIsAuthenticated(false);
     }
-  }, []); 
+  }, [navigate]);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem("userProfile");
@@ -231,12 +341,14 @@ function Home() {
     comunicacao, setComunicacao, commentComunicacao, setCommentComunicacao, etica, setEtica, commentEtica, setCommentEtica,
     desenvolvimento, setDesenvolvimento, commentDesenvolvimento, setCommentDesenvolvimento, saudeBemEstar, setSaudeBemEstar, commentSaudeBemEstar, setCommentSaudeBemEstar,
     impactoSocial, setImpactoSocial, commentImpactoSocial, setCommentImpactoSocial, reputacao, setReputacao, commentReputacao, setCommentReputacao,
-    estimacaoOrganizacao, setEstimacaoOrganizacao, commentEstimacaoOrganizacao, setCommentEstimulacaoOrganizacao,
+    estimacaoOrganizacao, setEstimacaoOrganizacao, commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao,
     generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
+    filterText, setFilterText, newCompany, setNewCompany, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
     showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany,
     linkedInClientId, linkedInRedirectUri, error, isAuthenticated, setIsAuthenticated, handleLogout,
     onLoginSuccess: handleLoginSuccess, selectedCompanyData, calcularMedia,
     getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
+    handleSaibaMais,
   };
 
   return isMobile ? (

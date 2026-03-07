@@ -1,5 +1,6 @@
 import React from "react";
 import Select from "react-select";
+import { getCompanyLogoUrl } from "./utils/getCompanyLogo";
 import { FaBuilding, FaPlus, FaChartBar, FaStar, FaRegStar, FaMoneyBillWave, FaGift, FaUsers, FaChartLine, FaLightbulb, FaUserTie, FaGlobe, FaLeaf, FaBalanceScale, FaTrophy, FaComments, FaHandshake, FaGraduationCap, FaHeart } from "react-icons/fa";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
 
@@ -15,7 +16,8 @@ function TrabalheiLaDesktop({
   impactoSocial, setImpactoSocial, commentImpactoSocial, setCommentImpactoSocial, reputacao, setReputacao, commentReputacao, setCommentReputacao,
   estimacaoOrganizacao, setEstimacaoOrganizacao, commentEstimacaoOrganizacao, setCommentEstimulacaoOrganizacao,
   generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
-  showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany, newCompany, setNewCompany,
+  filterText, setFilterText, handleSaibaMais,
+  showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany, newCompany, setNewCompany, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
   linkedInClientId, error, isAuthenticated, onLoginSuccess, selectedCompanyData, calcularMedia,
   getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions
 }) {
@@ -34,9 +36,20 @@ function TrabalheiLaDesktop({
           </button>
         ))}
       </div>
-      <input type="text" placeholder={`Comentário sobre ${label.toLowerCase()} (opcional)`} value={comment} onChange={(e) => setComment(e.target.value)} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white" />
+      <textarea
+        rows={3}
+        placeholder={`Comentário sobre ${label.toLowerCase()} (opcional)`}
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"
+      />
     </div>
   );
+
+  const filteredEmpresas = (empresas || []).filter((emp) => {
+    if (!filterText) return true;
+    return emp.company.toLowerCase().includes(filterText.toLowerCase());
+  });
 
   const campos = [
     { label: "Avaliação Geral", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FaStar className="text-yellow-500" /> },
@@ -63,9 +76,7 @@ function TrabalheiLaDesktop({
 
   // Lógica para gerar a Logo baseada no nome da empresa
   const companyNameForLogo = selectedCompanyData ? selectedCompanyData.company : "Logo da Empresa";
-  const logoUrl = selectedCompanyData 
-    ? `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedCompanyData.company)}&background=0D8ABC&color=fff&size=128&font-size=0.4` 
-    : null;
+  const logoUrl = getCompanyLogoUrl(companyNameForLogo, 128);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center p-6">
@@ -101,7 +112,14 @@ function TrabalheiLaDesktop({
               </h1>
               <p className="text-blue-600 text-lg mb-2">Sua opinião é anônima e ajuda outros profissionais</p>
               <p className="text-blue-400 text-sm mb-6">Avaliações anônimas feitas por profissionais verificados.</p>
-              <button className="bg-blue-700 text-white font-extrabold py-3 px-8 rounded-2xl shadow-lg hover:bg-blue-800 transition-all transform hover:scale-105 text-lg font-azonix">
+              <button
+                type="button"
+                onClick={handleSaibaMais}
+                disabled={!company}
+                className={`bg-blue-700 text-white font-extrabold py-3 px-8 rounded-2xl shadow-lg transition-all transform hover:scale-105 text-lg font-azonix ${
+                  company ? "hover:bg-blue-800" : "opacity-60 cursor-not-allowed"
+                }`}
+              >
                 CLIQUE E SAIBA MAIS
               </button>
             </div>
@@ -153,17 +171,28 @@ function TrabalheiLaDesktop({
                 </div>
 
                 {showNewCompanyInput && (
-                  <div className="flex gap-2">
-                    <input type="text"
-                      className="flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Nome da nova empresa"
-                      value={newCompany}
-                      onChange={(e) => setNewCompany(e.target.value)}
-                    />
-                    <button type="button" onClick={handleAddNewCompany}
-                      className="px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all">
-                      Adicionar
-                    </button>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input type="text"
+                        className="flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Nome da nova empresa"
+                        value={newCompany}
+                        onChange={(e) => setNewCompany(e.target.value)}
+                      />
+                      <button type="button" onClick={handleAddNewCompany}
+                        className="px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all">
+                        Adicionar
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <input type="text"
+                        className="flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="CNPJ (apenas números)"
+                        value={newCompanyCnpj}
+                        onChange={(e) => setNewCompanyCnpj(e.target.value)}
+                      />
+                    </div>
+                    {cnpjError && <p className="text-sm text-red-600">{cnpjError}</p>}
                   </div>
                 )}
 
@@ -231,22 +260,36 @@ function TrabalheiLaDesktop({
                 </div>
               )}
 
-              <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
-                {Array.isArray(empresas) && empresas.length === 0 ? (
+              <div className="mb-4">
+                <input
+                  value={filterText}
+                  onChange={(e) => setFilterText(e.target.value)}
+                  placeholder="Filtrar empresas..."
+                  className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
+                {Array.isArray(filteredEmpresas) && filteredEmpresas.length === 0 ? (
                   <div className="text-center py-6">
                     <FaChartBar className="text-gray-300 text-4xl mx-auto mb-2" />
-                    <p className="text-gray-500 text-sm">Nenhuma avaliação ainda</p>
+                    <p className="text-gray-500 text-sm">Nenhuma empresa encontrada</p>
                   </div>
                 ) : (
-                  (empresas || []).slice(3).map((emp, i) => {
+                  (filteredEmpresas || []).map((emp, i) => {
                     const media = calcularMedia(emp);
                     return (
-                      <div key={i} className="bg-gray-50 rounded-xl p-3 border border-gray-200 hover:border-blue-300 transition-all">
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setCompany({ value: emp.company, label: emp.company })}
+                        className="w-full text-left bg-gray-50 rounded-xl p-3 border border-gray-200 hover:border-blue-300 transition-all"
+                      >
                         <div className="flex items-center justify-between">
-                          <p className="font-bold text-gray-800 text-sm">{emp.company}</p>
+                          <p className="font-bold text-gray-800 text-sm truncate">{emp.company}</p>
                           <div className={`${getBadgeColor(media)} px-2 py-1 rounded-full text-white font-bold text-xs`}>{media} ⭐</div>
                         </div>
-                      </div>
+                      </button>
                     );
                   })
                 )}

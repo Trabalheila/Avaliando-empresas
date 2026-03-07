@@ -92,10 +92,11 @@ function TrabalheiLa() {
   };
 
   const getBadgeColor = (score) => {
-    if (score >= 4.5) return "bg-emerald-500";
-    if (score >= 3.5) return "bg-lime-500";
-    if (score >= 2.5) return "bg-yellow-500";
-    return "bg-red-500";
+    if (score >= 4.5) return "bg-emerald-700";
+    if (score >= 4) return "bg-lime-600";
+    if (score >= 3) return "bg-yellow-600";
+    if (score >= 2) return "bg-purple-600";
+    return "bg-red-600";
   };
 
   const calcularMedia = (empresa) => {
