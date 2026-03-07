@@ -144,14 +144,6 @@ function TrabalheiLaMobile({
     return "bg-red-600";
   };
 
-  const openLinkedInJobs = () => {
-    if (!company?.value) return;
-    const url = `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(
-      company.value
-    )}`;
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
-
   const getMedalColor = (index) => {
     if (index === 0) return "from-yellow-400 to-yellow-600";
     if (index === 1) return "from-gray-300 to-gray-500";
@@ -252,9 +244,9 @@ function TrabalheiLaMobile({
           : "bg-gradient-to-b from-blue-50 via-sky-50 to-blue-100"
       }`}
     >
-      <header className="bg-white shadow-sm px-4 py-4 mb-4 flex flex-col md:flex-row items-start md:items-center justify-between sticky top-0 z-50 border-b border-blue-100">
+      <header className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm px-4 py-3 mb-4 flex flex-col md:flex-row items-start md:items-center justify-between sticky top-0 z-50 border-b border-blue-100 dark:border-slate-700">
         <div className="w-full flex items-center justify-center gap-3 text-center">
-          <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100 overflow-hidden">
+          <div className="w-11 h-11 bg-blue-50 dark:bg-slate-800 rounded-xl flex items-center justify-center border border-blue-100 dark:border-slate-600 overflow-hidden">
             {companyLogoUrl ? (
               <img
                 src={companyLogoUrl}
@@ -271,17 +263,17 @@ function TrabalheiLaMobile({
             )}
           </div>
           <div className="text-center">
-            <h1 className="text-2xl font-black text-blue-900 font-azonix tracking-[0.12em] drop-shadow-[0_2px_0_rgba(37,99,235,0.25)]">
+            <h1 className="text-[1.65rem] font-black text-blue-900 dark:text-blue-100 font-azonix tracking-[0.1em]">
               TRABALHEI LÁ
             </h1>
-            <p className="text-[10px] text-blue-500 font-medium">Avaliações anônimas</p>
+            <p className="text-[10px] text-blue-500 dark:text-slate-300 font-semibold">Versão mobile • Avaliações anônimas</p>
           </div>
         </div>
 
         {isAuthenticated && (
-          <div className="flex items-center justify-between mt-4 px-3">
+          <div className="flex items-center justify-between mt-3 px-1 w-full">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-lg">
+              <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-slate-700 flex items-center justify-center text-lg">
                 {userProfile?.avatar ? (
                   typeof userProfile.avatar === "string" && userProfile.avatar.startsWith("data:") ? (
                     <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
@@ -293,8 +285,8 @@ function TrabalheiLaMobile({
                 )}
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-700">{userPseudonym || userProfile?.name || "Usuário"}</p>
-                <a href="/pseudonym" className="text-xs text-blue-600 hover:underline">
+                <p className="text-sm font-semibold text-slate-700 dark:text-blue-100">{userPseudonym || userProfile?.name || "Usuário"}</p>
+                <a href="/pseudonym" className="text-xs text-blue-600 dark:text-blue-300 hover:underline">
                   Editar perfil
                 </a>
               </div>
@@ -303,7 +295,7 @@ function TrabalheiLaMobile({
             <button
               type="button"
               onClick={toggleTheme}
-              className="px-3 py-2 bg-slate-200 rounded-full text-sm font-semibold text-slate-700 hover:bg-slate-300 transition"
+              className="px-3 py-2 bg-slate-200 dark:bg-slate-700 rounded-full text-sm font-semibold text-slate-700 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-600 transition"
               aria-label="Alternar tema claro/escuro"
             >
               {theme === 'dark' ? '🌙 Tema' : '☀️ Tema'}
@@ -315,13 +307,13 @@ function TrabalheiLaMobile({
           {company && (
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <p className="text-base font-bold text-blue-800">{company.value}</p>
+                <p className="text-base font-bold text-blue-800 dark:text-blue-100">{company.value}</p>
                 <div className="mt-1 flex items-center justify-end gap-2">
-                  <span className="text-sm font-semibold text-slate-700">Nota</span>
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Nota</span>
                   <span className={`px-2.5 py-1 rounded-lg text-lg leading-none font-extrabold text-white ${getBadgeColor(companyAverage)}`}>
                     {companyAverage}
                   </span>
-                  <span className="text-sm font-semibold text-slate-700">/5</span>
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">/5</span>
                 </div>
               </div>
               <button
@@ -331,23 +323,16 @@ function TrabalheiLaMobile({
               >
                 Saiba mais
               </button>
-              <button
-                type="button"
-                onClick={openLinkedInJobs}
-                className="px-4 py-2 bg-slate-200 text-slate-800 text-xs font-bold rounded-xl hover:bg-slate-300 transition"
-              >
-                Ver vagas no LinkedIn
-              </button>
             </div>
           )}
         </div>
-        <p className="text-[11px] text-slate-600 mt-2 text-center">{firebaseStatus}</p>
+        <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2 text-center">{firebaseStatus}</p>
       </header>
 
       <main className="px-4 space-y-6">
         {/* LOGIN */}
-        <section className="bg-white rounded-2xl shadow-md p-5 border border-blue-50">
-          <h2 className="text-lg font-bold text-blue-800 text-center mb-4 font-azonix">Login para Avaliar</h2>
+        <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700">
+          <h2 className="text-sm uppercase tracking-[0.14em] font-extrabold text-blue-800 dark:text-blue-200 text-center mb-3">Acesso para Avaliar</h2>
           <div className="flex flex-col items-center space-y-3">
             <LoginLinkedInButton 
               clientId={linkedInClientId} 
@@ -361,8 +346,8 @@ function TrabalheiLaMobile({
         </section>
 
         {/* FORMULÁRIO */}
-        <section className="bg-white rounded-2xl shadow-md p-5 border border-blue-50">
-          <h2 className="text-lg font-bold text-blue-800 text-center mb-4 font-azonix">Avalie uma Empresa</h2>
+        <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700">
+          <h2 className="text-sm uppercase tracking-[0.14em] font-extrabold text-blue-800 dark:text-blue-200 text-center mb-3">Avaliar Empresa</h2>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="font-semibold text-slate-700 mb-2 block text-sm">Selecione a Empresa</label>
@@ -425,7 +410,7 @@ function TrabalheiLaMobile({
 
             <div className="space-y-4">
               {campos.map((campo, idx) => (
-                <div key={idx} className="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                <div key={idx} className="bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border border-gray-200 dark:border-slate-700">
                   <label className="text-slate-700 font-semibold flex items-center gap-2 text-sm">
                     <span className={`w-9 h-9 rounded-xl border bg-gradient-to-br ${campo.iconBg} flex items-center justify-center shadow-sm`}>
                       {campo.icon}
@@ -437,7 +422,7 @@ function TrabalheiLaMobile({
               ))}
             </div>
 
-            <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
+            <div className="bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border border-gray-200 dark:border-slate-700">
               <label className="text-slate-700 font-semibold text-sm block mb-2">Comentário Geral</label>
               <textarea
                 className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -459,8 +444,8 @@ function TrabalheiLaMobile({
         </section>
 
         {/* RANKING */}
-        <section className="bg-white rounded-2xl shadow-md p-5 border border-blue-50">
-          <h2 className="text-lg font-bold text-blue-800 text-center mb-4 font-azonix">🏆 Ranking</h2>
+        <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700">
+          <h2 className="text-sm uppercase tracking-[0.14em] font-extrabold text-blue-800 dark:text-blue-200 text-center mb-3">🏆 Ranking</h2>
           {Array.isArray(top3) && top3.length > 0 && (
             <div className="mb-4 space-y-2">
               {top3.map((emp, i) => {
@@ -480,8 +465,8 @@ function TrabalheiLaMobile({
         </section>
 
         {/* AUTOCOMPLETAÇÃO */}
-        <section className="bg-white rounded-2xl shadow-md p-5 border border-blue-50">
-          <h2 className="text-lg font-bold text-blue-800 text-center mb-3 font-azonix">🏢 Empresas por Autocompletação</h2>
+        <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700">
+          <h2 className="text-sm uppercase tracking-[0.12em] font-extrabold text-blue-800 dark:text-blue-200 text-center mb-2">🏢 Empresas por busca</h2>
           <p className="text-sm text-slate-700 text-center leading-relaxed">
             Para encontrar empresas em bases maiores, use o campo
             <span className="font-semibold"> "Selecione a Empresa"</span> acima.

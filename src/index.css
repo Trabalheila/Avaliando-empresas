@@ -91,6 +91,19 @@ code {
   }
 }
 
+@keyframes pageExitSoft {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.998);
+    filter: blur(1px);
+  }
+}
+
 @keyframes reactionPulse {
   0% {
     transform: scale(1);
@@ -122,6 +135,7 @@ code {
 .route-transition-stage {
   position: relative;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 .route-layer {
@@ -167,6 +181,18 @@ code {
   .route-exit-back,
   .reaction-burst {
     animation: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .route-enter-forward,
+  .route-enter-back {
+    animation-name: pageEnter;
+  }
+
+  .route-exit-forward,
+  .route-exit-back {
+    animation-name: pageExitSoft;
   }
 }
 

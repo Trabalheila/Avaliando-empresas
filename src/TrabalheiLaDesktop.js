@@ -85,23 +85,17 @@ function TrabalheiLaDesktop({
     setLogoIndex(0);
   }, [companyNameForLogo, selectedCompanyData?.website]);
 
-  const openLinkedInJobs = () => {
-    if (!company?.value) return;
-    const url = `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(company.value)}`;
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-6">
       <div className="w-full max-w-6xl">
 
         {/* HEADER */}
-        <header className="bg-blue-50 dark:bg-slate-900 rounded-3xl shadow-2xl p-8 mb-8 border-2 border-blue-200 dark:border-slate-700">
+        <header className="bg-gradient-to-br from-blue-50 via-blue-100 to-blue-50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 rounded-3xl shadow-2xl p-8 mb-8 border-2 border-blue-200 dark:border-slate-700">
           <div className="flex items-center justify-between">
             <div className="flex flex-col items-center">
 
               {/* ÁREA DA LOGO ATUALIZADA */}
-              <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center border-2 border-blue-200 overflow-hidden">
+              <div className="w-20 h-20 bg-blue-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center border-2 border-blue-200 dark:border-slate-600 overflow-hidden">
                 {logoUrl ? (
                   <img
                     src={logoUrl}
@@ -117,24 +111,32 @@ function TrabalheiLaDesktop({
                   <FaBuilding className="text-blue-700 text-4xl" />
                 )}
               </div>
-              <span className="text-xs mt-2 text-blue-400 text-center max-w-[100px] truncate" title={companyNameForLogo}>
+              <span className="text-xs mt-2 text-blue-500 dark:text-slate-300 text-center max-w-[100px] truncate" title={companyNameForLogo}>
                 {companyNameForLogo}
               </span>
 
-              <div className="mt-2 bg-blue-700 rounded-xl px-3 py-1 text-center">
+              <div className="mt-2 bg-blue-700 dark:bg-blue-800 rounded-xl px-3 py-1 text-center shadow-lg">
                 <p className="text-xl font-extrabold text-white">{companyNote}/5</p>
                 <p className="text-xs text-blue-200">NOTA</p>
               </div>
             </div>
 
             <div className="flex-1 text-center px-8">
-              <h1 className="text-5xl font-extrabold text-blue-800 drop-shadow tracking-wide mb-3 font-azonix">
+              <h1 className="text-6xl xl:text-7xl font-extrabold text-blue-800 dark:text-blue-100 drop-shadow-[0_3px_0_rgba(30,64,175,0.25)] dark:drop-shadow-[0_3px_0_rgba(15,23,42,0.6)] tracking-[0.12em] mb-1 font-azonix">
                 TRABALHEI LÁ
               </h1>
+              <div className="w-44 h-1.5 mx-auto rounded-full bg-gradient-to-r from-blue-300 via-blue-700 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500 mb-3" />
+              <p className="text-blue-700 dark:text-blue-200 text-xl font-extrabold leading-tight mb-1">
+                Sua opinião é anônima e ajuda outros profissionais
+              </p>
+              <p className="text-blue-600 dark:text-slate-300 text-base font-bold leading-tight mb-3">
+                Avaliações anônimas feitas por profissionais verificados.
+              </p>
+
               {isAuthenticated && (
-                <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex items-center justify-between gap-3 mb-2 bg-blue-50/70 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-600 rounded-2xl px-3 py-2">
                   <div className="flex items-center justify-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-xl">
+                    <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-slate-700 flex items-center justify-center text-xl">
                       {userProfile?.avatar ? (
                         typeof userProfile.avatar === "string" && userProfile.avatar.startsWith("data:") ? (
                           <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
@@ -146,8 +148,8 @@ function TrabalheiLaDesktop({
                       )}
                     </div>
                     <div className="text-left">
-                      <p className="text-sm font-semibold text-blue-800">{userPseudonym || userProfile?.name || "Usuário"}</p>
-                      <a href="/pseudonym" className="text-xs text-blue-600 hover:underline">
+                      <p className="text-sm font-semibold text-blue-800 dark:text-blue-200">{userPseudonym || userProfile?.name || "Usuário"}</p>
+                      <a href="/pseudonym" className="text-xs text-blue-600 dark:text-blue-300 hover:underline">
                         Editar perfil
                       </a>
                     </div>
@@ -163,9 +165,7 @@ function TrabalheiLaDesktop({
                   </button>
                 </div>
               )}
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">{firebaseStatus}</p>
-              <p className="text-blue-600 text-lg mb-2">Sua opinião é anônima e ajuda outros profissionais</p>
-              <p className="text-blue-400 text-sm mb-6">Avaliações anônimas feitas por profissionais verificados.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">{firebaseStatus}</p>
               <button
                 type="button"
                 onClick={handleSaibaMais}
@@ -176,22 +176,12 @@ function TrabalheiLaDesktop({
               >
                 CLIQUE E SAIBA MAIS
               </button>
-              <button
-                type="button"
-                onClick={openLinkedInJobs}
-                disabled={!company}
-                className={`bg-slate-200 text-slate-800 font-semibold py-3 px-8 rounded-2xl shadow-sm transition-all transform hover:scale-105 text-lg ${
-                  company ? "hover:bg-slate-300" : "opacity-60 cursor-not-allowed"
-                }`}
-              >
-                Ver vagas no LinkedIn
-              </button>
             </div>
 
             <div className="flex flex-col items-center gap-3">
-              <span className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-full font-semibold">✓ Anônimo</span>
-              <span className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-full font-semibold">✓ Verificado</span>
-              <span className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-full font-semibold">✓ Confiável</span>
+              <span className="flex items-center gap-2 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-4 py-2 rounded-full font-semibold">✓ Anônimo</span>
+              <span className="flex items-center gap-2 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-4 py-2 rounded-full font-semibold">✓ Verificado</span>
+              <span className="flex items-center gap-2 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-4 py-2 rounded-full font-semibold">✓ Confiável</span>
             </div>
           </div>
         </header>
@@ -204,7 +194,8 @@ function TrabalheiLaDesktop({
 
             {/* LOGIN ATUALIZADO (Sem Google, LinkedIn Corrigido) */}
             <section className="bg-white rounded-3xl shadow-xl p-6 mb-6 border border-blue-100">
-              <h2 className="text-2xl font-bold text-blue-800 text-center mb-6">Login para Avaliar</h2>
+              <h2 className="text-3xl font-extrabold text-blue-900 dark:text-blue-100 text-center mb-2 tracking-wide font-azonix">Login para Avaliar</h2>
+              <div className="w-28 h-1 mx-auto mb-5 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
               <div className="flex flex-col items-center space-y-4">
                 <LoginLinkedInButton
                   clientId={linkedInClientId}
@@ -220,7 +211,8 @@ function TrabalheiLaDesktop({
 
             {/* FORMULÁRIO */}
             <section className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100">
-              <h2 className="text-2xl font-bold text-blue-800 text-center mb-6">Avalie uma Empresa</h2>
+              <h2 className="text-3xl font-extrabold text-blue-900 dark:text-blue-100 text-center mb-2 tracking-wide font-azonix">Avalie uma Empresa</h2>
+              <div className="w-32 h-1 mx-auto mb-5 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
               <form onSubmit={handleSubmit} className="space-y-4">
 
                 <div>
@@ -316,7 +308,8 @@ function TrabalheiLaDesktop({
           {/* COLUNA DIREITA - RANKING */}
           <div className="w-80">
             <div className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100 sticky top-6">
-              <h2 className="text-xl font-bold text-blue-800 text-center mb-4 font-azonix">🏆 Ranking de Empresas</h2>
+              <h2 className="text-2xl font-extrabold text-blue-900 dark:text-blue-100 text-center mb-2 font-azonix tracking-wide">🏆 Ranking de Empresas</h2>
+              <div className="w-24 h-1 mx-auto mb-4 rounded-full bg-gradient-to-r from-yellow-300 via-amber-500 to-yellow-300" />
 
               {Array.isArray(top3) && top3.length > 0 && (
                 <div className="mb-4 space-y-2">
@@ -338,7 +331,7 @@ function TrabalheiLaDesktop({
               )}
 
               <div className="bg-blue-50 rounded-2xl p-4 border border-blue-200">
-                <h3 className="text-sm font-bold text-blue-800 mb-2">Empresas por Autocompletação</h3>
+                <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-100 mb-2 tracking-wide">Empresas por Autocompletação</h3>
                 <p className="text-sm text-blue-900 leading-relaxed">
                   Para manter performance com muitas empresas, a seleção agora é feita pelo campo
                   <span className="font-semibold"> "Selecione a Empresa"</span> no formulário.

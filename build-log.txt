@@ -2,16 +2,16 @@
 > trabalhei-la@1.0.0 build
 > react-scripts build
 
-(node:6636) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
+(node:7204) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
 (Use `node --trace-deprecation ...` to show where the warning was created)
 Creating an optimized production build...
 Compiled successfully.
 
 File sizes after gzip:
 
-  476.69 kB (+1.29 kB)  build\static\js\main.82bb61bc.js
-  7.37 kB (+529 B)      build\static\css\main.9b9f9806.css
-  160 B                 build\static\js\488.5866287b.chunk.js
+  476.69 kB  build\static\js\main.109cc10a.js
+  7.43 kB    build\static\css\main.9b64e99a.css
+  160 B      build\static\js\488.5866287b.chunk.js
 
 The project was built assuming it is hosted at /.
 You can control this with the homepage field in your package.json.

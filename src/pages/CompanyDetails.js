@@ -128,6 +128,12 @@ function CompanyDetails() {
 
   const average = calculateAverage(company);
 
+  const openLinkedInJobs = () => {
+    if (!company?.company) return;
+    const url = `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(company.company)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   const getEvaluations = () => {
     if (!company) return {};
     try {
@@ -608,12 +614,21 @@ function CompanyDetails() {
               <p className="text-xs text-gray-500">{evaluationCount} avaliação{evaluationCount === 1 ? "" : "es"}</p>
             </div>
           </div>
-          <button
-            onClick={() => navigate("/")}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition"
-          >
-            Voltar
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <button
+              type="button"
+              onClick={openLinkedInJobs}
+              className="px-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl transition"
+            >
+              Ver vagas no LinkedIn
+            </button>
+            <button
+              onClick={() => navigate("/")}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition"
+            >
+              Voltar
+            </button>
+          </div>
         </div>
 
         {userHasResumeProof && (
