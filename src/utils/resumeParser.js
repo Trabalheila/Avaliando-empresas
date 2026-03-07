@@ -25,6 +25,9 @@ const RESUME_SECTION_TITLES = [
   "habilidades",
 ];
 
+const COMPANY_HINT_PATTERN = /(engenharia|clinica|cl[ií]nica|consorcio|cons[oó]rcio|ltda|s\/a|sa|empresa|veterinaria|veterin[aá]ria|petrobras|consultoria|loja|group|grupo)/i;
+const DATE_RANGE_PATTERN = /\b(19|20)\d{2}\b\s*(a|ate|até|-|\/)?\s*\b(19|20)?\d{2}?\b/i;
+
 function normalizeText(value) {
   return (value || "")
     .toString()
@@ -127,6 +130,7 @@ function splitExperienceBlocks(text) {
 }
 
 function inferCompanyFromBlock(lines, knownCompaniesMap) {
+  // 1) Prefer explicit known company matches when available.
   for (const line of lines) {
     const normalizedLine = normalizeText(line);
     for (const [normalizedCompany, originalCompany] of knownCompaniesMap.entries()) {
@@ -134,8 +138,31 @@ function inferCompanyFromBlock(lines, knownCompaniesMap) {
     }
   }
 
+  // 2) Prefer strong company-hint lines (often bold in CV visual layout).
+  const hinted = lines.find((line) => {
+    const cleaned = cleanLine(line);
+    if (!cleaned) return false;
+    if (looksLikeHeading(cleaned)) return false;
+    if (/^(cargo|funcao|fun[cç][aã]o)\s*:/i.test(cleaned)) return false;
+    if (DATE_RANGE_PATTERN.test(cleaned)) return false;
+    if (COMPANY_HINT_PATTERN.test(cleaned)) return true;
+
+    // Uppercase company names are common in many CV templates.
+    const lettersOnly = cleaned.replace(/[^A-Za-zÀ-ÿ\s]/g, "").trim();
+    if (!lettersOnly) return false;
+    const upperRatio = lettersOnly
+      .split("")
+      .filter((ch) => /[A-Za-zÀ-ÿ]/.test(ch))
+      .map((ch) => (ch === ch.toUpperCase() ? 1 : 0));
+    const score = upperRatio.length ? upperRatio.reduce((a, b) => a + b, 0) / upperRatio.length : 0;
+    return score > 0.75 && lettersOnly.split(" ").length >= 2;
+  });
+
+  if (hinted) return cleanLine(hinted);
+
+  // 3) Fallback to first useful line.
   const first = cleanLine(lines[0] || "");
-  if (!first || looksLikeHeading(first) || /\b(19|20)\d{2}\b/.test(first)) return "";
+  if (!first || looksLikeHeading(first) || DATE_RANGE_PATTERN.test(first)) return "";
   return first;
 }
 
@@ -158,7 +185,16 @@ function inferRoleFromBlock(lines) {
   });
 
   if (roleLine) return cleanLine(roleLine).replace(/^(cargo|funcao)\s*[:-]?\s*/i, "");
-  return cleanLine(candidates[1] || "") || "Nao identificado";
+
+  const afterDateLine = candidates.find((line) => {
+    const cleaned = cleanLine(line);
+    if (!cleaned) return false;
+    if (DATE_RANGE_PATTERN.test(cleaned)) return false;
+    if (COMPANY_HINT_PATTERN.test(cleaned)) return false;
+    return cleaned.split(" ").length <= 8;
+  });
+
+  return cleanLine(afterDateLine || candidates[1] || "") || "Nao identificado";
 }
 
 function extractExperiences(text, lines, knownCompanies = []) {
@@ -166,7 +202,7 @@ function extractExperiences(text, lines, knownCompanies = []) {
     (knownCompanies || []).filter(Boolean).map((name) => [normalizeText(name), name])
   );
 
-  const sectionLines = extractSection(lines, /experiencia/);
+  const sectionLines = extractSection(lines, /experiencia|historico profissional|hist[oó]rico profissional/);
   const sourceText = sectionLines.length ? sectionLines.join("\n") : text;
   const blocks = splitExperienceBlocks(sourceText);
 
@@ -269,10 +305,15 @@ export function parseResumeText(rawText, knownCompanies = []) {
   const name = firstMeaningfulLine(lines);
   const objective = extractObjective(lines);
   const latestEducation = extractHighestEducation(text);
-  const profession = extractProfession(lines);
+  let profession = extractProfession(lines);
   const experiencesStructured = extractExperiences(text, text.split("\n"), knownCompanies);
   const experiences = Array.from(new Set(experiencesStructured.map((item) => item.company).filter(Boolean)));
   const matchedCompanies = experiences.slice();
+
+  if ((profession === "Nao identificado" || !profession) && experiencesStructured.length > 0) {
+    profession = experiencesStructured[0].role || "Nao identificado";
+  }
+
   const educationSummary = `${latestEducation.label} - ${profession}`;
 
   return {

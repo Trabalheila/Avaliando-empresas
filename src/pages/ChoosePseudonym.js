@@ -189,7 +189,7 @@ function ChoosePseudonym() {
       if (loadedCount > 0) {
         setInfo("Informações carregadas do LinkedIn com sucesso.");
       } else {
-        setError("Não encontramos novos dados do LinkedIn para preencher.");
+        setInfo("Seus dados do LinkedIn já estão preenchidos no perfil.");
       }
     } catch {
       setError("Não foi possível carregar dados do LinkedIn no momento.");
