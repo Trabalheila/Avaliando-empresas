@@ -3,6 +3,7 @@ import Select from "react-select";
 import { getCompanyLogoUrl } from "./utils/getCompanyLogo";
 import { FaBuilding, FaPlus, FaChartBar, FaStar, FaRegStar, FaMoneyBillWave, FaGift, FaUsers, FaChartLine, FaLightbulb, FaUserTie, FaGlobe, FaLeaf, FaBalanceScale, FaTrophy, FaComments, FaHandshake, FaGraduationCap, FaHeart } from "react-icons/fa";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
+import CaptchaModal from "./components/CaptchaModal";
 
 function TrabalheiLaDesktop({
   company, setCompany, rating, setRating, commentRating, setCommentRating,
@@ -19,7 +20,8 @@ function TrabalheiLaDesktop({
   filterText, setFilterText, handleSaibaMais,
   showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany, newCompany, setNewCompany, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
   linkedInClientId, error, isAuthenticated, onLoginSuccess, selectedCompanyData, calcularMedia,
-  getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions
+  getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
+  showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed
 }) {
 
   const selectStyles = {
@@ -78,6 +80,12 @@ function TrabalheiLaDesktop({
   const companyNameForLogo = selectedCompanyData ? selectedCompanyData.company : "Logo da Empresa";
   const logoUrl = getCompanyLogoUrl(companyNameForLogo, 128);
 
+  const openLinkedInJobs = () => {
+    if (!company?.value) return;
+    const url = `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(company.value)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center p-6">
       <style>{`@import url('https://fonts.cdnfonts.com/css/azonix'); .font-azonix { font-family: 'Azonix', sans-serif; }`}</style>
@@ -121,6 +129,16 @@ function TrabalheiLaDesktop({
                 }`}
               >
                 CLIQUE E SAIBA MAIS
+              </button>
+              <button
+                type="button"
+                onClick={openLinkedInJobs}
+                disabled={!company}
+                className={`bg-slate-200 text-slate-800 font-semibold py-3 px-8 rounded-2xl shadow-sm transition-all transform hover:scale-105 text-lg ${
+                  company ? "hover:bg-slate-300" : "opacity-60 cursor-not-allowed"
+                }`}
+              >
+                Ver vagas no LinkedIn
               </button>
             </div>
 
@@ -312,10 +330,25 @@ function TrabalheiLaDesktop({
                 Política de Privacidade
               </a>
               {" • "}
+              <a href="/purpose" className="text-blue-700 hover:text-blue-900 font-extrabold underline">
+                Qual o nosso propósito?
+              </a>
+              {" • "}
               <span>© 2026 Trabalhei Lá - Todos os direitos reservados</span>
             </p>
           </div>
         </footer>
+
+        <CaptchaModal
+          open={showCaptcha}
+          onClose={() => setShowCaptcha(false)}
+          checked={captchaConfirmed}
+          onChange={setCaptchaConfirmed}
+          onConfirm={() => {
+            setCaptchaConfirmed(true);
+            setShowCaptcha(false);
+          }}
+        />
 
       </div>
     </div>

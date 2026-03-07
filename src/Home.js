@@ -62,6 +62,8 @@ function Home() {
   const [error, setError] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showNewCompanyInput, setShowNewCompanyInput] = useState(false);
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [captchaConfirmed, setCaptchaConfirmed] = useState(false);
 
   // Inicializa as empresaas dinamicamente sem erro de map
   const [empresas, setEmpresas] = useState(() => {
@@ -199,6 +201,12 @@ function Home() {
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
+
+    if (!captchaConfirmed) {
+      setShowCaptcha(true);
+      return;
+    }
+
     if (!isAuthenticated) {
       setError("Por favor, faça login para enviar sua avaliação.");
       return;
@@ -268,6 +276,7 @@ function Home() {
       setError("Erro ao enviar avaliação: " + err.message);
     } finally {
       setIsLoading(false);
+      setCaptchaConfirmed(false);
     }
   }, [isAuthenticated, company, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment]);
 
@@ -299,37 +308,48 @@ function Home() {
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem("userProfile");
+    localStorage.removeItem("userPseudonym");
     setIsAuthenticated(false);
   }, []);
 
-  const handleLoginSuccess = useCallback(async ({ code }) => {
+  const handleLoginSuccess = useCallback(async ({ code, profile }) => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/linkedin-auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code,
-          redirectUri: process.env.REACT_APP_LINKEDIN_REDIRECT_URI,
-        }),
-      });
+      let data = profile;
 
-      const data = await response.json();
+      if (!data && code) {
+        const response = await fetch("/api/linkedin-auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            code,
+            redirectUri: process.env.REACT_APP_LINKEDIN_REDIRECT_URI,
+          }),
+        });
 
-      if (data.error) {
-        throw new Error(data.error);
+        data = await response.json();
+
+        if (data.error) {
+          throw new Error(data.error);
+        }
       }
 
-      localStorage.setItem("userProfile", JSON.stringify(data));
-      setIsAuthenticated(true);
+      if (data) {
+        localStorage.setItem("userProfile", JSON.stringify(data));
+        setIsAuthenticated(true);
 
+        const pseudonym = localStorage.getItem("userPseudonym");
+        if (!pseudonym) {
+          navigate("/pseudonym");
+        }
+      }
     } catch (err) {
       console.error("Erro ao validar login no backend:", err);
       setError("Falha ao conectar com o LinkedIn.");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [navigate]);
 
   const commonProps = {
     company, setCompany, rating, setRating, commentRating, setCommentRating,
@@ -346,6 +366,7 @@ function Home() {
     filterText, setFilterText, newCompany, setNewCompany, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
     showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany,
     linkedInClientId, linkedInRedirectUri, error, isAuthenticated, setIsAuthenticated, handleLogout,
+    showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
     onLoginSuccess: handleLoginSuccess, selectedCompanyData, calcularMedia,
     getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
     handleSaibaMais,

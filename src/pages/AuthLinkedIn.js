@@ -30,12 +30,26 @@ function AuthLinkedIn() {
         if (data.error) {
           console.error("Erro no login:", data.error);
           navigate("/");
-        } else {
-          sessionStorage.removeItem("linkedin_oauth_state");
-          localStorage.setItem("userProfile", JSON.stringify(data));
-          // Redireciona para a página de pseudônimo para garantir anonimato.
-          navigate("/pseudonym");
+          return;
         }
+
+        sessionStorage.removeItem("linkedin_oauth_state");
+
+        // Salva o perfil do usuário e avisa o opener (se houver)
+        localStorage.setItem("userProfile", JSON.stringify(data));
+
+        try {
+          if (window.opener && window.opener !== window && typeof window.opener.postMessage === "function") {
+            window.opener.postMessage({ type: "linkedin_oauth", profile: data }, window.location.origin);
+            window.close();
+            return;
+          }
+        } catch (err) {
+          // Ignore cross-origin errors
+        }
+
+        // Caso esteja no mesmo tab, redireciona para a definição de pseudônimo.
+        navigate("/pseudonym");
       })
       .catch(() => {
         console.error("Erro ao conectar com backend.");

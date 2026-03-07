@@ -87,6 +87,7 @@ const LoginLinkedInButton = ({
 
       const returnedState = data.state;
       const code = data.code;
+      const profile = data.profile;
 
       const storedState = (() => {
         try {
@@ -95,6 +96,16 @@ const LoginLinkedInButton = ({
           return null;
         }
       })();
+
+      if (profile) {
+        // Recebe os dados do backend (login concluído)
+        cleanup();
+        try {
+          popup.close();
+        } catch {}
+        onLoginSuccess?.({ profile });
+        return;
+      }
 
       if (!code) {
         cleanup();

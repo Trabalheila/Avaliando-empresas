@@ -5,6 +5,7 @@ import {
 } from "react-icons/fa";
 import Select from "react-select";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
+import CaptchaModal from "./components/CaptchaModal";
 import { getCompanyLogoUrl } from "./utils/getCompanyLogo";
 
 function OutlinedStar({ active, onClick, size = 18, label }) {
@@ -23,6 +24,7 @@ function OutlinedStar({ active, onClick, size = 18, label }) {
     </button>
   );
 }
+
 
 function TrabalheiLaMobile({
   company, setCompany,
@@ -51,6 +53,7 @@ function TrabalheiLaMobile({
   linkedInClientId, linkedInRedirectUri,
   error, isAuthenticated, onLoginSuccess, safeCompanyOptions,
   selectedCompanyData,
+  showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
 }) {
   const calcularMedia = (emp) => {
     if (!emp) return "0.0";
@@ -71,6 +74,14 @@ function TrabalheiLaMobile({
     if (media >= 3) return "bg-yellow-600";
     if (media >= 2) return "bg-purple-600";
     return "bg-red-600";
+  };
+
+  const openLinkedInJobs = () => {
+    if (!company?.value) return;
+    const url = `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(
+      company.value
+    )}`;
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const getMedalColor = (index) => {
@@ -155,6 +166,13 @@ function TrabalheiLaMobile({
               className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition"
             >
               Saiba mais
+            </button>
+            <button
+              type="button"
+              onClick={openLinkedInJobs}
+              className="px-4 py-2 bg-slate-200 text-slate-800 text-xs font-bold rounded-xl hover:bg-slate-300 transition"
+            >
+              Ver vagas no LinkedIn
             </button>
           </div>
         )}
@@ -316,6 +334,23 @@ function TrabalheiLaMobile({
           )}
         </section>
       </main>
+
+      <CaptchaModal
+        open={showCaptcha}
+        onClose={() => setShowCaptcha(false)}
+        checked={captchaConfirmed}
+        onChange={setCaptchaConfirmed}
+        onConfirm={() => {
+          setCaptchaConfirmed(true);
+          setShowCaptcha(false);
+        }}
+      />
+
+      <footer className="text-center text-xs text-slate-500 mt-6">
+        <a href="/purpose" className="text-blue-600 hover:underline">
+          Qual o nosso propósito?
+        </a>
+      </footer>
     </div>
   );
 }
