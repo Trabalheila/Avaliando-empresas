@@ -10,11 +10,41 @@ import { getCompanyLogoUrl } from "./utils/getCompanyLogo";
 
 function OutlinedStar({ active, onClick, size = 18, label }) {
   const outlineScale = 1.24;
+  const touchSize = size * 1.8;
   return (
-    <button type="button" onClick={onClick} aria-label={label} title={label}
-      style={{ padding: 0, margin: 0, border: 0, background: "transparent", cursor: "pointer", lineHeight: 0 }}>
-      <span style={{ position: "relative", display: "inline-block", width: size, height: size, verticalAlign: "middle" }}>
-        <span style={{ position: "absolute", left: 0, top: 0, transform: `scale(${outlineScale})`, transformOrigin: "center" }} aria-hidden="true">
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      style={{
+        padding: 4,
+        margin: 0,
+        border: 0,
+        background: "transparent",
+        cursor: "pointer",
+        lineHeight: 0,
+        touchAction: "manipulation",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: touchSize,
+        height: touchSize,
+      }}
+    >
+      <span
+        style={{ position: "relative", display: "inline-block", width: size, height: size, verticalAlign: "middle" }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            transform: `scale(${outlineScale})`,
+            transformOrigin: "center",
+          }}
+          aria-hidden="true"
+        >
           <FaStar size={size} color="#000" />
         </span>
         <span style={{ position: "relative" }} aria-hidden="true">
@@ -29,20 +59,40 @@ function OutlinedStar({ active, onClick, size = 18, label }) {
 function TrabalheiLaMobile({
   company, setCompany,
   rating, setRating,
-  contatoRH, setContatoRH,
-  salarioBeneficios, setSalarioBeneficios,
-  estruturaEmpresa, setEstruturaEmpresa,
-  acessibilidadeLideranca, setAcessibilidadeLideranca,
-  planoCarreiras, setPlanoCarreiras,
-  bemestar, setBemestar,
-  estimulacaoOrganizacao, setEstimulacaoOrganizacao,
+  salario, setSalario,
+  beneficios, setBeneficios,
+  cultura, setCultura,
+  oportunidades, setOportunidades,
+  inovacao, setInovacao,
+  lideranca, setLideranca,
+  diversidade, setDiversidade,
+  ambiente, setAmbiente,
+  equilibrio, setEquilibrio,
+  reconhecimento, setReconhecimento,
+  comunicacao, setComunicacao,
+  etica, setEtica,
+  desenvolvimento, setDesenvolvimento,
+  saudeBemEstar, setSaudeBemEstar,
+  impactoSocial, setImpactoSocial,
+  reputacao, setReputacao,
+  estimacaoOrganizacao, setEstimacaoOrganizacao,
   commentRating, setCommentRating,
-  commentContatoRH, setCommentContatoRH,
-  commentSalarioBeneficios, setCommentSalarioBeneficios,
-  commentEstruturaEmpresa, setCommentEstruturaEmpresa,
-  commentAcessibilidadeLideranca, setCommentAcessibilidadeLideranca,
-  commentPlanoCarreiras, setCommentPlanoCarreiras,
-  commentBemestar, setCommentBemestar,
+  commentSalario, setCommentSalario,
+  commentBeneficios, setCommentBeneficios,
+  commentCultura, setCommentCultura,
+  commentOportunidades, setCommentOportunidades,
+  commentInovacao, setCommentInovacao,
+  commentLideranca, setCommentLideranca,
+  commentDiversidade, setCommentDiversidade,
+  commentAmbiente, setCommentAmbiente,
+  commentEquilibrio, setCommentEquilibrio,
+  commentReconhecimento, setCommentReconhecimento,
+  commentComunicacao, setCommentComunicacao,
+  commentEtica, setCommentEtica,
+  commentDesenvolvimento, setCommentDesenvolvimento,
+  commentSaudeBemEstar, setCommentSaudeBemEstar,
+  commentImpactoSocial, setCommentImpactoSocial,
+  commentReputacao, setCommentReputacao,
   commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao,
   generalComment, setGeneralComment,
   handleSubmit, isLoading,
@@ -57,11 +107,17 @@ function TrabalheiLaMobile({
 }) {
   const calcularMedia = (emp) => {
     if (!emp) return "0.0";
-    const sum = emp.rating + emp.contatoRH + emp.salarioBeneficios +
-      emp.estruturaEmpresa + emp.acessibilidadeLideranca +
-      emp.planoCarreiras + emp.bemestar + emp.estimulacaoOrganizacao;
-    const avg = sum / 8;
-    return Number.isFinite(avg) ? avg.toFixed(1) : "0.0";
+
+    const ratings = [
+      emp.rating, emp.salario, emp.beneficios, emp.cultura, emp.oportunidades,
+      emp.inovacao, emp.lideranca, emp.diversidade, emp.ambiente, emp.equilibrio,
+      emp.reconhecimento, emp.comunicacao, emp.etica, emp.desenvolvimento,
+      emp.saudeBemEstar, emp.impactoSocial, emp.reputacao, emp.estimacaoOrganizacao,
+    ].filter((val) => typeof val === "number" && !isNaN(val) && val > 0);
+
+    if (ratings.length === 0) return "0.0";
+    const sum = ratings.reduce((acc, curr) => acc + curr, 0);
+    return (sum / ratings.length).toFixed(1);
   };
 
   const companyLogoUrl = selectedCompanyData ? getCompanyLogoUrl(selectedCompanyData.company, 128) : null;
@@ -128,13 +184,23 @@ function TrabalheiLaMobile({
 
   const campos = [
     { label: "Avaliação Geral", icon: <FaStar className="text-yellow-500" />, value: rating, set: setRating, comment: commentRating, setComment: setCommentRating },
-    { label: "Contato com RH", icon: <FaHandshake className="text-blue-500" />, value: contatoRH, set: setContatoRH, comment: commentContatoRH, setComment: setCommentContatoRH },
-    { label: "Salário e Benefícios", icon: <FaMoneyBillWave className="text-green-500" />, value: salarioBeneficios, set: setSalarioBeneficios, comment: commentSalarioBeneficios, setComment: setCommentSalarioBeneficios },
-    { label: "Estrutura da Empresa", icon: <FaBuilding className="text-gray-500" />, value: estruturaEmpresa, set: setEstruturaEmpresa, comment: commentEstruturaEmpresa, setComment: setCommentEstruturaEmpresa },
-    { label: "Acessibilidade da Liderança", icon: <FaUserTie className="text-purple-500" />, value: acessibilidadeLideranca, set: setAcessibilidadeLideranca, comment: commentAcessibilidadeLideranca, setComment: setCommentAcessibilidadeLideranca },
-    { label: "Plano de Carreiras", icon: <FaBriefcase className="text-orange-500" />, value: planoCarreiras, set: setPlanoCarreiras, comment: commentPlanoCarreiras, setComment: setCommentPlanoCarreiras },
-    { label: "Saúde e Bem-estar", icon: <FaHeart className="text-red-500" />, value: bemestar, set: setBemestar, comment: commentBemestar, setComment: setCommentBemestar },
-    { label: "Estímulo à Organização", icon: <FaLightbulb className="text-yellow-400" />, value: estimulacaoOrganizacao, set: setEstimulacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao },
+    { label: "Salário e Benefícios", icon: <FaMoneyBillWave className="text-green-500" />, value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario },
+    { label: "Benefícios", icon: <FaHandshake className="text-blue-500" />, value: beneficios, set: setBeneficios, comment: commentBeneficios, setComment: setCommentBeneficios },
+    { label: "Cultura", icon: <FaBuilding className="text-gray-500" />, value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura },
+    { label: "Oportunidades", icon: <FaBriefcase className="text-orange-500" />, value: oportunidades, set: setOportunidades, comment: commentOportunidades, setComment: setCommentOportunidades },
+    { label: "Inovação", icon: <FaLightbulb className="text-yellow-400" />, value: inovacao, set: setInovacao, comment: commentInovacao, setComment: setCommentInovacao },
+    { label: "Liderança", icon: <FaUserTie className="text-purple-500" />, value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca },
+    { label: "Diversidade", icon: <FaHeart className="text-red-500" />, value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade },
+    { label: "Ambiente", icon: <FaBuilding className="text-slate-500" />, value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente },
+    { label: "Equilíbrio", icon: <FaHandshake className="text-indigo-500" />, value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio },
+    { label: "Reconhecimento", icon: <FaStar className="text-amber-500" />, value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento },
+    { label: "Comunicação", icon: <FaLightbulb className="text-cyan-500" />, value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao },
+    { label: "Ética", icon: <FaBuilding className="text-emerald-500" />, value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica },
+    { label: "Desenvolvimento", icon: <FaBriefcase className="text-fuchsia-500" />, value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento },
+    { label: "Saúde e Bem-estar", icon: <FaHeart className="text-red-500" />, value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar },
+    { label: "Impacto Social", icon: <FaHeart className="text-rose-500" />, value: impactoSocial, set: setImpactoSocial, comment: commentImpactoSocial, setComment: setCommentImpactoSocial },
+    { label: "Reputação", icon: <FaBuilding className="text-slate-500" />, value: reputacao, set: setReputacao, comment: commentReputacao, setComment: setCommentReputacao },
+    { label: "Estimativa na Organização", icon: <FaStar className="text-lime-500" />, value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao },
   ];
 
   return (

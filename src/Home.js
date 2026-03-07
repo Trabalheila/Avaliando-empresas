@@ -268,7 +268,7 @@ function Home() {
     console.log("Dados prontos para envio:", evaluationData);
 
     try {
-      // Atualiza a empresa localment2e para refletir a nova avaliação
+      // Atualiza a empresa localmente para refletir a nova avaliação
       setEmpresas((prev) =>
         prev.map((emp) => {
           if (emp.company !== company.value) return emp;
@@ -314,7 +314,8 @@ function Home() {
         setUserProfile({});
       }
 
-      setIsAuthenticated(!!storedPseudonym);
+      // Considera o usuário autenticado se houver dados de perfil do LinkedIn.
+      setIsAuthenticated(!!storedProfile);
 
       if (storedProfile && !storedPseudonym) {
         // Redireciona para definir pseudônimo ao logar pela primeira vez
@@ -325,7 +326,11 @@ function Home() {
     updateFromStorage();
 
     window.addEventListener("trabalheiLa_user_updated", updateFromStorage);
-    return () => window.removeEventListener("trabalheiLa_user_updated", updateFromStorage);
+    window.addEventListener("focus", updateFromStorage);
+    return () => {
+      window.removeEventListener("trabalheiLa_user_updated", updateFromStorage);
+      window.removeEventListener("focus", updateFromStorage);
+    };
   }, [navigate]);
 
   const handleLogout = useCallback(() => {
