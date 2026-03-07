@@ -203,7 +203,7 @@ function TrabalheiLaMobile({
         {[...Array(5)].map((_, i) => (
           <OutlinedStar key={i} active={i < value} onClick={() => setValue(i + 1)} label={`${i + 1} estrelas`} />
         ))}
-        <span className="ml-2 text-slate-700 font-medium">{value}/5</span>
+        <span className="ml-2 text-slate-700 dark:text-blue-200 font-medium">{value}/5</span>
       </div>
       <textarea
         className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 mt-2"
@@ -350,7 +350,7 @@ function TrabalheiLaMobile({
           <h2 className="text-sm uppercase tracking-[0.14em] font-extrabold text-blue-800 dark:text-blue-200 text-center mb-3">Avaliar Empresa</h2>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="font-semibold text-slate-700 mb-2 block text-sm">Selecione a Empresa</label>
+              <label className="font-semibold text-slate-700 dark:text-blue-200 mb-2 block text-sm">Selecione a Empresa</label>
               <Select
                 options={safeCompanyOptions}
                 value={company}
@@ -411,7 +411,7 @@ function TrabalheiLaMobile({
             <div className="space-y-4">
               {campos.map((campo, idx) => (
                 <div key={idx} className="bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border border-gray-200 dark:border-slate-700">
-                  <label className="text-slate-700 font-semibold flex items-center gap-2 text-sm">
+                  <label className="text-slate-700 dark:text-blue-200 font-semibold flex items-center gap-2 text-sm">
                     <span className={`w-9 h-9 rounded-xl border bg-gradient-to-br ${campo.iconBg} flex items-center justify-center shadow-sm`}>
                       {campo.icon}
                     </span>
@@ -423,7 +423,7 @@ function TrabalheiLaMobile({
             </div>
 
             <div className="bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border border-gray-200 dark:border-slate-700">
-              <label className="text-slate-700 font-semibold text-sm block mb-2">Comentário Geral</label>
+              <label className="text-slate-700 dark:text-blue-200 font-semibold text-sm block mb-2">Comentário Geral</label>
               <textarea
                 className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                 placeholder="Descreva sua experiência na empresa..."
@@ -467,7 +467,7 @@ function TrabalheiLaMobile({
         {/* AUTOCOMPLETAÇÃO */}
         <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700">
           <h2 className="text-sm uppercase tracking-[0.12em] font-extrabold text-blue-800 dark:text-blue-200 text-center mb-2">🏢 Empresas por busca</h2>
-          <p className="text-sm text-slate-700 text-center leading-relaxed">
+          <p className="text-sm text-slate-700 dark:text-blue-100 text-center leading-relaxed">
             Para encontrar empresas em bases maiores, use o campo
             <span className="font-semibold"> "Selecione a Empresa"</span> acima.
             Digite parte do nome e escolha na lista sugerida.
@@ -486,12 +486,12 @@ function TrabalheiLaMobile({
         }}
       />
 
-      <footer className="text-center text-xs text-slate-500 mt-6 space-x-2">
-        <a href="/politica-de-privacidade.html" className="text-blue-600 hover:underline font-semibold">
+      <footer className="text-center text-xs text-slate-500 dark:text-slate-300 mt-6 space-x-2">
+        <a href="/politica-de-privacidade.html" className="text-blue-600 dark:text-blue-300 hover:underline font-semibold">
           Política de Privacidade
         </a>
         <span>•</span>
-        <a href="/purpose" className="text-blue-600 hover:underline">
+        <a href="/purpose" className="text-blue-600 dark:text-blue-300 hover:underline">
           Qual o nosso propósito?
         </a>
       </footer>
