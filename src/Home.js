@@ -818,7 +818,16 @@ function Home({ theme, toggleTheme }) {
       }
     } catch (err) {
       console.error("Erro ao autenticar com Google:", err);
-      setError("Falha ao conectar com Google.");
+      const authCode = String(err?.code || "");
+      if (authCode.includes("auth/unauthorized-domain")) {
+        setError("Domínio não autorizado no Firebase Auth. Adicione este domínio em Authentication > Settings > Authorized domains.");
+      } else if (authCode.includes("auth/popup-blocked")) {
+        setError("Popup do Google bloqueado. Permita popups e tente novamente.");
+      } else if (authCode.includes("auth/popup-closed-by-user")) {
+        setError("Login com Google cancelado antes da conclusão.");
+      } else {
+        setError("Falha ao conectar com Google.");
+      }
     } finally {
       setIsLoading(false);
     }
