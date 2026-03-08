@@ -1,62 +1,29 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 function AuthLinkedIn() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    const authenticate = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get("code");
-      const state = params.get("state");
-      const savedState = sessionStorage.getItem("linkedin_oauth_state");
+    const params = new URLSearchParams(location.search);
+    const code = params.get("code");
 
-      // 🔐 Validação de segurança
-      if (!code || state !== savedState) {
-        console.error("Erro na autenticação LinkedIn");
-        navigate("/");
-        return;
-      }
-
-      try {
-        const response = await fetch("/api/linkedin-auth", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            code,
-            redirectUri: process.env.REACT_APP_LINKEDIN_REDIRECT_URI,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (data.error) {
-          console.error("Erro backend:", data.error);
-          navigate("/");
-          return;
-        }
-
-        // ✅ Aqui você pode salvar o usuário
-        console.log("Usuário autenticado:", data);
-
-        // Exemplo: salvar no localStorage
-        localStorage.setItem("user", JSON.stringify(data));
-
-        navigate("/");
-      } catch (error) {
-        console.error("Erro na requisição:", error);
-        navigate("/");
-      }
-    };
-
-    authenticate();
-  }, [navigate]);
+    if (code) {
+      // Preserva dados locais (avatar e perfil) ao voltar do fluxo OAuth.
+      const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      localStorage.setItem("userProfile", JSON.stringify({ ...existingProfile, loggedIn: true, code }));
+      // Redireciona de volta para a página inicial
+      navigate("/");
+    } else {
+      // Se der erro ou o usuário cancelar, volta para a home também
+      navigate("/");
+    }
+  }, [navigate, location]);
 
   return (
-    <div className="p-10 text-center text-lg font-semibold">
-      Autenticando com LinkedIn...
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#eff6ff' }}>
+      <h2 style={{ color: '#1e40af', fontFamily: 'sans-serif' }}>Autenticando com LinkedIn, aguarde...</h2>
     </div>
   );
 }

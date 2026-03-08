@@ -652,18 +652,25 @@ function Home({ theme, toggleTheme }) {
       }
 
       if (data) {
-        localStorage.setItem("userProfile", JSON.stringify(data));
-        setUserProfile(data);
+        const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+        const mergedProfile = {
+          ...existingProfile,
+          ...data,
+          avatar: data.avatar || existingProfile.avatar,
+        };
+
+        localStorage.setItem("userProfile", JSON.stringify(mergedProfile));
+        setUserProfile(mergedProfile);
         setIsAuthenticated(true);
 
         // Salva o usuário no Fire1store (para acompanhar perfis)
         try {
           await saveUserProfile({
-            id: data.id,
-            name: data.name,
-            email: data.email,
-            picture: data.picture,
-            linkedinProfile: data.linkedInUrl || null,
+            id: mergedProfile.id,
+            name: mergedProfile.name,
+            email: mergedProfile.email,
+            picture: mergedProfile.picture,
+            linkedinProfile: mergedProfile.linkedInUrl || null,
             updatedAt: new Date().toISOString(),
           });
         } catch (err) {

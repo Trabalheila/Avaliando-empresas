@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import {
   FaStar, FaHandshake, FaMoneyBillWave,
-  FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb,
+  FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb, FaUserEdit,
 } from "react-icons/fa";
 import Select from "react-select";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
@@ -292,7 +292,11 @@ function TrabalheiLaMobile({
               </div>
               <div>
                 <p className="text-sm font-semibold text-slate-700 dark:text-blue-100">{userPseudonym || userProfile?.name || "Usuário"}</p>
-                <a href="/pseudonym" className="text-xs text-blue-600 dark:text-blue-300 hover:underline">
+                <a
+                  href="/pseudonym"
+                  className="inline-flex items-center mt-1 px-2.5 py-1 rounded-full bg-blue-700 text-white text-[11px] font-extrabold tracking-wide hover:bg-blue-800 shadow-sm transition"
+                >
+                  <FaUserEdit className="mr-1 text-[10px]" />
                   Editar perfil
                 </a>
               </div>
@@ -504,10 +508,6 @@ function TrabalheiLaMobile({
         <span>•</span>
         <Link to="/purpose" className="text-blue-600 dark:text-blue-300 hover:underline">
           Qual o nosso propósito?
-        </Link>
-        <span>•</span>
-        <Link to="/excluir-dados" className="text-blue-600 dark:text-blue-300 hover:underline font-semibold">
-          Exclusão de dados
         </Link>
       </footer>
     </div>

@@ -162,19 +162,21 @@ function App() {
         '--route-transition-ease': transitionEasing,
       }}
     >
-      <button
-        type="button"
-        onClick={() => {
-          if (typeof window !== 'undefined' && window.history.length > 1) {
-            navigate(-1);
-            return;
-          }
-          navigate('/');
-        }}
-        className="fixed top-3 left-3 z-[9999] px-3 py-2 rounded-full bg-white/95 text-blue-800 border border-blue-200 shadow-md hover:bg-blue-50 font-extrabold text-sm"
-      >
-        ← Voltar
-      </button>
+      {location.pathname !== '/' && (
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== 'undefined' && window.history.length > 1) {
+              navigate(-1);
+              return;
+            }
+            navigate('/');
+          }}
+          className="fixed top-3 left-3 z-[9999] px-3 py-2 rounded-full bg-white/95 text-blue-800 border border-blue-200 shadow-md hover:bg-blue-50 font-extrabold text-sm"
+        >
+          ← Voltar
+        </button>
+      )}
 
       {isTransitioning && outgoingLocation ? (
         <>

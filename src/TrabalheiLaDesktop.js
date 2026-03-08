@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import Select from "react-select";
 import { getCompanyLogoCandidates } from "./utils/getCompanyLogo";
-import { FaBuilding, FaPlus, FaStar, FaRegStar, FaMoneyBillWave, FaGift, FaUsers, FaChartLine, FaLightbulb, FaUserTie, FaGlobe, FaLeaf, FaBalanceScale, FaTrophy, FaComments, FaHandshake, FaGraduationCap, FaHeart } from "react-icons/fa";
+import { FaBuilding, FaPlus, FaStar, FaRegStar, FaMoneyBillWave, FaGift, FaUsers, FaChartLine, FaLightbulb, FaUserTie, FaGlobe, FaLeaf, FaBalanceScale, FaTrophy, FaComments, FaHandshake, FaGraduationCap, FaHeart, FaUserEdit } from "react-icons/fa";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
 
@@ -151,7 +151,11 @@ function TrabalheiLaDesktop({
                     </div>
                     <div className="text-left">
                       <p className="text-sm font-semibold text-blue-800 dark:text-blue-200">{userPseudonym || userProfile?.name || "Usuário"}</p>
-                      <a href="/pseudonym" className="text-xs text-blue-600 dark:text-blue-300 hover:underline">
+                      <a
+                        href="/pseudonym"
+                        className="inline-flex items-center mt-1 px-3 py-1.5 rounded-full bg-blue-700 text-white text-xs font-extrabold tracking-wide hover:bg-blue-800 shadow-md transition"
+                      >
+                        <FaUserEdit className="mr-1 text-[11px]" />
                         Editar perfil
                       </a>
                     </div>
@@ -357,10 +361,6 @@ function TrabalheiLaDesktop({
               {" • "}
               <Link to="/purpose" className="text-blue-700 hover:text-blue-900 font-extrabold underline">
                 Qual o nosso propósito?
-              </Link>
-              {" • "}
-              <Link to="/excluir-dados" className="text-blue-700 hover:text-blue-900 font-extrabold underline">
-                Exclusão de dados
               </Link>
               {" • "}
               <span>© 2026 Trabalhei Lá - Todos os direitos reservados</span>
