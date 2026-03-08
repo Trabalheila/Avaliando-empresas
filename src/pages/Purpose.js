@@ -1,9 +1,19 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-export default function Purpose() {
+export default function Purpose({ theme, toggleTheme }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 py-10 px-4">
+      <div className="max-w-3xl mx-auto flex justify-end mb-3">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="px-3 py-2 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+          aria-label="Alternar tema"
+        >
+          {theme === "dark" ? "🌙 Tema" : "☀️ Tema"}
+        </button>
+      </div>
       <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-xl border border-blue-100 p-8">
         <h1 className="text-3xl font-extrabold text-blue-800 mb-6">Qual o nosso propósito?</h1>
         <p className="text-slate-700 mb-4">

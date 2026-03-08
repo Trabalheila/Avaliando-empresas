@@ -7,7 +7,7 @@ import { saveReview, listRecentReviews } from "./services/reviews";
 import { saveCompany, listCompanies } from "./services/companies";
 import { getUserProfile, saveUserProfile } from "./services/users";
 import { auth, db } from "./firebase";
-import { signInAnonymously, signInWithPopup } from "firebase/auth";
+import { signInAnonymously, signInWithPopup, signOut } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { googleProvider } from "./firebase";
 
@@ -701,11 +701,17 @@ function Home({ theme, toggleTheme }) {
     };
   }, [navigate]);
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback(async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.warn("Falha ao encerrar sessão do Firebase Auth:", err);
+    }
     localStorage.removeItem("userProfile");
     localStorage.removeItem("userPseudonym");
     setUserProfile({});
     setIsAuthenticated(false);
+    window.dispatchEvent(new Event("trabalheiLa_user_updated"));
   }, []);
 
   const handleLoginSuccess = useCallback(async ({ code, profile }) => {

@@ -27,7 +27,7 @@ function getPeriodSortScore(period) {
   return -1;
 }
 
-function ChoosePseudonym() {
+function ChoosePseudonym({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const [pseudonym, setPseudonym] = useState("");
   const [cpf, setCpf] = useState("");
@@ -522,7 +522,15 @@ function ChoosePseudonym() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-6">
       <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_320px] gap-6">
         <div className="bg-white rounded-3xl shadow-xl p-8 border border-blue-100">
-          <div className="flex justify-end mb-3">
+          <div className="flex justify-end items-center gap-2 mb-3">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="px-3 py-2 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              aria-label="Alternar tema"
+            >
+              {theme === "dark" ? "🌙 Tema" : "☀️ Tema"}
+            </button>
             <button
               type="button"
               onClick={() => navigate("/")}

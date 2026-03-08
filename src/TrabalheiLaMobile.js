@@ -105,6 +105,7 @@ function TrabalheiLaMobile({
   handleSaibaMais,
   linkedInClientId, linkedInRedirectUri,
   error, setError, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, safeCompanyOptions,
+  handleLogout,
   onGoogleLogin,
   selectedCompanyData,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
@@ -431,6 +432,17 @@ function TrabalheiLaMobile({
             >
               <FaGoogle className="text-lg" /> Cadastrar com Google
             </button>
+            {isAuthenticated && (
+              <div className="w-full flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="px-3 py-1.5 border-2 border-blue-700 text-blue-700 text-sm font-bold rounded-md hover:bg-blue-50 transition"
+                >
+                  Sair
+                </button>
+              </div>
+            )}
             <p className="text-xs text-slate-500 text-center">
               Sem LinkedIn: entre com Google e complete seu perfil manualmente na etapa seguinte.
             </p>

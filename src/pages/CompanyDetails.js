@@ -145,7 +145,7 @@ async function fetchCompanyInsightsByName(companyName) {
   };
 }
 
-function CompanyDetails() {
+function CompanyDetails({ theme, toggleTheme }) {
   const EDIT_DELETE_WINDOW_MS = 5 * 60 * 1000;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -1020,6 +1020,16 @@ function CompanyDetails() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 py-10 px-4">
+      <div className="max-w-4xl mx-auto flex justify-end mb-3">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="px-3 py-2 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+          aria-label="Alternar tema"
+        >
+          {theme === "dark" ? "🌙 Tema" : "☀️ Tema"}
+        </button>
+      </div>
       <div className="max-w-4xl mx-auto bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-blue-100 dark:border-slate-700 p-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div className="flex items-center gap-4">

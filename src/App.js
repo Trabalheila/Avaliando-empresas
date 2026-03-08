@@ -150,7 +150,7 @@ function App() {
       <Route path="/pseudonym" element={<ChoosePseudonym theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/empresa" element={<CompanyDetails theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/purpose" element={<Purpose theme={theme} toggleTheme={toggleTheme} />} />
-      <Route path="/excluir-dados" element={<DeleteData />} />
+      <Route path="/excluir-dados" element={<DeleteData theme={theme} toggleTheme={toggleTheme} />} />
     </Routes>
   );
 
