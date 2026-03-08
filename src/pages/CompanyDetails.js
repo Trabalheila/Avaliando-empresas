@@ -640,19 +640,6 @@ function CompanyDetails() {
     [hiddenContentIds]
   );
 
-  const blockAuthor = (author) => {
-    const key = getAuthorBlockKey(author);
-    if (!key) return;
-    saveBlockedAuthors({
-      ...blockedAuthors,
-      [key]: {
-        author,
-        blockedAt: new Date().toISOString(),
-      },
-    });
-    setModerationInfo(`Usuário ${author} bloqueado. Conteúdos desse autor foram ocultados para você.`);
-  };
-
   const hideContent = (targetId) => {
     if (!targetId) return;
     saveHiddenContentIds({
