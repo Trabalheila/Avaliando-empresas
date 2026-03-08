@@ -166,10 +166,19 @@ function CompanyDetails({ theme, toggleTheme }) {
   const calculateAverage = (emp) => {
     if (!emp) return "--";
     const values = [
-      emp.rating, emp.salario, emp.beneficios, emp.cultura, emp.oportunidades,
-      emp.inovacao, emp.lideranca, emp.diversidade, emp.ambiente, emp.equilibrio,
-      emp.reconhecimento, emp.comunicacao, emp.etica, emp.desenvolvimento,
-      emp.saudeBemEstar, emp.impactoSocial, emp.reputacao, emp.estimacaoOrganizacao,
+      emp.comunicacao,
+      emp.etica,
+      emp.salario,
+      emp.cultura,
+      emp.saudeBemEstar,
+      emp.lideranca,
+      emp.ambiente,
+      emp.estimacaoOrganizacao,
+      emp.desenvolvimento,
+      emp.reconhecimento,
+      emp.equilibrio,
+      emp.diversidade,
+      emp.rating,
     ].filter((v) => typeof v === "number" && !isNaN(v) && v > 0);
     if (values.length === 0) return "--";
     const sum = values.reduce((acc, curr) => acc + curr, 0);
@@ -945,24 +954,19 @@ function CompanyDetails({ theme, toggleTheme }) {
   };
 
   const scoreFields = [
-    { key: "rating", label: "Avaliação Geral" },
-    { key: "salario", label: "Salário" },
-    { key: "beneficios", label: "Benefícios" },
-    { key: "cultura", label: "Cultura" },
-    { key: "oportunidades", label: "Oportunidades" },
-    { key: "inovacao", label: "Inovação" },
-    { key: "lideranca", label: "Liderança" },
-    { key: "diversidade", label: "Diversidade" },
-    { key: "ambiente", label: "Ambiente" },
-    { key: "equilibrio", label: "Equilíbrio" },
+    { key: "comunicacao", label: "Contato do RH" },
+    { key: "etica", label: "Proposta e acerto salarial" },
+    { key: "salario", label: "Salário e benefícios" },
+    { key: "cultura", label: "Visão e valores da empresa" },
+    { key: "saudeBemEstar", label: "Preocupação com o bem-estar" },
+    { key: "lideranca", label: "Acessibilidade e respeito da liderança" },
+    { key: "ambiente", label: "Estímulo ao respeito entre colegas" },
+    { key: "estimacaoOrganizacao", label: "Estímulo à organização" },
+    { key: "desenvolvimento", label: "Planos de cargos e salários" },
     { key: "reconhecimento", label: "Reconhecimento" },
-    { key: "comunicacao", label: "Comunicação" },
-    { key: "etica", label: "Ética" },
-    { key: "desenvolvimento", label: "Desenvolvimento" },
-    { key: "saudeBemEstar", label: "Saúde e Bem-estar" },
-    { key: "impactoSocial", label: "Impacto Social" },
-    { key: "reputacao", label: "Reputação" },
-    { key: "estimacaoOrganizacao", label: "Estímulo e Organização" },
+    { key: "equilibrio", label: "Rotatividade" },
+    { key: "diversidade", label: "Atitudes de discriminação" },
+    { key: "rating", label: "Saúde e Segurança" },
   ];
 
   const visibleComments = useMemo(() => {

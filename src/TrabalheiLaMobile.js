@@ -359,7 +359,7 @@ function TrabalheiLaMobile({
                 <button
                   type="button"
                   onClick={handleSaibaMais}
-                  className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition"
+                  className="w-36 py-2 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition"
                 >
                   Saiba mais
                 </button>

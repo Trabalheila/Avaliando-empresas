@@ -233,7 +233,7 @@ function TrabalheiLaDesktop({
                 type="button"
                 onClick={handleSaibaMais}
                 disabled={!company}
-                className={`bg-blue-700 text-white font-extrabold py-3 px-8 rounded-2xl shadow-lg transition-all transform hover:scale-105 text-lg font-azonix ${
+                className={`bg-blue-700 text-white font-extrabold py-3 px-12 min-w-[21rem] rounded-2xl shadow-lg transition-all transform hover:scale-105 text-lg font-azonix ${
                   company ? "hover:bg-blue-800" : "opacity-60 cursor-not-allowed"
                 }`}
               >

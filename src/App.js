@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Routes, Route, useLocation, useNavigate, useNavigationType } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigationType } from 'react-router-dom';
 import Home from './Home';
 import AuthLinkedIn from './pages/AuthLinkedIn';
 import ChoosePseudonym from './pages/ChoosePseudonym';
@@ -76,7 +76,6 @@ function applyTheme(theme) {
 }
 
 function App() {
-  const navigate = useNavigate();
   const location = useLocation();
   const navigationType = useNavigationType();
   const [theme, setTheme] = useState(getPreferredTheme);
@@ -162,22 +161,6 @@ function App() {
         '--route-transition-ease': transitionEasing,
       }}
     >
-      {location.pathname !== '/' && (
-        <button
-          type="button"
-          onClick={() => {
-            if (typeof window !== 'undefined' && window.history.length > 1) {
-              navigate(-1);
-              return;
-            }
-            navigate('/');
-          }}
-          className="fixed top-3 left-3 z-[9999] px-3 py-2 rounded-full bg-white/95 text-blue-800 border border-blue-200 shadow-md hover:bg-blue-50 font-extrabold text-sm"
-        >
-          ← Voltar
-        </button>
-      )}
-
       {isTransitioning && outgoingLocation ? (
         <>
           <div

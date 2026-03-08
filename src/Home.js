@@ -685,10 +685,6 @@ function Home({ theme, toggleTheme }) {
       // Considera o usuário autenticado se houver dados de perfil do LinkedIn.
       setIsAuthenticated(!!storedProfile);
 
-      if (storedProfile && !storedPseudonym) {
-        // Redireciona para definir pseudônimo ao logar pela primeira vez
-        navigate("/pseudonym");
-      }
     };
 
     updateFromStorage();
@@ -699,7 +695,7 @@ function Home({ theme, toggleTheme }) {
       window.removeEventListener("trabalheiLa_user_updated", updateFromStorage);
       window.removeEventListener("focus", updateFromStorage);
     };
-  }, [navigate]);
+  }, []);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -713,6 +709,17 @@ function Home({ theme, toggleTheme }) {
     setIsAuthenticated(false);
     window.dispatchEvent(new Event("trabalheiLa_user_updated"));
   }, []);
+
+  const promptProfileCompletion = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const shouldCompleteNow = window.confirm(
+      "Seus dados de perfil sao importantes e fundamentais para participar do Trabalhei La. Deseja completar o cadastro agora?"
+    );
+
+    if (shouldCompleteNow) {
+      navigate("/pseudonym");
+    }
+  }, [navigate]);
 
   const handleLoginSuccess = useCallback(async ({ code, profile }) => {
     setIsLoading(true);
@@ -779,9 +786,11 @@ function Home({ theme, toggleTheme }) {
           console.warn("Falha ao salvar perfil no Firebase:", err);
         }
 
-        const pseudonym = localStorage.getItem("userPseudonym") || mergedProfile?.name;
+        const pseudonym = localStorage.getItem("userPseudonym");
         if (!pseudonym) {
-          navigate("/pseudonym");
+          promptProfileCompletion();
+        } else {
+          window.dispatchEvent(new Event("trabalheiLa_user_updated"));
         }
       }
     } catch (err) {
@@ -790,7 +799,7 @@ function Home({ theme, toggleTheme }) {
     } finally {
       setIsLoading(false);
     }
-  }, [navigate]);
+  }, [promptProfileCompletion]);
 
   const handleGoogleLogin = useCallback(async () => {
     setIsLoading(true);
@@ -855,7 +864,7 @@ function Home({ theme, toggleTheme }) {
 
       const pseudonym = localStorage.getItem("userPseudonym");
       if (!pseudonym) {
-        navigate("/pseudonym");
+        promptProfileCompletion();
       } else {
         window.dispatchEvent(new Event("trabalheiLa_user_updated"));
       }
@@ -874,7 +883,7 @@ function Home({ theme, toggleTheme }) {
     } finally {
       setIsLoading(false);
     }
-  }, [navigate]);
+  }, [promptProfileCompletion]);
 
   const commonProps = {
     company, setCompany, rating, setRating, commentRating, setCommentRating,
