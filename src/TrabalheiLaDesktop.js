@@ -93,7 +93,7 @@ function TrabalheiLaDesktop({
       <div className="w-full max-w-6xl">
 
         {/* HEADER */}
-        <header className="bg-gradient-to-br from-blue-50 via-blue-100 to-blue-50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 rounded-3xl shadow-2xl p-8 mb-8 border-2 border-blue-200 dark:border-slate-700">
+        <header className="sticky top-0 z-50 bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 mb-8 border-2 border-blue-200 dark:border-slate-700">
           <div className="flex items-center justify-between">
             <div className="flex flex-col items-center">
 
@@ -132,9 +132,7 @@ function TrabalheiLaDesktop({
               <p className="text-blue-700 dark:text-blue-200 text-xl font-extrabold leading-tight mb-1">
                 Sua opinião é anônima e ajuda outros profissionais
               </p>
-              <p className="text-blue-600 dark:text-slate-300 text-base font-bold leading-tight mb-3">
-                Avaliações anônimas feitas por profissionais verificados.
-              </p>
+              <div className="mb-3" />
 
               {isAuthenticated && (
                 <div className="flex items-center justify-between gap-3 mb-2 bg-blue-50/70 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-600 rounded-2xl px-3 py-2">

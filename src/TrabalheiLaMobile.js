@@ -277,9 +277,7 @@ function TrabalheiLaMobile({
             <p className="mt-2 text-[1.05rem] leading-tight font-extrabold text-blue-800 dark:text-blue-200">
               Sua opinião é anônima e ajuda outros profissionais
             </p>
-            <p className="text-[1.05rem] leading-tight font-bold text-blue-700 dark:text-slate-300">
-              Avaliações anônimas feitas por profissionais verificados.
-            </p>
+            <div className="h-1" />
           </div>
         </div>
 
