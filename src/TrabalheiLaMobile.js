@@ -472,6 +472,52 @@ function TrabalheiLaMobile({
                 noOptionsMessage={() => "Empresa não encontrada"}
               />
 
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowNewCompanyInput(!showNewCompanyInput)}
+                  className="w-full py-2 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition"
+                >
+                  {showNewCompanyInput ? "Cancelar" : "+ Adicionar nova empresa"}
+                </button>
+              </div>
+
+              {showNewCompanyInput && (
+                <div className="mt-3 space-y-2">
+                  <input
+                    value={newCompanyCnpj}
+                    onChange={(e) => setNewCompanyCnpj(e.target.value)}
+                    placeholder="CNPJ (apenas números)"
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {cnpjError && <p className="text-sm text-red-600">{cnpjError}</p>}
+                  <button
+                    type="button"
+                    onClick={handleAddNewCompany}
+                    disabled={isLoading}
+                    className="w-full py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition"
+                  >
+                    {isLoading ? "Consultando CNPJ..." : "Consultar CNPJ"}
+                  </button>
+
+                  {pendingCompanyData && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-900">
+                      <p className="font-semibold">Empresa encontrada: {pendingCompanyData.company}</p>
+                      <p className="text-xs text-blue-700 mt-1">CNPJ: {pendingCompanyData.cnpj}</p>
+                      <p className="mt-2 font-medium">👍 Está correto?</p>
+                      <button
+                        type="button"
+                        onClick={handleConfirmNewCompany}
+                        disabled={isLoading}
+                        className="mt-2 w-full py-2 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition"
+                      >
+                        {isLoading ? "Confirmando..." : "Confirmar empresa"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="mt-3 grid grid-cols-1 gap-3">
                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
                   <p className="text-sm font-bold text-blue-800 mb-2">Como entrou na empresa?</p>
@@ -541,52 +587,6 @@ function TrabalheiLaMobile({
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
-
-              <div className="mt-3">
-                <button
-                  type="button"
-                  onClick={() => setShowNewCompanyInput(!showNewCompanyInput)}
-                  className="w-full py-2 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition"
-                >
-                  {showNewCompanyInput ? "Cancelar" : "+ Adicionar nova empresa"}
-                </button>
-              </div>
-
-              {showNewCompanyInput && (
-                <div className="mt-3 space-y-2">
-                  <input
-                    value={newCompanyCnpj}
-                    onChange={(e) => setNewCompanyCnpj(e.target.value)}
-                    placeholder="CNPJ (apenas números)"
-                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  {cnpjError && <p className="text-sm text-red-600">{cnpjError}</p>}
-                  <button
-                    type="button"
-                    onClick={handleAddNewCompany}
-                    disabled={isLoading}
-                    className="w-full py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition"
-                  >
-                    {isLoading ? "Consultando CNPJ..." : "Consultar CNPJ"}
-                  </button>
-
-                  {pendingCompanyData && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-900">
-                      <p className="font-semibold">Empresa encontrada: {pendingCompanyData.company}</p>
-                      <p className="text-xs text-blue-700 mt-1">CNPJ: {pendingCompanyData.cnpj}</p>
-                      <p className="mt-2 font-medium">👍 Está correto?</p>
-                      <button
-                        type="button"
-                        onClick={handleConfirmNewCompany}
-                        disabled={isLoading}
-                        className="mt-2 w-full py-2 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition"
-                      >
-                        {isLoading ? "Confirmando..." : "Confirmar empresa"}
-                      </button>
-                    </div>
-                  )}
                 </div>
               )}
             </div>

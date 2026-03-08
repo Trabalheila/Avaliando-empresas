@@ -318,6 +318,47 @@ function TrabalheiLaDesktop({
                     styles={selectStyles}
                     isClearable
                   />
+
+                  <button type="button" onClick={() => setShowNewCompanyInput(!showNewCompanyInput)}
+                    className="mt-3 w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow transition-all">
+                    <FaPlus />
+                    {showNewCompanyInput ? "Cancelar" : "Adicionar Nova Empresa"}
+                  </button>
+
+                  {showNewCompanyInput && (
+                    <div className="mt-3 space-y-2">
+                      <div className="flex gap-2">
+                        <input type="text"
+                          className="flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="CNPJ (apenas números)"
+                          value={newCompanyCnpj}
+                          onChange={(e) => setNewCompanyCnpj(e.target.value)}
+                        />
+                        <button type="button" onClick={handleAddNewCompany}
+                          disabled={isLoading}
+                          className="px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all">
+                          {isLoading ? "Consultando..." : "Consultar CNPJ"}
+                        </button>
+                      </div>
+                      {cnpjError && <p className="text-sm text-red-600">{cnpjError}</p>}
+
+                      {pendingCompanyData && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-900">
+                          <p className="font-semibold">Empresa encontrada: {pendingCompanyData.company}</p>
+                          <p className="text-xs text-blue-700 mt-1">CNPJ: {pendingCompanyData.cnpj}</p>
+                          <p className="mt-2 font-medium">👍 Está correto?</p>
+                          <button
+                            type="button"
+                            onClick={handleConfirmNewCompany}
+                            disabled={isLoading}
+                            className="mt-2 px-4 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition"
+                          >
+                            {isLoading ? "Confirmando..." : "Confirmar empresa"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -397,47 +438,6 @@ function TrabalheiLaDesktop({
                     </div>
                   </div>
                 )}
-
-                {showNewCompanyInput && (
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <input type="text"
-                        className="flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="CNPJ (apenas números)"
-                        value={newCompanyCnpj}
-                        onChange={(e) => setNewCompanyCnpj(e.target.value)}
-                      />
-                      <button type="button" onClick={handleAddNewCompany}
-                        disabled={isLoading}
-                        className="px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all">
-                        {isLoading ? "Consultando..." : "Consultar CNPJ"}
-                      </button>
-                    </div>
-                    {cnpjError && <p className="text-sm text-red-600">{cnpjError}</p>}
-
-                    {pendingCompanyData && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-900">
-                        <p className="font-semibold">Empresa encontrada: {pendingCompanyData.company}</p>
-                        <p className="text-xs text-blue-700 mt-1">CNPJ: {pendingCompanyData.cnpj}</p>
-                        <p className="mt-2 font-medium">👍 Está correto?</p>
-                        <button
-                          type="button"
-                          onClick={handleConfirmNewCompany}
-                          disabled={isLoading}
-                          className="mt-2 px-4 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition"
-                        >
-                          {isLoading ? "Confirmando..." : "Confirmar empresa"}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <button type="button" onClick={() => setShowNewCompanyInput(!showNewCompanyInput)}
-                  className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow transition-all">
-                  <FaPlus />
-                  {showNewCompanyInput ? "Cancelar" : "Adicionar Nova Empresa"}
-                </button>
 
                 {campos.map((campo, idx) => (
                   <div key={idx} className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">

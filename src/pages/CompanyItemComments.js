@@ -1,6 +1,9 @@
 import React from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { FaMoon, FaSun } from "react-icons/fa";
 import { listReviewsByCompanySlug, slugifyCompany } from "../services/reviews";
+import { db } from "../firebase";
+import { collection, doc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
 
 const ITEM_CONFIG = {
   comunicacao: { label: "Contato do RH", commentKey: "commentComunicacao" },
@@ -29,6 +32,80 @@ function toSortableTime(value) {
   return Number.isFinite(parsed.getTime()) ? parsed.getTime() : 0;
 }
 
+function getTotalReactions(item) {
+  return Object.values(item?.reactions || {}).reduce((sum, value) => sum + (value || 0), 0);
+}
+
+function normalizeCommentDoc(id, data) {
+  return {
+    id,
+    author: data?.author || "Anonimo",
+    text: data?.text || "",
+    createdAt:
+      typeof data?.createdAt?.toDate === "function"
+        ? data.createdAt.toDate().toISOString()
+        : data?.createdAt || new Date().toISOString(),
+    reactions: {
+      thumbsDown: data?.reactions?.thumbsDown || 0,
+      laugh: data?.reactions?.laugh || 0,
+      thumbsUp: data?.reactions?.thumbsUp || 0,
+      cry: data?.reactions?.cry || 0,
+      clap: data?.reactions?.clap || 0,
+    },
+    replies: Array.isArray(data?.replies)
+      ? data.replies.map((reply) => ({
+          id: reply?.id || `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+          author: reply?.author || "Anonimo",
+          text: reply?.text || "",
+          createdAt:
+            typeof reply?.createdAt?.toDate === "function"
+              ? reply.createdAt.toDate().toISOString()
+              : reply?.createdAt || new Date().toISOString(),
+          reactions: {
+            thumbsDown: reply?.reactions?.thumbsDown || 0,
+            laugh: reply?.reactions?.laugh || 0,
+            thumbsUp: reply?.reactions?.thumbsUp || 0,
+            cry: reply?.reactions?.cry || 0,
+            clap: reply?.reactions?.clap || 0,
+          },
+          replies: Array.isArray(reply?.replies) ? reply.replies : [],
+        }))
+      : [],
+  };
+}
+
+function updateItemById(items, targetId, updater) {
+  return (items || []).map((item) => {
+    if (item.id === targetId) return updater(item);
+    if (!Array.isArray(item.replies) || item.replies.length === 0) return item;
+    return {
+      ...item,
+      replies: updateItemById(item.replies, targetId, updater),
+    };
+  });
+}
+
+function addReplyToItem(items, targetId, reply) {
+  return updateItemById(items, targetId, (current) => ({
+    ...current,
+    replies: [...(current.replies || []), reply],
+  }));
+}
+
+function incrementReactionById(items, targetId, reactionKey) {
+  return updateItemById(items, targetId, (current) => ({
+    ...current,
+    reactions: {
+      thumbsDown: current?.reactions?.thumbsDown || 0,
+      laugh: current?.reactions?.laugh || 0,
+      thumbsUp: current?.reactions?.thumbsUp || 0,
+      cry: current?.reactions?.cry || 0,
+      clap: current?.reactions?.clap || 0,
+      [reactionKey]: (current?.reactions?.[reactionKey] || 0) + 1,
+    },
+  }));
+}
+
 function CompanyItemComments({ theme, toggleTheme }) {
   const [searchParams] = useSearchParams();
   const companyName = (searchParams.get("name") || "").trim();
@@ -38,6 +115,66 @@ function CompanyItemComments({ theme, toggleTheme }) {
   const [isLoading, setIsLoading] = React.useState(true);
   const [errorMsg, setErrorMsg] = React.useState("");
   const [entries, setEntries] = React.useState([]);
+  const [comments, setComments] = React.useState([]);
+  const [commentText, setCommentText] = React.useState("");
+  const [commentError, setCommentError] = React.useState("");
+  const [replyToId, setReplyToId] = React.useState(null);
+  const [replyText, setReplyText] = React.useState("");
+
+  const reactions = [
+    { key: "thumbsDown", label: "👎" },
+    { key: "laugh", label: "😂" },
+    { key: "thumbsUp", label: "👍" },
+    { key: "cry", label: "😢" },
+    { key: "clap", label: "👏" },
+  ];
+
+  const getCommentsStorageKey = React.useCallback(() => {
+    if (!companyName || !itemKey) return null;
+    return `item_comments_${companyName}_${itemKey}`;
+  }, [companyName, itemKey]);
+
+  const saveComments = React.useCallback(
+    (nextComments) => {
+      setComments(nextComments);
+      try {
+        const key = getCommentsStorageKey();
+        if (key) localStorage.setItem(key, JSON.stringify(nextComments));
+      } catch {
+        // ignore
+      }
+    },
+    [getCommentsStorageKey]
+  );
+
+  const syncCommentsToFirestore = React.useCallback(
+    async (nextComments) => {
+      const companySlug = slugifyCompany(companyName || "");
+      if (!companySlug || !itemKey) return;
+
+      try {
+        await Promise.all(
+          (nextComments || []).map((comment) =>
+            setDoc(
+              doc(db, "item_comments", comment.id),
+              {
+                ...comment,
+                companySlug,
+                companyName,
+                itemKey,
+                itemLabel: itemConfig?.label || itemKey,
+                updatedAt: new Date().toISOString(),
+              },
+              { merge: true }
+            )
+          )
+        );
+      } catch {
+        // ignore remote sync failures
+      }
+    },
+    [companyName, itemConfig?.label, itemKey]
+  );
 
   React.useEffect(() => {
     let alive = true;
@@ -89,6 +226,171 @@ function CompanyItemComments({ theme, toggleTheme }) {
     };
   }, [companyName, itemConfig, itemKey]);
 
+  React.useEffect(() => {
+    const key = getCommentsStorageKey();
+    if (!key) {
+      setComments([]);
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem(key);
+      setComments(stored ? JSON.parse(stored) : []);
+    } catch {
+      setComments([]);
+    }
+  }, [getCommentsStorageKey]);
+
+  React.useEffect(() => {
+    let alive = true;
+
+    const loadRemoteComments = async () => {
+      const companySlug = slugifyCompany(companyName || "");
+      if (!companySlug || !itemKey) return;
+
+      try {
+        const ref = collection(db, "item_comments");
+        const q = query(
+          ref,
+          where("companySlug", "==", companySlug),
+          where("itemKey", "==", itemKey),
+          orderBy("createdAt", "desc"),
+          limit(120)
+        );
+        const snap = await getDocs(q);
+        if (!alive || snap.empty) return;
+
+        const remoteComments = snap.docs.map((d) => normalizeCommentDoc(d.id, d.data()));
+        saveComments(remoteComments);
+      } catch {
+        // ignore
+      }
+    };
+
+    loadRemoteComments();
+
+    return () => {
+      alive = false;
+    };
+  }, [companyName, itemKey, saveComments]);
+
+  const handleAddComment = () => {
+    const text = (commentText || "").trim();
+    if (!text) {
+      setCommentError("Digite um comentario para publicar.");
+      return;
+    }
+
+    const comment = {
+      id: `item_comment_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      author: (localStorage.getItem("userPseudonym") || "Anonimo").toString().trim() || "Anonimo",
+      text,
+      createdAt: new Date().toISOString(),
+      reactions: { thumbsDown: 0, laugh: 0, thumbsUp: 0, cry: 0, clap: 0 },
+      replies: [],
+    };
+
+    const next = [comment, ...comments];
+    saveComments(next);
+    syncCommentsToFirestore(next);
+    setCommentText("");
+    setCommentError("");
+  };
+
+  const handleReply = (targetId) => {
+    const text = (replyText || "").trim();
+    if (!text) return;
+
+    const reply = {
+      id: `item_reply_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      author: (localStorage.getItem("userPseudonym") || "Anonimo").toString().trim() || "Anonimo",
+      text,
+      createdAt: new Date().toISOString(),
+      reactions: { thumbsDown: 0, laugh: 0, thumbsUp: 0, cry: 0, clap: 0 },
+      replies: [],
+    };
+
+    const next = addReplyToItem(comments, targetId, reply);
+    saveComments(next);
+    syncCommentsToFirestore(next);
+    setReplyToId(null);
+    setReplyText("");
+  };
+
+  const handleReact = (targetId, reactionKey) => {
+    const next = incrementReactionById(comments, targetId, reactionKey);
+    saveComments(next);
+    syncCommentsToFirestore(next);
+  };
+
+  const renderReplies = (items) => {
+    return (items || []).map((reply) => (
+      <div
+        key={reply.id}
+        className="mt-3 ml-4 pl-3 border-l-2 border-blue-100 dark:border-slate-700"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{reply.author}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{toDateLabel(reply.createdAt)}</p>
+        </div>
+        <p className="mt-1 text-sm text-slate-700 dark:text-slate-100 whitespace-pre-line">{reply.text}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {reactions.map((reaction) => (
+            <button
+              key={`${reply.id}_${reaction.key}`}
+              type="button"
+              onClick={() => handleReact(reply.id, reaction.key)}
+              className="text-xs px-2 py-1 rounded-full border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"
+            >
+              {reaction.label} {reply?.reactions?.[reaction.key] || 0}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setReplyToId(reply.id)}
+            className="text-xs font-semibold text-blue-700 hover:underline"
+          >
+            Responder
+          </button>
+          <span className="text-xs text-slate-500">Total: {getTotalReactions(reply)}</span>
+        </div>
+
+        {replyToId === reply.id && (
+          <div className="mt-2">
+            <textarea
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              rows={2}
+              placeholder="Escreva sua resposta..."
+              className="w-full p-2 text-sm border border-gray-200 rounded-lg"
+            />
+            <div className="mt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setReplyToId(null);
+                  setReplyText("");
+                }}
+                className="px-3 py-1 text-xs rounded-lg border border-gray-200"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleReply(reply.id)}
+                className="px-3 py-1 text-xs rounded-lg bg-blue-600 text-white"
+              >
+                Enviar resposta
+              </button>
+            </div>
+          </div>
+        )}
+
+        {Array.isArray(reply.replies) && reply.replies.length > 0 && renderReplies(reply.replies)}
+      </div>
+    ));
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 py-10 px-4">
       <div className="max-w-4xl mx-auto flex justify-end mb-3">
@@ -98,7 +400,10 @@ function CompanyItemComments({ theme, toggleTheme }) {
           className="px-3 py-2 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
           aria-label="Alternar tema"
         >
-          Tema
+          <span className="inline-flex items-center gap-2">
+            {theme === "dark" ? <FaMoon /> : <FaSun />}
+            {theme === "dark" ? "Lua" : "Sol"}
+          </span>
         </button>
       </div>
 
@@ -151,6 +456,110 @@ function CompanyItemComments({ theme, toggleTheme }) {
             ))}
           </div>
         )}
+
+        <section className="mt-8 border-t border-blue-100 dark:border-slate-700 pt-6">
+          <h2 className="text-lg font-bold text-blue-800 dark:text-slate-100">
+            Discussao deste item (comentarios, reacoes e respostas)
+          </h2>
+
+          <div className="mt-3 space-y-2">
+            <textarea
+              value={commentText}
+              onChange={(e) => {
+                setCommentText(e.target.value);
+                if (commentError) setCommentError("");
+              }}
+              rows={3}
+              placeholder="Compartilhe sua experiencia neste item..."
+              className="w-full p-3 text-sm border border-gray-200 rounded-xl"
+            />
+            {commentError && <p className="text-sm text-rose-700">{commentError}</p>}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleAddComment}
+                className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold"
+              >
+                Publicar comentario
+              </button>
+            </div>
+          </div>
+
+          {comments.length === 0 ? (
+            <p className="mt-4 text-sm text-slate-500">Ainda nao ha comentarios nesta discussao.</p>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {[...comments]
+                .sort((a, b) => getTotalReactions(b) - getTotalReactions(a))
+                .map((comment) => (
+                  <article
+                    key={comment.id}
+                    className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-700"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{comment.author}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{toDateLabel(comment.createdAt)}</p>
+                    </div>
+                    <p className="mt-2 text-sm text-slate-700 dark:text-slate-100 whitespace-pre-line">{comment.text}</p>
+
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      {reactions.map((reaction) => (
+                        <button
+                          key={`${comment.id}_${reaction.key}`}
+                          type="button"
+                          onClick={() => handleReact(comment.id, reaction.key)}
+                          className="text-xs px-2 py-1 rounded-full border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"
+                        >
+                          {reaction.label} {comment?.reactions?.[reaction.key] || 0}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setReplyToId(comment.id)}
+                        className="text-xs font-semibold text-blue-700 hover:underline"
+                      >
+                        Responder
+                      </button>
+                      <span className="text-xs text-slate-500">Total: {getTotalReactions(comment)}</span>
+                    </div>
+
+                    {replyToId === comment.id && (
+                      <div className="mt-3">
+                        <textarea
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                          rows={2}
+                          placeholder="Escreva sua resposta..."
+                          className="w-full p-2 text-sm border border-gray-200 rounded-lg"
+                        />
+                        <div className="mt-2 flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReplyToId(null);
+                              setReplyText("");
+                            }}
+                            className="px-3 py-1 text-xs rounded-lg border border-gray-200"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleReply(comment.id)}
+                            className="px-3 py-1 text-xs rounded-lg bg-blue-600 text-white"
+                          >
+                            Enviar resposta
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {Array.isArray(comment.replies) && comment.replies.length > 0 && renderReplies(comment.replies)}
+                  </article>
+                ))}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );
