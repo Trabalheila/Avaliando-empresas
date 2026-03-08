@@ -5,7 +5,7 @@ import {
   FaBuilding, FaUserTie, FaHeart, FaComments, FaChartLine, FaGlobe, FaTrophy, FaGraduationCap, FaUserEdit, FaGoogle,
 } from "react-icons/fa";
 import Select from "react-select";
-import LoginLinkedInButton from "./components/LoginLinkedInButton";
+import LoginLinkedInButton from "./LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
 import { getCompanyLogoCandidates } from "./utils/getCompanyLogo";
 

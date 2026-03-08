@@ -2,6 +2,7 @@ import React, { useCallback, useState, useEffect, useMemo, useRef } from "react"
 import { Link, useNavigate } from "react-router-dom";
 import { getUserProfile, getUserProfileByCpf, saveUserProfile } from "../services/users";
 import { extractResumeText, parseResumeText } from "../utils/resumeParser";
+import { normalizeEmail, resolveProfileId } from "../utils/profileIdentity";
 
 const predefinedAvatars = [
   "🧑", "🧑‍💼", "🧑‍🔧", "🧑‍💻", "🧑‍🔬", "👩‍🏫", "👨‍🍳", "👩‍⚕️", "👨‍🚀", "👩‍🎨",
@@ -237,6 +238,28 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   const [verificationSource, setVerificationSource] = useState("");
   const avatarUploadInputRef = useRef(null);
 
+  const loadPersistedProfile = useCallback(async (profile) => {
+    const candidates = [];
+    const resolvedId = resolveProfileId(profile, { persistGeneratedId: false });
+    const rawId = (profile?.id || "").toString().trim();
+    const email = normalizeEmail(profile?.email);
+
+    if (resolvedId) candidates.push(resolvedId);
+    if (rawId && !candidates.includes(rawId)) candidates.push(rawId);
+    if (email && !candidates.includes(email)) candidates.push(email);
+
+    for (const candidate of candidates) {
+      try {
+        const persisted = await getUserProfile(candidate);
+        if (persisted) return persisted;
+      } catch {
+        // Try next candidate.
+      }
+    }
+
+    return null;
+  }, []);
+
   const applyProfileToState = useCallback((profile) => {
     if (!profile) return;
 
@@ -298,35 +321,33 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       const parsed = JSON.parse(profile);
       applyProfileToState(parsed);
 
-      const accountId = parsed?.id || parsed?.email;
-      if (accountId) {
-        getUserProfile(accountId)
-          .then((remoteProfile) => {
-            if (!remoteProfile) return;
+      loadPersistedProfile(parsed)
+        .then((remoteProfile) => {
+          if (!remoteProfile) return;
 
-            const mergedProfile = {
-              ...parsed,
-              ...remoteProfile,
-              resumeData: {
-                ...(parsed?.resumeData || {}),
-                ...(remoteProfile?.resumeData || {}),
-              },
-            };
+          const mergedProfile = {
+            ...parsed,
+            ...remoteProfile,
+            profileId: resolveProfileId(parsed),
+            resumeData: {
+              ...(parsed?.resumeData || {}),
+              ...(remoteProfile?.resumeData || {}),
+            },
+          };
 
-            localStorage.setItem("userProfile", JSON.stringify(mergedProfile));
-            if (mergedProfile?.name) {
-              localStorage.setItem("userPseudonym", mergedProfile.name);
-            }
-            applyProfileToState(mergedProfile);
-          })
-          .catch((err) => {
-            console.warn("Falha ao sincronizar perfil remoto:", err);
-          });
-      }
+          localStorage.setItem("userProfile", JSON.stringify(mergedProfile));
+          if (mergedProfile?.name) {
+            localStorage.setItem("userPseudonym", mergedProfile.name);
+          }
+          applyProfileToState(mergedProfile);
+        })
+        .catch((err) => {
+          console.warn("Falha ao sincronizar perfil remoto:", err);
+        });
     } catch {
       // ignore
     }
-  }, [navigate, applyProfileToState]);
+  }, [navigate, applyProfileToState, loadPersistedProfile]);
 
   const convertFileToDataUrl = (file) =>
     new Promise((resolve, reject) => {
@@ -364,8 +385,10 @@ function ChoosePseudonym({ theme, toggleTheme }) {
 
     try {
       const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      const profileId = resolveProfileId(existingProfile);
       const nextProfile = {
         ...existingProfile,
+        profileId,
         avatar,
       };
 
@@ -374,7 +397,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
 
       try {
         await saveUserProfile({
-          id: nextProfile.id || nextProfile.email || `anon_${Date.now()}`,
+          id: profileId,
           ...nextProfile,
         });
       } catch (err) {
@@ -437,14 +460,15 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       setError(null);
 
       let mergedProfile = { ...existingProfile };
-      const accountId = existingProfile?.id || existingProfile?.email;
-      if (accountId) {
+      const accountId = resolveProfileId(existingProfile, { persistGeneratedId: false });
+      if (accountId || existingProfile?.id || existingProfile?.email) {
         try {
-          const persisted = await getUserProfile(accountId);
+          const persisted = await loadPersistedProfile(existingProfile);
           if (persisted) {
             mergedProfile = {
               ...existingProfile,
               ...persisted,
+              profileId: resolveProfileId(existingProfile),
               resumeData: {
                 ...(existingProfile?.resumeData || {}),
                 ...(persisted?.resumeData || {}),
@@ -513,7 +537,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     } catch {
       setError("Não foi possível carregar dados do LinkedIn no momento.");
     }
-  }, [availableCompanies]);
+  }, [availableCompanies, loadPersistedProfile]);
 
   const handleImportLinkedInText = useCallback(() => {
     setError(null);
@@ -613,6 +637,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     setInfo("");
     try {
       const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      const profileId = resolveProfileId(existingProfile);
       const isTrustedEvidence = matchedCompanyEvidenceSource === "linkedin_api" && isLinkedInLogin;
 
       const nextVerification = isTrustedEvidence
@@ -633,6 +658,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
 
       const nextProfile = {
         ...existingProfile,
+        profileId,
         verification: nextVerification,
       };
 
@@ -644,7 +670,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
 
       try {
         await saveUserProfile({
-          id: nextProfile.id || nextProfile.email || `anon_${Date.now()}`,
+          id: profileId,
           ...nextProfile,
         });
       } catch (err) {
@@ -736,7 +762,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       }
 
       const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
-      const accountId = existingProfile.id || existingProfile.email;
+      const accountId = resolveProfileId(existingProfile, { persistGeneratedId: false });
 
       if (cpfNumbers) {
         try {
@@ -757,6 +783,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
 
       const nextProfile = {
         ...existingProfile,
+        profileId: resolveProfileId(existingProfile),
         name: trimmed,
         fullName: fullName.trim() || undefined,
         cpf: cpfNumbers || undefined,
@@ -791,7 +818,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       // Salva no Firebase para persistência centralizada
       try {
         await saveUserProfile({
-          id: nextProfile.id || nextProfile.email || `anon_${Date.now()}`,
+          id: nextProfile.profileId,
           ...nextProfile,
         });
       } catch (err) {

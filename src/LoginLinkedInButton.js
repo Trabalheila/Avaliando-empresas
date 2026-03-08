@@ -83,7 +83,18 @@ const LoginLinkedInButton = ({
       }
 
       const data = event.data;
-      if (!data || data.type !== "linkedin_oauth") return;
+      if (!data) return;
+
+      if (data.type === "linkedin_oauth_error") {
+        cleanup();
+        try {
+          popup.close();
+        } catch {}
+        onLoginFailure?.(new Error(data.message || "Falha ao autenticar com LinkedIn"));
+        return;
+      }
+
+      if (data.type !== "linkedin_oauth") return;
 
       const returnedState = data.state;
       const code = data.code;

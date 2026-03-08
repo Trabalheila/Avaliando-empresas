@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import Select from "react-select";
 import { getCompanyLogoCandidates } from "./utils/getCompanyLogo";
 import { FaBuilding, FaPlus, FaStar, FaRegStar, FaMoneyBillWave, FaGift, FaUsers, FaChartLine, FaUserTie, FaGlobe, FaTrophy, FaComments, FaGraduationCap, FaHeart, FaUserEdit, FaGoogle } from "react-icons/fa";
-import LoginLinkedInButton from "./components/LoginLinkedInButton";
+import LoginLinkedInButton from "./LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
 
 function TrabalheiLaDesktop({

@@ -10,6 +10,12 @@ import { auth, db } from "./firebase";
 import { signInAnonymously, signInWithPopup, signOut } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { googleProvider } from "./firebase";
+import {
+  clearStoredProfileId,
+  isProfileAuthenticated,
+  normalizeEmail,
+  resolveProfileId,
+} from "./utils/profileIdentity";
 
 const CONNECTOR_WORDS = new Set(["de", "da", "do", "das", "dos", "e"]);
 const LEGAL_SUFFIXES = new Set(["S.A", "SA", "S/A", "LTDA", "ME", "MEI", "EPP", "EIRELI", "SPE", "SCP"]);
@@ -833,16 +839,17 @@ function Home({ theme, toggleTheme }) {
 
       if (storedProfile) {
         try {
-          setUserProfile(JSON.parse(storedProfile));
+          const parsed = JSON.parse(storedProfile);
+          setUserProfile(parsed);
+          setIsAuthenticated(isProfileAuthenticated(parsed));
         } catch {
           setUserProfile({});
+          setIsAuthenticated(false);
         }
       } else {
         setUserProfile({});
+        setIsAuthenticated(false);
       }
-
-      // Considera o usuário autenticado se houver dados de perfil do LinkedIn.
-      setIsAuthenticated(!!storedProfile);
 
     };
 
@@ -864,6 +871,7 @@ function Home({ theme, toggleTheme }) {
     }
     localStorage.removeItem("userProfile");
     localStorage.removeItem("userPseudonym");
+    clearStoredProfileId();
     setUserProfile({});
     setIsAuthenticated(false);
     window.dispatchEvent(new Event("trabalheiLa_user_updated"));
@@ -879,6 +887,28 @@ function Home({ theme, toggleTheme }) {
       navigate("/pseudonym");
     }
   }, [navigate]);
+
+  const loadPersistedProfile = useCallback(async (profile) => {
+    const candidates = [];
+    const resolvedId = resolveProfileId(profile, { persistGeneratedId: false });
+    const rawId = (profile?.id || "").toString().trim();
+    const email = normalizeEmail(profile?.email);
+
+    if (resolvedId) candidates.push(resolvedId);
+    if (rawId && !candidates.includes(rawId)) candidates.push(rawId);
+    if (email && !candidates.includes(email)) candidates.push(email);
+
+    for (const candidate of candidates) {
+      try {
+        const persisted = await getUserProfile(candidate);
+        if (persisted) return persisted;
+      } catch {
+        // Try next candidate.
+      }
+    }
+
+    return null;
+  }, []);
 
   const handleLoginSuccess = useCallback(async ({ code, profile }) => {
     setIsLoading(true);
@@ -909,33 +939,33 @@ function Home({ theme, toggleTheme }) {
           ...data,
           loginProvider: "linkedin",
           linkedInUrl: data?.linkedInUrl || existingProfile?.linkedInUrl || null,
-          avatar: data.avatar || existingProfile.avatar,
+          avatar: data.avatar || data.picture || existingProfile.avatar,
         };
 
-        const accountId = mergedProfile.id || mergedProfile.email;
-        if (accountId) {
-          try {
-            const persisted = await getUserProfile(accountId);
-            if (persisted) {
-              mergedProfile = {
-                ...mergedProfile,
-                ...persisted,
-                resumeData: {
-                  ...(mergedProfile.resumeData || {}),
-                  ...(persisted.resumeData || {}),
-                },
-                avatar: mergedProfile.avatar || persisted.avatar,
-              };
+        const profileId = resolveProfileId(mergedProfile);
+        try {
+          const persisted = await loadPersistedProfile({ ...mergedProfile, profileId });
+          if (persisted) {
+            mergedProfile = {
+              ...mergedProfile,
+              ...persisted,
+              resumeData: {
+                ...(mergedProfile.resumeData || {}),
+                ...(persisted.resumeData || {}),
+              },
+              avatar: mergedProfile.avatar || persisted.avatar,
+            };
 
-              const persistedName = (persisted?.name || "").toString().trim();
-              if (persistedName) {
-                localStorage.setItem("userPseudonym", persistedName);
-              }
+            const persistedName = (persisted?.name || "").toString().trim();
+            if (persistedName) {
+              localStorage.setItem("userPseudonym", persistedName);
             }
-          } catch (loadErr) {
-            console.warn("Falha ao carregar perfil persistido do usuário:", loadErr);
           }
+        } catch (loadErr) {
+          console.warn("Falha ao carregar perfil persistido do usuário:", loadErr);
         }
+
+        mergedProfile = { ...mergedProfile, profileId };
 
         localStorage.setItem("userProfile", JSON.stringify(mergedProfile));
         setUserProfile(mergedProfile);
@@ -944,13 +974,14 @@ function Home({ theme, toggleTheme }) {
         // Salva o usuário no Fire1store (para acompanhar perfis)
         try {
           await saveUserProfile({
-            id: mergedProfile.id,
+            id: profileId,
             name: mergedProfile.name,
             email: mergedProfile.email,
             picture: mergedProfile.picture,
             loginProvider: "linkedin",
             linkedinProfile: mergedProfile.linkedInUrl || null,
             linkedinExperiences: Array.isArray(mergedProfile.linkedinExperiences) ? mergedProfile.linkedinExperiences : [],
+            profileId,
             updatedAt: new Date().toISOString(),
           });
         } catch (err) {
@@ -970,7 +1001,7 @@ function Home({ theme, toggleTheme }) {
     } finally {
       setIsLoading(false);
     }
-  }, [promptProfileCompletion]);
+  }, [loadPersistedProfile, promptProfileCompletion]);
 
   const handleGoogleLogin = useCallback(async () => {
     setIsLoading(true);
@@ -996,33 +1027,33 @@ function Home({ theme, toggleTheme }) {
       let mergedProfile = {
         ...existingProfile,
         ...googleData,
-        avatar: existingProfile.avatar || googleData.avatar,
+        avatar: existingProfile.avatar || googleData.picture,
       };
 
-      const accountId = mergedProfile.id || mergedProfile.email;
-      if (accountId) {
-        try {
-          const persisted = await getUserProfile(accountId);
-          if (persisted) {
-            mergedProfile = {
-              ...mergedProfile,
-              ...persisted,
-              resumeData: {
-                ...(mergedProfile.resumeData || {}),
-                ...(persisted.resumeData || {}),
-              },
-              avatar: mergedProfile.avatar || persisted.avatar,
-            };
+      const profileId = resolveProfileId(mergedProfile);
+      try {
+        const persisted = await loadPersistedProfile({ ...mergedProfile, profileId });
+        if (persisted) {
+          mergedProfile = {
+            ...mergedProfile,
+            ...persisted,
+            resumeData: {
+              ...(mergedProfile.resumeData || {}),
+              ...(persisted.resumeData || {}),
+            },
+            avatar: mergedProfile.avatar || persisted.avatar,
+          };
 
-            const persistedName = (persisted?.name || "").toString().trim();
-            if (persistedName) {
-              localStorage.setItem("userPseudonym", persistedName);
-            }
+          const persistedName = (persisted?.name || "").toString().trim();
+          if (persistedName) {
+            localStorage.setItem("userPseudonym", persistedName);
           }
-        } catch (loadErr) {
-          console.warn("Falha ao carregar perfil persistido do usuário:", loadErr);
         }
+      } catch (loadErr) {
+        console.warn("Falha ao carregar perfil persistido do usuário:", loadErr);
       }
+
+      mergedProfile = { ...mergedProfile, profileId };
 
       localStorage.setItem("userProfile", JSON.stringify(mergedProfile));
       setUserProfile(mergedProfile);
@@ -1030,11 +1061,12 @@ function Home({ theme, toggleTheme }) {
 
       try {
         await saveUserProfile({
-          id: mergedProfile.id,
+          id: profileId,
           name: mergedProfile.name,
           email: mergedProfile.email,
           picture: mergedProfile.picture,
           loginProvider: "google",
+          profileId,
           updatedAt: new Date().toISOString(),
         });
       } catch (err) {
@@ -1062,7 +1094,7 @@ function Home({ theme, toggleTheme }) {
     } finally {
       setIsLoading(false);
     }
-  }, [promptProfileCompletion]);
+  }, [loadPersistedProfile, promptProfileCompletion]);
 
   const commonProps = {
     company, setCompany, rating, setRating, commentRating, setCommentRating,

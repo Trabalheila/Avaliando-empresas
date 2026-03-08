@@ -24,7 +24,7 @@ function AuthLinkedIn() {
     }
 
     const saveAndNotify = (profile) => {
-      const storedProfile = profile || { loggedIn: true };
+      const storedProfile = profile || {};
       localStorage.setItem("userProfile", JSON.stringify(storedProfile));
       window.dispatchEvent(new Event("trabalheiLa_user_updated"));
 
@@ -41,6 +41,20 @@ function AuthLinkedIn() {
       navigate("/pseudonym");
     };
 
+    const notifyFailure = (message) => {
+      try {
+        if (window.opener && window.opener !== window && typeof window.opener.postMessage === "function") {
+          window.opener.postMessage({ type: "linkedin_oauth_error", message }, window.location.origin);
+          window.close();
+          return;
+        }
+      } catch {
+        // Ignore cross-origin errors
+      }
+
+      navigate("/?linkedin_error=1");
+    };
+
     fetch("/api/linkedin-auth", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -53,8 +67,7 @@ function AuthLinkedIn() {
       .then((data) => {
         if (data.error) {
           console.error("Erro no login:", data.error);
-          // Continua o fluxo mesmo se a API backend falhar.
-          saveAndNotify({ loggedIn: true, fallback: true });
+          notifyFailure(data.error);
           return;
         }
 
@@ -63,7 +76,7 @@ function AuthLinkedIn() {
       })
       .catch((err) => {
         console.error("Erro ao conectar com backend.", err);
-        saveAndNotify({ loggedIn: true, fallback: true });
+        notifyFailure("Falha ao conectar com LinkedIn");
       });
   }, [navigate]);
 
