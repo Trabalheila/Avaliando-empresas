@@ -8,17 +8,17 @@ import { collection, doc, getDocs, limit, orderBy, query, setDoc, where } from "
 const ITEM_CONFIG = {
   comunicacao: { label: "Contato do RH", commentKey: "commentComunicacao" },
   etica: { label: "Proposta e acerto salarial", commentKey: "commentEtica" },
-  salario: { label: "Salario e beneficios", commentKey: "commentSalario" },
-  cultura: { label: "Visao e valores da empresa", commentKey: "commentCultura" },
-  saudeBemEstar: { label: "Preocupacao com o bem-estar", commentKey: "commentSaudeBemEstar" },
-  lideranca: { label: "Acessibilidade e respeito da lideranca", commentKey: "commentLideranca" },
-  ambiente: { label: "Estimulo ao respeito entre colegas", commentKey: "commentAmbiente" },
-  estimacaoOrganizacao: { label: "Estimulo a organizacao", commentKey: "commentEstimacaoOrganizacao" },
-  desenvolvimento: { label: "Planos de cargos e salarios", commentKey: "commentDesenvolvimento" },
+  salario: { label: "Salário e benefícios", commentKey: "commentSalario" },
+  cultura: { label: "Visão e valores da empresa", commentKey: "commentCultura" },
+  saudeBemEstar: { label: "Preocupação com o bem-estar", commentKey: "commentSaudeBemEstar" },
+  lideranca: { label: "Acessibilidade e respeito da liderança", commentKey: "commentLideranca" },
+  ambiente: { label: "Estímulo ao respeito entre colegas", commentKey: "commentAmbiente" },
+  estimacaoOrganizacao: { label: "Estímulo à organização", commentKey: "commentEstimacaoOrganizacao" },
+  desenvolvimento: { label: "Planos de cargos e salários", commentKey: "commentDesenvolvimento" },
   reconhecimento: { label: "Reconhecimento", commentKey: "commentReconhecimento" },
   equilibrio: { label: "Rotatividade", commentKey: "commentEquilibrio" },
-  diversidade: { label: "Atitudes de discriminacao", commentKey: "commentDiversidade" },
-  rating: { label: "Saude e Seguranca", commentKey: "commentRating" },
+  diversidade: { label: "Atitudes de discriminação", commentKey: "commentDiversidade" },
+  rating: { label: "Saúde e Segurança", commentKey: "commentRating" },
 };
 
 function toDateLabel(value) {
@@ -39,7 +39,7 @@ function getTotalReactions(item) {
 function normalizeCommentDoc(id, data) {
   return {
     id,
-    author: data?.author || "Anonimo",
+    author: data?.author || "Anônimo",
     text: data?.text || "",
     createdAt:
       typeof data?.createdAt?.toDate === "function"
@@ -55,7 +55,7 @@ function normalizeCommentDoc(id, data) {
     replies: Array.isArray(data?.replies)
       ? data.replies.map((reply) => ({
           id: reply?.id || `${Date.now()}_${Math.random().toString(16).slice(2)}`,
-          author: reply?.author || "Anonimo",
+          author: reply?.author || "Anônimo",
           text: reply?.text || "",
           createdAt:
             typeof reply?.createdAt?.toDate === "function"
@@ -199,7 +199,7 @@ function CompanyItemComments({ theme, toggleTheme }) {
           .filter((review) => typeof review?.[commentKey] === "string" && review[commentKey].trim())
           .map((review) => ({
             id: review.id,
-            pseudonym: review.pseudonym || "Anonimo",
+            pseudonym: review.pseudonym || "Anônimo",
             comment: review[commentKey].trim(),
             score: review?.[itemKey],
             createdAt:
@@ -212,7 +212,7 @@ function CompanyItemComments({ theme, toggleTheme }) {
         setEntries(filtered);
       } catch (err) {
         if (!alive) return;
-        setErrorMsg("Nao foi possivel carregar os comentarios deste item.");
+        setErrorMsg("Não foi possível carregar os comentários deste item.");
       } finally {
         if (!alive) return;
         setIsLoading(false);
@@ -277,13 +277,13 @@ function CompanyItemComments({ theme, toggleTheme }) {
   const handleAddComment = () => {
     const text = (commentText || "").trim();
     if (!text) {
-      setCommentError("Digite um comentario para publicar.");
+      setCommentError("Digite um comentário para publicar.");
       return;
     }
 
     const comment = {
       id: `item_comment_${Date.now()}_${Math.random().toString(16).slice(2)}`,
-      author: (localStorage.getItem("userPseudonym") || "Anonimo").toString().trim() || "Anonimo",
+      author: (localStorage.getItem("userPseudonym") || "Anônimo").toString().trim() || "Anônimo",
       text,
       createdAt: new Date().toISOString(),
       reactions: { thumbsDown: 0, laugh: 0, thumbsUp: 0, cry: 0, clap: 0 },
@@ -303,7 +303,7 @@ function CompanyItemComments({ theme, toggleTheme }) {
 
     const reply = {
       id: `item_reply_${Date.now()}_${Math.random().toString(16).slice(2)}`,
-      author: (localStorage.getItem("userPseudonym") || "Anonimo").toString().trim() || "Anonimo",
+      author: (localStorage.getItem("userPseudonym") || "Anônimo").toString().trim() || "Anônimo",
       text,
       createdAt: new Date().toISOString(),
       reactions: { thumbsDown: 0, laugh: 0, thumbsUp: 0, cry: 0, clap: 0 },
@@ -412,30 +412,30 @@ function CompanyItemComments({ theme, toggleTheme }) {
           to={`/empresa?name=${encodeURIComponent(companyName)}`}
           className="text-sm font-bold text-blue-700 hover:underline"
         >
-          {"<- Voltar para a pagina da empresa"}
+          {"← Voltar para a página da empresa"}
         </Link>
 
         <h1 className="mt-4 text-2xl font-extrabold text-blue-800 dark:text-slate-100">
-          Comentarios por item
+          Comentários por item
         </h1>
 
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          Empresa: <span className="font-semibold">{companyName || "Nao informada"}</span>
+          Empresa: <span className="font-semibold">{companyName || "Não informada"}</span>
         </p>
 
         <p className="text-sm text-slate-600 dark:text-slate-300">
-          Item: <span className="font-semibold">{itemConfig?.label || "Item invalido"}</span>
+          Item: <span className="font-semibold">{itemConfig?.label || "Item inválido"}</span>
         </p>
 
         {isLoading ? (
-          <div className="mt-6 text-sm text-slate-600">Carregando comentarios...</div>
+          <div className="mt-6 text-sm text-slate-600">Carregando comentários...</div>
         ) : errorMsg ? (
           <div className="mt-6 text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg p-3">
             {errorMsg}
           </div>
         ) : entries.length === 0 ? (
           <div className="mt-6 text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-3">
-            Ainda nao ha comentarios para este item.
+            Ainda não há comentários para este item.
           </div>
         ) : (
           <div className="mt-6 space-y-3">
@@ -459,8 +459,12 @@ function CompanyItemComments({ theme, toggleTheme }) {
 
         <section className="mt-8 border-t border-blue-100 dark:border-slate-700 pt-6">
           <h2 className="text-lg font-bold text-blue-800 dark:text-slate-100">
-            Discussao deste item (comentarios, reacoes e respostas)
+            Discussão deste item (comentários, reações e respostas)
           </h2>
+
+          <p className="mt-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+            Você está comentando sobre: <span className="font-semibold">{itemConfig?.label || "Item"}</span>
+          </p>
 
           <div className="mt-3 space-y-2">
             <textarea
@@ -470,7 +474,7 @@ function CompanyItemComments({ theme, toggleTheme }) {
                 if (commentError) setCommentError("");
               }}
               rows={3}
-              placeholder="Compartilhe sua experiencia neste item..."
+              placeholder={`Compartilhe sua experiência sobre "${itemConfig?.label || "este item"}"...`}
               className="w-full p-3 text-sm border border-gray-200 rounded-xl"
             />
             {commentError && <p className="text-sm text-rose-700">{commentError}</p>}
@@ -480,13 +484,13 @@ function CompanyItemComments({ theme, toggleTheme }) {
                 onClick={handleAddComment}
                 className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold"
               >
-                Publicar comentario
+                Publicar comentário
               </button>
             </div>
           </div>
 
           {comments.length === 0 ? (
-            <p className="mt-4 text-sm text-slate-500">Ainda nao ha comentarios nesta discussao.</p>
+            <p className="mt-4 text-sm text-slate-500">Ainda não há comentários nesta discussão.</p>
           ) : (
             <div className="mt-4 space-y-3">
               {[...comments]
