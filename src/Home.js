@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import TrabalheiLaMobile from "./TrabalheiLaMobile";
 import TrabalheiLaDesktop from "./TrabalheiLaDesktop";
@@ -315,7 +315,6 @@ function Home({ theme, toggleTheme }) {
     };
   }, []);
 
-  const calcularMedia = useCallback((emp) => {
   const getCompanyAverageValue = useCallback((emp) => {
     const ratings = [
       emp.rating, emp.salario, emp.beneficios, emp.cultura, emp.oportunidades,
@@ -335,14 +334,15 @@ function Home({ theme, toggleTheme }) {
     return average.toFixed(1);
   }, [getCompanyAverageValue]);
 
-  const top3 = [...empresas]
-    .sort((a, b) => {
-      const avgA = getCompanyAverageValue(a);
-      const avgB = getCompanyAverageValue(b);
-      return (avgB ?? -1) - (avgA ?? -1);
-    })
-    .slice(0, 3);
-  }, []);
+  const top3 = useMemo(() => {
+    return [...empresas]
+      .sort((a, b) => {
+        const avgA = getCompanyAverageValue(a);
+        const avgB = getCompanyAverageValue(b);
+        return (avgB ?? -1) - (avgA ?? -1);
+      })
+      .slice(0, 3);
+  }, [empresas, getCompanyAverageValue]);
 
   const getMedalColor = (index) => {
     if (index === 0) return "from-yellow-400 to-yellow-600";
@@ -523,7 +523,7 @@ function Home({ theme, toggleTheme }) {
       timestamp: new Date().toISOString(),
     };
 
-    // Não permite que o mesmo pseudô1nimo avalie a mesma empresa mais de uma vez (cache local rápido)
+    // Não permite que o mesmo pseudô1nimo avali1e a mesma empresa mais de uma vez (cache local rápido)
     const evaluationsKey = `evaluations_${company.value}`;
     const storedEvals = localStorage.getItem(evaluationsKey);
     const existingEvals = storedEvals ? JSON.parse(storedEvals) : {};
