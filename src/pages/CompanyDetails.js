@@ -210,7 +210,6 @@ function CompanyDetails() {
 
   const [comments, setComments] = React.useState([]);
   const [mandatoryComment, setMandatoryComment] = React.useState("");
-  const [experienceComment, setExperienceComment] = React.useState("");
   const [commentError, setCommentError] = React.useState("");
   const [replyTo, setReplyTo] = React.useState(null);
   const [replyText, setReplyText] = React.useState("");
@@ -710,10 +709,9 @@ function CompanyDetails() {
 
   const handleAddComment = () => {
     const mandatoryText = mandatoryComment.trim();
-    const experienceText = experienceComment.trim();
 
     if (!mandatoryText) {
-      setCommentError("O campo de comentário obrigatório precisa ser preenchido.");
+      setCommentError("O comentário precisa ser preenchido.");
       return;
     }
 
@@ -721,9 +719,7 @@ function CompanyDetails() {
 
     const pseudonym = localStorage.getItem("userPseudonym") || "Anônimo";
 
-    const finalText = experienceText
-      ? `${mandatoryText}\n\nVocê trabalhou lá? Quer compartilhar sua experiência?\n${experienceText}`
-      : mandatoryText;
+    const finalText = mandatoryText;
 
     const moderation = detectAutoModeration(finalText);
     const moderatedText = moderation.status === "approved"
@@ -743,7 +739,6 @@ function CompanyDetails() {
     syncCommentsToFirestore([comment, ...comments]);
     setActionNotice("Comentário publicado. Você pode editar ou apagar por até 5 minutos.");
     setMandatoryComment("");
-    setExperienceComment("");
 
     if (moderation.status !== "approved") {
       setModerationInfo("Seu comentário passou por moderação automática.");
@@ -1156,17 +1151,6 @@ function CompanyDetails() {
                 Você trabalhou lá? Quer compartilhar sua experiência? Digite aqui.
               </label>
               <textarea
-                value={experienceComment}
-                onChange={(e) => setExperienceComment(e.target.value)}
-                placeholder="Conte como foi sua experiência na empresa (opcional)."
-                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={3}
-              />
-
-              <label className="text-sm font-semibold text-blue-800 font-azonix">
-                Comentário obrigatório
-              </label>
-              <textarea
                 value={mandatoryComment}
                 onChange={(e) => {
                   setMandatoryComment(e.target.value);
@@ -1228,7 +1212,7 @@ function CompanyDetails() {
                         <button
                           type="button"
                           onClick={() => setReplyTo(comment.id)}
-                          className="text-xs text-blue-600 hover:underline"
+                          className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                         >
                           Responder
                         </button>
@@ -1237,14 +1221,14 @@ function CompanyDetails() {
                             <button
                               type="button"
                               onClick={() => startEditingItem(comment)}
-                              className="text-xs text-emerald-700 hover:underline"
+                              className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                             >
                               Editar ({getRemainingManageTimeLabel(comment)})
                             </button>
                             <button
                               type="button"
                               onClick={() => deleteItem(comment)}
-                              className="text-xs text-rose-700 hover:underline"
+                              className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                             >
                               Apagar ({getRemainingManageTimeLabel(comment)})
                             </button>
@@ -1253,14 +1237,14 @@ function CompanyDetails() {
                         <button
                           type="button"
                           onClick={() => hideContent(comment.id)}
-                          className="text-xs text-slate-600 hover:underline"
+                          className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                         >
                           Bloquear conteúdo
                         </button>
                         <button
                           type="button"
                           onClick={() => blockAuthor(comment.author)}
-                          className="text-xs text-slate-600 hover:underline"
+                          className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                         >
                           Bloquear usuário
                         </button>
@@ -1274,7 +1258,7 @@ function CompanyDetails() {
                               text: comment.text,
                             })
                           }
-                          className="text-xs text-red-600 hover:underline"
+                          className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                         >
                           Denunciar conteúdo
                         </button>
@@ -1288,7 +1272,7 @@ function CompanyDetails() {
                               text: "",
                             })
                           }
-                          className="text-xs text-red-600 hover:underline"
+                          className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                         >
                           Denunciar usuário
                         </button>
@@ -1388,7 +1372,7 @@ function CompanyDetails() {
                                 <button
                                   type="button"
                                   onClick={() => setReplyTo(reply.id)}
-                                  className="text-xs text-blue-600 hover:underline"
+                                  className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                                 >
                                   Responder
                                 </button>
@@ -1397,14 +1381,14 @@ function CompanyDetails() {
                                     <button
                                       type="button"
                                       onClick={() => startEditingItem(reply)}
-                                      className="text-xs text-emerald-700 hover:underline"
+                                      className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                                     >
                                       Editar ({getRemainingManageTimeLabel(reply)})
                                     </button>
                                     <button
                                       type="button"
                                       onClick={() => deleteItem(reply)}
-                                      className="text-xs text-rose-700 hover:underline"
+                                      className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                                     >
                                       Apagar ({getRemainingManageTimeLabel(reply)})
                                     </button>
@@ -1413,14 +1397,14 @@ function CompanyDetails() {
                                 <button
                                   type="button"
                                   onClick={() => hideContent(reply.id)}
-                                  className="text-xs text-slate-600 hover:underline"
+                                  className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                                 >
                                   Bloquear conteúdo
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => blockAuthor(reply.author)}
-                                  className="text-xs text-slate-600 hover:underline"
+                                  className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                                 >
                                   Bloquear usuário
                                 </button>
@@ -1434,7 +1418,7 @@ function CompanyDetails() {
                                       text: reply.text,
                                     })
                                   }
-                                  className="text-xs text-red-600 hover:underline"
+                                  className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                                 >
                                   Denunciar conteúdo
                                 </button>
@@ -1448,7 +1432,7 @@ function CompanyDetails() {
                                       text: "",
                                     })
                                   }
-                                  className="text-xs text-red-600 hover:underline"
+                                  className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                                 >
                                   Denunciar usuário
                                 </button>
