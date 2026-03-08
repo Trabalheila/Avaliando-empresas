@@ -980,7 +980,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
               Voltar para a página principal
             </button>
           </div>
-          <h1 className="text-2xl font-extrabold text-blue-800 dark:text-blue-200 mb-4 text-center">Seu perfil anônimo</h1>
+          <h1 className="text-2xl font-extrabold font-azonix tracking-wide text-blue-800 dark:text-blue-200 mb-4 text-center">Seu perfil anônimo</h1>
           {isCertifiedProfile && (
             <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-emerald-800 text-sm font-semibold text-center">
               Selo certificado ativo{verifiedCompany ? ` para ${verifiedCompany}` : ""}.
