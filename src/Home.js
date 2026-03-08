@@ -73,6 +73,7 @@ function sortCompaniesAlphabetically(items) {
 
 // Pequena alteração para forçar novo deploy (sem impacto funcional)
 function Home({ theme, toggleTheme }) {
+  const REVIEW_DRAFT_STORAGE_KEY = "trabalheiLa_review_draft_v1";
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [firebaseStatus, setFirebaseStatus] = useState("verificando...");
@@ -164,6 +165,7 @@ function Home({ theme, toggleTheme }) {
   const [generalComment, setGeneralComment] = useState("");
   const [entrySource, setEntrySource] = useState("");
   const [contractType, setContractType] = useState("");
+  const didHydrateDraftRef = React.useRef(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -399,6 +401,162 @@ function Home({ theme, toggleTheme }) {
     }));
 
   const [selectedCompanyData, setSelectedCompanyData] = useState(null);
+
+  useEffect(() => {
+    try {
+      const storedDraft = localStorage.getItem(REVIEW_DRAFT_STORAGE_KEY);
+      if (!storedDraft) {
+        didHydrateDraftRef.current = true;
+        return;
+      }
+
+      const draft = JSON.parse(storedDraft);
+      const draftCompany = (draft?.company || "").toString().trim();
+
+      if (draftCompany) {
+        setCompany({ value: draftCompany, label: draftCompany });
+      }
+
+      if (typeof draft?.rating === "number") setRating(draft.rating);
+      if (typeof draft?.commentRating === "string") setCommentRating(draft.commentRating);
+      if (typeof draft?.salario === "number") setSalario(draft.salario);
+      if (typeof draft?.commentSalario === "string") setCommentSalario(draft.commentSalario);
+      if (typeof draft?.beneficios === "number") setBeneficios(draft.beneficios);
+      if (typeof draft?.commentBeneficios === "string") setCommentBeneficios(draft.commentBeneficios);
+      if (typeof draft?.cultura === "number") setCultura(draft.cultura);
+      if (typeof draft?.commentCultura === "string") setCommentCultura(draft.commentCultura);
+      if (typeof draft?.oportunidades === "number") setOportunidades(draft.oportunidades);
+      if (typeof draft?.commentOportunidades === "string") setCommentOportunidades(draft.commentOportunidades);
+      if (typeof draft?.inovacao === "number") setInovacao(draft.inovacao);
+      if (typeof draft?.commentInovacao === "string") setCommentInovacao(draft.commentInovacao);
+      if (typeof draft?.lideranca === "number") setLideranca(draft.lideranca);
+      if (typeof draft?.commentLideranca === "string") setCommentLideranca(draft.commentLideranca);
+      if (typeof draft?.diversidade === "number") setDiversidade(draft.diversidade);
+      if (typeof draft?.commentDiversidade === "string") setCommentDiversidade(draft.commentDiversidade);
+      if (typeof draft?.ambiente === "number") setAmbiente(draft.ambiente);
+      if (typeof draft?.commentAmbiente === "string") setCommentAmbiente(draft.commentAmbiente);
+      if (typeof draft?.equilibrio === "number") setEquilibrio(draft.equilibrio);
+      if (typeof draft?.commentEquilibrio === "string") setCommentEquilibrio(draft.commentEquilibrio);
+      if (typeof draft?.reconhecimento === "number") setReconhecimento(draft.reconhecimento);
+      if (typeof draft?.commentReconhecimento === "string") setCommentReconhecimento(draft.commentReconhecimento);
+      if (typeof draft?.comunicacao === "number") setComunicacao(draft.comunicacao);
+      if (typeof draft?.commentComunicacao === "string") setCommentComunicacao(draft.commentComunicacao);
+      if (typeof draft?.etica === "number") setEtica(draft.etica);
+      if (typeof draft?.commentEtica === "string") setCommentEtica(draft.commentEtica);
+      if (typeof draft?.desenvolvimento === "number") setDesenvolvimento(draft.desenvolvimento);
+      if (typeof draft?.commentDesenvolvimento === "string") setCommentDesenvolvimento(draft.commentDesenvolvimento);
+      if (typeof draft?.saudeBemEstar === "number") setSaudeBemEstar(draft.saudeBemEstar);
+      if (typeof draft?.commentSaudeBemEstar === "string") setCommentSaudeBemEstar(draft.commentSaudeBemEstar);
+      if (typeof draft?.impactoSocial === "number") setImpactoSocial(draft.impactoSocial);
+      if (typeof draft?.commentImpactoSocial === "string") setCommentImpactoSocial(draft.commentImpactoSocial);
+      if (typeof draft?.reputacao === "number") setReputacao(draft.reputacao);
+      if (typeof draft?.commentReputacao === "string") setCommentReputacao(draft.commentReputacao);
+      if (typeof draft?.estimacaoOrganizacao === "number") setEstimacaoOrganizacao(draft.estimacaoOrganizacao);
+      if (typeof draft?.commentEstimacaoOrganizacao === "string") setCommentEstimacaoOrganizacao(draft.commentEstimacaoOrganizacao);
+      if (typeof draft?.generalComment === "string") setGeneralComment(draft.generalComment);
+      if (typeof draft?.entrySource === "string") setEntrySource(draft.entrySource);
+      if (typeof draft?.contractType === "string") setContractType(draft.contractType);
+    } catch (err) {
+      console.warn("Falha ao carregar rascunho da avaliacao:", err);
+    } finally {
+      didHydrateDraftRef.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!didHydrateDraftRef.current) return;
+
+    const draft = {
+      company: company?.value || "",
+      rating,
+      commentRating,
+      salario,
+      commentSalario,
+      beneficios,
+      commentBeneficios,
+      cultura,
+      commentCultura,
+      oportunidades,
+      commentOportunidades,
+      inovacao,
+      commentInovacao,
+      lideranca,
+      commentLideranca,
+      diversidade,
+      commentDiversidade,
+      ambiente,
+      commentAmbiente,
+      equilibrio,
+      commentEquilibrio,
+      reconhecimento,
+      commentReconhecimento,
+      comunicacao,
+      commentComunicacao,
+      etica,
+      commentEtica,
+      desenvolvimento,
+      commentDesenvolvimento,
+      saudeBemEstar,
+      commentSaudeBemEstar,
+      impactoSocial,
+      commentImpactoSocial,
+      reputacao,
+      commentReputacao,
+      estimacaoOrganizacao,
+      commentEstimacaoOrganizacao,
+      generalComment,
+      entrySource,
+      contractType,
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      localStorage.setItem(REVIEW_DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    } catch (err) {
+      console.warn("Falha ao salvar rascunho da avaliacao:", err);
+    }
+  }, [
+    company,
+    rating,
+    commentRating,
+    salario,
+    commentSalario,
+    beneficios,
+    commentBeneficios,
+    cultura,
+    commentCultura,
+    oportunidades,
+    commentOportunidades,
+    inovacao,
+    commentInovacao,
+    lideranca,
+    commentLideranca,
+    diversidade,
+    commentDiversidade,
+    ambiente,
+    commentAmbiente,
+    equilibrio,
+    commentEquilibrio,
+    reconhecimento,
+    commentReconhecimento,
+    comunicacao,
+    commentComunicacao,
+    etica,
+    commentEtica,
+    desenvolvimento,
+    commentDesenvolvimento,
+    saudeBemEstar,
+    commentSaudeBemEstar,
+    impactoSocial,
+    commentImpactoSocial,
+    reputacao,
+    commentReputacao,
+    estimacaoOrganizacao,
+    commentEstimacaoOrganizacao,
+    generalComment,
+    entrySource,
+    contractType,
+  ]);
 
   useEffect(() => {
     if (company) {
@@ -641,6 +799,7 @@ function Home({ theme, toggleTheme }) {
       );
 
       alert("Avaliação enviada com sucesso! Obrigado por sua contribuição.");
+      localStorage.removeItem(REVIEW_DRAFT_STORAGE_KEY);
       navigate(`/empresa?name=${encodeURIComponent(company.value)}`);
     } catch (err) {
       const rawMessage = String(err?.message || "Erro desconhecido");
