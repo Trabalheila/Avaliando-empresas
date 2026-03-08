@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import {
   FaStar, FaHandshake, FaMoneyBillWave,
   FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb,
@@ -491,9 +492,13 @@ function TrabalheiLaMobile({
           Política de Privacidade
         </a>
         <span>•</span>
-        <a href="/purpose" className="text-blue-600 dark:text-blue-300 hover:underline">
+        <Link to="/purpose" className="text-blue-600 dark:text-blue-300 hover:underline">
           Qual o nosso propósito?
-        </a>
+        </Link>
+        <span>•</span>
+        <Link to="/excluir-dados" className="text-blue-600 dark:text-blue-300 hover:underline font-semibold">
+          Exclusão de dados
+        </Link>
       </footer>
     </div>
   );

@@ -1,5 +1,5 @@
 import { db } from "../firebase";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp, deleteDoc } from "firebase/firestore";
 
 export async function saveUserProfile(profile) {
   if (!profile) return null;
@@ -24,4 +24,11 @@ export async function getUserProfile(id) {
   const snap = await getDoc(ref);
   if (!snap.exists()) return null;
   return { id: snap.id, ...snap.data() };
+}
+
+export async function deleteUserProfile(id) {
+  if (!id) return false;
+  const ref = doc(db, "users", id.toString());
+  await deleteDoc(ref);
+  return true;
 }

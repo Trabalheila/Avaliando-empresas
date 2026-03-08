@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import Select from "react-select";
 import { getCompanyLogoCandidates } from "./utils/getCompanyLogo";
 import { FaBuilding, FaPlus, FaStar, FaRegStar, FaMoneyBillWave, FaGift, FaUsers, FaChartLine, FaLightbulb, FaUserTie, FaGlobe, FaLeaf, FaBalanceScale, FaTrophy, FaComments, FaHandshake, FaGraduationCap, FaHeart } from "react-icons/fa";
@@ -350,9 +351,13 @@ function TrabalheiLaDesktop({
                 Política de Privacidade
               </a>
               {" • "}
-              <a href="/purpose" className="text-blue-700 hover:text-blue-900 font-extrabold underline">
+              <Link to="/purpose" className="text-blue-700 hover:text-blue-900 font-extrabold underline">
                 Qual o nosso propósito?
-              </a>
+              </Link>
+              {" • "}
+              <Link to="/excluir-dados" className="text-blue-700 hover:text-blue-900 font-extrabold underline">
+                Exclusão de dados
+              </Link>
               {" • "}
               <span>© 2026 Trabalhei Lá - Todos os direitos reservados</span>
             </p>

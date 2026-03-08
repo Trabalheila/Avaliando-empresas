@@ -14,6 +14,56 @@ function normalizeKey(value) {
     .trim();
 }
 
+const AUTO_MODERATION_TERMS = [
+  "racista",
+  "nazista",
+  "estupr",
+  "amea",
+  "matar",
+  "suicid",
+  "porno",
+  "xingamento",
+];
+
+function detectAutoModeration(rawText) {
+  const text = (rawText || "").toString().trim();
+  const normalized = normalizeKey(text);
+
+  if (!normalized) {
+    return { status: "review", reasons: ["conteudo_vazio"] };
+  }
+
+  const reasons = [];
+
+  const hasBlockedTerm = AUTO_MODERATION_TERMS.some((term) => normalized.includes(term));
+  if (hasBlockedTerm) {
+    reasons.push("linguagem_inadequada");
+  }
+
+  const linksCount = (text.match(/https?:\/\//gi) || []).length;
+  if (linksCount >= 2) {
+    reasons.push("spam_links");
+  }
+
+  if (/([A-Za-z])\1{8,}/.test(text)) {
+    reasons.push("texto_repetitivo");
+  }
+
+  if (text.length > 2500) {
+    reasons.push("texto_extenso");
+  }
+
+  if (hasBlockedTerm) {
+    return { status: "hidden", reasons };
+  }
+
+  if (reasons.length > 0) {
+    return { status: "review", reasons };
+  }
+
+  return { status: "approved", reasons: [] };
+}
+
 async function fetchWikidataLabels(ids) {
   if (!ids.length) return {};
   const url = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${ids.join("|")}&format=json&props=labels&languages=pt|en&origin=*`;
@@ -165,6 +215,10 @@ function CompanyDetails() {
   const [replyText, setReplyText] = React.useState("");
   const [reactionRegistry, setReactionRegistry] = React.useState({});
   const [animatedReactionKey, setAnimatedReactionKey] = React.useState("");
+  const [blockedAuthors, setBlockedAuthors] = React.useState({});
+  const [hiddenContentIds, setHiddenContentIds] = React.useState({});
+  const [reportsRegistry, setReportsRegistry] = React.useState({});
+  const [moderationInfo, setModerationInfo] = React.useState("");
   const reactionAnimationTimeout = React.useRef(null);
   const [insights, setInsights] = React.useState(null);
   const [insightsLoading, setInsightsLoading] = React.useState(false);
@@ -302,6 +356,18 @@ function CompanyDetails() {
     return company ? `comment_reactions_${company.company}` : null;
   }, [company]);
 
+  const getBlockedAuthorsKey = React.useCallback(() => {
+    return company ? `blocked_authors_${company.company}` : null;
+  }, [company]);
+
+  const getHiddenContentKey = React.useCallback(() => {
+    return company ? `hidden_content_${company.company}` : null;
+  }, [company]);
+
+  const getReportsRegistryKey = React.useCallback(() => {
+    return company ? `reports_registry_${company.company}` : null;
+  }, [company]);
+
   const saveComments = React.useCallback((nextComments) => {
     setComments(nextComments);
     try {
@@ -421,6 +487,51 @@ function CompanyDetails() {
     }
   }, [getReactionsKey]);
 
+  React.useEffect(() => {
+    const key = getBlockedAuthorsKey();
+    if (!key) {
+      setBlockedAuthors({});
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem(key);
+      setBlockedAuthors(stored ? JSON.parse(stored) : {});
+    } catch {
+      setBlockedAuthors({});
+    }
+  }, [getBlockedAuthorsKey]);
+
+  React.useEffect(() => {
+    const key = getHiddenContentKey();
+    if (!key) {
+      setHiddenContentIds({});
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem(key);
+      setHiddenContentIds(stored ? JSON.parse(stored) : {});
+    } catch {
+      setHiddenContentIds({});
+    }
+  }, [getHiddenContentKey]);
+
+  React.useEffect(() => {
+    const key = getReportsRegistryKey();
+    if (!key) {
+      setReportsRegistry({});
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem(key);
+      setReportsRegistry(stored ? JSON.parse(stored) : {});
+    } catch {
+      setReportsRegistry({});
+    }
+  }, [getReportsRegistryKey]);
+
   const saveReactionRegistry = (next) => {
     setReactionRegistry(next);
     try {
@@ -431,6 +542,116 @@ function CompanyDetails() {
     } catch (err) {
       console.warn("Falha ao salvar reações:", err);
     }
+  };
+
+  const saveBlockedAuthors = (next) => {
+    setBlockedAuthors(next);
+    try {
+      const key = getBlockedAuthorsKey();
+      if (key) localStorage.setItem(key, JSON.stringify(next));
+    } catch {
+      // ignore
+    }
+  };
+
+  const saveHiddenContentIds = (next) => {
+    setHiddenContentIds(next);
+    try {
+      const key = getHiddenContentKey();
+      if (key) localStorage.setItem(key, JSON.stringify(next));
+    } catch {
+      // ignore
+    }
+  };
+
+  const saveReportsRegistry = (next) => {
+    setReportsRegistry(next);
+    try {
+      const key = getReportsRegistryKey();
+      if (key) localStorage.setItem(key, JSON.stringify(next));
+    } catch {
+      // ignore
+    }
+  };
+
+  const getAuthorBlockKey = (author) => normalizeKey(author || "anonimo");
+
+  const isAuthorBlocked = React.useCallback(
+    (author) => Boolean(blockedAuthors[getAuthorBlockKey(author)]),
+    [blockedAuthors]
+  );
+
+  const isContentHidden = React.useCallback(
+    (targetId) => Boolean(hiddenContentIds[targetId]),
+    [hiddenContentIds]
+  );
+
+  const blockAuthor = (author) => {
+    const key = getAuthorBlockKey(author);
+    if (!key) return;
+    saveBlockedAuthors({
+      ...blockedAuthors,
+      [key]: {
+        author,
+        blockedAt: new Date().toISOString(),
+      },
+    });
+    setModerationInfo(`Usuário ${author} bloqueado. Conteúdos desse autor foram ocultados para você.`);
+  };
+
+  const hideContent = (targetId) => {
+    if (!targetId) return;
+    saveHiddenContentIds({
+      ...hiddenContentIds,
+      [targetId]: {
+        hiddenAt: new Date().toISOString(),
+      },
+    });
+    setModerationInfo("Conteúdo ocultado com sucesso.");
+  };
+
+  const syncReportToFirestore = async (report) => {
+    try {
+      await setDoc(doc(db, "content_reports", report.id), report, { merge: true });
+    } catch (err) {
+      console.warn("Falha ao salvar denuncia no Firebase:", err);
+    }
+  };
+
+  const reportTarget = ({ targetId, targetType, author, text }) => {
+    const reporter = localStorage.getItem("userPseudonym") || "anon";
+    const registryKey = `${targetId}__${reporter}`;
+    if (reportsRegistry[registryKey]) {
+      setModerationInfo("Você já denunciou este item.");
+      return;
+    }
+
+    const moderationSnapshot = detectAutoModeration(text || "");
+    const report = {
+      id: `report_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      companyName: company?.company || "",
+      companySlug: getCompanySlug(),
+      targetId,
+      targetType,
+      targetAuthor: author || "Anônimo",
+      reporter,
+      textSnippet: (text || "").slice(0, 320),
+      autoModerationStatus: moderationSnapshot.status,
+      autoModerationReasons: moderationSnapshot.reasons,
+      createdAt: new Date().toISOString(),
+      status: "pending_review",
+    };
+
+    if (moderationSnapshot.status === "hidden") {
+      hideContent(targetId);
+    }
+
+    syncReportToFirestore(report);
+    saveReportsRegistry({
+      ...reportsRegistry,
+      [registryKey]: report.id,
+    });
+    setModerationInfo("Denúncia enviada. Moderação automática aplicada.");
   };
 
   const handleAddComment = () => {
@@ -450,11 +671,17 @@ function CompanyDetails() {
       ? `${mandatoryText}\n\nVocê trabalhou lá? Quer compartilhar sua experiência?\n${experienceText}`
       : mandatoryText;
 
+    const moderation = detectAutoModeration(finalText);
+    const moderatedText = moderation.status === "approved"
+      ? finalText
+      : "[Conteúdo ocultado automaticamente pela moderação.]";
+
     const comment = {
       id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
       author: pseudonym,
-      text: finalText,
+      text: moderatedText,
       createdAt: new Date().toISOString(),
+      moderation,
       reactions: { thumbsDown: 0, laugh: 0, thumbsUp: 0, cry: 0, clap: 0 },
       replies: [],
     };
@@ -462,6 +689,10 @@ function CompanyDetails() {
     syncCommentsToFirestore([comment, ...comments]);
     setMandatoryComment("");
     setExperienceComment("");
+
+    if (moderation.status !== "approved") {
+      setModerationInfo("Seu comentário passou por moderação automática.");
+    }
   };
 
   const incrementReactionById = (items, targetId, reactionKey) => {
@@ -536,11 +767,16 @@ function CompanyDetails() {
   const handleReply = (targetId) => {
     if (!replyText.trim()) return;
     const pseudonym = localStorage.getItem("userPseudonym") || "Anônimo";
+    const moderation = detectAutoModeration(replyText.trim());
     const reply = {
       id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
       author: pseudonym,
-      text: replyText.trim(),
+      text:
+        moderation.status === "approved"
+          ? replyText.trim()
+          : "[Conteúdo ocultado automaticamente pela moderação.]",
       createdAt: new Date().toISOString(),
+      moderation,
       replies: [],
     };
     const next = addReplyToItem(comments, targetId, reply);
@@ -548,6 +784,10 @@ function CompanyDetails() {
     syncCommentsToFirestore(next);
     setReplyText("");
     setReplyTo(null);
+
+    if (moderation.status !== "approved") {
+      setModerationInfo("Sua resposta passou por moderação automática.");
+    }
   };
 
   const scoreFields = [
@@ -570,6 +810,29 @@ function CompanyDetails() {
     { key: "reputacao", label: "Reputação" },
     { key: "estimacaoOrganizacao", label: "Estímulo e Organização" },
   ];
+
+  const visibleComments = useMemo(() => {
+    const filterReplies = (replies) => {
+      return (replies || []).filter((reply) => {
+        if (!reply?.id) return false;
+        if (isContentHidden(reply.id)) return false;
+        if (isAuthorBlocked(reply.author)) return false;
+        return true;
+      });
+    };
+
+    return (comments || [])
+      .filter((comment) => {
+        if (!comment?.id) return false;
+        if (isContentHidden(comment.id)) return false;
+        if (isAuthorBlocked(comment.author)) return false;
+        return true;
+      })
+      .map((comment) => ({
+        ...comment,
+        replies: filterReplies(comment.replies),
+      }));
+  }, [comments, isAuthorBlocked, isContentHidden]);
 
 
   if (!company) {
@@ -741,10 +1004,16 @@ function CompanyDetails() {
               </button>
             </div>
 
-            {comments.length === 0 ? (
+            {moderationInfo && (
+              <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                {moderationInfo}
+              </p>
+            )}
+
+            {visibleComments.length === 0 ? (
               <p className="text-center text-gray-500">Seja o primeiro a comentar sobre esta empresa.</p>
             ) : (
-              [...comments]
+              [...visibleComments]
                 .sort((a, b) => getTotalReactions(b) - getTotalReactions(a))
                 .map((comment) => (
                   <div key={comment.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
@@ -753,13 +1022,57 @@ function CompanyDetails() {
                         <p className="font-semibold text-sm text-slate-900 dark:text-slate-100">{comment.author}</p>
                         <p className="text-xs text-gray-500 dark:text-slate-400">{new Date(comment.createdAt).toLocaleString()}</p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setReplyTo(comment.id)}
-                        className="text-xs text-blue-600 hover:underline"
-                      >
-                        Responder
-                      </button>
+                      <div className="flex flex-col items-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setReplyTo(comment.id)}
+                          className="text-xs text-blue-600 hover:underline"
+                        >
+                          Responder
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => hideContent(comment.id)}
+                          className="text-xs text-slate-600 hover:underline"
+                        >
+                          Bloquear conteúdo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => blockAuthor(comment.author)}
+                          className="text-xs text-slate-600 hover:underline"
+                        >
+                          Bloquear usuário
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            reportTarget({
+                              targetId: comment.id,
+                              targetType: "comment",
+                              author: comment.author,
+                              text: comment.text,
+                            })
+                          }
+                          className="text-xs text-red-600 hover:underline"
+                        >
+                          Denunciar conteúdo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            reportTarget({
+                              targetId: `user_${getAuthorBlockKey(comment.author)}`,
+                              targetType: "user",
+                              author: comment.author,
+                              text: "",
+                            })
+                          }
+                          className="text-xs text-red-600 hover:underline"
+                        >
+                          Denunciar usuário
+                        </button>
+                      </div>
                     </div>
 
                     <p className="mt-3 text-sm text-slate-800 dark:text-slate-100 whitespace-pre-line">{comment.text}</p>
@@ -831,6 +1144,48 @@ function CompanyDetails() {
                                   className="text-xs text-blue-600 hover:underline"
                                 >
                                   Responder
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => hideContent(reply.id)}
+                                  className="text-xs text-slate-600 hover:underline"
+                                >
+                                  Bloquear conteúdo
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => blockAuthor(reply.author)}
+                                  className="text-xs text-slate-600 hover:underline"
+                                >
+                                  Bloquear usuário
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    reportTarget({
+                                      targetId: reply.id,
+                                      targetType: "reply",
+                                      author: reply.author,
+                                      text: reply.text,
+                                    })
+                                  }
+                                  className="text-xs text-red-600 hover:underline"
+                                >
+                                  Denunciar conteúdo
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    reportTarget({
+                                      targetId: `user_${getAuthorBlockKey(reply.author)}`,
+                                      targetType: "user",
+                                      author: reply.author,
+                                      text: "",
+                                    })
+                                  }
+                                  className="text-xs text-red-600 hover:underline"
+                                >
+                                  Denunciar usuário
                                 </button>
                               </div>
                             </div>

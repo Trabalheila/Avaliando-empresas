@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Trabalhei La</string>
+    <string name="title_activity_main">Trabalhei La</string>
+    <string name="package_name">com.trabalheila.app</string>
+    <string name="custom_url_scheme">com.trabalheila.app</string>
+</resources>

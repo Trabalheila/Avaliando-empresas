@@ -6,6 +6,9 @@
     "node": "24.x"
   },
   "dependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/cli": "^8.2.0",
+    "@capacitor/core": "^8.2.0",
     "@react-oauth/google": "^0.12.1",
     "firebase": "^12.9.0",
     "mammoth": "^1.8.0",
@@ -27,6 +30,11 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "build:mobile": "npm run build && npx cap sync",
+    "cap:sync": "npx cap sync",
+    "cap:sync:android": "npx cap sync android",
+    "cap:open:android": "npx cap open android",
+    "cap:run:android": "npx cap run android",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

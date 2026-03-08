@@ -37,6 +37,12 @@ export default function Purpose() {
           >
             Voltar para a página principal
           </Link>
+          <Link
+            to="/excluir-dados"
+            className="inline-block mt-4 ml-3 px-6 py-3 border border-blue-200 text-blue-700 rounded-xl font-semibold hover:bg-blue-50 transition"
+          >
+            Excluir meus dados
+          </Link>
         </div>
       </div>
     </div>

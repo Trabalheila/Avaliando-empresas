@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { saveUserProfile } from "../services/users";
 import { extractResumeText, parseResumeText } from "../utils/resumeParser";
 
@@ -459,6 +459,15 @@ function ChoosePseudonym() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-6">
       <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_320px] gap-6">
         <div className="bg-white rounded-3xl shadow-xl p-8 border border-blue-100">
+          <div className="flex justify-end mb-3">
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="px-4 py-2 rounded-xl border border-blue-200 text-blue-700 font-semibold hover:bg-blue-50 transition"
+            >
+              Voltar para a página principal
+            </button>
+          </div>
           <h1 className="text-2xl font-extrabold text-blue-800 mb-4 text-center">Seu perfil anônimo</h1>
           <p className="text-sm text-slate-600 mb-6">
             Essas informações ajudam a manter a qualidade das avaliações. Seus dados são armazenados localmente e não serão compartilhados.
@@ -597,6 +606,15 @@ function ChoosePseudonym() {
           >
             Salvar perfil
           </button>
+
+          <div className="pt-2 text-center">
+            <Link
+              to="/excluir-dados"
+              className="inline-block text-sm font-semibold text-red-700 hover:text-red-800 hover:underline"
+            >
+              Excluir meus dados
+            </Link>
+          </div>
           </form>
         </div>
 

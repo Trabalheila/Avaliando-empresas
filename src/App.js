@@ -5,6 +5,7 @@ import AuthLinkedIn from './pages/AuthLinkedIn';
 import ChoosePseudonym from './pages/ChoosePseudonym';
 import CompanyDetails from './pages/CompanyDetails';
 import Purpose from './pages/Purpose';
+import DeleteData from './pages/DeleteData';
 
 const DEFAULT_ROUTE_TRANSITION = {
   durationMs: 320,
@@ -47,6 +48,10 @@ function getRouteTransitionProfile(pathname) {
   }
 
   if (path.startsWith('/purpose')) {
+    return ROUTE_TRANSITION_PRESETS.purpose;
+  }
+
+  if (path.startsWith('/excluir-dados')) {
     return ROUTE_TRANSITION_PRESETS.purpose;
   }
 
@@ -144,6 +149,7 @@ function App() {
       <Route path="/pseudonym" element={<ChoosePseudonym theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/empresa" element={<CompanyDetails theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/purpose" element={<Purpose theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/excluir-dados" element={<DeleteData />} />
     </Routes>
   );
 
