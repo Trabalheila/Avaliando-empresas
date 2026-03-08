@@ -5,10 +5,11 @@ import TrabalheiLaDesktop from "./TrabalheiLaDesktop";
 import { empresasBrasileiras } from "./empresas";
 import { saveReview, listRecentReviews } from "./services/reviews";
 import { saveCompany, listCompanies } from "./services/companies";
-import { saveUserProfile } from "./services/users";
+import { getUserProfile, saveUserProfile } from "./services/users";
 import { auth, db } from "./firebase";
-import { signInAnonymously } from "firebase/auth";
+import { signInAnonymously, signInWithPopup } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { googleProvider } from "./firebase";
 
 const CONNECTOR_WORDS = new Set(["de", "da", "do", "das", "dos", "e"]);
 const LEGAL_SUFFIXES = new Set(["S.A", "SA", "S/A", "LTDA", "ME", "MEI", "EPP", "EIRELI", "SPE", "SCP"]);
@@ -410,6 +411,12 @@ function Home({ theme, toggleTheme }) {
       return;
     }
 
+    const alreadyByCnpj = empresas.some((emp) => (emp?.cnpj || "").toString().replace(/\D/g, "") === cleanedCnpj);
+    if (alreadyByCnpj) {
+      setCnpjError("Esta empresa já está na lista.");
+      return;
+    }
+
     setCnpjError(null);
     setIsLoading(true);
 
@@ -436,6 +443,15 @@ function Home({ theme, toggleTheme }) {
         throw new Error("Empresas públicas não são exibidas na lista desta plataforma.");
       }
 
+      const alreadyExists = empresas.some((emp) => {
+        const sameCnpj = (emp?.cnpj || "").toString().replace(/\D/g, "") === cleanedCnpj;
+        const sameName = normalizeCompanyName(emp?.company || "") === companyName;
+        return sameCnpj || sameName;
+      });
+      if (alreadyExists) {
+        throw new Error("Esta empresa já está na lista.");
+      }
+
       const website = data.site || data.website || null;
 
       setPendingCompanyData({
@@ -448,7 +464,7 @@ function Home({ theme, toggleTheme }) {
     } finally {
       setIsLoading(false);
     }
-  }, [newCompanyCnpj]);
+  }, [newCompanyCnpj, empresas]);
 
   const handleConfirmNewCompany = useCallback(async () => {
     if (!pendingCompanyData?.company || !pendingCompanyData?.cnpj) {
@@ -458,6 +474,19 @@ function Home({ theme, toggleTheme }) {
 
     setIsLoading(true);
     setCnpjError(null);
+
+    const alreadyExists = empresas.some((emp) => {
+      const sameCnpj = (emp?.cnpj || "").toString().replace(/\D/g, "") === (pendingCompanyData.cnpj || "").toString().replace(/\D/g, "");
+      const sameName = normalizeCompanyName(emp?.company || "") === normalizeCompanyName(pendingCompanyData.company || "");
+      return sameCnpj || sameName;
+    });
+
+    if (alreadyExists) {
+      setCnpjError("Esta empresa já está na lista.");
+      setPendingCompanyData(null);
+      setIsLoading(false);
+      return;
+    }
 
     const newCompanyData = {
       company: pendingCompanyData.company,
@@ -494,7 +523,7 @@ function Home({ theme, toggleTheme }) {
     } finally {
       setIsLoading(false);
     }
-  }, [pendingCompanyData]);
+  }, [pendingCompanyData, empresas]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -666,11 +695,28 @@ function Home({ theme, toggleTheme }) {
 
       if (data) {
         const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
-        const mergedProfile = {
+        let mergedProfile = {
           ...existingProfile,
           ...data,
           avatar: data.avatar || existingProfile.avatar,
         };
+
+        const accountId = mergedProfile.id || mergedProfile.email;
+        if (accountId) {
+          try {
+            const persisted = await getUserProfile(accountId);
+            const persistedName = (persisted?.name || "").toString().trim();
+            if (persistedName) {
+              mergedProfile = {
+                ...mergedProfile,
+                name: persistedName,
+              };
+              localStorage.setItem("userPseudonym", persistedName);
+            }
+          } catch (loadErr) {
+            console.warn("Falha ao carregar perfil persistido do usuário:", loadErr);
+          }
+        }
 
         localStorage.setItem("userProfile", JSON.stringify(mergedProfile));
         setUserProfile(mergedProfile);
@@ -690,7 +736,7 @@ function Home({ theme, toggleTheme }) {
           console.warn("Falha ao salvar perfil no Firebase:", err);
         }
 
-        const pseudonym = localStorage.getItem("userPseudonym");
+        const pseudonym = localStorage.getItem("userPseudonym") || mergedProfile?.name;
         if (!pseudonym) {
           navigate("/pseudonym");
         }
@@ -702,6 +748,82 @@ function Home({ theme, toggleTheme }) {
       setIsLoading(false);
     }
   }, [navigate]);
+
+  const handleGoogleLogin = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result?.user;
+
+      if (!user) {
+        throw new Error("Falha ao autenticar com Google.");
+      }
+
+      const googleData = {
+        id: user.uid,
+        name: user.displayName || "Usuário",
+        email: user.email || "",
+        picture: user.photoURL || "",
+        loginProvider: "google",
+      };
+
+      const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      let mergedProfile = {
+        ...existingProfile,
+        ...googleData,
+        avatar: existingProfile.avatar || googleData.avatar,
+      };
+
+      const accountId = mergedProfile.id || mergedProfile.email;
+      if (accountId) {
+        try {
+          const persisted = await getUserProfile(accountId);
+          const persistedName = (persisted?.name || "").toString().trim();
+          if (persistedName) {
+            mergedProfile = {
+              ...mergedProfile,
+              name: persistedName,
+            };
+            localStorage.setItem("userPseudonym", persistedName);
+          }
+        } catch (loadErr) {
+          console.warn("Falha ao carregar perfil persistido do usuário:", loadErr);
+        }
+      }
+
+      localStorage.setItem("userProfile", JSON.stringify(mergedProfile));
+      setUserProfile(mergedProfile);
+      setIsAuthenticated(true);
+
+      try {
+        await saveUserProfile({
+          id: mergedProfile.id,
+          name: mergedProfile.name,
+          email: mergedProfile.email,
+          picture: mergedProfile.picture,
+          loginProvider: "google",
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.warn("Falha ao salvar perfil Google no Firebase:", err);
+      }
+
+      const pseudonym = localStorage.getItem("userPseudonym");
+      if (!pseudonym) {
+        navigate("/pseudonym");
+      } else {
+        window.dispatchEvent(new Event("trabalheiLa_user_updated"));
+      }
+    } catch (err) {
+      console.error("Erro ao autenticar com Google:", err);
+      setError("Falha ao conectar com Google.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [navigate]);
+
   const commonProps = {
     company, setCompany, rating, setRating, commentRating, setCommentRating,
     salario, setSalario, commentSalario, setCommentSalario, beneficios, setBeneficios, commentBeneficios, setCommentBeneficios,
@@ -723,6 +845,7 @@ function Home({ theme, toggleTheme }) {
     firebaseStatus,
     userProfile, userPseudonym,
     onLoginSuccess: handleLoginSuccess, selectedCompanyData, calcularMedia,
+    onGoogleLogin: handleGoogleLogin,
     getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
     handleSaibaMais,
   };

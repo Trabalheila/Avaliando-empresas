@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import Select from "react-select";
 import { getCompanyLogoCandidates } from "./utils/getCompanyLogo";
-import { FaBuilding, FaPlus, FaStar, FaRegStar, FaMoneyBillWave, FaGift, FaUsers, FaChartLine, FaLightbulb, FaUserTie, FaGlobe, FaLeaf, FaBalanceScale, FaTrophy, FaComments, FaHandshake, FaGraduationCap, FaHeart, FaUserEdit } from "react-icons/fa";
+import { FaBuilding, FaPlus, FaStar, FaRegStar, FaMoneyBillWave, FaGift, FaUsers, FaChartLine, FaLightbulb, FaUserTie, FaGlobe, FaLeaf, FaBalanceScale, FaTrophy, FaComments, FaHandshake, FaGraduationCap, FaHeart, FaUserEdit, FaGoogle } from "react-icons/fa";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
 
@@ -22,6 +22,7 @@ function TrabalheiLaDesktop({
   handleSaibaMais,
   showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany, handleConfirmNewCompany, pendingCompanyData, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
   linkedInClientId, error, setError, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, selectedCompanyData, calcularMedia,
+  onGoogleLogin,
   getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed
 }) {
@@ -209,6 +210,17 @@ function TrabalheiLaDesktop({
                   onLoginFailure={(e) => console.error("Erro no LinkedIn:", e)}
                   disabled={isLoading}
                 />
+                <button
+                  type="button"
+                  onClick={onGoogleLogin}
+                  disabled={isLoading}
+                  className="flex items-center justify-center gap-3 bg-white border border-blue-200 text-blue-800 font-semibold py-2 px-4 rounded-full shadow hover:bg-blue-50 transition-colors text-base w-full disabled:opacity-60"
+                >
+                  <FaGoogle className="text-lg" /> Cadastrar com Google
+                </button>
+                <p className="text-xs text-slate-500 text-center">
+                  Sem LinkedIn: entre com Google e complete seu perfil manualmente na próxima etapa.
+                </p>
               </div>
               {isAuthenticated && (
                 <p className="text-green-600 font-semibold text-center mt-4">✓ Você está autenticado!</p>

@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import {
   FaStar, FaHandshake, FaMoneyBillWave,
-  FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb, FaUserEdit,
+  FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb, FaUserEdit, FaGoogle,
 } from "react-icons/fa";
 import Select from "react-select";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
@@ -104,6 +104,7 @@ function TrabalheiLaMobile({
   handleSaibaMais,
   linkedInClientId, linkedInRedirectUri,
   error, setError, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, safeCompanyOptions,
+  onGoogleLogin,
   selectedCompanyData,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
 }) {
@@ -363,6 +364,17 @@ function TrabalheiLaMobile({
               onLoginFailure={(err) => setError(err?.message || String(err))}
               disabled={isLoading}
             />
+            <button
+              type="button"
+              onClick={onGoogleLogin}
+              disabled={isLoading}
+              className="w-full flex items-center justify-center gap-3 bg-white border border-blue-200 text-blue-800 font-semibold py-2 px-4 rounded-full shadow hover:bg-blue-50 transition-colors text-base disabled:opacity-60"
+            >
+              <FaGoogle className="text-lg" /> Cadastrar com Google
+            </button>
+            <p className="text-xs text-slate-500 text-center">
+              Sem LinkedIn: entre com Google e complete seu perfil manualmente na etapa seguinte.
+            </p>
           </div>
           {isAuthenticated && <p className="text-green-600 font-semibold text-center mt-3 text-sm">✓ Autenticado!</p>}
         </section>

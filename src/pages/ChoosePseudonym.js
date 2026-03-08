@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { saveUserProfile } from "../services/users";
+import { getUserProfile, saveUserProfile } from "../services/users";
 import { extractResumeText, parseResumeText } from "../utils/resumeParser";
 
 const predefinedAvatars = [
@@ -318,6 +318,24 @@ function ChoosePseudonym() {
 
       localStorage.setItem("userPseudonym", trimmed);
       const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      const accountId = existingProfile.id || existingProfile.email;
+
+      if (accountId) {
+        try {
+          const persisted = await getUserProfile(accountId);
+          const persistedName = (persisted?.name || "").toString().trim();
+
+          if (persistedName && persistedName.toLowerCase() !== trimmed.toLowerCase()) {
+            setPseudonym(persistedName);
+            localStorage.setItem("userPseudonym", persistedName);
+            setError(`Este login já possui o perfil \"${persistedName}\". Não é possível criar outro com a mesma conta.`);
+            return;
+          }
+        } catch (err) {
+          console.warn("Falha ao validar perfil existente por login:", err);
+        }
+      }
+
       const nextProfile = {
         ...existingProfile,
         name: trimmed,
