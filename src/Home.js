@@ -754,13 +754,21 @@ function Home({ theme, toggleTheme }) {
         if (accountId) {
           try {
             const persisted = await getUserProfile(accountId);
-            const persistedName = (persisted?.name || "").toString().trim();
-            if (persistedName) {
+            if (persisted) {
               mergedProfile = {
                 ...mergedProfile,
-                name: persistedName,
+                ...persisted,
+                resumeData: {
+                  ...(mergedProfile.resumeData || {}),
+                  ...(persisted.resumeData || {}),
+                },
+                avatar: mergedProfile.avatar || persisted.avatar,
               };
-              localStorage.setItem("userPseudonym", persistedName);
+
+              const persistedName = (persisted?.name || "").toString().trim();
+              if (persistedName) {
+                localStorage.setItem("userPseudonym", persistedName);
+              }
             }
           } catch (loadErr) {
             console.warn("Falha ao carregar perfil persistido do usuário:", loadErr);
@@ -831,13 +839,21 @@ function Home({ theme, toggleTheme }) {
       if (accountId) {
         try {
           const persisted = await getUserProfile(accountId);
-          const persistedName = (persisted?.name || "").toString().trim();
-          if (persistedName) {
+          if (persisted) {
             mergedProfile = {
               ...mergedProfile,
-              name: persistedName,
+              ...persisted,
+              resumeData: {
+                ...(mergedProfile.resumeData || {}),
+                ...(persisted.resumeData || {}),
+              },
+              avatar: mergedProfile.avatar || persisted.avatar,
             };
-            localStorage.setItem("userPseudonym", persistedName);
+
+            const persistedName = (persisted?.name || "").toString().trim();
+            if (persistedName) {
+              localStorage.setItem("userPseudonym", persistedName);
+            }
           }
         } catch (loadErr) {
           console.warn("Falha ao carregar perfil persistido do usuário:", loadErr);

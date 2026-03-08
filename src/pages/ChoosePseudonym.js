@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { getUserProfile, saveUserProfile } from "../services/users";
+import { getUserProfile, getUserProfileByCpf, saveUserProfile } from "../services/users";
 import { extractResumeText, parseResumeText } from "../utils/resumeParser";
 
 const predefinedAvatars = [
@@ -53,6 +53,31 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   const [info, setInfo] = useState("");
   const [error, setError] = useState(null);
 
+  const applyProfileToState = useCallback((profile) => {
+    if (!profile) return;
+
+    if (profile?.name) setPseudonym(profile.name);
+    if (profile?.cpf) setCpf(profile.cpf);
+    if (profile?.resumeData?.name) setFullName(profile.resumeData.name);
+    if (profile?.resumeData?.objective) setProfessionalObjective(profile.resumeData.objective);
+    if (profile?.resumeData?.educationSummary) setEducationAndProfession(profile.resumeData.educationSummary);
+    if (profile?.email) setEmail(profile.email);
+    if (profile?.phone) setPhone(profile.phone);
+    if (profile?.educationLevel) setEducationLevel(profile.educationLevel);
+    if (Array.isArray(profile?.resumeData?.experiencesStructured)) {
+      setStructuredExperiences(normalizeExperiencesForReview(profile.resumeData.experiencesStructured));
+    }
+    if (profile?.resumeData?.fileName) setResumeFileName(profile.resumeData.fileName);
+    if (profile?.resumeData?.mimeType) setResumeMimeType(profile.resumeData.mimeType);
+    if (profile?.resumeData?.readConfirmed) setResumeReadConfirmed(!!profile.resumeData.readConfirmed);
+    if (profile?.resumeData?.rawText) setResumeText(profile.resumeData.rawText);
+    if (profile?.avatar) {
+      setAvatar(profile.avatar);
+      setAvatarFileLabel(typeof profile.avatar === "string" && profile.avatar.startsWith("data:") ? "Imagem atual" : "Nenhum escolhido");
+      setAvatarDirty(false);
+    }
+  }, []);
+
   useEffect(() => {
     return () => {
       if (resumePreviewUrl) {
@@ -70,54 +95,37 @@ function ChoosePseudonym({ theme, toggleTheme }) {
 
     try {
       const parsed = JSON.parse(profile);
-      if (parsed?.name) {
-        setPseudonym(parsed.name);
-      }
-      if (parsed?.cpf) {
-        setCpf(parsed.cpf);
-      }
-      if (parsed?.resumeData?.name) {
-        setFullName(parsed.resumeData.name);
-      }
-      if (parsed?.resumeData?.objective) {
-        setProfessionalObjective(parsed.resumeData.objective);
-      }
-      if (parsed?.resumeData?.educationSummary) {
-        setEducationAndProfession(parsed.resumeData.educationSummary);
-      }
-      if (parsed?.email) {
-        setEmail(parsed.email);
-      }
-      if (parsed?.phone) {
-        setPhone(parsed.phone);
-      }
-      if (parsed?.educationLevel) {
-        setEducationLevel(parsed.educationLevel);
-      }
-      if (Array.isArray(parsed?.resumeData?.experiencesStructured)) {
-        setStructuredExperiences(normalizeExperiencesForReview(parsed.resumeData.experiencesStructured));
-      }
-      if (parsed?.resumeData?.fileName) {
-        setResumeFileName(parsed.resumeData.fileName);
-      }
-      if (parsed?.resumeData?.mimeType) {
-        setResumeMimeType(parsed.resumeData.mimeType);
-      }
-      if (parsed?.resumeData?.readConfirmed) {
-        setResumeReadConfirmed(!!parsed.resumeData.readConfirmed);
-      }
-      if (parsed?.resumeData?.rawText) {
-        setResumeText(parsed.resumeData.rawText);
-      }
-      if (parsed?.avatar) {
-        setAvatar(parsed.avatar);
-        setAvatarFileLabel(typeof parsed.avatar === "string" && parsed.avatar.startsWith("data:") ? "Imagem atual" : "Nenhum escolhido");
-        setAvatarDirty(false);
+      applyProfileToState(parsed);
+
+      const accountId = parsed?.id || parsed?.email;
+      if (accountId) {
+        getUserProfile(accountId)
+          .then((remoteProfile) => {
+            if (!remoteProfile) return;
+
+            const mergedProfile = {
+              ...parsed,
+              ...remoteProfile,
+              resumeData: {
+                ...(parsed?.resumeData || {}),
+                ...(remoteProfile?.resumeData || {}),
+              },
+            };
+
+            localStorage.setItem("userProfile", JSON.stringify(mergedProfile));
+            if (mergedProfile?.name) {
+              localStorage.setItem("userPseudonym", mergedProfile.name);
+            }
+            applyProfileToState(mergedProfile);
+          })
+          .catch((err) => {
+            console.warn("Falha ao sincronizar perfil remoto:", err);
+          });
       }
     } catch {
       // ignore
     }
-  }, [navigate]);
+  }, [navigate, applyProfileToState]);
 
   const convertFileToDataUrl = (file) =>
     new Promise((resolve, reject) => {
@@ -216,31 +224,69 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     }
   };
 
-  const handleFillFromLinkedIn = useCallback(() => {
+  const handleFillFromLinkedIn = useCallback(async () => {
     try {
       const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
-      let loadedCount = 0;
       setInfo("");
       setError(null);
 
-      if (existingProfile?.name) {
-        setPseudonym(existingProfile.name);
-        setFullName(existingProfile.name);
-        loadedCount += 1;
-      }
-      if (existingProfile?.email) {
-        setEmail(existingProfile.email);
-        loadedCount += 1;
-      }
-      if (existingProfile?.phone) {
-        setPhone(existingProfile.phone);
-        loadedCount += 1;
+      let mergedProfile = { ...existingProfile };
+      const accountId = existingProfile?.id || existingProfile?.email;
+      if (accountId) {
+        try {
+          const persisted = await getUserProfile(accountId);
+          if (persisted) {
+            mergedProfile = {
+              ...existingProfile,
+              ...persisted,
+              resumeData: {
+                ...(existingProfile?.resumeData || {}),
+                ...(persisted?.resumeData || {}),
+              },
+            };
+            localStorage.setItem("userProfile", JSON.stringify(mergedProfile));
+          }
+        } catch (err) {
+          console.warn("Falha ao buscar dados remotos da conta:", err);
+        }
       }
 
-      if (loadedCount > 0) {
-        setInfo("Informações carregadas do LinkedIn com sucesso.");
+      const fallbackName = [mergedProfile?.localizedFirstName, mergedProfile?.localizedLastName]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+      const resolvedName =
+        (mergedProfile?.name || "").toString().trim() ||
+        fallbackName ||
+        [mergedProfile?.firstName, mergedProfile?.lastName].filter(Boolean).join(" ").trim();
+      const resolvedEmail =
+        (mergedProfile?.email || "").toString().trim() ||
+        (mergedProfile?.emailAddress || "").toString().trim();
+      const resolvedPhone =
+        (mergedProfile?.phone || "").toString().trim() ||
+        (mergedProfile?.phoneNumber || "").toString().trim() ||
+        (mergedProfile?.formattedPhoneNumber || "").toString().trim();
+
+      const loadedFields = [];
+
+      if (resolvedName) {
+        setPseudonym(resolvedName);
+        setFullName(resolvedName);
+        loadedFields.push("nome");
+      }
+      if (resolvedEmail) {
+        setEmail(resolvedEmail);
+        loadedFields.push("e-mail");
+      }
+      if (resolvedPhone) {
+        setPhone(resolvedPhone);
+        loadedFields.push("telefone");
+      }
+
+      if (loadedFields.length > 0) {
+        setInfo(`Dados carregados do LinkedIn: ${loadedFields.join(", ")}.`);
       } else {
-        setInfo("Seus dados do LinkedIn já estão preenchidos no perfil.");
+        setInfo("Nao encontramos novos dados de LinkedIn para preencher automaticamente.");
       }
     } catch {
       setError("Não foi possível carregar dados do LinkedIn no momento.");
@@ -316,25 +362,25 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         return;
       }
 
-      localStorage.setItem("userPseudonym", trimmed);
       const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
       const accountId = existingProfile.id || existingProfile.email;
 
-      if (accountId) {
+      if (cpfNumbers) {
         try {
-          const persisted = await getUserProfile(accountId);
-          const persistedName = (persisted?.name || "").toString().trim();
+          const cpfOwner = await getUserProfileByCpf(cpfNumbers);
+          const cpfOwnerId = (cpfOwner?.id || "").toString();
+          const currentAccountId = (accountId || "").toString();
 
-          if (persistedName && persistedName.toLowerCase() !== trimmed.toLowerCase()) {
-            setPseudonym(persistedName);
-            localStorage.setItem("userPseudonym", persistedName);
-            setError(`Este login já possui o perfil "${persistedName}". Não é possível criar outro com a mesma conta.`);
+          if (cpfOwner && cpfOwnerId !== currentAccountId) {
+            setError("Este CPF já está cadastrado em outra conta.");
             return;
           }
         } catch (err) {
-          console.warn("Falha ao validar perfil existente por login:", err);
+          console.warn("Falha ao validar unicidade de CPF:", err);
         }
       }
+
+      localStorage.setItem("userPseudonym", trimmed);
 
       const nextProfile = {
         ...existingProfile,
@@ -519,9 +565,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   const hasResumeParsed = Array.isArray(structuredExperiences) && structuredExperiences.length > 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-6">
       <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_320px] gap-6">
-        <div className="bg-white rounded-3xl shadow-xl p-8 border border-blue-100">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-8 border border-blue-100 dark:border-slate-700">
           <div className="flex justify-end items-center gap-2 mb-3">
             <button
               type="button"
@@ -539,13 +585,13 @@ function ChoosePseudonym({ theme, toggleTheme }) {
               Voltar para a página principal
             </button>
           </div>
-          <h1 className="text-2xl font-extrabold text-blue-800 mb-4 text-center">Seu perfil anônimo</h1>
-          <p className="text-sm text-slate-600 mb-6">
+          <h1 className="text-2xl font-extrabold text-blue-800 dark:text-blue-200 mb-4 text-center">Seu perfil anônimo</h1>
+          <p className="text-sm text-slate-600 dark:text-slate-300 mb-6">
             Essas informações ajudam a manter a qualidade das avaliações. Seus dados são armazenados localmente e não serão compartilhados.
           </p>
           <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-slate-700">Pseudônimo</label>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Pseudônimo</label>
             <input
               value={pseudonym}
               onChange={(e) => {
@@ -553,12 +599,12 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 setPseudonym(e.target.value);
               }}
               placeholder="Ex.: Profissional Anônimo"
-              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700">CPF (apenas números)</label>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">CPF (apenas números)</label>
             <input
               value={cpf}
               onChange={(e) => {
@@ -566,7 +612,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 setCpf(e.target.value);
               }}
               placeholder="00000000000"
-              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
             />
           </div>
 
@@ -617,12 +663,15 @@ function ChoosePseudonym({ theme, toggleTheme }) {
           >
             Carregar informações do próprio LinkedIn
           </button>
+          {info && info.toLowerCase().includes("linkedin") && (
+            <p className="text-sm text-emerald-700 mt-2">{info}</p>
+          )}
 
           <div className="hidden md:block space-y-4">
             {renderEditableResumeData()}
           </div>
 
-          <details className="md:hidden bg-gray-50 border border-gray-200 rounded-2xl p-4">
+          <details className="md:hidden bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4">
             <summary className="cursor-pointer font-semibold text-slate-700">
               Verificar e editar dados extraídos do currículo
             </summary>
@@ -733,7 +782,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
           </form>
         </div>
 
-        <aside className="hidden md:block bg-white rounded-3xl shadow-xl p-4 border border-blue-100 h-fit sticky top-6">
+        <aside className="hidden md:block bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-4 border border-blue-100 dark:border-slate-700 h-fit sticky top-6">
           <h2 className="text-sm font-bold text-blue-800 mb-3">Curriculo para verificacao</h2>
           {!resumePreviewUrl ? (
             <p className="text-sm text-slate-500">Carregue um curriculo para visualizar aqui.</p>
