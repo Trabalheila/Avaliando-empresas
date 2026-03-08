@@ -1098,7 +1098,15 @@ function CompanyDetails({ theme, toggleTheme }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 py-10 px-4">
-      <div className="max-w-4xl mx-auto flex justify-end mb-3">
+      <div className="max-w-4xl mx-auto flex items-center justify-between mb-3 gap-2">
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          className="px-4 py-2 rounded-xl border border-blue-200 text-blue-700 font-semibold hover:bg-blue-50 transition dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800"
+        >
+          Voltar para a pagina principal
+        </button>
+
         <button
           type="button"
           onClick={toggleTheme}
