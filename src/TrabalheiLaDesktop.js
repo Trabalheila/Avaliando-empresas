@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import Select from "react-select";
 import { getCompanyLogoCandidates } from "./utils/getCompanyLogo";
-import { FaBuilding, FaPlus, FaStar, FaRegStar, FaMoneyBillWave, FaGift, FaUsers, FaChartLine, FaLightbulb, FaUserTie, FaGlobe, FaLeaf, FaBalanceScale, FaTrophy, FaComments, FaHandshake, FaGraduationCap, FaHeart, FaUserEdit, FaGoogle } from "react-icons/fa";
+import { FaBuilding, FaPlus, FaStar, FaRegStar, FaMoneyBillWave, FaGift, FaUsers, FaChartLine, FaUserTie, FaGlobe, FaTrophy, FaComments, FaGraduationCap, FaHeart, FaUserEdit, FaGoogle } from "react-icons/fa";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
 
@@ -18,6 +18,7 @@ function TrabalheiLaDesktop({
   desenvolvimento, setDesenvolvimento, commentDesenvolvimento, setCommentDesenvolvimento, saudeBemEstar, setSaudeBemEstar, commentSaudeBemEstar, setCommentSaudeBemEstar,
   impactoSocial, setImpactoSocial, commentImpactoSocial, setCommentImpactoSocial, reputacao, setReputacao, commentReputacao, setCommentReputacao,
   estimacaoOrganizacao, setEstimacaoOrganizacao, commentEstimacaoOrganizacao, setCommentEstimulacaoOrganizacao,
+  entrySource, setEntrySource, contractType, setContractType,
   generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
   handleSaibaMais,
   showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany, handleConfirmNewCompany, pendingCompanyData, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
@@ -31,6 +32,15 @@ function TrabalheiLaDesktop({
     control: (base) => ({ ...base, borderRadius: "0.75rem", padding: "0.25rem", borderColor: "#d1d5db", boxShadow: "none", "&:hover": { borderColor: "#3b82f6" } }),
     option: (base, state) => ({ ...base, backgroundColor: state.isFocused ? "#eff6ff" : "white", color: "#1e293b", cursor: "pointer" }),
   };
+    const legacyMetricsBridge = {
+      beneficios, setBeneficios, commentBeneficios, setCommentBeneficios,
+      oportunidades, setOportunidades, commentOportunidades, setCommentOportunidades,
+      inovacao, setInovacao, commentInovacao, setCommentInovacao,
+      impactoSocial, setImpactoSocial, commentImpactoSocial, setCommentImpactoSocial,
+      reputacao, setReputacao, commentReputacao, setCommentReputacao,
+      estimacaoOrganizacao, setEstimacaoOrganizacao, commentEstimacaoOrganizacao, setCommentEstimulacaoOrganizacao,
+    };
+    void legacyMetricsBridge;
 
   const renderStars = (value, setValue, comment, setComment, label) => (
     <div className="flex flex-col w-full md:w-2/3 gap-2">
@@ -52,28 +62,76 @@ function TrabalheiLaDesktop({
   );
 
   const campos = [
-    { label: "Avaliação Geral", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FaStar className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200" },
-    { label: "Salário", value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario, icon: <FaMoneyBillWave className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200" },
-    { label: "Benefícios", value: beneficios, set: setBeneficios, comment: commentBeneficios, setComment: setCommentBeneficios, icon: <FaGift className="text-rose-600" />, iconBg: "from-rose-50 to-red-100 border-rose-200" },
-    { label: "Cultura", value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura, icon: <FaUsers className="text-violet-600" />, iconBg: "from-violet-50 to-fuchsia-100 border-violet-200" },
-    { label: "Oportunidades", value: oportunidades, set: setOportunidades, comment: commentOportunidades, setComment: setCommentOportunidades, icon: <FaChartLine className="text-blue-600" />, iconBg: "from-blue-50 to-sky-100 border-blue-200" },
-    { label: "Inovação", value: inovacao, set: setInovacao, comment: commentInovacao, setComment: setCommentInovacao, icon: <FaLightbulb className="text-yellow-600" />, iconBg: "from-yellow-50 to-amber-100 border-yellow-200" },
-    { label: "Liderança", value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca, icon: <FaUserTie className="text-indigo-600" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200" },
-    { label: "Diversidade", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade, icon: <FaGlobe className="text-teal-600" />, iconBg: "from-teal-50 to-cyan-100 border-teal-200" },
-    { label: "Ambiente", value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente, icon: <FaLeaf className="text-green-600" />, iconBg: "from-green-50 to-emerald-100 border-green-200" },
-    { label: "Equilíbrio", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio, icon: <FaBalanceScale className="text-slate-600" />, iconBg: "from-slate-50 to-gray-100 border-slate-300" },
+    { label: "Contato do RH", value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao, icon: <FaComments className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200" },
+    { label: "Proposta e acerto salarial", value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica, icon: <FaMoneyBillWave className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200" },
+    { label: "Salário e benefícios", value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario, icon: <FaGift className="text-rose-600" />, iconBg: "from-rose-50 to-red-100 border-rose-200" },
+    { label: "Visão e valores da empresa", value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura, icon: <FaBuilding className="text-blue-700" />, iconBg: "from-blue-50 to-sky-100 border-blue-200" },
+    { label: "Preocupação com o bem-estar", value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar, icon: <FaHeart className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200" },
+    { label: "Acessibilidade e respeito da liderança", value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca, icon: <FaUserTie className="text-indigo-600" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200" },
+    { label: "Estímulo ao respeito entre colegas", value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente, icon: <FaUsers className="text-violet-600" />, iconBg: "from-violet-50 to-fuchsia-100 border-violet-200" },
+    { label: "Estímulo à organização", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaBuilding className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200" },
+    { label: "Planos de cargos e salários", value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento, icon: <FaGraduationCap className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200" },
     { label: "Reconhecimento", value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento, icon: <FaTrophy className="text-amber-700" />, iconBg: "from-amber-50 to-orange-100 border-amber-200" },
-    { label: "Comunicação", value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao, icon: <FaComments className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200" },
-    { label: "Ética", value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica, icon: <FaHandshake className="text-orange-600" />, iconBg: "from-orange-50 to-amber-100 border-orange-200" },
-    { label: "Desenvolvimento", value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento, icon: <FaGraduationCap className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200" },
-    { label: "Saúde e Bem-estar", value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar, icon: <FaHeart className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200" },
-    { label: "Impacto Social", value: impactoSocial, set: setImpactoSocial, comment: commentImpactoSocial, setComment: setCommentImpactoSocial, icon: <FaGlobe className="text-green-700" />, iconBg: "from-emerald-50 to-green-100 border-emerald-200" },
-    { label: "Reputação", value: reputacao, set: setReputacao, comment: commentReputacao, setComment: setCommentReputacao, icon: <FaStar className="text-yellow-600" />, iconBg: "from-yellow-50 to-amber-100 border-yellow-200" },
-    { label: "Estímulo e Organização", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-lime-700" />, iconBg: "from-lime-50 to-green-100 border-lime-200" },
+    { label: "Rotatividade (demissões)", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio, icon: <FaChartLine className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300" },
+    { label: "Atitudes de discriminação", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade, icon: <FaGlobe className="text-teal-600" />, iconBg: "from-teal-50 to-cyan-100 border-teal-200" },
+    { label: "Avaliação geral", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FaStar className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200" },
   ];
 
   const companyNote = selectedCompanyData ? calcularMedia(selectedCompanyData) : "--";
   const isCompanyUnrated = companyNote === "--";
+
+  const sourceConfig = [
+    { key: "indicacao", label: "Indicação", color: "#2563eb" },
+    { key: "siteVagas", label: "Site de vagas", color: "#16a34a" },
+    { key: "gruposWhatsapp", label: "Grupos de WhatsApp", color: "#d97706" },
+    { key: "redesSociais", label: "Redes sociais", color: "#9333ea" },
+  ];
+
+  const contractConfig = [
+    { key: "pj", label: "PJ", color: "#0284c7" },
+    { key: "contrato", label: "Contrato", color: "#ea580c" },
+    { key: "clt", label: "CLT", color: "#16a34a" },
+  ];
+
+  const buildPieData = (stats, config) => {
+    const total = config.reduce((sum, item) => sum + (stats?.[item.key] || 0), 0);
+    if (!total) {
+      return {
+        chart: "#e5e7eb 0deg 360deg",
+        items: config.map((item) => ({ ...item, percent: 0 })),
+      };
+    }
+
+    let cursor = 0;
+    const items = config.map((item) => {
+      const value = stats?.[item.key] || 0;
+      const percent = (value / total) * 100;
+      const deg = (percent / 100) * 360;
+      const start = cursor;
+      cursor += deg;
+      return {
+        ...item,
+        percent,
+        slice: `${item.color} ${start.toFixed(2)}deg ${cursor.toFixed(2)}deg`,
+      };
+    });
+
+    return {
+      chart: items.filter((item) => item.percent > 0).map((item) => item.slice).join(", "),
+      items,
+    };
+  };
+
+  const sourcePieData = buildPieData(selectedCompanyData?.sourceStats, sourceConfig);
+  const contractPieData = buildPieData(selectedCompanyData?.contractStats, contractConfig);
+
+  const getTopSliceLabel = (pieData) => {
+    const topItem = pieData.items.reduce((best, current) => (current.percent > best.percent ? current : best), pieData.items[0]);
+    if (!topItem || topItem.percent <= 0) {
+      return "Ainda sem dados suficientes";
+    }
+    return `${topItem.label} lidera com ${topItem.percent.toFixed(0)}%`;
+  };
 
   // Lógica para gerar a Logo baseada no nome da empresa
   const companyNameForLogo = selectedCompanyData ? selectedCompanyData.company : "Logo da Empresa";
@@ -93,7 +151,7 @@ function TrabalheiLaDesktop({
       <div className="w-full max-w-6xl">
 
         {/* HEADER */}
-        <header className="sticky top-0 z-50 bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 mb-8 border-2 border-blue-200 dark:border-slate-700">
+        <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-3rem)] max-w-6xl bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border-2 border-blue-200 dark:border-slate-700">
           <div className="flex items-center justify-between">
             <div className="flex flex-col items-center">
 
@@ -191,6 +249,8 @@ function TrabalheiLaDesktop({
           </div>
         </header>
 
+        <div className="h-[22rem]" />
+
         {/* CONTEÚDO - 2 COLUNAS */}
         <div className="flex gap-6 mb-8">
 
@@ -242,6 +302,84 @@ function TrabalheiLaDesktop({
                     isClearable
                   />
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <p className="text-sm font-bold text-blue-800 mb-2">Como entrou na empresa?</p>
+                    <div className="space-y-2 text-sm text-slate-700">
+                      {sourceConfig.map((item) => (
+                        <label key={item.key} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="entrySource"
+                            checked={entrySource === item.key}
+                            onChange={() => setEntrySource(item.key)}
+                          />
+                          {item.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <p className="text-sm font-bold text-blue-800 mb-2">Forma de contratação</p>
+                    <div className="space-y-2 text-sm text-slate-700">
+                      {contractConfig.map((item) => (
+                        <label key={item.key} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="contractType"
+                            checked={contractType === item.key}
+                            onChange={() => setContractType(item.key)}
+                          />
+                          {item.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {selectedCompanyData && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white border border-blue-100 rounded-xl p-4">
+                      <p className="text-sm font-bold text-blue-800 mb-1">Formas de entrada mais contratadas</p>
+                      <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(sourcePieData)}</p>
+                      <div className="flex items-center gap-4">
+                        <div
+                          className="w-28 h-28 rounded-full border border-gray-200"
+                          style={{ background: `conic-gradient(${sourcePieData.chart})` }}
+                        />
+                        <div className="space-y-1 text-xs">
+                          {sourcePieData.items.map((item) => (
+                            <p key={item.key} className="flex items-center gap-2 text-slate-700">
+                              <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                              {item.label}: {item.percent.toFixed(0)}%
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white border border-blue-100 rounded-xl p-4">
+                      <p className="text-sm font-bold text-blue-800 mb-1">Tipos de contratação</p>
+                      <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(contractPieData)}</p>
+                      <div className="flex items-center gap-4">
+                        <div
+                          className="w-28 h-28 rounded-full border border-gray-200"
+                          style={{ background: `conic-gradient(${contractPieData.chart})` }}
+                        />
+                        <div className="space-y-1 text-xs">
+                          {contractPieData.items.map((item) => (
+                            <p key={item.key} className="flex items-center gap-2 text-slate-700">
+                              <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                              {item.label}: {item.percent.toFixed(0)}%
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {showNewCompanyInput && (
                   <div className="space-y-2">

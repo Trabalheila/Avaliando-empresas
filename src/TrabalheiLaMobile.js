@@ -1,8 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import {
-  FaStar, FaHandshake, FaMoneyBillWave,
-  FaBuilding, FaUserTie, FaHeart, FaBriefcase, FaLightbulb, FaUserEdit, FaGoogle,
+  FaStar, FaMoneyBillWave, FaGift,
+  FaBuilding, FaUserTie, FaHeart, FaComments, FaChartLine, FaGlobe, FaTrophy, FaGraduationCap, FaUserEdit, FaGoogle,
 } from "react-icons/fa";
 import Select from "react-select";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
@@ -96,6 +96,7 @@ function TrabalheiLaMobile({
   commentImpactoSocial, setCommentImpactoSocial,
   commentReputacao, setCommentReputacao,
   commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao,
+  entrySource, setEntrySource, contractType, setContractType,
   generalComment, setGeneralComment,
   handleSubmit, isLoading,
   empresas, top3,
@@ -108,6 +109,22 @@ function TrabalheiLaMobile({
   selectedCompanyData,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
 }) {
+  const legacyMetricsBridge = {
+    beneficios, setBeneficios,
+    oportunidades, setOportunidades,
+    inovacao, setInovacao,
+    impactoSocial, setImpactoSocial,
+    reputacao, setReputacao,
+    estimacaoOrganizacao, setEstimacaoOrganizacao,
+    commentBeneficios, setCommentBeneficios,
+    commentOportunidades, setCommentOportunidades,
+    commentInovacao, setCommentInovacao,
+    commentImpactoSocial, setCommentImpactoSocial,
+    commentReputacao, setCommentReputacao,
+    commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao,
+  };
+  void legacyMetricsBridge;
+
   const calcularMedia = (emp) => {
     if (!emp) return "--";
 
@@ -223,25 +240,61 @@ function TrabalheiLaMobile({
   );
 
   const campos = [
-    { label: "Avaliação Geral", icon: <FaStar className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating },
-    { label: "Salário e Benefícios", icon: <FaMoneyBillWave className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200", value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario },
-    { label: "Benefícios", icon: <FaHandshake className="text-blue-700" />, iconBg: "from-blue-50 to-cyan-100 border-blue-200", value: beneficios, set: setBeneficios, comment: commentBeneficios, setComment: setCommentBeneficios },
-    { label: "Cultura", icon: <FaBuilding className="text-slate-700" />, iconBg: "from-slate-50 to-slate-100 border-slate-300", value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura },
-    { label: "Oportunidades", icon: <FaBriefcase className="text-orange-600" />, iconBg: "from-orange-50 to-amber-100 border-orange-200", value: oportunidades, set: setOportunidades, comment: commentOportunidades, setComment: setCommentOportunidades },
-    { label: "Inovação", icon: <FaLightbulb className="text-yellow-600" />, iconBg: "from-yellow-50 to-amber-100 border-yellow-200", value: inovacao, set: setInovacao, comment: commentInovacao, setComment: setCommentInovacao },
-    { label: "Liderança", icon: <FaUserTie className="text-violet-700" />, iconBg: "from-violet-50 to-indigo-100 border-violet-200", value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca },
-    { label: "Diversidade", icon: <FaHeart className="text-rose-600" />, iconBg: "from-rose-50 to-pink-100 border-rose-200", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade },
-    { label: "Ambiente", icon: <FaBuilding className="text-teal-700" />, iconBg: "from-teal-50 to-emerald-100 border-teal-200", value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente },
-    { label: "Equilíbrio", icon: <FaHandshake className="text-indigo-700" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio },
-    { label: "Reconhecimento", icon: <FaStar className="text-amber-600" />, iconBg: "from-amber-50 to-orange-100 border-amber-200", value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento },
-    { label: "Comunicação", icon: <FaLightbulb className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao },
-    { label: "Ética", icon: <FaBuilding className="text-emerald-700" />, iconBg: "from-emerald-50 to-green-100 border-emerald-200", value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica },
-    { label: "Desenvolvimento", icon: <FaBriefcase className="text-fuchsia-700" />, iconBg: "from-fuchsia-50 to-pink-100 border-fuchsia-200", value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento },
-    { label: "Saúde e Bem-estar", icon: <FaHeart className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200", value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar },
-    { label: "Impacto Social", icon: <FaHeart className="text-rose-700" />, iconBg: "from-rose-50 to-red-100 border-rose-200", value: impactoSocial, set: setImpactoSocial, comment: commentImpactoSocial, setComment: setCommentImpactoSocial },
-    { label: "Reputação", icon: <FaBuilding className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300", value: reputacao, set: setReputacao, comment: commentReputacao, setComment: setCommentReputacao },
-    { label: "Estimativa na Organização", icon: <FaStar className="text-lime-700" />, iconBg: "from-lime-50 to-green-100 border-lime-200", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao },
+    { label: "Contato do RH", icon: <FaComments className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao },
+    { label: "Proposta e acerto salarial", icon: <FaMoneyBillWave className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200", value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica },
+    { label: "Salário e benefícios", icon: <FaGift className="text-rose-600" />, iconBg: "from-rose-50 to-red-100 border-rose-200", value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario },
+    { label: "Visão e valores da empresa", icon: <FaBuilding className="text-slate-700" />, iconBg: "from-slate-50 to-slate-100 border-slate-300", value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura },
+    { label: "Preocupação com o bem-estar", icon: <FaHeart className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200", value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar },
+    { label: "Acessibilidade e respeito da liderança", icon: <FaUserTie className="text-violet-700" />, iconBg: "from-violet-50 to-indigo-100 border-violet-200", value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca },
+    { label: "Estímulo ao respeito entre colegas", icon: <FaBuilding className="text-teal-700" />, iconBg: "from-teal-50 to-emerald-100 border-teal-200", value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente },
+    { label: "Estímulo à organização", icon: <FaBuilding className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao },
+    { label: "Planos de cargos e salários", icon: <FaGraduationCap className="text-fuchsia-700" />, iconBg: "from-fuchsia-50 to-pink-100 border-fuchsia-200", value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento },
+    { label: "Reconhecimento", icon: <FaTrophy className="text-amber-600" />, iconBg: "from-amber-50 to-orange-100 border-amber-200", value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento },
+    { label: "Rotatividade (demissões)", icon: <FaChartLine className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio },
+    { label: "Atitudes de discriminação", icon: <FaGlobe className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade },
+    { label: "Avaliação geral", icon: <FaStar className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating },
   ];
+
+  const sourceConfig = [
+    { key: "indicacao", label: "Indicação", color: "#2563eb" },
+    { key: "siteVagas", label: "Site de vagas", color: "#16a34a" },
+    { key: "gruposWhatsapp", label: "WhatsApp", color: "#d97706" },
+    { key: "redesSociais", label: "Redes sociais", color: "#9333ea" },
+  ];
+
+  const contractConfig = [
+    { key: "pj", label: "PJ", color: "#0284c7" },
+    { key: "contrato", label: "Contrato", color: "#ea580c" },
+    { key: "clt", label: "CLT", color: "#16a34a" },
+  ];
+
+  const buildPieData = (stats, config) => {
+    const total = config.reduce((sum, item) => sum + (stats?.[item.key] || 0), 0);
+    if (!total) return { chart: "#e5e7eb 0deg 360deg", items: config.map((item) => ({ ...item, percent: 0 })) };
+
+    let cursor = 0;
+    const items = config.map((item) => {
+      const value = stats?.[item.key] || 0;
+      const percent = (value / total) * 100;
+      const deg = (percent / 100) * 360;
+      const start = cursor;
+      cursor += deg;
+      return { ...item, percent, slice: `${item.color} ${start.toFixed(2)}deg ${cursor.toFixed(2)}deg` };
+    });
+
+    return { chart: items.filter((item) => item.percent > 0).map((item) => item.slice).join(", "), items };
+  };
+
+  const sourcePieData = buildPieData(selectedCompanyData?.sourceStats, sourceConfig);
+  const contractPieData = buildPieData(selectedCompanyData?.contractStats, contractConfig);
+
+  const getTopSliceLabel = (pieData) => {
+    const topItem = pieData.items.reduce((best, current) => (current.percent > best.percent ? current : best), pieData.items[0]);
+    if (!topItem || topItem.percent <= 0) {
+      return "Ainda sem dados suficientes";
+    }
+    return `${topItem.label} lidera com ${topItem.percent.toFixed(0)}%`;
+  };
 
   return (
     <div
@@ -251,7 +304,7 @@ function TrabalheiLaMobile({
           : "bg-gradient-to-b from-blue-50 via-sky-50 to-blue-100"
       }`}
     >
-      <header className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm px-4 py-3 mb-4 flex flex-col md:flex-row items-start md:items-center justify-between sticky top-0 z-50 border-b border-blue-100 dark:border-slate-700">
+      <header className="fixed top-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm px-4 py-3 flex flex-col md:flex-row items-start md:items-center justify-between z-50 border-b border-blue-100 dark:border-slate-700">
         <div className="w-full flex items-center justify-center gap-3 text-center">
           <div className="w-11 h-11 bg-blue-50 dark:bg-slate-800 rounded-xl flex items-center justify-center border border-blue-100 dark:border-slate-600 overflow-hidden">
             {companyLogoUrl ? (
@@ -270,7 +323,7 @@ function TrabalheiLaMobile({
             )}
           </div>
           <div className="text-center">
-            <h1 className="text-[2rem] font-black text-blue-900 dark:text-blue-100 font-azonix tracking-[0.12em] leading-none">
+            <h1 className="text-[1.65rem] font-black text-blue-900 dark:text-blue-100 font-azonix tracking-[0.08em] leading-none whitespace-nowrap">
               TRABALHEI LÁ
             </h1>
             <div className="w-28 h-1 mx-auto mt-2 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
@@ -350,6 +403,8 @@ function TrabalheiLaMobile({
         <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2 text-center">{firebaseStatus}</p>
       </header>
 
+      <div className={isAuthenticated ? "h-[21rem]" : "h-[12.5rem]"} />
+
       <main className="px-4 space-y-6">
         {/* LOGIN */}
         <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700">
@@ -392,6 +447,78 @@ function TrabalheiLaMobile({
                 isClearable
                 noOptionsMessage={() => "Empresa não encontrada"}
               />
+
+              <div className="mt-3 grid grid-cols-1 gap-3">
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                  <p className="text-sm font-bold text-blue-800 mb-2">Como entrou na empresa?</p>
+                  <div className="space-y-2 text-sm text-slate-700">
+                    {sourceConfig.map((item) => (
+                      <label key={item.key} className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="entrySourceMobile"
+                          checked={entrySource === item.key}
+                          onChange={() => setEntrySource(item.key)}
+                        />
+                        {item.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                  <p className="text-sm font-bold text-blue-800 mb-2">Forma de contratação</p>
+                  <div className="space-y-2 text-sm text-slate-700">
+                    {contractConfig.map((item) => (
+                      <label key={item.key} className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="contractTypeMobile"
+                          checked={contractType === item.key}
+                          onChange={() => setContractType(item.key)}
+                        />
+                        {item.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {selectedCompanyData && (
+                <div className="mt-3 grid grid-cols-1 gap-3">
+                  <div className="bg-white border border-blue-100 rounded-xl p-3">
+                    <p className="text-sm font-bold text-blue-800 mb-1">Entradas mais contratadas</p>
+                    <p className="text-xs text-blue-600 mb-2">{getTopSliceLabel(sourcePieData)}</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-24 h-24 rounded-full border border-gray-200" style={{ background: `conic-gradient(${sourcePieData.chart})` }} />
+                      <div className="space-y-1 text-xs">
+                        {sourcePieData.items.map((item) => (
+                          <p key={item.key} className="flex items-center gap-2 text-slate-700">
+                            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                            {item.label}: {item.percent.toFixed(0)}%
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-blue-100 rounded-xl p-3">
+                    <p className="text-sm font-bold text-blue-800 mb-1">Tipos de contratação</p>
+                    <p className="text-xs text-blue-600 mb-2">{getTopSliceLabel(contractPieData)}</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-24 h-24 rounded-full border border-gray-200" style={{ background: `conic-gradient(${contractPieData.chart})` }} />
+                      <div className="space-y-1 text-xs">
+                        {contractPieData.items.map((item) => (
+                          <p key={item.key} className="flex items-center gap-2 text-slate-700">
+                            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                            {item.label}: {item.percent.toFixed(0)}%
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-3">
                 <button

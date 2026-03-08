@@ -162,6 +162,8 @@ function Home({ theme, toggleTheme }) {
   const [estimacaoOrganizacao, setEstimacaoOrganizacao] = useState(0);
   const [commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao] = useState("");
   const [generalComment, setGeneralComment] = useState("");
+  const [entrySource, setEntrySource] = useState("");
+  const [contractType, setContractType] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -207,6 +209,8 @@ function Home({ theme, toggleTheme }) {
         .map((nome) => ({
           company: nome,
           cnpj: null,
+          sourceStats: { indicacao: 0, siteVagas: 0, gruposWhatsapp: 0, redesSociais: 0 },
+          contractStats: { pj: 0, contrato: 0, clt: 0 },
           rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
           inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
           reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
@@ -272,6 +276,8 @@ function Home({ theme, toggleTheme }) {
                 company: companyName,
                 cnpj: rc?.cnpj || null,
                 website: rc?.website || null,
+                sourceStats: rc?.sourceStats || null,
+                contractStats: rc?.contractStats || null,
                 rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
                 inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
                 reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
@@ -492,6 +498,8 @@ function Home({ theme, toggleTheme }) {
       company: pendingCompanyData.company,
       cnpj: pendingCompanyData.cnpj,
       website: pendingCompanyData.website || null,
+      sourceStats: { indicacao: 0, siteVagas: 0, gruposWhatsapp: 0, redesSociais: 0 },
+      contractStats: { pj: 0, contrato: 0, clt: 0 },
       rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
       inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
       reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
@@ -542,6 +550,16 @@ function Home({ theme, toggleTheme }) {
       return;
     }
 
+    if (!entrySource) {
+      setError("Selecione como você entrou na empresa.");
+      return;
+    }
+
+    if (!contractType) {
+      setError("Selecione a forma de contratação.");
+      return;
+    }
+
     const pseudonym = localStorage.getItem("userPseudonym");
     if (!pseudonym) {
       setError("Por favor, defina um pseudônimo antes de avaliar.");
@@ -562,6 +580,8 @@ function Home({ theme, toggleTheme }) {
       etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar,
       impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao,
       generalComment,
+      entrySource,
+      contractType,
       timestamp: new Date().toISOString(),
     };
 
@@ -596,9 +616,27 @@ function Home({ theme, toggleTheme }) {
       setEmpresas((prev) =>
         prev.map((emp) => {
           if (emp.company !== company.value) return emp;
+
+          const sourceStats = {
+            indicacao: emp?.sourceStats?.indicacao || 0,
+            siteVagas: emp?.sourceStats?.siteVagas || 0,
+            gruposWhatsapp: emp?.sourceStats?.gruposWhatsapp || 0,
+            redesSociais: emp?.sourceStats?.redesSociais || 0,
+            [entrySource]: (emp?.sourceStats?.[entrySource] || 0) + 1,
+          };
+
+          const contractStats = {
+            pj: emp?.contractStats?.pj || 0,
+            contrato: emp?.contractStats?.contrato || 0,
+            clt: emp?.contractStats?.clt || 0,
+            [contractType]: (emp?.contractStats?.[contractType] || 0) + 1,
+          };
+
           return {
             ...emp,
             ...evaluationData,
+            sourceStats,
+            contractStats,
           };
         })
       );
@@ -617,7 +655,7 @@ function Home({ theme, toggleTheme }) {
       setIsLoading(false);
       setCaptchaConfirmed(false);
     }
-  }, [isAuthenticated, captchaConfirmed, company, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment]);
+  }, [isAuthenticated, captchaConfirmed, company, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment, entrySource, contractType]);
 
   const handleSaibaMais = useCallback(() => {
     if (!company) {
@@ -844,6 +882,7 @@ function Home({ theme, toggleTheme }) {
     desenvolvimento, setDesenvolvimento, commentDesenvolvimento, setCommentDesenvolvimento, saudeBemEstar, setSaudeBemEstar, commentSaudeBemEstar, setCommentSaudeBemEstar,
     impactoSocial, setImpactoSocial, commentImpactoSocial, setCommentImpactoSocial, reputacao, setReputacao, commentReputacao, setCommentReputacao,
     estimacaoOrganizacao, setEstimacaoOrganizacao, commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao,
+    entrySource, setEntrySource, contractType, setContractType,
     generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
     newCompanyCnpj, setNewCompanyCnpj, cnpjError,
     showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany,
