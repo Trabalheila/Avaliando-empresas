@@ -328,7 +328,7 @@ function ChoosePseudonym() {
           if (persistedName && persistedName.toLowerCase() !== trimmed.toLowerCase()) {
             setPseudonym(persistedName);
             localStorage.setItem("userPseudonym", persistedName);
-            setError(`Este login já possui o perfil \"${persistedName}\". Não é possível criar outro com a mesma conta.`);
+            setError(`Este login já possui o perfil "${persistedName}". Não é possível criar outro com a mesma conta.`);
             return;
           }
         } catch (err) {
