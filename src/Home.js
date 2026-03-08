@@ -64,6 +64,12 @@ function normalizeCompanyName(name) {
     .join(" ");
 }
 
+function sortCompaniesAlphabetically(items) {
+  return [...(items || [])].sort((a, b) =>
+    (a?.company || "").localeCompare(b?.company || "", "pt-BR", { sensitivity: "base" })
+  );
+}
+
 // Pequena alteração para forçar novo deploy (sem impacto funcional)
 function Home({ theme, toggleTheme }) {
   const navigate = useNavigate();
@@ -179,29 +185,33 @@ function Home({ theme, toggleTheme }) {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          return parsed
-            .map((emp) => ({
-              ...emp,
-              company: normalizeCompanyName(emp?.company || ""),
-            }))
-            .filter((emp) => !isBlockedPublicCompany(emp?.company));
+          return sortCompaniesAlphabetically(
+            parsed
+              .map((emp) => ({
+                ...emp,
+                company: normalizeCompanyName(emp?.company || ""),
+              }))
+              .filter((emp) => !isBlockedPublicCompany(emp?.company))
+          );
         }
       }
     } catch (err) {
       console.warn("Falha ao carregar empresas do localStorage:", err);
     }
 
-    return (empresasBrasileiras || [])
-      .map((nome) => normalizeCompanyName(nome))
-      .filter((nome) => !isBlockedPublicCompany(nome))
-      .map((nome) => ({
-        company: nome,
-        cnpj: null,
-        rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
-        inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
-        reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
-        saudeBemEstar: 0, impactoSocial: 0, reputacao: 0, estimacaoOrganizacao: 0,
-      }));
+    return sortCompaniesAlphabetically(
+      (empresasBrasileiras || [])
+        .map((nome) => normalizeCompanyName(nome))
+        .filter((nome) => !isBlockedPublicCompany(nome))
+        .map((nome) => ({
+          company: nome,
+          cnpj: null,
+          rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
+          inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
+          reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
+          saudeBemEstar: 0, impactoSocial: 0, reputacao: 0, estimacaoOrganizacao: 0,
+        }))
+    );
   });
 
   useEffect(() => {
@@ -301,7 +311,9 @@ function Home({ theme, toggleTheme }) {
             map.set(companyName, next);
           }
 
-          return Array.from(map.values()).filter((emp) => !isBlockedPublicCompany(emp?.company));
+          return sortCompaniesAlphabetically(
+            Array.from(map.values()).filter((emp) => !isBlockedPublicCompany(emp?.company))
+          );
         });
       } catch (err) {
         console.warn("Falha ao sincronizar empresas/reviews do Firebase:", err);
@@ -373,6 +385,7 @@ function Home({ theme, toggleTheme }) {
 
   const safeCompanyOptions = empresas
     .filter((emp) => !isBlockedPublicCompany(emp?.company))
+    .sort((a, b) => (a?.company || "").localeCompare(b?.company || "", "pt-BR", { sensitivity: "base" }))
     .map((emp) => ({
       value: emp.company,
       label: emp.company,
@@ -459,7 +472,7 @@ function Home({ theme, toggleTheme }) {
     setEmpresas((prev) => {
       const exists = prev.some((emp) => emp.company === pendingCompanyData.company || emp.cnpj === pendingCompanyData.cnpj);
       if (exists) return prev;
-      return [...prev, newCompanyData];
+      return sortCompaniesAlphabetically([...prev, newCompanyData]);
     });
 
     setCompany({ value: newCompanyData.company, label: newCompanyData.company });

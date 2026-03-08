@@ -153,7 +153,7 @@ function TrabalheiLaDesktop({
                       <p className="text-sm font-semibold text-blue-800 dark:text-blue-200">{userPseudonym || userProfile?.name || "Usuário"}</p>
                       <a
                         href="/pseudonym"
-                        className="inline-flex items-center mt-1 px-3 py-1.5 rounded-full bg-blue-700 text-white text-xs font-extrabold tracking-wide hover:bg-blue-800 shadow-md transition"
+                        className="inline-flex items-center mt-1 px-3 py-1.5 rounded-full bg-emerald-300 text-emerald-900 text-xs font-medium tracking-normal hover:bg-emerald-400 shadow-md transition"
                       >
                         <FaUserEdit className="mr-1 text-[11px]" />
                         Editar perfil
@@ -346,6 +346,18 @@ function TrabalheiLaDesktop({
                   <span className="font-semibold"> "Selecione a Empresa"</span> no formulário.
                   Digite parte do nome para buscar rapidamente.
                 </p>
+              </div>
+
+              <div className="mt-4 bg-emerald-50 rounded-2xl p-4 border border-emerald-200">
+                <h3 className="text-base font-bold text-emerald-900 mb-2">Como funciona a plataforma</h3>
+                <p className="text-sm text-emerald-900 leading-relaxed mb-3">
+                  O objetivo do Trabalhei La e ajudar profissionais a decidir melhor onde trabalhar por meio de avaliacoes anonimas e verificadas.
+                </p>
+                <ul className="space-y-2 text-sm text-emerald-900">
+                  <li><span className="font-semibold">1.</span> Entre com LinkedIn e ajuste seu perfil anonimo.</li>
+                  <li><span className="font-semibold">2.</span> Escolha uma empresa e avalie os criterios da sua experiencia.</li>
+                  <li><span className="font-semibold">3.</span> Veja notas, comentarios e ranking para comparar empresas.</li>
+                </ul>
               </div>
             </div>
           </div>

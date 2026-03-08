@@ -47,6 +47,8 @@ function ChoosePseudonym() {
   const [isParsingResume, setIsParsingResume] = useState(false);
   const [avatar, setAvatar] = useState(predefinedAvatars[0]);
   const [avatarFileLabel, setAvatarFileLabel] = useState("Nenhum escolhido");
+  const [avatarDirty, setAvatarDirty] = useState(false);
+  const [isSavingAvatar, setIsSavingAvatar] = useState(false);
   const [confirmedHuman, setConfirmedHuman] = useState(false);
   const [info, setInfo] = useState("");
   const [error, setError] = useState(null);
@@ -109,6 +111,8 @@ function ChoosePseudonym() {
       }
       if (parsed?.avatar) {
         setAvatar(parsed.avatar);
+        setAvatarFileLabel(typeof parsed.avatar === "string" && parsed.avatar.startsWith("data:") ? "Imagem atual" : "Nenhum escolhido");
+        setAvatarDirty(false);
       }
     } catch {
       // ignore
@@ -133,10 +137,46 @@ function ChoosePseudonym() {
     try {
       const dataUrl = await convertFileToDataUrl(file);
       setAvatar(dataUrl);
+      setAvatarDirty(true);
     } catch {
       // ignore
     }
   };
+
+  const handleSaveAvatar = useCallback(async () => {
+    if (!avatar) return;
+
+    setIsSavingAvatar(true);
+    setError(null);
+    setInfo("");
+
+    try {
+      const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      const nextProfile = {
+        ...existingProfile,
+        avatar,
+      };
+
+      localStorage.setItem("userProfile", JSON.stringify(nextProfile));
+      window.dispatchEvent(new Event("trabalheiLa_user_updated"));
+
+      try {
+        await saveUserProfile({
+          id: nextProfile.id || nextProfile.email || `anon_${Date.now()}`,
+          ...nextProfile,
+        });
+      } catch (err) {
+        console.warn("Falha ao sincronizar avatar no Firebase:", err);
+      }
+
+      setAvatarDirty(false);
+      setInfo("Imagem de perfil salva com sucesso.");
+    } catch {
+      setError("Não foi possível salvar a imagem de perfil.");
+    } finally {
+      setIsSavingAvatar(false);
+    }
+  }, [avatar]);
 
   const handleResumeUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -567,12 +607,33 @@ function ChoosePseudonym() {
 
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">Avatar</label>
+            <div className="mb-3 flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50 p-3">
+              <div className="h-16 w-16 rounded-full overflow-hidden border border-blue-200 bg-white flex items-center justify-center text-2xl">
+                {avatar ? (
+                  typeof avatar === "string" && avatar.startsWith("data:") ? (
+                    <img src={avatar} alt="Preview do avatar" className="h-full w-full object-cover" />
+                  ) : (
+                    <span>{avatar}</span>
+                  )
+                ) : (
+                  <span className="text-slate-400">👤</span>
+                )}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-700">Pré-visualização da imagem</p>
+                <p className="text-xs text-slate-500">Use o botão "Salvar imagem" para aplicar no app.</p>
+              </div>
+            </div>
             <div className="flex flex-wrap gap-2 mb-3">
               {predefinedAvatars.map((item) => (
                 <button
                   key={item}
                   type="button"
-                  onClick={() => setAvatar(item)}
+                  onClick={() => {
+                    setAvatar(item);
+                    setAvatarFileLabel("Nenhum escolhido");
+                    setAvatarDirty(true);
+                  }}
                   className={`h-12 w-12 rounded-xl border flex items-center justify-center text-2xl ${
                     avatar === item ? "border-blue-600 bg-blue-50" : "border-gray-200 bg-white"
                   }`}
@@ -600,6 +661,16 @@ function ChoosePseudonym() {
                 <span className="text-sm text-slate-600">Imagem carregada</span>
               )}
             </div>
+            {avatarDirty && (
+              <button
+                type="button"
+                onClick={handleSaveAvatar}
+                disabled={isSavingAvatar}
+                className="mt-3 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isSavingAvatar ? "Salvando imagem..." : "Salvar imagem"}
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-3">

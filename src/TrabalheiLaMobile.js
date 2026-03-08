@@ -269,47 +269,57 @@ function TrabalheiLaMobile({
             )}
           </div>
           <div className="text-center">
-            <h1 className="text-[1.65rem] font-black text-blue-900 dark:text-blue-100 font-azonix tracking-[0.1em]">
+            <h1 className="text-[2rem] font-black text-blue-900 dark:text-blue-100 font-azonix tracking-[0.12em] leading-none">
               TRABALHEI LÁ
             </h1>
-            <p className="text-[10px] text-blue-500 dark:text-slate-300 font-semibold">Versão mobile • Avaliações anônimas</p>
+            <div className="w-28 h-1 mx-auto mt-2 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
+            <p className="mt-2 text-[1.05rem] leading-tight font-extrabold text-blue-800 dark:text-blue-200">
+              Sua opinião é anônima e ajuda outros profissionais
+            </p>
+            <p className="text-[1.05rem] leading-tight font-bold text-blue-700 dark:text-slate-300">
+              Avaliações anônimas feitas por profissionais verificados.
+            </p>
           </div>
         </div>
 
         {isAuthenticated && (
-          <div className="flex items-center justify-between mt-3 px-1 w-full">
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-slate-700 flex items-center justify-center text-lg">
-                {userProfile?.avatar ? (
-                  typeof userProfile.avatar === "string" && userProfile.avatar.startsWith("data:") ? (
-                    <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+          <div className="mt-3 px-1 w-full">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-slate-700 flex items-center justify-center text-lg">
+                  {userProfile?.avatar ? (
+                    typeof userProfile.avatar === "string" && userProfile.avatar.startsWith("data:") ? (
+                      <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      <span>{userProfile.avatar}</span>
+                    )
                   ) : (
-                    <span>{userProfile.avatar}</span>
-                  )
-                ) : (
-                  <span className="text-blue-600">👤</span>
-                )}
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-700 dark:text-blue-100">{userPseudonym || userProfile?.name || "Usuário"}</p>
-                <a
-                  href="/pseudonym"
-                  className="inline-flex items-center mt-1 px-2.5 py-1 rounded-full bg-blue-700 text-white text-[11px] font-extrabold tracking-wide hover:bg-blue-800 shadow-sm transition"
-                >
-                  <FaUserEdit className="mr-1 text-[10px]" />
-                  Editar perfil
-                </a>
+                    <span className="text-blue-600">👤</span>
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 dark:text-blue-100">{userPseudonym || userProfile?.name || "Usuário"}</p>
+                  <a
+                    href="/pseudonym"
+                    className="inline-flex items-center mt-1 px-2.5 py-1 rounded-full bg-emerald-300 text-emerald-900 text-[11px] font-medium tracking-normal hover:bg-emerald-400 shadow-sm transition"
+                  >
+                    <FaUserEdit className="mr-1 text-[10px]" />
+                    Editar perfil
+                  </a>
+                </div>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="px-3 py-2 bg-slate-200 dark:bg-slate-700 rounded-full text-sm font-semibold text-slate-700 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-600 transition"
-              aria-label="Alternar tema claro/escuro"
-            >
-              {theme === 'dark' ? '🌙 Tema' : '☀️ Tema'}
-            </button>
+            <div className="flex justify-end mt-3">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="px-3 py-2 bg-slate-200 dark:bg-slate-700 rounded-full text-sm font-semibold text-slate-700 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-600 transition"
+                aria-label="Alternar tema claro/escuro"
+              >
+                {theme === 'dark' ? '🌙 Tema' : '☀️ Tema'}
+              </button>
+            </div>
           </div>
         )}
 

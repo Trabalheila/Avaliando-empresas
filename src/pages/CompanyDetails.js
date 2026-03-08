@@ -505,6 +505,10 @@ function CompanyDetails() {
               typeof data.createdAt?.toDate === "function"
                 ? data.createdAt.toDate().toISOString()
                 : data.createdAt || new Date().toISOString(),
+            editedAt:
+              typeof data.editedAt?.toDate === "function"
+                ? data.editedAt.toDate().toISOString()
+                : data.editedAt || null,
             reactions: {
               thumbsDown: data.reactions?.thumbsDown || 0,
               laugh: data.reactions?.laugh || 0,
@@ -512,7 +516,15 @@ function CompanyDetails() {
               cry: data.reactions?.cry || 0,
               clap: data.reactions?.clap || 0,
             },
-            replies: Array.isArray(data.replies) ? data.replies : [],
+            replies: Array.isArray(data.replies)
+              ? data.replies.map((reply) => ({
+                  ...reply,
+                  editedAt:
+                    typeof reply?.editedAt?.toDate === "function"
+                      ? reply.editedAt.toDate().toISOString()
+                      : reply?.editedAt || null,
+                }))
+              : [],
           };
         });
 
@@ -1179,7 +1191,10 @@ function CompanyDetails() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold text-sm text-slate-900 dark:text-slate-100">{comment.author}</p>
-                        <p className="text-xs text-gray-500 dark:text-slate-400">{new Date(comment.createdAt).toLocaleString()}</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400">
+                          {new Date(comment.createdAt).toLocaleString()}
+                          {comment.editedAt ? " (editado)" : ""}
+                        </p>
                       </div>
                       <div className="flex flex-wrap items-center justify-end gap-2">
                         <button
@@ -1336,7 +1351,10 @@ function CompanyDetails() {
                             <div className="flex items-center justify-between">
                               <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{reply.author}</p>
                               <div className="flex flex-wrap items-center justify-end gap-2">
-                                <p className="text-xs text-gray-500 dark:text-slate-400">{new Date(reply.createdAt).toLocaleString()}</p>
+                                <p className="text-xs text-gray-500 dark:text-slate-400">
+                                  {new Date(reply.createdAt).toLocaleString()}
+                                  {reply.editedAt ? " (editado)" : ""}
+                                </p>
                                 <button
                                   type="button"
                                   onClick={() => setReplyTo(reply.id)}
