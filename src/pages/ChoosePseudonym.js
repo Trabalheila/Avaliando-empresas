@@ -777,6 +777,8 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       resumeReadConfirmed,
       structuredExperiences,
       resumeText,
+      isCertifiedProfile,
+      verifiedCompany,
     ]
   );
 
