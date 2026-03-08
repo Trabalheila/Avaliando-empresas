@@ -250,9 +250,9 @@ function TrabalheiLaMobile({
     { label: "Estímulo à organização", icon: <FaBuilding className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao },
     { label: "Planos de cargos e salários", icon: <FaGraduationCap className="text-fuchsia-700" />, iconBg: "from-fuchsia-50 to-pink-100 border-fuchsia-200", value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento },
     { label: "Reconhecimento", icon: <FaTrophy className="text-amber-600" />, iconBg: "from-amber-50 to-orange-100 border-amber-200", value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento },
-    { label: "Rotatividade (demissões)", icon: <FaChartLine className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio },
+    { label: "Rotatividade", subtitle: "(Demite com facilidade?)", icon: <FaChartLine className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio },
     { label: "Atitudes de discriminação", icon: <FaGlobe className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade },
-    { label: "Avaliação geral", icon: <FaStar className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating },
+    { label: "Saúde e Segurança", icon: <FaStar className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating },
   ];
 
   const sourceConfig = [
@@ -264,7 +264,6 @@ function TrabalheiLaMobile({
 
   const contractConfig = [
     { key: "pj", label: "PJ", color: "#0284c7" },
-    { key: "contrato", label: "Contrato", color: "#ea580c" },
     { key: "clt", label: "CLT", color: "#16a34a" },
   ];
 
@@ -296,6 +295,10 @@ function TrabalheiLaMobile({
     return `${topItem.label} lidera com ${topItem.percent.toFixed(0)}%`;
   };
 
+  const headerSpacerClass = isAuthenticated
+    ? (company ? "h-[15.5rem]" : "h-[12.5rem]")
+    : (company ? "h-[11.5rem]" : "h-[9.5rem]");
+
   return (
     <div
       className={`min-h-screen font-sans pb-10 ${
@@ -304,106 +307,109 @@ function TrabalheiLaMobile({
           : "bg-gradient-to-b from-blue-50 via-sky-50 to-blue-100"
       }`}
     >
-      <header className="fixed top-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm px-4 py-3 flex flex-col md:flex-row items-start md:items-center justify-between z-50 border-b border-blue-100 dark:border-slate-700">
-        <div className="w-full flex items-center justify-center gap-3 text-center">
-          <div className="w-11 h-11 bg-blue-50 dark:bg-slate-800 rounded-xl flex items-center justify-center border border-blue-100 dark:border-slate-600 overflow-hidden">
-            {companyLogoUrl ? (
-              <img
-                src={companyLogoUrl}
-                alt="Logo da empresa"
-                className="w-full h-full object-cover"
-                onError={() => {
-                  if (logoIndex < logoCandidates.length - 1) {
-                    setLogoIndex((prev) => prev + 1);
-                  }
-                }}
-              />
-            ) : (
-              <FaBuilding className="text-blue-700 text-2xl" />
-            )}
-          </div>
-          <div className="text-center">
-            <h1 className="text-[1.65rem] font-black text-blue-900 dark:text-blue-100 font-azonix tracking-[0.08em] leading-none whitespace-nowrap">
-              TRABALHEI LÁ
-            </h1>
-            <div className="w-28 h-1 mx-auto mt-2 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
-            <p className="mt-2 text-[1.05rem] leading-tight font-extrabold text-blue-800 dark:text-blue-200">
-              Sua opinião é anônima e ajuda outros profissionais
-            </p>
-            <div className="h-1" />
-          </div>
+      <header className="fixed top-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm px-3 py-2 z-50 border-b border-blue-100 dark:border-slate-700">
+        <div className="text-center">
+          <h1 className="text-[1.35rem] font-black text-blue-900 dark:text-blue-100 font-azonix tracking-[0.07em] leading-none whitespace-nowrap">
+            TRABALHEI LÁ
+          </h1>
+          <div className="w-24 h-1 mx-auto mt-1.5 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
+          <p className="mt-1 text-[0.9rem] leading-tight font-extrabold text-blue-800 dark:text-blue-200">
+            Sua opinião é anônima e ajuda outros profissionais
+          </p>
         </div>
 
-        {isAuthenticated && (
-          <div className="mt-3 px-1 w-full">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-slate-700 flex items-center justify-center text-lg">
-                  {userProfile?.avatar ? (
-                    typeof userProfile.avatar === "string" && userProfile.avatar.startsWith("data:") ? (
-                      <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
-                    ) : (
-                      <span>{userProfile.avatar}</span>
-                    )
+        {company && (
+          <div className="mt-2 w-full rounded-2xl border border-blue-100 dark:border-slate-700 bg-blue-50/60 dark:bg-slate-800/70 p-2.5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="w-[6.4rem] flex flex-col items-center">
+                <div className="w-11 h-11 bg-blue-50 dark:bg-slate-800 rounded-xl flex items-center justify-center border border-blue-100 dark:border-slate-600 overflow-hidden">
+                  {companyLogoUrl ? (
+                    <img
+                      src={companyLogoUrl}
+                      alt="Logo da empresa"
+                      className="w-full h-full object-cover"
+                      onError={() => {
+                        if (logoIndex < logoCandidates.length - 1) {
+                          setLogoIndex((prev) => prev + 1);
+                        }
+                      }}
+                    />
                   ) : (
-                    <span className="text-blue-600">👤</span>
+                    <FaBuilding className="text-blue-700 text-xl" />
                   )}
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-700 dark:text-blue-100">{userPseudonym || userProfile?.name || "Usuário"}</p>
-                  <a
-                    href="/pseudonym"
-                    className="inline-flex items-center mt-1 px-2.5 py-1 rounded-full bg-emerald-300 text-emerald-900 text-[11px] font-medium tracking-normal hover:bg-emerald-400 shadow-sm transition"
-                  >
-                    <FaUserEdit className="mr-1 text-[10px]" />
-                    Editar perfil
-                  </a>
+                <div className="mt-1.5 text-center">
+                  <p className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">Nota</p>
+                  <div className="mt-1 flex items-center justify-center gap-1">
+                    <span className={`px-2 py-0.5 rounded-lg text-base leading-none font-extrabold text-white ${getBadgeColor(companyAverage)}`}>
+                      {companyAverage}
+                    </span>
+                    {companyAverage !== "--" && (
+                      <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">/5</span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex justify-end mt-3">
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="px-3 py-2 bg-slate-200 dark:bg-slate-700 rounded-full text-sm font-semibold text-slate-700 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-600 transition"
-                aria-label="Alternar tema claro/escuro"
-              >
-                {theme === 'dark' ? '🌙 Tema' : '☀️ Tema'}
-              </button>
+              <div className="flex-1 min-w-0 flex flex-col items-end gap-2">
+                <p className="w-full text-right text-[1.05rem] font-bold text-blue-800 dark:text-blue-100 leading-tight break-words">
+                  {company.value}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleSaibaMais}
+                  className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition"
+                >
+                  Saiba mais
+                </button>
+              </div>
             </div>
           </div>
         )}
 
-        <div className="flex items-center justify-between w-full">
-          {company && (
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-base font-bold text-blue-800 dark:text-blue-100">{company.value}</p>
-                <div className="mt-1 flex items-center justify-end gap-2">
-                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Nota</span>
-                  <span className={`px-2.5 py-1 rounded-lg text-lg leading-none font-extrabold text-white ${getBadgeColor(companyAverage)}`}>
-                    {companyAverage}
-                  </span>
-                  {companyAverage !== "--" && (
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">/5</span>
-                  )}
-                </div>
+        <div className="mt-2 w-full flex items-center justify-between gap-2">
+          {isAuthenticated ? (
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-slate-700 flex items-center justify-center text-lg overflow-hidden">
+                {userProfile?.avatar ? (
+                  typeof userProfile.avatar === "string" && userProfile.avatar.startsWith("data:") ? (
+                    <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+                  ) : (
+                    <span>{userProfile.avatar}</span>
+                  )
+                ) : (
+                  <span className="text-blue-600">👤</span>
+                )}
               </div>
-              <button
-                type="button"
-                onClick={handleSaibaMais}
-                className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition"
-              >
-                Saiba mais
-              </button>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-slate-700 dark:text-blue-100 truncate">{userPseudonym || userProfile?.name || "Usuário"}</p>
+                <a
+                  href="/pseudonym"
+                  className="inline-flex items-center mt-0.5 px-2.5 py-1 rounded-full bg-emerald-300 text-emerald-900 text-[11px] font-medium hover:bg-emerald-400 shadow-sm transition"
+                >
+                  <FaUserEdit className="mr-1 text-[10px]" />
+                  Editar perfil
+                </a>
+              </div>
             </div>
+          ) : (
+            <div />
           )}
+
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="shrink-0 px-3 py-2 bg-slate-200 dark:bg-slate-700 rounded-full text-sm font-semibold text-slate-700 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-600 transition"
+            aria-label="Alternar tema claro/escuro"
+          >
+            {theme === "dark" ? "🌙 Tema" : "☀️ Tema"}
+          </button>
         </div>
-        <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2 text-center">{firebaseStatus}</p>
+
+        <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 text-center">{firebaseStatus}</p>
       </header>
 
-      <div className={isAuthenticated ? "h-[21rem]" : "h-[12.5rem]"} />
+      <div className={headerSpacerClass} />
 
       <main className="px-4 space-y-6">
         {/* LOGIN */}
@@ -574,7 +580,10 @@ function TrabalheiLaMobile({
                     <span className={`w-9 h-9 rounded-xl border bg-gradient-to-br ${campo.iconBg} flex items-center justify-center shadow-sm`}>
                       {campo.icon}
                     </span>
-                    {campo.label}
+                    <span>
+                      <span className="block">{campo.label}</span>
+                      {campo.subtitle && <span className="block text-xs text-slate-500 dark:text-blue-300">{campo.subtitle}</span>}
+                    </span>
                   </label>
                   {renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label)}
                 </div>

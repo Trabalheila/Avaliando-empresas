@@ -72,9 +72,9 @@ function TrabalheiLaDesktop({
     { label: "Estímulo à organização", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaBuilding className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200" },
     { label: "Planos de cargos e salários", value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento, icon: <FaGraduationCap className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200" },
     { label: "Reconhecimento", value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento, icon: <FaTrophy className="text-amber-700" />, iconBg: "from-amber-50 to-orange-100 border-amber-200" },
-    { label: "Rotatividade (demissões)", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio, icon: <FaChartLine className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300" },
+    { label: "Rotatividade", subtitle: "(Demite com facilidade?)", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio, icon: <FaChartLine className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300" },
     { label: "Atitudes de discriminação", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade, icon: <FaGlobe className="text-teal-600" />, iconBg: "from-teal-50 to-cyan-100 border-teal-200" },
-    { label: "Avaliação geral", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FaStar className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200" },
+    { label: "Saúde e Segurança", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FaStar className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200" },
   ];
 
   const companyNote = selectedCompanyData ? calcularMedia(selectedCompanyData) : "--";
@@ -89,7 +89,6 @@ function TrabalheiLaDesktop({
 
   const contractConfig = [
     { key: "pj", label: "PJ", color: "#0284c7" },
-    { key: "contrato", label: "Contrato", color: "#ea580c" },
     { key: "clt", label: "CLT", color: "#16a34a" },
   ];
 
@@ -428,7 +427,10 @@ function TrabalheiLaDesktop({
                       <span className={`w-9 h-9 rounded-xl border bg-gradient-to-br ${campo.iconBg} flex items-center justify-center shadow-sm`}>
                         {campo.icon}
                       </span>
-                      {campo.label}
+                      <span>
+                        <span className="block">{campo.label}</span>
+                        {campo.subtitle && <span className="block text-xs text-slate-500">{campo.subtitle}</span>}
+                      </span>
                     </label>
                     {renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label)}
                   </div>

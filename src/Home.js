@@ -210,7 +210,7 @@ function Home({ theme, toggleTheme }) {
           company: nome,
           cnpj: null,
           sourceStats: { indicacao: 0, siteVagas: 0, gruposWhatsapp: 0, redesSociais: 0 },
-          contractStats: { pj: 0, contrato: 0, clt: 0 },
+          contractStats: { pj: 0, clt: 0 },
           rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
           inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
           reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
@@ -499,7 +499,7 @@ function Home({ theme, toggleTheme }) {
       cnpj: pendingCompanyData.cnpj,
       website: pendingCompanyData.website || null,
       sourceStats: { indicacao: 0, siteVagas: 0, gruposWhatsapp: 0, redesSociais: 0 },
-      contractStats: { pj: 0, contrato: 0, clt: 0 },
+      contractStats: { pj: 0, clt: 0 },
       rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
       inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
       reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
@@ -627,7 +627,6 @@ function Home({ theme, toggleTheme }) {
 
           const contractStats = {
             pj: emp?.contractStats?.pj || 0,
-            contrato: emp?.contractStats?.contrato || 0,
             clt: emp?.contractStats?.clt || 0,
             [contractType]: (emp?.contractStats?.[contractType] || 0) + 1,
           };
