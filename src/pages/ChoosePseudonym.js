@@ -326,12 +326,12 @@ function ChoosePseudonym({ theme, toggleTheme }) {
           if (!remoteProfile) return;
 
           const mergedProfile = {
-            ...parsed,
             ...remoteProfile,
+            ...parsed,
             profileId: resolveProfileId(parsed),
             resumeData: {
-              ...(parsed?.resumeData || {}),
               ...(remoteProfile?.resumeData || {}),
+              ...(parsed?.resumeData || {}),
             },
           };
 
@@ -466,12 +466,12 @@ function ChoosePseudonym({ theme, toggleTheme }) {
           const persisted = await loadPersistedProfile(existingProfile);
           if (persisted) {
             mergedProfile = {
-              ...existingProfile,
               ...persisted,
+              ...existingProfile,
               profileId: resolveProfileId(existingProfile),
               resumeData: {
-                ...(existingProfile?.resumeData || {}),
                 ...(persisted?.resumeData || {}),
+                ...(existingProfile?.resumeData || {}),
               },
             };
             localStorage.setItem("userProfile", JSON.stringify(mergedProfile));

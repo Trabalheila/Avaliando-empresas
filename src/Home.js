@@ -947,22 +947,24 @@ function Home({ theme, toggleTheme }) {
           const persisted = await loadPersistedProfile({ ...mergedProfile, profileId });
           if (persisted) {
             mergedProfile = {
-              ...mergedProfile,
               ...persisted,
+              ...mergedProfile,
               resumeData: {
-                ...(mergedProfile.resumeData || {}),
                 ...(persisted.resumeData || {}),
+                ...(mergedProfile.resumeData || {}),
               },
               avatar: mergedProfile.avatar || persisted.avatar,
             };
-
-            const persistedName = (persisted?.name || "").toString().trim();
-            if (persistedName) {
-              localStorage.setItem("userPseudonym", persistedName);
-            }
           }
         } catch (loadErr) {
           console.warn("Falha ao carregar perfil persistido do usuário:", loadErr);
+        }
+
+        const localPseudonym = (localStorage.getItem("userPseudonym") || "").toString().trim();
+        const effectiveName = (localPseudonym || mergedProfile?.name || "").toString().trim();
+        if (effectiveName) {
+          localStorage.setItem("userPseudonym", effectiveName);
+          mergedProfile = { ...mergedProfile, name: effectiveName };
         }
 
         mergedProfile = { ...mergedProfile, profileId };
@@ -1035,22 +1037,24 @@ function Home({ theme, toggleTheme }) {
         const persisted = await loadPersistedProfile({ ...mergedProfile, profileId });
         if (persisted) {
           mergedProfile = {
-            ...mergedProfile,
             ...persisted,
+            ...mergedProfile,
             resumeData: {
-              ...(mergedProfile.resumeData || {}),
               ...(persisted.resumeData || {}),
+              ...(mergedProfile.resumeData || {}),
             },
             avatar: mergedProfile.avatar || persisted.avatar,
           };
-
-          const persistedName = (persisted?.name || "").toString().trim();
-          if (persistedName) {
-            localStorage.setItem("userPseudonym", persistedName);
-          }
         }
       } catch (loadErr) {
         console.warn("Falha ao carregar perfil persistido do usuário:", loadErr);
+      }
+
+      const localPseudonym = (localStorage.getItem("userPseudonym") || "").toString().trim();
+      const effectiveName = (localPseudonym || mergedProfile?.name || "").toString().trim();
+      if (effectiveName) {
+        localStorage.setItem("userPseudonym", effectiveName);
+        mergedProfile = { ...mergedProfile, name: effectiveName };
       }
 
       mergedProfile = { ...mergedProfile, profileId };
