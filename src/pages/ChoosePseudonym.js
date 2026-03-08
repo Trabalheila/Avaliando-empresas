@@ -211,8 +211,11 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     details: "",
   });
   const [matchedCompanyCandidate, setMatchedCompanyCandidate] = useState("");
+  const [matchedCompanyEvidenceSource, setMatchedCompanyEvidenceSource] = useState("");
   const [verifiedCompany, setVerifiedCompany] = useState("");
   const [isCertifiedProfile, setIsCertifiedProfile] = useState(false);
+  const [isVerificationPending, setIsVerificationPending] = useState(false);
+  const [verificationSource, setVerificationSource] = useState("");
   const avatarUploadInputRef = useRef(null);
 
   const applyProfileToState = useCallback((profile) => {
@@ -221,7 +224,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     const provider = (profile?.loginProvider || "").toString().toLowerCase();
     setIsLinkedInLogin(provider === "linkedin" || Boolean(profile?.linkedInUrl));
     setIsCertifiedProfile(Boolean(profile?.verification?.certified));
+    setIsVerificationPending(Boolean(profile?.verification?.pending));
     setVerifiedCompany((profile?.verification?.company || "").toString());
+    setVerificationSource((profile?.verification?.source || "").toString());
 
     if (profile?.name) setPseudonym(profile.name);
     if (profile?.cpf) setCpf(profile.cpf);
@@ -468,6 +473,13 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         setStructuredExperiences(normalizeExperiencesForReview(linkedInExperiences));
         setResumeReadConfirmed(true);
         loadedFields.push(`${linkedInExperiences.length} experiencias`);
+
+        const candidate = findMatchingCompany(linkedInExperiences, availableCompanies);
+        if (candidate) {
+          setMatchedCompanyCandidate(candidate);
+          setMatchedCompanyEvidenceSource("linkedin_api");
+          loadedFields.push(`empresa candidata: ${candidate}`);
+        }
       }
 
       if (loadedFields.length > 0) {
@@ -478,12 +490,13 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     } catch {
       setError("Não foi possível carregar dados do LinkedIn no momento.");
     }
-  }, []);
+  }, [availableCompanies]);
 
   const handleImportLinkedInText = useCallback(() => {
     setError(null);
     setInfo("");
     setMatchedCompanyCandidate("");
+    setMatchedCompanyEvidenceSource("");
 
     const sanitizedText = sanitizeLinkedInText(linkedInExperienceText);
     const imported = parseLinkedInExperienceText(sanitizedText);
@@ -512,8 +525,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     const candidate = findMatchingCompany(imported, availableCompanies);
     if (candidate) {
       setMatchedCompanyCandidate(candidate);
+      setMatchedCompanyEvidenceSource("linkedin_text");
       setInfo(
-        `Importamos ${imported.length} experiencia(s). Encontramos a empresa "${candidate}" na lista inicial. Confirme abaixo para obter seu selo certificado.`
+        `Importamos ${imported.length} experiencia(s). Encontramos a empresa "${candidate}" na lista inicial. Confirme abaixo para solicitar validação.`
       );
     } else {
       setInfo(
@@ -535,6 +549,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     setError(null);
     setInfo("");
     setMatchedCompanyCandidate("");
+    setMatchedCompanyEvidenceSource("");
 
     const nextItem = {
       company: (manualLinkedInExperience.company || "").toString().trim(),
@@ -569,8 +584,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     const candidate = findMatchingCompany([nextItem], availableCompanies);
     if (candidate) {
       setMatchedCompanyCandidate(candidate);
+      setMatchedCompanyEvidenceSource("linkedin_manual");
       setInfo(
-        `Experiência adicionada. Encontramos a empresa "${candidate}" na lista inicial. Confirme abaixo para obter seu selo certificado.`
+        `Experiência adicionada. Encontramos a empresa "${candidate}" na lista inicial. Confirme abaixo para solicitar validação.`
       );
     } else {
       setInfo(
@@ -594,18 +610,33 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     setInfo("");
     try {
       const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      const isTrustedEvidence = matchedCompanyEvidenceSource === "linkedin_api" && isLinkedInLogin;
+
+      const nextVerification = isTrustedEvidence
+        ? {
+            certified: true,
+            pending: false,
+            company: matchedCompanyCandidate,
+            source: "linkedin_api",
+            certifiedAt: new Date().toISOString(),
+          }
+        : {
+            certified: false,
+            pending: true,
+            company: matchedCompanyCandidate,
+            source: matchedCompanyEvidenceSource || "manual",
+            requestedAt: new Date().toISOString(),
+          };
+
       const nextProfile = {
         ...existingProfile,
-        verification: {
-          certified: true,
-          company: matchedCompanyCandidate,
-          source: "linkedin_experience",
-          certifiedAt: new Date().toISOString(),
-        },
+        verification: nextVerification,
       };
 
       localStorage.setItem("userProfile", JSON.stringify(nextProfile));
-      setIsCertifiedProfile(true);
+      setIsCertifiedProfile(!!nextVerification.certified);
+      setIsVerificationPending(!!nextVerification.pending);
+      setVerificationSource(nextVerification.source || "");
       setVerifiedCompany(matchedCompanyCandidate);
 
       try {
@@ -618,12 +649,19 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       }
 
       window.dispatchEvent(new Event("trabalheiLa_user_updated"));
-      setInfo(`Verificação confirmada para ${matchedCompanyCandidate}. Selo certificado ativado.`);
+      if (isTrustedEvidence) {
+        setInfo(`Verificação confirmada para ${matchedCompanyCandidate}. Selo certificado ativado.`);
+      } else {
+        setInfo(
+          `Vínculo com ${matchedCompanyCandidate} registrado como pendente. O selo certificado só é liberado com evidência verificável do login LinkedIn.`
+        );
+      }
       setMatchedCompanyCandidate("");
+      setMatchedCompanyEvidenceSource("");
     } catch {
       setError("Nao foi possivel concluir a verificacao agora.");
     }
-  }, [matchedCompanyCandidate]);
+  }, [matchedCompanyCandidate, matchedCompanyEvidenceSource, isLinkedInLogin]);
 
   const handleExperienceFieldChange = (idx, key, value) => {
     const next = [...structuredExperiences];
@@ -724,9 +762,11 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         educationLevel: educationLevel.trim() || undefined,
         avatar,
         verification: {
+          ...(existingProfile?.verification || {}),
           certified: isCertifiedProfile,
+          pending: isVerificationPending,
           company: verifiedCompany || undefined,
-          source: isCertifiedProfile ? "linkedin_experience" : undefined,
+          source: verificationSource || undefined,
           certifiedAt: isCertifiedProfile ? (existingProfile?.verification?.certifiedAt || new Date().toISOString()) : undefined,
         },
         resumeData: {
@@ -779,6 +819,8 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       resumeText,
       isCertifiedProfile,
       verifiedCompany,
+      isVerificationPending,
+      verificationSource,
     ]
   );
 
@@ -944,6 +986,11 @@ function ChoosePseudonym({ theme, toggleTheme }) {
               Selo certificado ativo{verifiedCompany ? ` para ${verifiedCompany}` : ""}.
             </div>
           )}
+          {!isCertifiedProfile && isVerificationPending && (
+            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-amber-800 text-sm font-semibold text-center">
+              Vínculo em validação{verifiedCompany ? ` para ${verifiedCompany}` : ""}. O selo certificado será liberado apenas com evidência verificável do LinkedIn.
+            </div>
+          )}
           <p className="text-sm text-slate-600 dark:text-slate-300 mb-6">
             Essas informações ajudam a manter a qualidade das avaliações. Seus dados são armazenados localmente e não serão compartilhados.
           </p>
@@ -1054,15 +1101,23 @@ function ChoosePseudonym({ theme, toggleTheme }) {
               <p className="text-sm text-amber-900 font-semibold">Empresa encontrada para verificação</p>
               <p className="text-lg font-extrabold text-amber-800 mt-1">{matchedCompanyCandidate}</p>
               <p className="text-xs text-amber-800 mt-1">
-                Essa é a empresa que você quer validar para receber o selo certificado?
+                Evidência identificada: {matchedCompanyEvidenceSource === "linkedin_api" ? "LinkedIn API (verificável)" : matchedCompanyEvidenceSource === "linkedin_text" ? "Texto colado do LinkedIn" : "Experiência manual"}
               </p>
+              <p className="text-xs text-amber-800 mt-1">
+                Essa é a empresa que você quer validar?
+              </p>
+              {matchedCompanyEvidenceSource !== "linkedin_api" && (
+                <p className="text-xs text-amber-900 mt-1 font-semibold">
+                  Atenção: este tipo de evidência gera vínculo pendente, não selo certificado automático.
+                </p>
+              )}
               <div className="mt-3 flex items-center gap-2">
                 <button
                   type="button"
                   onClick={handleConfirmMatchedCompany}
                   className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700"
                 >
-                  Sim, é essa
+                  Sim, confirmar vínculo
                 </button>
                 <button
                   type="button"
