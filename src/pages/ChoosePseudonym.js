@@ -204,6 +204,12 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   const [error, setError] = useState(null);
   const [isLinkedInLogin, setIsLinkedInLogin] = useState(false);
   const [linkedInExperienceText, setLinkedInExperienceText] = useState("");
+  const [manualLinkedInExperience, setManualLinkedInExperience] = useState({
+    role: "",
+    company: "",
+    period: "",
+    details: "",
+  });
   const [matchedCompanyCandidate, setMatchedCompanyCandidate] = useState("");
   const [verifiedCompany, setVerifiedCompany] = useState("");
   const [isCertifiedProfile, setIsCertifiedProfile] = useState(false);
@@ -517,6 +523,69 @@ function ChoosePseudonym({ theme, toggleTheme }) {
 
     setResumeReadConfirmed(true);
   }, [linkedInExperienceText, availableCompanies]);
+
+  const handleManualLinkedInExperienceChange = useCallback((field, value) => {
+    setManualLinkedInExperience((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  }, []);
+
+  const handleAddManualLinkedInExperience = useCallback(() => {
+    setError(null);
+    setInfo("");
+    setMatchedCompanyCandidate("");
+
+    const nextItem = {
+      company: (manualLinkedInExperience.company || "").toString().trim(),
+      role: (manualLinkedInExperience.role || "").toString().trim(),
+      period: (manualLinkedInExperience.period || "").toString().trim(),
+      details: (manualLinkedInExperience.details || "").toString().trim(),
+      confidence: 0.86,
+      confidenceLevel: "alta",
+      source: "linkedin_manual",
+      reviewStatus: "pendente",
+    };
+
+    if (!nextItem.company || !nextItem.role) {
+      setError("Preencha pelo menos empresa e cargo para adicionar a experiência manual.");
+      return;
+    }
+
+    setStructuredExperiences((prev) => {
+      const merged = [nextItem, ...(prev || [])];
+      const dedupe = new Map();
+      merged.forEach((item) => {
+        const key = [
+          normalizeCompanyName(item.company),
+          (item.role || "").toString().trim().toLowerCase(),
+          (item.period || "").toString().trim().toLowerCase(),
+        ].join("__");
+        if (!dedupe.has(key)) dedupe.set(key, item);
+      });
+      return normalizeExperiencesForReview(Array.from(dedupe.values()));
+    });
+
+    const candidate = findMatchingCompany([nextItem], availableCompanies);
+    if (candidate) {
+      setMatchedCompanyCandidate(candidate);
+      setInfo(
+        `Experiência adicionada. Encontramos a empresa "${candidate}" na lista inicial. Confirme abaixo para obter seu selo certificado.`
+      );
+    } else {
+      setInfo(
+        "Experiência adicionada. Para validação, a empresa precisa estar previamente cadastrada na página inicial."
+      );
+    }
+
+    setResumeReadConfirmed(true);
+    setManualLinkedInExperience({
+      role: "",
+      company: "",
+      period: "",
+      details: "",
+    });
+  }, [manualLinkedInExperience, availableCompanies]);
 
   const handleConfirmMatchedCompany = useCallback(async () => {
     if (!matchedCompanyCandidate) return;
@@ -1027,6 +1096,51 @@ function ChoosePseudonym({ theme, toggleTheme }) {
               className="mt-3 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700"
             >
               Importar experiências do texto colado
+            </button>
+          </div>
+
+          <div className="bg-blue-50/80 dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-2xl p-4">
+            <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">Adicionar experiência manual do LinkedIn</p>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
+              Use este campo quando quiser inserir experiências manualmente. O vínculo com a empresa segue o mesmo procedimento de validação.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <input
+                value={manualLinkedInExperience.role}
+                onChange={(e) => handleManualLinkedInExperienceChange("role", e.target.value)}
+                placeholder="Cargo"
+                className="w-full p-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+              />
+              <input
+                value={manualLinkedInExperience.company}
+                onChange={(e) => handleManualLinkedInExperienceChange("company", e.target.value)}
+                placeholder="Empresa"
+                className="w-full p-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+              />
+            </div>
+
+            <input
+              value={manualLinkedInExperience.period}
+              onChange={(e) => handleManualLinkedInExperienceChange("period", e.target.value)}
+              placeholder="Período (ex.: fev 2024 - mar 2026)"
+              className="mt-2 w-full p-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+            />
+
+            <textarea
+              value={manualLinkedInExperience.details}
+              onChange={(e) => handleManualLinkedInExperienceChange("details", e.target.value)}
+              rows={3}
+              placeholder="Breve descrição das atividades"
+              className="mt-2 w-full p-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+            />
+
+            <button
+              type="button"
+              onClick={handleAddManualLinkedInExperience}
+              className="mt-3 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700"
+            >
+              Adicionar experiência manual
             </button>
           </div>
 
