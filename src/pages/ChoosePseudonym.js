@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useMemo } from "react";
+import React, { useCallback, useState, useEffect, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getUserProfile, getUserProfileByCpf, saveUserProfile } from "../services/users";
 import { extractResumeText, parseResumeText } from "../utils/resumeParser";
@@ -64,6 +64,57 @@ function extractLinkedInExperiences(profile) {
   return Array.from(dedupe.values());
 }
 
+function parseLinkedInExperienceText(rawText) {
+  const text = (rawText || "").toString().replace(/\r/g, "").trim();
+  if (!text) return [];
+
+  const periodHintPattern =
+    /(\b(?:jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\b\s+de\s+\d{4}|\b\d{4}\b)\s*(?:-|ate|até|a)\s*(?:\b(?:jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\b\s+de\s+\d{4}|\b\d{4}\b|atual|momento|presente)/i;
+  const locationHintPattern = /(brasil|presencial|hibrid|híbrida|remoto|rio de janeiro|sao paulo|salvador|curitiba|porto alegre)/i;
+
+  const blocks = text
+    .split(/\n\s*\n+/)
+    .map((block) =>
+      block
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+    )
+    .filter((lines) => lines.length >= 2);
+
+  const parsed = blocks.map((lines) => {
+    const role = lines[0] || "Nao identificado";
+    const company = (lines[1] || "").split("·")[0].trim() || "Nao identificado";
+    const periodLine = lines.find((line) => periodHintPattern.test(line)) || "";
+
+    const details = lines
+      .filter((line, idx) => idx > 1)
+      .filter((line) => line !== periodLine)
+      .filter((line) => !locationHintPattern.test(line))
+      .join(" | ");
+
+    if (!role && !company && !periodLine) return null;
+
+    return {
+      company,
+      role,
+      period: periodLine,
+      details,
+      confidence: periodLine ? 0.88 : 0.72,
+      confidenceLevel: periodLine ? "alta" : "media",
+      source: "linkedin_text",
+    };
+  }).filter(Boolean);
+
+  const dedupe = new Map();
+  parsed.forEach((item) => {
+    const key = [item.company, item.role, item.period].join("__").toLowerCase();
+    if (!dedupe.has(key)) dedupe.set(key, item);
+  });
+
+  return Array.from(dedupe.values());
+}
+
 function normalizeExperiencesForReview(items) {
   return (items || []).map((item) => {
     const confidence = (item?.confidenceLevel || "").toLowerCase();
@@ -110,6 +161,8 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   const [info, setInfo] = useState("");
   const [error, setError] = useState(null);
   const [isLinkedInLogin, setIsLinkedInLogin] = useState(false);
+  const [linkedInExperienceText, setLinkedInExperienceText] = useState("");
+  const avatarUploadInputRef = useRef(null);
 
   const applyProfileToState = useCallback((profile) => {
     if (!profile) return;
@@ -209,6 +262,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       setAvatarDirty(true);
     } catch {
       // ignore
+    } finally {
+      // Permite selecionar o mesmo arquivo novamente em tentativas futuras.
+      e.target.value = "";
     }
   };
 
@@ -360,6 +416,30 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       setError("Não foi possível carregar dados do LinkedIn no momento.");
     }
   }, []);
+
+  const handleImportLinkedInText = useCallback(() => {
+    setError(null);
+    setInfo("");
+
+    const imported = parseLinkedInExperienceText(linkedInExperienceText);
+    if (!imported.length) {
+      setInfo("Nao foi possivel identificar experiencias no texto colado.");
+      return;
+    }
+
+    setStructuredExperiences((prev) => {
+      const merged = [...imported, ...(prev || [])];
+      const dedupe = new Map();
+      merged.forEach((item) => {
+        const key = [item.company, item.role, item.period].join("__").toLowerCase();
+        if (!dedupe.has(key)) dedupe.set(key, item);
+      });
+      return normalizeExperiencesForReview(Array.from(dedupe.values()));
+    });
+
+    setResumeReadConfirmed(true);
+    setInfo(`Importamos ${imported.length} experiencia(s) a partir do texto do LinkedIn.`);
+  }, [linkedInExperienceText]);
 
   const handleExperienceFieldChange = (idx, key, value) => {
     const next = [...structuredExperiences];
@@ -756,6 +836,27 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             <p className="text-sm text-emerald-700 mt-2">{info}</p>
           )}
 
+          <div className="bg-blue-50/80 dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-2xl p-4">
+            <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">Plano B: colar seção Experiência do LinkedIn</p>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mb-2">
+              Se o LinkedIn nao liberar as experiencias via API, cole aqui o texto da sua seção "Experiência" para importar cargo, empresa, periodo e descricao.
+            </p>
+            <textarea
+              value={linkedInExperienceText}
+              onChange={(e) => setLinkedInExperienceText(e.target.value)}
+              rows={6}
+              placeholder="Cole aqui as experiências do LinkedIn..."
+              className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+            />
+            <button
+              type="button"
+              onClick={handleImportLinkedInText}
+              className="mt-3 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700"
+            >
+              Importar experiências do texto colado
+            </button>
+          </div>
+
           <div className="hidden md:block space-y-4">
             {renderEditableResumeData()}
           </div>
@@ -797,6 +898,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                     setAvatar(item);
                     setAvatarFileLabel("Nenhum escolhido");
                     setAvatarDirty(true);
+                    if (avatarUploadInputRef.current) {
+                      avatarUploadInputRef.current.value = "";
+                    }
                   }}
                   className={`h-12 w-12 rounded-xl border flex items-center justify-center text-2xl ${
                     avatar === item ? "border-blue-600 bg-blue-50" : "border-gray-200 bg-white"
@@ -809,11 +913,17 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             <div className="flex gap-2 items-center">
               <label
                 htmlFor="avatar-upload-input"
+                onClick={() => {
+                  if (avatarUploadInputRef.current) {
+                    avatarUploadInputRef.current.value = "";
+                  }
+                }}
                 className="px-3 py-2 text-sm rounded-lg border border-blue-200 text-blue-700 font-semibold hover:bg-blue-50 transition cursor-pointer"
               >
                 Escolher perfil
               </label>
               <input
+                ref={avatarUploadInputRef}
                 id="avatar-upload-input"
                 type="file"
                 accept="image/*"
