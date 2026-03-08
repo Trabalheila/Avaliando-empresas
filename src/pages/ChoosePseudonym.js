@@ -64,6 +64,48 @@ function extractLinkedInExperiences(profile) {
   return Array.from(dedupe.values());
 }
 
+function normalizeCompanyName(value) {
+  return (value || "")
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function sanitizeLinkedInText(rawText) {
+  return (rawText || "")
+    .toString()
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/^\s+/, "")
+    .replace(/\n{3,}/g, "\n\n");
+}
+
+function findMatchingCompany(importedExperiences, availableCompanies) {
+  const normalizedCompanies = (availableCompanies || []).map((name) => ({
+    original: name,
+    normalized: normalizeCompanyName(name),
+  }));
+
+  for (const exp of importedExperiences || []) {
+    const expName = normalizeCompanyName(exp?.company);
+    if (!expName) continue;
+
+    const exact = normalizedCompanies.find((item) => item.normalized === expName);
+    if (exact) return exact.original;
+
+    const partial = normalizedCompanies.find(
+      (item) => item.normalized.includes(expName) || expName.includes(item.normalized)
+    );
+    if (partial) return partial.original;
+  }
+
+  return "";
+}
+
 function parseLinkedInExperienceText(rawText) {
   const text = (rawText || "").toString().replace(/\r/g, "").trim();
   if (!text) return [];
@@ -162,6 +204,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   const [error, setError] = useState(null);
   const [isLinkedInLogin, setIsLinkedInLogin] = useState(false);
   const [linkedInExperienceText, setLinkedInExperienceText] = useState("");
+  const [matchedCompanyCandidate, setMatchedCompanyCandidate] = useState("");
+  const [verifiedCompany, setVerifiedCompany] = useState("");
+  const [isCertifiedProfile, setIsCertifiedProfile] = useState(false);
   const avatarUploadInputRef = useRef(null);
 
   const applyProfileToState = useCallback((profile) => {
@@ -169,6 +214,8 @@ function ChoosePseudonym({ theme, toggleTheme }) {
 
     const provider = (profile?.loginProvider || "").toString().toLowerCase();
     setIsLinkedInLogin(provider === "linkedin" || Boolean(profile?.linkedInUrl));
+    setIsCertifiedProfile(Boolean(profile?.verification?.certified));
+    setVerifiedCompany((profile?.verification?.company || "").toString());
 
     if (profile?.name) setPseudonym(profile.name);
     if (profile?.cpf) setCpf(profile.cpf);
@@ -189,6 +236,16 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       setAvatar(profile.avatar);
       setAvatarFileLabel(typeof profile.avatar === "string" && profile.avatar.startsWith("data:") ? "Imagem atual" : "Nenhum escolhido");
       setAvatarDirty(false);
+    }
+  }, []);
+
+  const availableCompanies = useMemo(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("empresasData") || "[]");
+      if (!Array.isArray(stored)) return [];
+      return stored.map((item) => item?.company).filter(Boolean);
+    } catch {
+      return [];
     }
   }, []);
 
@@ -420,26 +477,84 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   const handleImportLinkedInText = useCallback(() => {
     setError(null);
     setInfo("");
+    setMatchedCompanyCandidate("");
 
-    const imported = parseLinkedInExperienceText(linkedInExperienceText);
+    const sanitizedText = sanitizeLinkedInText(linkedInExperienceText);
+    const imported = parseLinkedInExperienceText(sanitizedText);
     if (!imported.length) {
       setInfo("Nao foi possivel identificar experiencias no texto colado.");
       return;
     }
 
     setStructuredExperiences((prev) => {
-      const merged = [...imported, ...(prev || [])];
+      const preserved = (prev || []).filter((item) => item?.source !== "linkedin_text");
+      const merged = [...imported, ...preserved];
       const dedupe = new Map();
       merged.forEach((item) => {
-        const key = [item.company, item.role, item.period].join("__").toLowerCase();
+        const key = [
+          normalizeCompanyName(item.company),
+          (item.role || "").toString().trim().toLowerCase(),
+          (item.period || "").toString().trim().toLowerCase(),
+        ].join("__");
         if (!dedupe.has(key)) dedupe.set(key, item);
       });
       return normalizeExperiencesForReview(Array.from(dedupe.values()));
     });
 
+    setLinkedInExperienceText(sanitizedText);
+
+    const candidate = findMatchingCompany(imported, availableCompanies);
+    if (candidate) {
+      setMatchedCompanyCandidate(candidate);
+      setInfo(
+        `Importamos ${imported.length} experiencia(s). Encontramos a empresa "${candidate}" na lista inicial. Confirme abaixo para obter seu selo certificado.`
+      );
+    } else {
+      setInfo(
+        `Importamos ${imported.length} experiencia(s), mas nenhuma empresa bateu com a lista inicial. Cadastre a empresa primeiro na página inicial para validação.`
+      );
+    }
+
     setResumeReadConfirmed(true);
-    setInfo(`Importamos ${imported.length} experiencia(s) a partir do texto do LinkedIn.`);
-  }, [linkedInExperienceText]);
+  }, [linkedInExperienceText, availableCompanies]);
+
+  const handleConfirmMatchedCompany = useCallback(async () => {
+    if (!matchedCompanyCandidate) return;
+
+    setError(null);
+    setInfo("");
+    try {
+      const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      const nextProfile = {
+        ...existingProfile,
+        verification: {
+          certified: true,
+          company: matchedCompanyCandidate,
+          source: "linkedin_experience",
+          certifiedAt: new Date().toISOString(),
+        },
+      };
+
+      localStorage.setItem("userProfile", JSON.stringify(nextProfile));
+      setIsCertifiedProfile(true);
+      setVerifiedCompany(matchedCompanyCandidate);
+
+      try {
+        await saveUserProfile({
+          id: nextProfile.id || nextProfile.email || `anon_${Date.now()}`,
+          ...nextProfile,
+        });
+      } catch (err) {
+        console.warn("Falha ao salvar selo certificado no Firebase:", err);
+      }
+
+      window.dispatchEvent(new Event("trabalheiLa_user_updated"));
+      setInfo(`Verificação confirmada para ${matchedCompanyCandidate}. Selo certificado ativado.`);
+      setMatchedCompanyCandidate("");
+    } catch {
+      setError("Nao foi possivel concluir a verificacao agora.");
+    }
+  }, [matchedCompanyCandidate]);
 
   const handleExperienceFieldChange = (idx, key, value) => {
     const next = [...structuredExperiences];
@@ -539,6 +654,12 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         phone: phone.trim() || undefined,
         educationLevel: educationLevel.trim() || undefined,
         avatar,
+        verification: {
+          certified: isCertifiedProfile,
+          company: verifiedCompany || undefined,
+          source: isCertifiedProfile ? "linkedin_experience" : undefined,
+          certifiedAt: isCertifiedProfile ? (existingProfile?.verification?.certifiedAt || new Date().toISOString()) : undefined,
+        },
         resumeData: {
           name: fullName.trim() || undefined,
           objective: professionalObjective.trim() || undefined,
@@ -714,6 +835,19 @@ function ChoosePseudonym({ theme, toggleTheme }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-6">
+      {(info || error) && (
+        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-50 w-[min(94vw,56rem)]">
+          {error ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm font-semibold shadow">
+              {error}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 px-4 py-3 text-sm font-semibold shadow">
+              {info}
+            </div>
+          )}
+        </div>
+      )}
       <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_320px] gap-6">
         <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-8 border border-blue-100 dark:border-slate-700">
           <div className="flex justify-end items-center gap-2 mb-3">
@@ -734,6 +868,11 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             </button>
           </div>
           <h1 className="text-2xl font-extrabold text-blue-800 dark:text-blue-200 mb-4 text-center">Seu perfil anônimo</h1>
+          {isCertifiedProfile && (
+            <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-emerald-800 text-sm font-semibold text-center">
+              Selo certificado ativo{verifiedCompany ? ` para ${verifiedCompany}` : ""}.
+            </div>
+          )}
           <p className="text-sm text-slate-600 dark:text-slate-300 mb-6">
             Essas informações ajudam a manter a qualidade das avaliações. Seus dados são armazenados localmente e não serão compartilhados.
           </p>
@@ -827,6 +966,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
           <p className="text-xs text-slate-500 dark:text-slate-300 mt-1">
             A importação automática de experiências só é possível para contas logadas com LinkedIn.
           </p>
+          <p className="text-xs text-slate-500 dark:text-slate-300 mt-1">
+            Para ser verificado, a empresa da sua experiência precisa estar previamente cadastrada na página inicial.
+          </p>
           {isLinkedInLogin && (
             <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
               Login LinkedIn detectado. Se o LinkedIn disponibilizar os dados, cargo, empresa, período e descrição serão carregados.
@@ -834,6 +976,32 @@ function ChoosePseudonym({ theme, toggleTheme }) {
           )}
           {info && info.toLowerCase().includes("linkedin") && (
             <p className="text-sm text-emerald-700 mt-2">{info}</p>
+          )}
+
+          {matchedCompanyCandidate && (
+            <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3">
+              <p className="text-sm text-amber-900 font-semibold">Empresa encontrada para verificação</p>
+              <p className="text-lg font-extrabold text-amber-800 mt-1">{matchedCompanyCandidate}</p>
+              <p className="text-xs text-amber-800 mt-1">
+                Essa é a empresa que você quer validar para receber o selo certificado?
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleConfirmMatchedCompany}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700"
+                >
+                  Sim, é essa
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMatchedCompanyCandidate("")}
+                  className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-sm font-semibold hover:bg-slate-100"
+                >
+                  Não, escolher outra
+                </button>
+              </div>
+            </div>
           )}
 
           <div className="bg-blue-50/80 dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-2xl p-4">
@@ -844,6 +1012,11 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             <textarea
               value={linkedInExperienceText}
               onChange={(e) => setLinkedInExperienceText(e.target.value)}
+              onPaste={(e) => {
+                e.preventDefault();
+                const pasted = e.clipboardData?.getData("text") || "";
+                setLinkedInExperienceText(sanitizeLinkedInText(pasted));
+              }}
               rows={6}
               placeholder="Cole aqui as experiências do LinkedIn..."
               className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"

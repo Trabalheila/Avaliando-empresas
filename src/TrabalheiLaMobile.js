@@ -385,6 +385,11 @@ function TrabalheiLaMobile({
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-slate-700 dark:text-blue-100 truncate">{userPseudonym || userProfile?.name || "Usuário"}</p>
+                {userProfile?.verification?.certified && (
+                  <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+                    ✓ Certificado
+                  </p>
+                )}
                 <a
                   href="/pseudonym"
                   className="inline-flex items-center mt-0.5 px-2.5 py-1 rounded-full bg-emerald-300 text-emerald-900 text-[11px] font-medium hover:bg-emerald-400 shadow-sm transition"
