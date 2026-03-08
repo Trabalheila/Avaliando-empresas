@@ -46,6 +46,7 @@ function ChoosePseudonym() {
   const [resumeText, setResumeText] = useState("");
   const [isParsingResume, setIsParsingResume] = useState(false);
   const [avatar, setAvatar] = useState(predefinedAvatars[0]);
+  const [avatarFileLabel, setAvatarFileLabel] = useState("Nenhum escolhido");
   const [confirmedHuman, setConfirmedHuman] = useState(false);
   const [info, setInfo] = useState("");
   const [error, setError] = useState(null);
@@ -124,7 +125,11 @@ function ChoosePseudonym() {
 
   const handleAvatarUpload = async (e) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      setAvatarFileLabel("Nenhum escolhido");
+      return;
+    }
+    setAvatarFileLabel(file.name || "Nenhum escolhido");
     try {
       const dataUrl = await convertFileToDataUrl(file);
       setAvatar(dataUrl);
@@ -577,7 +582,20 @@ function ChoosePseudonym() {
               ))}
             </div>
             <div className="flex gap-2 items-center">
-              <input type="file" accept="image/*" onChange={handleAvatarUpload} />
+              <label
+                htmlFor="avatar-upload-input"
+                className="px-3 py-2 text-sm rounded-lg border border-blue-200 text-blue-700 font-semibold hover:bg-blue-50 transition cursor-pointer"
+              >
+                Escolher perfil
+              </label>
+              <input
+                id="avatar-upload-input"
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="hidden"
+              />
+              <span className="text-sm text-slate-600">{avatarFileLabel}</span>
               {avatar && typeof avatar === "string" && avatar.startsWith("data:") && (
                 <span className="text-sm text-slate-600">Imagem carregada</span>
               )}

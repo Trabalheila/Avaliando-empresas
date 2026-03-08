@@ -222,6 +222,7 @@ function CompanyDetails() {
   const [actionNotice, setActionNotice] = React.useState("");
   const [editingTargetId, setEditingTargetId] = React.useState(null);
   const [editingText, setEditingText] = React.useState("");
+  const [openReactionPickerId, setOpenReactionPickerId] = React.useState(null);
   const [nowTimestamp, setNowTimestamp] = React.useState(Date.now());
   const reactionAnimationTimeout = React.useRef(null);
   const [insights, setInsights] = React.useState(null);
@@ -782,6 +783,7 @@ function CompanyDetails() {
     const nextComments = incrementReactionById(comments, targetId, reactionKey);
     saveComments(nextComments);
     syncCommentsToFirestore(nextComments);
+    setOpenReactionPickerId(null);
     const animationKey = `${targetId}__${reactionKey}`;
     setAnimatedReactionKey(animationKey);
     if (reactionAnimationTimeout.current) {
@@ -1060,12 +1062,6 @@ function CompanyDetails() {
             >
               Ver vagas no LinkedIn
             </button>
-            <button
-              onClick={() => navigate("/")}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition"
-            >
-              Voltar
-            </button>
           </div>
         </div>
 
@@ -1208,46 +1204,63 @@ function CompanyDetails() {
                         <p className="font-semibold text-sm text-slate-900 dark:text-slate-100">{comment.author}</p>
                         <p className="text-xs text-gray-500 dark:text-slate-400">{new Date(comment.createdAt).toLocaleString()}</p>
                       </div>
-                      <div className="flex flex-col items-end gap-1">
+                      <div className="flex flex-wrap items-center justify-end gap-2">
                         <button
                           type="button"
                           onClick={() => setReplyTo(comment.id)}
-                          className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
+                          className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                         >
                           Responder
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => setOpenReactionPickerId((prev) => (prev === `comment_${comment.id}` ? null : `comment_${comment.id}`))}
+                          className="h-7 w-7 rounded-full border border-gray-300 bg-gray-100 text-gray-600 hover:bg-gray-200 transition flex items-center justify-center"
+                          aria-label="Reagir ao comentário"
+                          title="Reagir"
+                        >
+                          🙂
+                        </button>
+                        {openReactionPickerId === `comment_${comment.id}` && (
+                          <div className="flex flex-wrap items-center gap-1">
+                            {reactions.map((reaction) => {
+                              const animKey = `${comment.id}__${reaction.key}`;
+                              const isAnimated = animatedReactionKey === animKey;
+                              return (
+                                <button
+                                  key={reaction.key}
+                                  type="button"
+                                  onClick={() => handleReact(comment.id, reaction.key)}
+                                  className={`flex items-center gap-1 px-2 py-1 border border-gray-200 dark:border-slate-700 rounded-full bg-white dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 transition-transform ${isAnimated ? "reaction-burst" : ""}`}
+                                  aria-label={`Reagir com ${reaction.label}`}
+                                >
+                                  <span className="text-base">{reaction.label}</span>
+                                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-100">
+                                    {comment.reactions?.[reaction.key] || 0}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                         {canManageContent(comment) && (
                           <>
                             <button
                               type="button"
                               onClick={() => startEditingItem(comment)}
-                              className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
+                              className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                             >
-                              Editar ({getRemainingManageTimeLabel(comment)})
+                              Editar
                             </button>
                             <button
                               type="button"
                               onClick={() => deleteItem(comment)}
-                              className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
+                              className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                             >
                               Apagar ({getRemainingManageTimeLabel(comment)})
                             </button>
                           </>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => hideContent(comment.id)}
-                          className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
-                        >
-                          Bloquear conteúdo
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => blockAuthor(comment.author)}
-                          className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
-                        >
-                          Bloquear usuário
-                        </button>
                         <button
                           type="button"
                           onClick={() =>
@@ -1258,7 +1271,7 @@ function CompanyDetails() {
                               text: comment.text,
                             })
                           }
-                          className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
+                          className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                         >
                           Denunciar conteúdo
                         </button>
@@ -1272,7 +1285,7 @@ function CompanyDetails() {
                               text: "",
                             })
                           }
-                          className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
+                          className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                         >
                           Denunciar usuário
                         </button>
@@ -1307,28 +1320,6 @@ function CompanyDetails() {
                     ) : (
                       <p className="mt-3 text-sm text-slate-800 dark:text-slate-100 whitespace-pre-line">{comment.text}</p>
                     )}
-
-                    <div className="flex flex-wrap gap-3 mt-3">
-                      {reactions.map((reaction) => (
-                        (() => {
-                          const animKey = `${comment.id}__${reaction.key}`;
-                          const isAnimated = animatedReactionKey === animKey;
-                          return (
-                        <button
-                          key={reaction.key}
-                          type="button"
-                          onClick={() => handleReact(comment.id, reaction.key)}
-                          className={`flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-transform ${isAnimated ? "reaction-burst" : ""}`}
-                        >
-                          <span className="text-2xl">{reaction.label}</span>
-                          <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                            {comment.reactions?.[reaction.key] || 0}
-                          </span>
-                        </button>
-                          );
-                        })()
-                      ))}
-                    </div>
 
                     {replyTo === comment.id && (
                       <div className="mt-3 bg-gray-50 dark:bg-slate-900 p-3 rounded-xl border border-gray-200 dark:border-slate-700">
@@ -1367,47 +1358,64 @@ function CompanyDetails() {
                           <div key={reply.id} className="bg-gray-50 dark:bg-slate-900 p-3 rounded-xl border border-gray-200 dark:border-slate-700">
                             <div className="flex items-center justify-between">
                               <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{reply.author}</p>
-                              <div className="flex items-center gap-3">
+                              <div className="flex flex-wrap items-center justify-end gap-2">
                                 <p className="text-xs text-gray-500 dark:text-slate-400">{new Date(reply.createdAt).toLocaleString()}</p>
                                 <button
                                   type="button"
                                   onClick={() => setReplyTo(reply.id)}
-                                  className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
+                                  className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                                 >
                                   Responder
                                 </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setOpenReactionPickerId((prev) => (prev === `reply_${reply.id}` ? null : `reply_${reply.id}`))}
+                                  className="h-7 w-7 rounded-full border border-gray-300 bg-gray-100 text-gray-600 hover:bg-gray-200 transition flex items-center justify-center"
+                                  aria-label="Reagir à resposta"
+                                  title="Reagir"
+                                >
+                                  🙂
+                                </button>
+                                {openReactionPickerId === `reply_${reply.id}` && (
+                                  <div className="flex flex-wrap items-center gap-1">
+                                    {reactions.map((reaction) => {
+                                      const animKey = `${reply.id}__${reaction.key}`;
+                                      const isAnimated = animatedReactionKey === animKey;
+                                      return (
+                                        <button
+                                          key={reaction.key}
+                                          type="button"
+                                          onClick={() => handleReact(reply.id, reaction.key)}
+                                          className={`flex items-center gap-1 px-2 py-1 border border-gray-200 dark:border-slate-700 rounded-full bg-white dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 transition-transform ${isAnimated ? "reaction-burst" : ""}`}
+                                          aria-label={`Reagir com ${reaction.label}`}
+                                        >
+                                          <span className="text-base">{reaction.label}</span>
+                                          <span className="text-xs font-semibold text-slate-700 dark:text-slate-100">
+                                            {reply.reactions?.[reaction.key] || 0}
+                                          </span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                )}
                                 {canManageContent(reply) && (
                                   <>
                                     <button
                                       type="button"
                                       onClick={() => startEditingItem(reply)}
-                                      className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
+                                      className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                                     >
-                                      Editar ({getRemainingManageTimeLabel(reply)})
+                                      Editar
                                     </button>
                                     <button
                                       type="button"
                                       onClick={() => deleteItem(reply)}
-                                      className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
+                                      className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                                     >
                                       Apagar ({getRemainingManageTimeLabel(reply)})
                                     </button>
                                   </>
                                 )}
-                                <button
-                                  type="button"
-                                  onClick={() => hideContent(reply.id)}
-                                  className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
-                                >
-                                  Bloquear conteúdo
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => blockAuthor(reply.author)}
-                                  className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
-                                >
-                                  Bloquear usuário
-                                </button>
                                 <button
                                   type="button"
                                   onClick={() =>
@@ -1418,7 +1426,7 @@ function CompanyDetails() {
                                       text: reply.text,
                                     })
                                   }
-                                  className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
+                                  className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                                 >
                                   Denunciar conteúdo
                                 </button>
@@ -1432,7 +1440,7 @@ function CompanyDetails() {
                                       text: "",
                                     })
                                   }
-                                  className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
+                                  className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
                                 >
                                   Denunciar usuário
                                 </button>
@@ -1466,27 +1474,6 @@ function CompanyDetails() {
                             ) : (
                               <p className="mt-1 text-sm text-slate-800 dark:text-slate-100">{reply.text}</p>
                             )}
-                            <div className="flex flex-wrap gap-3 mt-3">
-                              {reactions.map((reaction) => (
-                                (() => {
-                                  const animKey = `${reply.id}__${reaction.key}`;
-                                  const isAnimated = animatedReactionKey === animKey;
-                                  return (
-                                <button
-                                  key={reaction.key}
-                                  type="button"
-                                  onClick={() => handleReact(reply.id, reaction.key)}
-                                  className={`flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-transform ${isAnimated ? "reaction-burst" : ""}`}
-                                >
-                                  <span className="text-2xl">{reaction.label}</span>
-                                  <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                                    {reply.reactions?.[reaction.key] || 0}
-                                  </span>
-                                </button>
-                                  );
-                                })()
-                              ))}
-                            </div>
                           </div>
                         ))}
                       </div>
