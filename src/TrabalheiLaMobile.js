@@ -108,7 +108,7 @@ function TrabalheiLaMobile({
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
 }) {
   const calcularMedia = (emp) => {
-    if (!emp) return "0.0";
+    if (!emp) return "--";
 
     const ratings = [
       emp.rating, emp.salario, emp.beneficios, emp.cultura, emp.oportunidades,
@@ -117,7 +117,7 @@ function TrabalheiLaMobile({
       emp.saudeBemEstar, emp.impactoSocial, emp.reputacao, emp.estimacaoOrganizacao,
     ].filter((val) => typeof val === "number" && !isNaN(val) && val > 0);
 
-    if (ratings.length === 0) return "0.0";
+    if (ratings.length === 0) return "--";
     const sum = ratings.reduce((acc, curr) => acc + curr, 0);
     return (sum / ratings.length).toFixed(1);
   };
@@ -134,14 +134,19 @@ function TrabalheiLaMobile({
   React.useEffect(() => {
     setLogoIndex(0);
   }, [selectedCompanyData?.company, selectedCompanyData?.website]);
-  const companyAverage = selectedCompanyData ? calcularMedia(selectedCompanyData) : "0.0";
+  const companyAverage = selectedCompanyData ? calcularMedia(selectedCompanyData) : "--";
 
 
   const getBadgeColor = (media) => {
-    if (media >= 4.5) return "bg-emerald-700";
-    if (media >= 4) return "bg-lime-600";
-    if (media >= 3) return "bg-yellow-600";
-    if (media >= 2) return "bg-purple-600";
+    if (media == null || media === "--") return "bg-slate-500";
+
+    const numeric = typeof media === "number" ? media : Number(media);
+    if (!Number.isFinite(numeric)) return "bg-slate-500";
+
+    if (numeric >= 4.5) return "bg-emerald-700";
+    if (numeric >= 4) return "bg-lime-600";
+    if (numeric >= 3) return "bg-yellow-600";
+    if (numeric >= 2) return "bg-purple-600";
     return "bg-red-600";
   };
 
@@ -314,7 +319,9 @@ function TrabalheiLaMobile({
                   <span className={`px-2.5 py-1 rounded-lg text-lg leading-none font-extrabold text-white ${getBadgeColor(companyAverage)}`}>
                     {companyAverage}
                   </span>
-                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">/5</span>
+                  {companyAverage !== "--" && (
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">/5</span>
+                  )}
                 </div>
               </div>
               <button
@@ -451,13 +458,16 @@ function TrabalheiLaMobile({
             <div className="mb-4 space-y-2">
               {top3.map((emp, i) => {
                 const media = calcularMedia(emp);
+                const isUnrated = media === "--";
                 return (
-                  <div key={i} className={`bg-gradient-to-r ${getMedalColor(i)} rounded-xl p-3 text-white flex justify-between items-center`}>
+                  <div key={i} className={`${isUnrated ? "bg-slate-200 text-slate-600" : `bg-gradient-to-r ${getMedalColor(i)} text-white`} rounded-xl p-3 flex justify-between items-center`}>
                     <div className="flex items-center gap-2">
                       <span className="text-xl">{getMedalEmoji(i)}</span>
                       <p className="font-bold text-sm truncate max-w-[120px]">{emp.company}</p>
                     </div>
-                    <div className="bg-white/20 px-2 py-1 rounded-lg font-bold text-xs">{media} ⭐</div>
+                    <div className={`${isUnrated ? "bg-slate-300 text-slate-700" : "bg-white/20 text-white"} px-2 py-1 rounded-lg font-bold text-xs`}>
+                      {isUnrated ? "--" : `${media} ⭐`}
+                    </div>
                   </div>
                 );
               })}

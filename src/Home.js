@@ -12,6 +12,24 @@ import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 const CONNECTOR_WORDS = new Set(["de", "da", "do", "das", "dos", "e"]);
 const LEGAL_SUFFIXES = new Set(["S.A", "SA", "S/A", "LTDA", "ME", "MEI", "EPP", "EIRELI", "SPE", "SCP"]);
+const PUBLIC_COMPANIES_BLOCKLIST = new Set([
+  "banco do brasil",
+  "caixa economica federal",
+  "petrobras",
+]);
+
+function normalizeCompanyKey(name) {
+  return (name || "")
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function isBlockedPublicCompany(name) {
+  return PUBLIC_COMPANIES_BLOCKLIST.has(normalizeCompanyKey(name));
+}
 
 function normalizeCompanyName(name) {
   if (!name) return "";
@@ -161,24 +179,29 @@ function Home({ theme, toggleTheme }) {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          return parsed.map((emp) => ({
-            ...emp,
-            company: normalizeCompanyName(emp?.company || ""),
-          }));
+          return parsed
+            .map((emp) => ({
+              ...emp,
+              company: normalizeCompanyName(emp?.company || ""),
+            }))
+            .filter((emp) => !isBlockedPublicCompany(emp?.company));
         }
       }
     } catch (err) {
       console.warn("Falha ao carregar empresas do localStorage:", err);
     }
 
-    return (empresasBrasileiras || []).map((nome) => ({
-      company: normalizeCompanyName(nome),
-      cnpj: null,
-      rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
-      inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
-      reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
-      saudeBemEstar: 0, impactoSocial: 0, reputacao: 0, estimacaoOrganizacao: 0,
-    }));
+    return (empresasBrasileiras || [])
+      .map((nome) => normalizeCompanyName(nome))
+      .filter((nome) => !isBlockedPublicCompany(nome))
+      .map((nome) => ({
+        company: nome,
+        cnpj: null,
+        rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
+        inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
+        reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
+        saudeBemEstar: 0, impactoSocial: 0, reputacao: 0, estimacaoOrganizacao: 0,
+      }));
   });
 
   useEffect(() => {
@@ -221,13 +244,17 @@ function Home({ theme, toggleTheme }) {
           const map = new Map(
             (prev || []).map((emp) => {
               const normalized = normalizeCompanyName(emp?.company || "");
+              if (isBlockedPublicCompany(normalized)) {
+                return null;
+              }
               return [normalized, { ...emp, company: normalized }];
-            })
+            }).filter(Boolean)
           );
 
           for (const rc of remoteCompanies) {
             const companyName = normalizeCompanyName(rc?.name || rc?.company || rc?.slug || "");
             if (!companyName) continue;
+            if (isBlockedPublicCompany(companyName)) continue;
 
             if (!map.has(companyName)) {
               map.set(companyName, {
@@ -246,6 +273,7 @@ function Home({ theme, toggleTheme }) {
           for (const review of remoteReviews) {
             const companyName = normalizeCompanyName(review?.company || "");
             if (!companyName) continue;
+            if (isBlockedPublicCompany(companyName)) continue;
 
             if (!agg.has(companyName)) {
               const entry = { count: 0 };
@@ -273,7 +301,7 @@ function Home({ theme, toggleTheme }) {
             map.set(companyName, next);
           }
 
-          return Array.from(map.values());
+          return Array.from(map.values()).filter((emp) => !isBlockedPublicCompany(emp?.company));
         });
       } catch (err) {
         console.warn("Falha ao sincronizar empresas/reviews do Firebase:", err);
@@ -288,6 +316,7 @@ function Home({ theme, toggleTheme }) {
   }, []);
 
   const calcularMedia = useCallback((emp) => {
+  const getCompanyAverageValue = useCallback((emp) => {
     const ratings = [
       emp.rating, emp.salario, emp.beneficios, emp.cultura, emp.oportunidades,
       emp.inovacao, emp.lideranca, emp.diversidade, emp.ambiente, emp.equilibrio,
@@ -295,12 +324,25 @@ function Home({ theme, toggleTheme }) {
       emp.saudeBemEstar, emp.impactoSocial, emp.reputacao, emp.estimacaoOrganizacao,
     ].filter(val => typeof val === 'number' && !isNaN(val) && val > 0); 
 
-    if (ratings.length === 0) return "0.0";
+    if (ratings.length === 0) return null;
     const sum = ratings.reduce((acc, curr) => acc + curr, 0);
-    return (sum / ratings.length).toFixed(1);
+    return sum / ratings.length;
   }, []);
 
-  const top3 = [...empresas].sort((a, b) => calcularMedia(b) - calcularMedia(a)).slice(0, 3);
+  const calcularMedia = useCallback((emp) => {
+    const average = getCompanyAverageValue(emp);
+    if (average == null) return "--";
+    return average.toFixed(1);
+  }, [getCompanyAverageValue]);
+
+  const top3 = [...empresas]
+    .sort((a, b) => {
+      const avgA = getCompanyAverageValue(a);
+      const avgB = getCompanyAverageValue(b);
+      return (avgB ?? -1) - (avgA ?? -1);
+    })
+    .slice(0, 3);
+  }, []);
 
   const getMedalColor = (index) => {
     if (index === 0) return "from-yellow-400 to-yellow-600";
@@ -317,17 +359,24 @@ function Home({ theme, toggleTheme }) {
   };
 
   const getBadgeColor = (media) => {
-    if (media >= 4.5) return "bg-emerald-700";
-    if (media >= 4) return "bg-lime-600";
-    if (media >= 3) return "bg-yellow-600";
-    if (media >= 2) return "bg-purple-600";
+    if (media == null || media === "--") return "bg-slate-500";
+
+    const numeric = typeof media === "number" ? media : Number(media);
+    if (!Number.isFinite(numeric)) return "bg-slate-500";
+
+    if (numeric >= 4.5) return "bg-emerald-700";
+    if (numeric >= 4) return "bg-lime-600";
+    if (numeric >= 3) return "bg-yellow-600";
+    if (numeric >= 2) return "bg-purple-600";
     return "bg-red-600";
   };
 
-  const safeCompanyOptions = empresas.map((emp) => ({
-    value: emp.company,
-    label: emp.company,
-  }));
+  const safeCompanyOptions = empresas
+    .filter((emp) => !isBlockedPublicCompany(emp?.company))
+    .map((emp) => ({
+      value: emp.company,
+      label: emp.company,
+    }));
 
   const [selectedCompanyData, setSelectedCompanyData] = useState(null);
 
@@ -368,6 +417,10 @@ function Home({ theme, toggleTheme }) {
 
       if (!companyName) {
         throw new Error("Não foi possível identificar o nome fantasia pelo CNPJ informado.");
+      }
+
+      if (isBlockedPublicCompany(companyName)) {
+        throw new Error("Empresas públicas não são exibidas na lista desta plataforma.");
       }
 
       const website = data.site || data.website || null;
@@ -497,7 +550,7 @@ function Home({ theme, toggleTheme }) {
     try {
       await saveReview(evaluationData);
 
-      // Atualiza a empresa localmente para refleti1r a nova avaliação
+      // Atualiza a empresa localmente para refletir a nova avaliação
       setEmpresas((prev) =>
         prev.map((emp) => {
           if (emp.company !== company.value) return emp;

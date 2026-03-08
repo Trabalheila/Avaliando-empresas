@@ -71,7 +71,8 @@ function TrabalheiLaDesktop({
     { label: "Estímulo e Organização", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimulacaoOrganizacao, icon: <FaLightbulb className="text-lime-700" />, iconBg: "from-lime-50 to-green-100 border-lime-200" },
   ];
 
-  const companyNote = selectedCompanyData ? calcularMedia(selectedCompanyData) : "0.0";
+  const companyNote = selectedCompanyData ? calcularMedia(selectedCompanyData) : "--";
+  const isCompanyUnrated = companyNote === "--";
 
   // Lógica para gerar a Logo baseada no nome da empresa
   const companyNameForLogo = selectedCompanyData ? selectedCompanyData.company : "Logo da Empresa";
@@ -116,9 +117,9 @@ function TrabalheiLaDesktop({
                 {companyNameForLogo}
               </span>
 
-              <div className="mt-2 bg-blue-700 dark:bg-blue-800 rounded-xl px-3 py-1 text-center shadow-lg">
-                <p className="text-xl font-extrabold text-white">{companyNote}/5</p>
-                <p className="text-xs text-blue-200">NOTA</p>
+              <div className={`mt-2 rounded-xl px-3 py-1 text-center shadow-lg ${isCompanyUnrated ? "bg-slate-500 dark:bg-slate-600" : "bg-blue-700 dark:bg-blue-800"}`}>
+                <p className="text-xl font-extrabold text-white">{isCompanyUnrated ? "--" : `${companyNote}/5`}</p>
+                <p className={`text-xs ${isCompanyUnrated ? "text-slate-200" : "text-blue-200"}`}>NOTA</p>
               </div>
             </div>
 
@@ -195,7 +196,7 @@ function TrabalheiLaDesktop({
 
             {/* LOGIN ATUALIZADO (Sem Google, LinkedIn Corrigido) */}
             <section className="bg-white rounded-3xl shadow-xl p-6 mb-6 border border-blue-100">
-              <h2 className="text-3xl font-extrabold text-blue-900 dark:text-blue-100 text-center mb-2 tracking-wide font-azonix">Login para Avaliar</h2>
+              <h2 className="text-3xl font-extrabold text-blue-900 dark:text-blue-900 text-center mb-2 tracking-wide font-azonix">Login para Avaliar</h2>
               <div className="w-28 h-1 mx-auto mb-5 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
               <div className="flex flex-col items-center space-y-4">
                 <LoginLinkedInButton
@@ -212,7 +213,7 @@ function TrabalheiLaDesktop({
 
             {/* FORMULÁRIO */}
             <section className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100">
-              <h2 className="text-3xl font-extrabold text-blue-900 dark:text-blue-100 text-center mb-2 tracking-wide font-azonix">Avalie uma Empresa</h2>
+              <h2 className="text-3xl font-extrabold text-blue-900 dark:text-blue-900 text-center mb-2 tracking-wide font-azonix">Avalie uma Empresa</h2>
               <div className="w-32 h-1 mx-auto mb-5 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
               <form onSubmit={handleSubmit} className="space-y-4">
 
@@ -309,21 +310,24 @@ function TrabalheiLaDesktop({
           {/* COLUNA DIREITA - RANKING */}
           <div className="w-80">
             <div className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100 sticky top-6">
-              <h2 className="text-2xl font-extrabold text-blue-900 dark:text-blue-100 text-center mb-2 font-azonix tracking-wide">🏆 Ranking de Empresas</h2>
+              <h2 className="text-2xl font-extrabold text-blue-900 dark:text-blue-900 text-center mb-2 font-azonix tracking-wide">🏆 Ranking de Empresas</h2>
               <div className="w-24 h-1 mx-auto mb-4 rounded-full bg-gradient-to-r from-yellow-300 via-amber-500 to-yellow-300" />
 
               {Array.isArray(top3) && top3.length > 0 && (
                 <div className="mb-4 space-y-2">
                   {top3.map((emp, i) => {
                     const media = calcularMedia(emp);
+                    const isUnrated = media === "--";
                     return (
-                      <div key={i} className={`bg-gradient-to-r ${getMedalColor(i)} rounded-2xl p-3 text-white`}>
+                      <div key={i} className={`${isUnrated ? "bg-slate-200 text-slate-600" : `bg-gradient-to-r ${getMedalColor(i)} text-white`} rounded-2xl p-3`}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="text-2xl">{getMedalEmoji(i)}</span>
                             <p className="font-bold text-sm">{emp.company}</p>
                           </div>
-                          <div className="bg-white/20 px-2 py-1 rounded-full font-bold text-xs">{media} ⭐</div>
+                          <div className={`${isUnrated ? "bg-slate-300 text-slate-700" : "bg-white/20 text-white"} px-2 py-1 rounded-full font-bold text-xs`}>
+                            {isUnrated ? "--" : `${media} ⭐`}
+                          </div>
                         </div>
                       </div>
                     );
@@ -332,7 +336,7 @@ function TrabalheiLaDesktop({
               )}
 
               <div className="bg-blue-50 rounded-2xl p-4 border border-blue-200">
-                <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-100 mb-2 tracking-wide">Empresas por Autocompletação</h3>
+                <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-900 mb-2 tracking-wide">Empresas por Autocompletação</h3>
                 <p className="text-sm text-blue-900 leading-relaxed">
                   Para manter performance com muitas empresas, a seleção agora é feita pelo campo
                   <span className="font-semibold"> "Selecione a Empresa"</span> no formulário.

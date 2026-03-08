@@ -146,6 +146,7 @@ async function fetchCompanyInsightsByName(companyName) {
 }
 
 function CompanyDetails() {
+  const EDIT_DELETE_WINDOW_MS = 5 * 60 * 1000;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const name = searchParams.get("name");
@@ -163,17 +164,17 @@ function CompanyDetails() {
   }, [name]);
 
   const calculateAverage = (emp) => {
-    if (!emp) return "0.0";
+    if (!emp) return "--";
     const values = [
       emp.rating, emp.salario, emp.beneficios, emp.cultura, emp.oportunidades,
       emp.inovacao, emp.lideranca, emp.diversidade, emp.ambiente, emp.equilibrio,
       emp.reconhecimento, emp.comunicacao, emp.etica, emp.desenvolvimento,
       emp.saudeBemEstar, emp.impactoSocial, emp.reputacao, emp.estimacaoOrganizacao,
     ].filter((v) => typeof v === "number" && !isNaN(v) && v > 0);
-    if (values.length === 0) return "0.0";
+    if (values.length === 0) return "--";
     const sum = values.reduce((acc, curr) => acc + curr, 0);
     const avg = sum / values.length;
-    return Number.isFinite(avg) ? avg.toFixed(1) : "0.0";
+    return Number.isFinite(avg) ? avg.toFixed(1) : "--";
   };
 
   const average = calculateAverage(company);
@@ -219,6 +220,10 @@ function CompanyDetails() {
   const [hiddenContentIds, setHiddenContentIds] = React.useState({});
   const [reportsRegistry, setReportsRegistry] = React.useState({});
   const [moderationInfo, setModerationInfo] = React.useState("");
+  const [actionNotice, setActionNotice] = React.useState("");
+  const [editingTargetId, setEditingTargetId] = React.useState(null);
+  const [editingText, setEditingText] = React.useState("");
+  const [nowTimestamp, setNowTimestamp] = React.useState(Date.now());
   const reactionAnimationTimeout = React.useRef(null);
   const [insights, setInsights] = React.useState(null);
   const [insightsLoading, setInsightsLoading] = React.useState(false);
@@ -238,6 +243,14 @@ function CompanyDetails() {
         clearTimeout(reactionAnimationTimeout.current);
       }
     };
+  }, []);
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setNowTimestamp(Date.now());
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, []);
 
   React.useEffect(() => {
@@ -280,6 +293,47 @@ function CompanyDetails() {
 
   const getTotalReactions = (comment) => {
     return Object.values(comment.reactions || {}).reduce((sum, v) => sum + (v || 0), 0);
+  };
+
+  const getCurrentPseudonym = () => {
+    return (localStorage.getItem("userPseudonym") || "Anônimo").toString().trim();
+  };
+
+  const getContentCreatedAtMs = (item) => {
+    const ts = new Date(item?.createdAt || "").getTime();
+    return Number.isFinite(ts) ? ts : null;
+  };
+
+  const isOwnedByCurrentUser = (item) => {
+    return normalizeKey(item?.author) === normalizeKey(getCurrentPseudonym());
+  };
+
+  const canManageContent = (item) => {
+    if (!item?.id || !isOwnedByCurrentUser(item)) return false;
+    const createdAtMs = getContentCreatedAtMs(item);
+    if (createdAtMs == null) return false;
+    return nowTimestamp - createdAtMs <= EDIT_DELETE_WINDOW_MS;
+  };
+
+  const getRemainingManageTimeLabel = (item) => {
+    const createdAtMs = getContentCreatedAtMs(item);
+    if (createdAtMs == null) return "";
+
+    const remainingMs = Math.max(0, EDIT_DELETE_WINDOW_MS - (nowTimestamp - createdAtMs));
+    if (remainingMs <= 0) return "";
+
+    const remainingSeconds = Math.ceil(remainingMs / 1000);
+    const minutes = Math.floor(remainingSeconds / 60);
+    const seconds = remainingSeconds % 60;
+    return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
+  };
+
+  const getPositiveReactions = (comment) => {
+    return (
+      (comment?.reactions?.thumbsUp || 0) +
+      (comment?.reactions?.clap || 0) +
+      (comment?.reactions?.laugh || 0)
+    );
   };
 
   const companyInfo = useMemo(() => {
@@ -687,6 +741,7 @@ function CompanyDetails() {
     };
     saveComments([comment, ...comments]);
     syncCommentsToFirestore([comment, ...comments]);
+    setActionNotice("Comentário publicado. Você pode editar ou apagar por até 5 minutos.");
     setMandatoryComment("");
     setExperienceComment("");
 
@@ -782,12 +837,125 @@ function CompanyDetails() {
     const next = addReplyToItem(comments, targetId, reply);
     saveComments(next);
     syncCommentsToFirestore(next);
+    setActionNotice("Resposta publicada. Você pode editar ou apagar por até 5 minutos.");
     setReplyText("");
     setReplyTo(null);
 
     if (moderation.status !== "approved") {
       setModerationInfo("Sua resposta passou por moderação automática.");
     }
+  };
+
+  const updateItemById = (items, targetId, updater) => {
+    return items.map((item) => {
+      if (item.id === targetId) {
+        return updater(item);
+      }
+
+      if (item.replies && item.replies.length) {
+        return {
+          ...item,
+          replies: updateItemById(item.replies, targetId, updater),
+        };
+      }
+
+      return item;
+    });
+  };
+
+  const removeItemById = (items, targetId) => {
+    return (items || [])
+      .filter((item) => item.id !== targetId)
+      .map((item) => {
+        if (item.replies && item.replies.length) {
+          return {
+            ...item,
+            replies: removeItemById(item.replies, targetId),
+          };
+        }
+
+        return item;
+      });
+  };
+
+  const startEditingItem = (item) => {
+    if (!canManageContent(item)) {
+      setActionNotice("O prazo de 5 minutos para editar/ apagar este conteúdo já expirou.");
+      return;
+    }
+
+    setEditingTargetId(item.id);
+    setEditingText(item.text || "");
+    setActionNotice("Modo de edição ativado. Lembre-se: o prazo total é de 5 minutos após a publicação.");
+  };
+
+  const cancelEditing = () => {
+    setEditingTargetId(null);
+    setEditingText("");
+  };
+
+  const saveEditedItem = (item) => {
+    if (!item?.id) return;
+
+    if (!canManageContent(item)) {
+      setActionNotice("O prazo de 5 minutos para editar este conteúdo já expirou.");
+      cancelEditing();
+      return;
+    }
+
+    const cleaned = editingText.trim();
+    if (!cleaned) {
+      setActionNotice("O texto não pode ficar vazio.");
+      return;
+    }
+
+    const moderation = detectAutoModeration(cleaned);
+    const moderatedText = moderation.status === "approved"
+      ? cleaned
+      : "[Conteúdo ocultado automaticamente pela moderação.]";
+
+    const next = updateItemById(comments, item.id, (current) => ({
+      ...current,
+      text: moderatedText,
+      moderation,
+      editedAt: new Date().toISOString(),
+    }));
+
+    saveComments(next);
+    syncCommentsToFirestore(next);
+    cancelEditing();
+    setActionNotice("Conteúdo editado com sucesso.");
+
+    if (moderation.status !== "approved") {
+      setModerationInfo("Seu conteúdo editado passou por moderação automática.");
+    }
+  };
+
+  const deleteItem = (item) => {
+    if (!item?.id) return;
+
+    const confirmed = window.confirm("Tem certeza que deseja apagar este conteúdo? Esta ação não pode ser desfeita.");
+    if (!confirmed) return;
+
+    if (!canManageContent(item)) {
+      setActionNotice("O prazo de 5 minutos para apagar este conteúdo já expirou.");
+      return;
+    }
+
+    const next = removeItemById(comments, item.id);
+    saveComments(next);
+    syncCommentsToFirestore(next);
+
+    if (replyTo === item.id) {
+      setReplyTo(null);
+      setReplyText("");
+    }
+
+    if (editingTargetId === item.id) {
+      cancelEditing();
+    }
+
+    setActionNotice("Conteúdo apagado com sucesso.");
   };
 
   const scoreFields = [
@@ -834,6 +1002,16 @@ function CompanyDetails() {
       }));
   }, [comments, isAuthorBlocked, isContentHidden]);
 
+  const featuredComment = useMemo(() => {
+    if (!Array.isArray(visibleComments) || visibleComments.length === 0) return null;
+
+    return [...visibleComments].sort((a, b) => {
+      const positiveDiff = getPositiveReactions(b) - getPositiveReactions(a);
+      if (positiveDiff !== 0) return positiveDiff;
+      return getTotalReactions(b) - getTotalReactions(a);
+    })[0] || null;
+  }, [visibleComments]);
+
 
   if (!company) {
     return (
@@ -873,7 +1051,9 @@ function CompanyDetails() {
             </div>
             <div>
               <h1 className="text-2xl font-extrabold text-blue-800 dark:text-slate-100">{company.company}</h1>
-              <p className={`text-lg font-bold ${getScoreColor(average)}`}>{average} / 5</p>
+              <p className={`text-lg font-bold ${getScoreColor(average)}`}>
+                {average === "--" ? "--" : `${average} / 5`}
+              </p>
               <p className="text-xs text-gray-500">{evaluationCount} avaliação{evaluationCount === 1 ? "" : "es"}</p>
             </div>
           </div>
@@ -967,6 +1147,10 @@ function CompanyDetails() {
         <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
           <h2 className="text-lg font-bold text-blue-800 font-azonix tracking-[0.08em] mb-4">Comentários</h2>
           <div className="space-y-4">
+            <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+              Após publicar, você pode editar ou apagar seu comentário/resposta por até 5 minutos.
+            </p>
+
             <div className="flex flex-col gap-2">
               <label className="text-sm font-semibold text-slate-700">
                 Você trabalhou lá? Quer compartilhar sua experiência? Digite aqui.
@@ -980,7 +1164,7 @@ function CompanyDetails() {
               />
 
               <label className="text-sm font-semibold text-blue-800 font-azonix">
-                Comentários mais bem avaliado
+                Comentário obrigatório
               </label>
               <textarea
                 value={mandatoryComment}
@@ -1010,6 +1194,24 @@ function CompanyDetails() {
               </p>
             )}
 
+            {actionNotice && (
+              <p className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                {actionNotice}
+              </p>
+            )}
+
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+              <p className="text-sm font-semibold text-blue-800 font-azonix mb-2">Comentário mais bem avaliado</p>
+              {featuredComment ? (
+                <>
+                  <p className="text-sm text-slate-800 italic whitespace-pre-line">"{featuredComment.text}"</p>
+                  <p className="text-xs text-slate-600 text-right mt-3">- {featuredComment.author}</p>
+                </>
+              ) : (
+                <p className="text-sm text-slate-500">--</p>
+              )}
+            </div>
+
             {visibleComments.length === 0 ? (
               <p className="text-center text-gray-500">Seja o primeiro a comentar sobre esta empresa.</p>
             ) : (
@@ -1030,6 +1232,24 @@ function CompanyDetails() {
                         >
                           Responder
                         </button>
+                        {canManageContent(comment) && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => startEditingItem(comment)}
+                              className="text-xs text-emerald-700 hover:underline"
+                            >
+                              Editar ({getRemainingManageTimeLabel(comment)})
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deleteItem(comment)}
+                              className="text-xs text-rose-700 hover:underline"
+                            >
+                              Apagar ({getRemainingManageTimeLabel(comment)})
+                            </button>
+                          </>
+                        )}
                         <button
                           type="button"
                           onClick={() => hideContent(comment.id)}
@@ -1075,7 +1295,34 @@ function CompanyDetails() {
                       </div>
                     </div>
 
-                    <p className="mt-3 text-sm text-slate-800 dark:text-slate-100 whitespace-pre-line">{comment.text}</p>
+                    {editingTargetId === comment.id ? (
+                      <div className="mt-3 space-y-2">
+                        <textarea
+                          value={editingText}
+                          onChange={(e) => setEditingText(e.target.value)}
+                          className="w-full p-3 border border-blue-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          rows={3}
+                        />
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={cancelEditing}
+                            className="px-3 py-1 text-xs font-semibold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => saveEditedItem(comment)}
+                            className="px-3 py-1 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                          >
+                            Salvar edição
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-sm text-slate-800 dark:text-slate-100 whitespace-pre-line">{comment.text}</p>
+                    )}
 
                     <div className="flex flex-wrap gap-3 mt-3">
                       {reactions.map((reaction) => (
@@ -1145,6 +1392,24 @@ function CompanyDetails() {
                                 >
                                   Responder
                                 </button>
+                                {canManageContent(reply) && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => startEditingItem(reply)}
+                                      className="text-xs text-emerald-700 hover:underline"
+                                    >
+                                      Editar ({getRemainingManageTimeLabel(reply)})
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => deleteItem(reply)}
+                                      className="text-xs text-rose-700 hover:underline"
+                                    >
+                                      Apagar ({getRemainingManageTimeLabel(reply)})
+                                    </button>
+                                  </>
+                                )}
                                 <button
                                   type="button"
                                   onClick={() => hideContent(reply.id)}
@@ -1189,7 +1454,34 @@ function CompanyDetails() {
                                 </button>
                               </div>
                             </div>
-                            <p className="mt-1 text-sm text-slate-800 dark:text-slate-100">{reply.text}</p>
+                            {editingTargetId === reply.id ? (
+                              <div className="mt-2 space-y-2">
+                                <textarea
+                                  value={editingText}
+                                  onChange={(e) => setEditingText(e.target.value)}
+                                  className="w-full p-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  rows={2}
+                                />
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={cancelEditing}
+                                    className="px-3 py-1 text-xs font-semibold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100"
+                                  >
+                                    Cancelar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => saveEditedItem(reply)}
+                                    className="px-3 py-1 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                                  >
+                                    Salvar edição
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="mt-1 text-sm text-slate-800 dark:text-slate-100">{reply.text}</p>
+                            )}
                             <div className="flex flex-wrap gap-3 mt-3">
                               {reactions.map((reaction) => (
                                 (() => {
