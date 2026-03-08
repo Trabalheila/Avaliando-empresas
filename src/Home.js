@@ -670,7 +670,6 @@ function Home({ theme, toggleTheme }) {
   useEffect(() => {
     const updateFromStorage = () => {
       const storedProfile = localStorage.getItem("userProfile");
-      const storedPseudonym = localStorage.getItem("userPseudonym");
 
       if (storedProfile) {
         try {
