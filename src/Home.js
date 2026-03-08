@@ -641,6 +641,7 @@ function Home({ theme, toggleTheme }) {
       );
 
       alert("Avaliação enviada com sucesso! Obrigado por sua contribuição.");
+      navigate(`/empresa?name=${encodeURIComponent(company.value)}`);
     } catch (err) {
       const rawMessage = String(err?.message || "Erro desconhecido");
       if (rawMessage.toLowerCase().includes("missing or insufficient permissions")) {
@@ -654,7 +655,7 @@ function Home({ theme, toggleTheme }) {
       setIsLoading(false);
       setCaptchaConfirmed(false);
     }
-  }, [isAuthenticated, captchaConfirmed, company, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment, entrySource, contractType]);
+  }, [isAuthenticated, captchaConfirmed, company, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment, entrySource, contractType, navigate]);
 
   const handleSaibaMais = useCallback(() => {
     if (!company) {

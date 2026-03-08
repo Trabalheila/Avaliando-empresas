@@ -4,6 +4,7 @@ import Home from './Home';
 import AuthLinkedIn from './pages/AuthLinkedIn';
 import ChoosePseudonym from './pages/ChoosePseudonym';
 import CompanyDetails from './pages/CompanyDetails';
+import CompanyItemComments from './pages/CompanyItemComments';
 import Purpose from './pages/Purpose';
 import DeleteData from './pages/DeleteData';
 
@@ -148,6 +149,7 @@ function App() {
       <Route path="/auth/linkedin" element={<AuthLinkedIn />} />
       <Route path="/pseudonym" element={<ChoosePseudonym theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/empresa" element={<CompanyDetails theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/empresa/comentarios-item" element={<CompanyItemComments theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/purpose" element={<Purpose theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/excluir-dados" element={<DeleteData theme={theme} toggleTheme={toggleTheme} />} />
     </Routes>

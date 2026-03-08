@@ -168,6 +168,25 @@ function normalizeExperiencesForReview(items) {
   });
 }
 
+function mergeExperienceLists(previousItems, incomingItems) {
+  const merged = [...(incomingItems || []), ...(previousItems || [])];
+  const dedupe = new Map();
+
+  merged.forEach((item) => {
+    const key = [
+      normalizeCompanyName(item?.company),
+      (item?.role || "").toString().trim().toLowerCase(),
+      (item?.period || "").toString().trim().toLowerCase(),
+    ].join("__");
+
+    if (!dedupe.has(key)) {
+      dedupe.set(key, item);
+    }
+  });
+
+  return Array.from(dedupe.values());
+}
+
 function getPeriodSortScore(period) {
   const text = (period || "").toString();
   if (/atual|presente/i.test(text)) return 9999;
@@ -394,7 +413,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       const knownCompanyNames = (storedCompanies || []).map((emp) => emp?.company).filter(Boolean);
       const parsed = parseResumeText(text, knownCompanyNames);
 
-      setStructuredExperiences(normalizeExperiencesForReview(parsed.experiencesStructured || []));
+      setStructuredExperiences((prev) =>
+        normalizeExperiencesForReview(mergeExperienceLists(prev, parsed.experiencesStructured || []))
+      );
       setResumeFileName(file.name || "curriculo");
       setResumeText(parsed.experienceText || "");
       if ((parsed.experiencesStructured || []).length === 0) {
@@ -470,7 +491,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       }
 
       if (linkedInExperiences.length > 0) {
-        setStructuredExperiences(normalizeExperiencesForReview(linkedInExperiences));
+        setStructuredExperiences((prev) =>
+          normalizeExperiencesForReview(mergeExperienceLists(prev, linkedInExperiences))
+        );
         setResumeReadConfirmed(true);
         loadedFields.push(`${linkedInExperiences.length} experiencias`);
 
@@ -507,17 +530,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
 
     setStructuredExperiences((prev) => {
       const preserved = (prev || []).filter((item) => item?.source !== "linkedin_text");
-      const merged = [...imported, ...preserved];
-      const dedupe = new Map();
-      merged.forEach((item) => {
-        const key = [
-          normalizeCompanyName(item.company),
-          (item.role || "").toString().trim().toLowerCase(),
-          (item.period || "").toString().trim().toLowerCase(),
-        ].join("__");
-        if (!dedupe.has(key)) dedupe.set(key, item);
-      });
-      return normalizeExperiencesForReview(Array.from(dedupe.values()));
+      return normalizeExperiencesForReview(mergeExperienceLists(preserved, imported));
     });
 
     setLinkedInExperienceText(sanitizedText);
@@ -568,17 +581,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     }
 
     setStructuredExperiences((prev) => {
-      const merged = [nextItem, ...(prev || [])];
-      const dedupe = new Map();
-      merged.forEach((item) => {
-        const key = [
-          normalizeCompanyName(item.company),
-          (item.role || "").toString().trim().toLowerCase(),
-          (item.period || "").toString().trim().toLowerCase(),
-        ].join("__");
-        if (!dedupe.has(key)) dedupe.set(key, item);
-      });
-      return normalizeExperiencesForReview(Array.from(dedupe.values()));
+      return normalizeExperiencesForReview(mergeExperienceLists(prev, [nextItem]));
     });
 
     const candidate = findMatchingCompany([nextItem], availableCompanies);

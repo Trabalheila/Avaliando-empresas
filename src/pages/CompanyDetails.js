@@ -4,6 +4,7 @@ import { getCompanyLogoCandidates } from "../utils/getCompanyLogo";
 import { db } from "../firebase";
 import { collection, doc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
 import { hasCompanyInResumeExperiences } from "../utils/resumeParser";
+import { listReviewsByCompanySlug } from "../services/reviews";
 
 function normalizeKey(value) {
   return (value || "")
@@ -62,6 +63,10 @@ function detectAutoModeration(rawText) {
   }
 
   return { status: "approved", reasons: [] };
+}
+
+function hasTextValue(value) {
+  return typeof value === "string" && value.trim().length > 0;
 }
 
 async function fetchWikidataLabels(ids) {
@@ -241,6 +246,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     : [];
   const [logoIndex, setLogoIndex] = React.useState(0);
   const companyLogo = logoCandidates[logoIndex] || null;
+  const [itemCommentCounts, setItemCommentCounts] = React.useState({});
 
   React.useEffect(() => {
     setLogoIndex(0);
@@ -286,6 +292,74 @@ function CompanyDetails({ theme, toggleTheme }) {
     };
 
     loadInsights();
+
+    return () => {
+      alive = false;
+    };
+  }, [company?.company]);
+
+  React.useEffect(() => {
+    let alive = true;
+
+    const loadItemCommentsCount = async () => {
+      const companySlug = (company?.company || "")
+        .toString()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+/g, "")
+        .replace(/-+$/g, "");
+      if (!companySlug) {
+        setItemCommentCounts({});
+        return;
+      }
+
+      try {
+        const reviews = await listReviewsByCompanySlug(companySlug, 300);
+        if (!alive) return;
+
+        const nextCounts = {
+          comunicacao: 0,
+          etica: 0,
+          salario: 0,
+          cultura: 0,
+          saudeBemEstar: 0,
+          lideranca: 0,
+          ambiente: 0,
+          estimacaoOrganizacao: 0,
+          desenvolvimento: 0,
+          reconhecimento: 0,
+          equilibrio: 0,
+          diversidade: 0,
+          rating: 0,
+        };
+
+        for (const review of reviews || []) {
+          if (hasTextValue(review?.commentComunicacao)) nextCounts.comunicacao += 1;
+          if (hasTextValue(review?.commentEtica)) nextCounts.etica += 1;
+          if (hasTextValue(review?.commentSalario)) nextCounts.salario += 1;
+          if (hasTextValue(review?.commentCultura)) nextCounts.cultura += 1;
+          if (hasTextValue(review?.commentSaudeBemEstar)) nextCounts.saudeBemEstar += 1;
+          if (hasTextValue(review?.commentLideranca)) nextCounts.lideranca += 1;
+          if (hasTextValue(review?.commentAmbiente)) nextCounts.ambiente += 1;
+          if (hasTextValue(review?.commentEstimacaoOrganizacao)) nextCounts.estimacaoOrganizacao += 1;
+          if (hasTextValue(review?.commentDesenvolvimento)) nextCounts.desenvolvimento += 1;
+          if (hasTextValue(review?.commentReconhecimento)) nextCounts.reconhecimento += 1;
+          if (hasTextValue(review?.commentEquilibrio)) nextCounts.equilibrio += 1;
+          if (hasTextValue(review?.commentDiversidade)) nextCounts.diversidade += 1;
+          if (hasTextValue(review?.commentRating)) nextCounts.rating += 1;
+        }
+
+        setItemCommentCounts(nextCounts);
+      } catch (err) {
+        if (!alive) return;
+        setItemCommentCounts({});
+      }
+    };
+
+    loadItemCommentsCount();
 
     return () => {
       alive = false;
@@ -1094,6 +1168,13 @@ function CompanyDetails({ theme, toggleTheme }) {
                     style={{ width: `${Math.min(100, (value / 5) * 100)}%` }}
                   />
                 </div>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/empresa/comentarios-item?name=${encodeURIComponent(company.company)}&item=${field.key}`)}
+                  className="mt-3 text-xs font-semibold text-blue-700 hover:text-blue-900 hover:underline"
+                >
+                  Ver comentários deste item ({itemCommentCounts[field.key] || 0})
+                </button>
               </div>
             );
           })}
