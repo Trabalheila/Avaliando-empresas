@@ -124,6 +124,7 @@ function TrabalheiLaDesktop({
 
   const sourcePieData = buildPieData(selectedCompanyData?.sourceStats, sourceConfig);
   const contractPieData = buildPieData(selectedCompanyData?.contractStats, contractConfig);
+  const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
 
   const getTopSliceLabel = (pieData) => {
     const topItem = pieData.items.reduce((best, current) => (current.percent > best.percent ? current : best), pieData.items[0]);
@@ -213,7 +214,7 @@ function TrabalheiLaDesktop({
                         className="inline-flex items-center mt-1 px-3 py-1.5 rounded-full bg-emerald-300 text-emerald-900 text-xs font-medium tracking-normal hover:bg-emerald-400 shadow-md transition"
                       >
                         <FaUserEdit className="mr-1 text-[11px]" />
-                        Editar perfil
+                        {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
                       </a>
                     </div>
                   </div>

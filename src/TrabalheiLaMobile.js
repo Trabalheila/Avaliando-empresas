@@ -287,6 +287,7 @@ function TrabalheiLaMobile({
 
   const sourcePieData = buildPieData(selectedCompanyData?.sourceStats, sourceConfig);
   const contractPieData = buildPieData(selectedCompanyData?.contractStats, contractConfig);
+  const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
 
   const getTopSliceLabel = (pieData) => {
     const topItem = pieData.items.reduce((best, current) => (current.percent > best.percent ? current : best), pieData.items[0]);
@@ -389,7 +390,7 @@ function TrabalheiLaMobile({
                   className="inline-flex items-center mt-0.5 px-2.5 py-1 rounded-full bg-emerald-300 text-emerald-900 text-[11px] font-medium hover:bg-emerald-400 shadow-sm transition"
                 >
                   <FaUserEdit className="mr-1 text-[10px]" />
-                  Editar perfil
+                  {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
                 </a>
               </div>
             </div>
