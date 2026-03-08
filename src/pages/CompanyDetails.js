@@ -598,16 +598,6 @@ function CompanyDetails() {
     }
   };
 
-  const saveBlockedAuthors = (next) => {
-    setBlockedAuthors(next);
-    try {
-      const key = getBlockedAuthorsKey();
-      if (key) localStorage.setItem(key, JSON.stringify(next));
-    } catch {
-      // ignore
-    }
-  };
-
   const saveHiddenContentIds = (next) => {
     setHiddenContentIds(next);
     try {

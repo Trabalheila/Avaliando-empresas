@@ -656,7 +656,7 @@ function Home({ theme, toggleTheme }) {
         setUserProfile(data);
         setIsAuthenticated(true);
 
-        // Salva o usuário no Firestore (para acompanhar perfis)
+        // Salva o usuário no Fire1store (para acompanhar perfis)
         try {
           await saveUserProfile({
             id: data.id,
