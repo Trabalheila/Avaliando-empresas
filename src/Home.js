@@ -747,6 +747,8 @@ function Home({ theme, toggleTheme }) {
         let mergedProfile = {
           ...existingProfile,
           ...data,
+          loginProvider: "linkedin",
+          linkedInUrl: data?.linkedInUrl || existingProfile?.linkedInUrl || null,
           avatar: data.avatar || existingProfile.avatar,
         };
 
@@ -786,7 +788,9 @@ function Home({ theme, toggleTheme }) {
             name: mergedProfile.name,
             email: mergedProfile.email,
             picture: mergedProfile.picture,
+            loginProvider: "linkedin",
             linkedinProfile: mergedProfile.linkedInUrl || null,
+            linkedinExperiences: Array.isArray(mergedProfile.linkedinExperiences) ? mergedProfile.linkedinExperiences : [],
             updatedAt: new Date().toISOString(),
           });
         } catch (err) {

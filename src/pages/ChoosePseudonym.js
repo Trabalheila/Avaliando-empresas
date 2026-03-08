@@ -7,6 +7,63 @@ const predefinedAvatars = [
   "🧑", "🧑‍💼", "🧑‍🔧", "🧑‍💻", "🧑‍🔬", "👩‍🏫", "👨‍🍳", "👩‍⚕️", "👨‍🚀", "👩‍🎨",
 ];
 
+function mapLinkedInExperience(item) {
+  if (!item) return null;
+
+  const role =
+    (item?.title || item?.role || item?.position || item?.occupation || "")
+      .toString()
+      .trim() || "Nao identificado";
+
+  const company =
+    (item?.company || item?.companyName || item?.organization || item?.employer || "")
+      .toString()
+      .trim() || "Nao identificado";
+
+  const start = (item?.startDate || item?.start || item?.from || "").toString().trim();
+  const end = (item?.endDate || item?.end || item?.to || item?.present || "").toString().trim();
+  const period = item?.period
+    ? item.period
+    : [start, end || "Atual"].filter(Boolean).join(" - ");
+
+  const details =
+    (item?.description || item?.summary || item?.activities || item?.responsibilities || "")
+      .toString()
+      .trim();
+
+  if (!company && !role && !period) return null;
+
+  return {
+    company,
+    role,
+    period,
+    details,
+    confidence: 0.9,
+    confidenceLevel: "alta",
+    source: "linkedin",
+  };
+}
+
+function extractLinkedInExperiences(profile) {
+  const raw =
+    profile?.linkedinExperiences ||
+    profile?.experiences ||
+    profile?.positions ||
+    profile?.linkedin?.experiences ||
+    profile?.linkedin?.positions ||
+    [];
+
+  if (!Array.isArray(raw)) return [];
+
+  const mapped = raw.map(mapLinkedInExperience).filter(Boolean);
+  const dedupe = new Map();
+  mapped.forEach((item) => {
+    const key = [item.company, item.role, item.period].join("__").toLowerCase();
+    if (!dedupe.has(key)) dedupe.set(key, item);
+  });
+  return Array.from(dedupe.values());
+}
+
 function normalizeExperiencesForReview(items) {
   return (items || []).map((item) => {
     const confidence = (item?.confidenceLevel || "").toLowerCase();
@@ -52,9 +109,13 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   const [confirmedHuman, setConfirmedHuman] = useState(false);
   const [info, setInfo] = useState("");
   const [error, setError] = useState(null);
+  const [isLinkedInLogin, setIsLinkedInLogin] = useState(false);
 
   const applyProfileToState = useCallback((profile) => {
     if (!profile) return;
+
+    const provider = (profile?.loginProvider || "").toString().toLowerCase();
+    setIsLinkedInLogin(provider === "linkedin" || Boolean(profile?.linkedInUrl));
 
     if (profile?.name) setPseudonym(profile.name);
     if (profile?.cpf) setCpf(profile.cpf);
@@ -266,6 +327,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         (mergedProfile?.phone || "").toString().trim() ||
         (mergedProfile?.phoneNumber || "").toString().trim() ||
         (mergedProfile?.formattedPhoneNumber || "").toString().trim();
+      const linkedInExperiences = extractLinkedInExperiences(mergedProfile);
 
       const loadedFields = [];
 
@@ -281,6 +343,12 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       if (resolvedPhone) {
         setPhone(resolvedPhone);
         loadedFields.push("telefone");
+      }
+
+      if (linkedInExperiences.length > 0) {
+        setStructuredExperiences(normalizeExperiencesForReview(linkedInExperiences));
+        setResumeReadConfirmed(true);
+        loadedFields.push(`${linkedInExperiences.length} experiencias`);
       }
 
       if (loadedFields.length > 0) {
@@ -604,6 +672,19 @@ function ChoosePseudonym({ theme, toggleTheme }) {
           </div>
 
           <div>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">E-mail</label>
+            <input
+              value={email}
+              onChange={(e) => {
+                setError(null);
+                setEmail(e.target.value);
+              }}
+              placeholder="seuemail@dominio.com"
+              className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+            />
+          </div>
+
+          <div>
             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">CPF (apenas números)</label>
             <input
               value={cpf}
@@ -661,8 +742,16 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             onClick={handleFillFromLinkedIn}
             className="w-full py-2.5 rounded-xl border border-blue-200 text-blue-700 font-semibold hover:bg-blue-50 transition"
           >
-            Carregar informações do próprio LinkedIn
+            Carregar informações e experiências do LinkedIn
           </button>
+          <p className="text-xs text-slate-500 dark:text-slate-300 mt-1">
+            A importação automática de experiências só é possível para contas logadas com LinkedIn.
+          </p>
+          {isLinkedInLogin && (
+            <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+              Login LinkedIn detectado. Se o LinkedIn disponibilizar os dados, cargo, empresa, período e descrição serão carregados.
+            </p>
+          )}
           {info && info.toLowerCase().includes("linkedin") && (
             <p className="text-sm text-emerald-700 mt-2">{info}</p>
           )}
