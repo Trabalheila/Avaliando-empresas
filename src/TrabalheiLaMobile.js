@@ -428,21 +428,31 @@ function TrabalheiLaMobile({
         <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700">
           <h2 className="text-sm uppercase tracking-[0.14em] font-extrabold text-blue-800 dark:text-blue-200 text-center mb-3">Acesso para Avaliar</h2>
           <div className="flex flex-col items-center space-y-3">
-            <LoginLinkedInButton 
-              clientId={linkedInClientId} 
-              redirectUri={linkedInRedirectUri}
-              onLoginSuccess={onLoginSuccess}
-              onLoginFailure={(err) => setError(err?.message || String(err))}
-              disabled={isLoading}
-            />
+            <div className="w-full max-w-xs -ml-2">
+              <LoginLinkedInButton 
+                clientId={linkedInClientId} 
+                redirectUri={linkedInRedirectUri}
+                onLoginSuccess={onLoginSuccess}
+                onLoginFailure={(err) => setError(err?.message || String(err))}
+                disabled={isLoading}
+              />
+            </div>
             <button
               type="button"
               onClick={onGoogleLogin}
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-3 bg-white border border-blue-200 text-blue-800 font-semibold py-2 px-4 rounded-full shadow hover:bg-blue-50 transition-colors text-base disabled:opacity-60"
+              className="w-full max-w-xs -ml-2 flex items-center justify-center gap-3 bg-white border border-blue-200 text-blue-800 font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-50 transition-colors text-sm md:text-base disabled:opacity-60"
             >
               <FaGoogle className="text-lg" /> Cadastrar com Google
             </button>
+            <Link
+              to="/pseudonym"
+              className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-lime-400 text-emerald-950 shadow-[0_0_16px_rgba(132,204,22,0.95)] hover:bg-lime-300 hover:shadow-[0_0_20px_rgba(132,204,22,1)] transition"
+              aria-label="Ir para editar perfil"
+              title="Editar perfil"
+            >
+              <FaUserEdit className="text-base" />
+            </Link>
             {isAuthenticated && (
               <div className="w-full flex justify-end">
                 <button

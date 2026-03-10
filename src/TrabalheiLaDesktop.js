@@ -272,20 +272,30 @@ function TrabalheiLaDesktop({
               <h2 className="text-3xl font-extrabold text-blue-900 dark:text-blue-900 text-center mb-2 tracking-wide font-azonix">Login para Avaliar</h2>
               <div className="w-28 h-1 mx-auto mb-5 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
               <div className="flex flex-col items-center space-y-4">
-                <LoginLinkedInButton
-                  clientId={linkedInClientId}
-                  onLoginSuccess={onLoginSuccess}
-                  onLoginFailure={(e) => console.error("Erro no LinkedIn:", e)}
-                  disabled={isLoading}
-                />
+                <div className="w-full max-w-xs -ml-3">
+                  <LoginLinkedInButton
+                    clientId={linkedInClientId}
+                    onLoginSuccess={onLoginSuccess}
+                    onLoginFailure={(e) => console.error("Erro no LinkedIn:", e)}
+                    disabled={isLoading}
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={onGoogleLogin}
                   disabled={isLoading}
-                  className="flex items-center justify-center gap-3 bg-white border border-blue-200 text-blue-800 font-semibold py-2 px-4 rounded-full shadow hover:bg-blue-50 transition-colors text-base w-full disabled:opacity-60"
+                  className="w-full max-w-xs -ml-3 flex items-center justify-center gap-3 bg-white border border-blue-200 text-blue-800 font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-50 transition-colors text-sm md:text-base disabled:opacity-60"
                 >
                   <FaGoogle className="text-lg" /> Cadastrar com Google
                 </button>
+                <Link
+                  to="/pseudonym"
+                  className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-lime-400 text-emerald-950 shadow-[0_0_18px_rgba(132,204,22,0.95)] hover:bg-lime-300 hover:shadow-[0_0_22px_rgba(132,204,22,1)] transition"
+                  aria-label="Ir para editar perfil"
+                  title="Editar perfil"
+                >
+                  <FaUserEdit className="text-xl" />
+                </Link>
                 {isAuthenticated && (
                   <div className="w-full flex justify-end">
                     <button
