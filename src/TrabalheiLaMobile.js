@@ -107,6 +107,7 @@ function TrabalheiLaMobile({
   error, setError, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, safeCompanyOptions,
   handleLogout,
   onGoogleLogin,
+  globalContractStats,
   selectedCompanyData,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
 }) {
@@ -253,7 +254,7 @@ function TrabalheiLaMobile({
     { label: "Reconhecimento", icon: <FaTrophy className="text-amber-600" />, iconBg: "from-amber-50 to-orange-100 border-amber-200", value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento },
     { label: "Rotatividade", subtitle: "(Demite com facilidade?)", icon: <FaChartLine className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio },
     { label: "Atitudes de discriminação", icon: <FaGlobe className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade },
-    { label: "Saúde e Segurança", icon: <FaStar className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating },
+    { label: "Segurança", icon: <FaStar className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating },
   ];
 
   const sourceConfig = [
@@ -287,6 +288,7 @@ function TrabalheiLaMobile({
 
   const sourcePieData = buildPieData(selectedCompanyData?.sourceStats, sourceConfig);
   const contractPieData = buildPieData(selectedCompanyData?.contractStats, contractConfig);
+  const globalContractPieData = buildPieData(globalContractStats, contractConfig);
   const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
 
   const getTopSliceLabel = (pieData) => {
@@ -316,6 +318,9 @@ function TrabalheiLaMobile({
           </h1>
           <div className="w-24 h-1 mx-auto mt-1.5 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
           <p className="mt-1 text-[0.9rem] leading-tight font-extrabold text-blue-800 dark:text-blue-200">
+            Evoluindo o mercado de trabalho
+          </p>
+          <p className="mt-0.5 text-[0.72rem] leading-tight font-semibold text-blue-600 dark:text-blue-300">
             Sua opinião é anônima e ajuda outros profissionais
           </p>
         </div>
@@ -374,7 +379,7 @@ function TrabalheiLaMobile({
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-slate-700 flex items-center justify-center text-lg overflow-hidden">
                 {userProfile?.avatar ? (
-                  typeof userProfile.avatar === "string" && userProfile.avatar.startsWith("data:") ? (
+                  typeof userProfile.avatar === "string" && (userProfile.avatar.startsWith("data:") || userProfile.avatar.startsWith("http")) ? (
                     <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
                   ) : (
                     <span>{userProfile.avatar}</span>
@@ -489,6 +494,9 @@ function TrabalheiLaMobile({
                     onChange={(e) => setNewCompanyCnpj(e.target.value)}
                     placeholder="CNPJ (apenas números)"
                     className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="off"
                   />
                   {cnpjError && <p className="text-sm text-red-600">{cnpjError}</p>}
                   <button
@@ -557,7 +565,23 @@ function TrabalheiLaMobile({
               {selectedCompanyData && (
                 <div className="mt-3 grid grid-cols-1 gap-3">
                   <div className="bg-white border border-blue-100 rounded-xl p-3">
-                    <p className="text-sm font-bold text-blue-800 mb-1">Entradas mais contratadas</p>
+                    <p className="text-sm font-bold text-blue-800 mb-1">Classificacao profissional geral</p>
+                    <p className="text-xs text-blue-600 mb-2">{getTopSliceLabel(globalContractPieData)}</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-24 h-24 rounded-full border border-gray-200" style={{ background: `conic-gradient(${globalContractPieData.chart})` }} />
+                      <div className="space-y-1 text-xs">
+                        {globalContractPieData.items.map((item) => (
+                          <p key={`global_contract_${item.key}`} className="flex items-center gap-2 text-slate-700">
+                            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                            {item.label}: {item.percent.toFixed(0)}%
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-blue-100 rounded-xl p-3">
+                    <p className="text-sm font-bold text-blue-800 mb-1">Entradas na empresa</p>
                     <p className="text-xs text-blue-600 mb-2">{getTopSliceLabel(sourcePieData)}</p>
                     <div className="flex items-center gap-3">
                       <div className="w-24 h-24 rounded-full border border-gray-200" style={{ background: `conic-gradient(${sourcePieData.chart})` }} />
@@ -573,7 +597,7 @@ function TrabalheiLaMobile({
                   </div>
 
                   <div className="bg-white border border-blue-100 rounded-xl p-3">
-                    <p className="text-sm font-bold text-blue-800 mb-1">Tipos de contratação</p>
+                    <p className="text-sm font-bold text-blue-800 mb-1">Classificacao profissional da empresa</p>
                     <p className="text-xs text-blue-600 mb-2">{getTopSliceLabel(contractPieData)}</p>
                     <div className="flex items-center gap-3">
                       <div className="w-24 h-24 rounded-full border border-gray-200" style={{ background: `conic-gradient(${contractPieData.chart})` }} />

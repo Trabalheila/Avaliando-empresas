@@ -25,6 +25,7 @@ function TrabalheiLaDesktop({
   linkedInClientId, error, setError, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, selectedCompanyData, calcularMedia,
   handleLogout,
   onGoogleLogin,
+  globalContractStats,
   getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed
 }) {
@@ -75,7 +76,7 @@ function TrabalheiLaDesktop({
     { label: "Reconhecimento", value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento, icon: <FaTrophy className="text-amber-700" />, iconBg: "from-amber-50 to-orange-100 border-amber-200" },
     { label: "Rotatividade", subtitle: "(Demite com facilidade?)", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio, icon: <FaChartLine className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300" },
     { label: "Atitudes de discriminação", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade, icon: <FaGlobe className="text-teal-600" />, iconBg: "from-teal-50 to-cyan-100 border-teal-200" },
-    { label: "Saúde e Segurança", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FaStar className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200" },
+    { label: "Segurança", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FaStar className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200" },
   ];
 
   const companyNote = selectedCompanyData ? calcularMedia(selectedCompanyData) : "--";
@@ -124,6 +125,7 @@ function TrabalheiLaDesktop({
 
   const sourcePieData = buildPieData(selectedCompanyData?.sourceStats, sourceConfig);
   const contractPieData = buildPieData(selectedCompanyData?.contractStats, contractConfig);
+  const globalContractPieData = buildPieData(globalContractStats, contractConfig);
   const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
 
   const getTopSliceLabel = (pieData) => {
@@ -189,16 +191,18 @@ function TrabalheiLaDesktop({
               </h1>
               <div className="w-44 h-1.5 mx-auto rounded-full bg-gradient-to-r from-blue-300 via-blue-700 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500 mb-3" />
               <p className="text-blue-700 dark:text-blue-200 text-xl font-extrabold leading-tight mb-1">
+                Evoluindo o mercado de trabalho
+              </p>
+              <p className="text-blue-600 dark:text-blue-300 text-sm font-semibold leading-tight mb-3">
                 Sua opinião é anônima e ajuda outros profissionais
               </p>
-              <div className="mb-3" />
 
               {isAuthenticated && (
                 <div className="flex items-center justify-between gap-3 mb-2 bg-blue-50/70 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-600 rounded-2xl px-3 py-2">
                   <div className="flex items-center justify-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-slate-700 flex items-center justify-center text-xl">
                       {userProfile?.avatar ? (
-                        typeof userProfile.avatar === "string" && userProfile.avatar.startsWith("data:") ? (
+                        typeof userProfile.avatar === "string" && (userProfile.avatar.startsWith("data:") || userProfile.avatar.startsWith("http")) ? (
                           <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
                         ) : (
                           <span>{userProfile.avatar}</span>
@@ -333,6 +337,9 @@ function TrabalheiLaDesktop({
                           placeholder="CNPJ (apenas números)"
                           value={newCompanyCnpj}
                           onChange={(e) => setNewCompanyCnpj(e.target.value)}
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          autoComplete="off"
                         />
                         <button type="button" onClick={handleAddNewCompany}
                           disabled={isLoading}
@@ -397,48 +404,6 @@ function TrabalheiLaDesktop({
                   </div>
                 </div>
 
-                {selectedCompanyData && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-white border border-blue-100 rounded-xl p-4">
-                      <p className="text-sm font-bold text-blue-800 mb-1">Formas de entrada mais contratadas</p>
-                      <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(sourcePieData)}</p>
-                      <div className="flex items-center gap-4">
-                        <div
-                          className="w-28 h-28 rounded-full border border-gray-200"
-                          style={{ background: `conic-gradient(${sourcePieData.chart})` }}
-                        />
-                        <div className="space-y-1 text-xs">
-                          {sourcePieData.items.map((item) => (
-                            <p key={item.key} className="flex items-center gap-2 text-slate-700">
-                              <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                              {item.label}: {item.percent.toFixed(0)}%
-                            </p>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-white border border-blue-100 rounded-xl p-4">
-                      <p className="text-sm font-bold text-blue-800 mb-1">Tipos de contratação</p>
-                      <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(contractPieData)}</p>
-                      <div className="flex items-center gap-4">
-                        <div
-                          className="w-28 h-28 rounded-full border border-gray-200"
-                          style={{ background: `conic-gradient(${contractPieData.chart})` }}
-                        />
-                        <div className="space-y-1 text-xs">
-                          {contractPieData.items.map((item) => (
-                            <p key={item.key} className="flex items-center gap-2 text-slate-700">
-                              <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                              {item.label}: {item.percent.toFixed(0)}%
-                            </p>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {campos.map((campo, idx) => (
                   <div key={idx} className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
                     <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center gap-2 mb-2 md:mb-0">
@@ -482,6 +447,65 @@ function TrabalheiLaDesktop({
           {/* COLUNA DIREITA - RANKING */}
           <div className="w-80">
             <div className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100 sticky top-6">
+              <div className="mb-4 space-y-4">
+                <div className="bg-white border border-blue-100 rounded-xl p-4">
+                  <p className="text-sm font-bold text-blue-800 mb-1">Classificacao profissional da empresa</p>
+                  <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(contractPieData)}</p>
+                  <div className="flex items-center gap-4">
+                    <div
+                      className="w-24 h-24 rounded-full border border-gray-200"
+                      style={{ background: `conic-gradient(${contractPieData.chart})` }}
+                    />
+                    <div className="space-y-1 text-xs">
+                      {contractPieData.items.map((item) => (
+                        <p key={`company_contract_${item.key}`} className="flex items-center gap-2 text-slate-700">
+                          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                          {item.label}: {item.percent.toFixed(0)}%
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-blue-100 rounded-xl p-4">
+                  <p className="text-sm font-bold text-blue-800 mb-1">Classificacao profissional geral</p>
+                  <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(globalContractPieData)}</p>
+                  <div className="flex items-center gap-4">
+                    <div
+                      className="w-24 h-24 rounded-full border border-gray-200"
+                      style={{ background: `conic-gradient(${globalContractPieData.chart})` }}
+                    />
+                    <div className="space-y-1 text-xs">
+                      {globalContractPieData.items.map((item) => (
+                        <p key={`global_contract_${item.key}`} className="flex items-center gap-2 text-slate-700">
+                          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                          {item.label}: {item.percent.toFixed(0)}%
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-blue-100 rounded-xl p-4">
+                  <p className="text-sm font-bold text-blue-800 mb-1">Formas de entrada na empresa</p>
+                  <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(sourcePieData)}</p>
+                  <div className="flex items-center gap-4">
+                    <div
+                      className="w-24 h-24 rounded-full border border-gray-200"
+                      style={{ background: `conic-gradient(${sourcePieData.chart})` }}
+                    />
+                    <div className="space-y-1 text-xs">
+                      {sourcePieData.items.map((item) => (
+                        <p key={`source_${item.key}`} className="flex items-center gap-2 text-slate-700">
+                          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                          {item.label}: {item.percent.toFixed(0)}%
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <h2 className="text-2xl font-extrabold text-blue-900 dark:text-blue-900 text-center mb-2 font-azonix tracking-wide">🏆 Ranking de Empresas</h2>
               <div className="w-24 h-1 mx-auto mb-4 rounded-full bg-gradient-to-r from-yellow-300 via-amber-500 to-yellow-300" />
 

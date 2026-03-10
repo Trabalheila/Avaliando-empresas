@@ -441,8 +441,18 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       );
       setResumeFileName(file.name || "curriculo");
       setResumeText(parsed.experienceText || "");
+      const candidate = findMatchingCompany(parsed.experiencesStructured || [], knownCompanyNames);
+      if (candidate) {
+        setMatchedCompanyCandidate(candidate);
+        setMatchedCompanyEvidenceSource("resume_upload");
+      } else {
+        setMatchedCompanyCandidate("");
+        setMatchedCompanyEvidenceSource("");
+      }
       if ((parsed.experiencesStructured || []).length === 0) {
         setInfo("Nao encontramos experiencias com confianca. Voce pode adicionar manualmente abaixo.");
+      } else if (candidate) {
+        setInfo(`Importacao concluida. Encontramos a empresa "${candidate}" no curriculo para validacao.`);
       } else {
         setInfo("Importacao concluida em modo experiencia. Revise os cards e confirme.");
       }

@@ -4,7 +4,7 @@ import { getCompanyLogoCandidates } from "../utils/getCompanyLogo";
 import { db } from "../firebase";
 import { collection, doc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
 import { hasCompanyInResumeExperiences } from "../utils/resumeParser";
-import { listReviewsByCompanySlug } from "../services/reviews";
+import { listRecentReviews, listReviewsByCompanySlug } from "../services/reviews";
 
 function normalizeKey(value) {
   return (value || "")
@@ -191,8 +191,6 @@ function CompanyDetails({ theme, toggleTheme }) {
     return Number.isFinite(avg) ? avg.toFixed(1) : "--";
   };
 
-  const average = calculateAverage(company);
-
   const openLinkedInJobs = () => {
     if (!company?.company) return;
     const url = `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(company.company)}`;
@@ -208,9 +206,6 @@ function CompanyDetails({ theme, toggleTheme }) {
       return {};
     }
   };
-
-  const evaluations = getEvaluations();
-  const evaluationCount = Object.keys(evaluations).length;
 
   const getScoreColor = (score) => {
     const n = parseFloat(score);
@@ -247,6 +242,24 @@ function CompanyDetails({ theme, toggleTheme }) {
   const [logoIndex, setLogoIndex] = React.useState(0);
   const companyLogo = logoCandidates[logoIndex] || null;
   const [itemCommentCounts, setItemCommentCounts] = React.useState({});
+  const [companyReviewCount, setCompanyReviewCount] = React.useState(0);
+  const [companyAverages, setCompanyAverages] = React.useState({});
+  const [companyContractStats, setCompanyContractStats] = React.useState({ pj: 0, clt: 0 });
+  const [companySourceStats, setCompanySourceStats] = React.useState({
+    indicacao: 0,
+    siteVagas: 0,
+    gruposWhatsapp: 0,
+    redesSociais: 0,
+  });
+  const [globalContractStats, setGlobalContractStats] = React.useState({ pj: 0, clt: 0 });
+
+  const average = companyReviewCount > 0
+    ? calculateAverage({ ...company, ...companyAverages })
+    : calculateAverage(company);
+
+  const evaluations = getEvaluations();
+  const localEvaluationCount = Object.keys(evaluations).length;
+  const evaluationCount = companyReviewCount || localEvaluationCount;
 
   React.useEffect(() => {
     setLogoIndex(0);
@@ -301,6 +314,35 @@ function CompanyDetails({ theme, toggleTheme }) {
   React.useEffect(() => {
     let alive = true;
 
+    const loadGlobalContractStats = async () => {
+      try {
+        const reviews = await listRecentReviews(2000);
+        if (!alive) return;
+
+        const next = { pj: 0, clt: 0 };
+        for (const review of reviews || []) {
+          const type = (review?.contractType || "").toString().toLowerCase();
+          if (type === "pj" || type === "clt") {
+            next[type] += 1;
+          }
+        }
+        setGlobalContractStats(next);
+      } catch {
+        if (!alive) return;
+        setGlobalContractStats({ pj: 0, clt: 0 });
+      }
+    };
+
+    loadGlobalContractStats();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    let alive = true;
+
     const loadItemCommentsCount = async () => {
       const companySlug = (company?.company || "")
         .toString()
@@ -336,6 +378,30 @@ function CompanyDetails({ theme, toggleTheme }) {
           rating: 0,
         };
 
+        const metricKeys = [
+          "comunicacao",
+          "etica",
+          "salario",
+          "cultura",
+          "saudeBemEstar",
+          "lideranca",
+          "ambiente",
+          "estimacaoOrganizacao",
+          "desenvolvimento",
+          "reconhecimento",
+          "equilibrio",
+          "diversidade",
+          "rating",
+        ];
+        const totals = Object.fromEntries(metricKeys.map((key) => [key, 0]));
+        const nextContractStats = { pj: 0, clt: 0 };
+        const nextSourceStats = {
+          indicacao: 0,
+          siteVagas: 0,
+          gruposWhatsapp: 0,
+          redesSociais: 0,
+        };
+
         for (const review of reviews || []) {
           if (hasTextValue(review?.commentComunicacao)) nextCounts.comunicacao += 1;
           if (hasTextValue(review?.commentEtica)) nextCounts.etica += 1;
@@ -350,12 +416,39 @@ function CompanyDetails({ theme, toggleTheme }) {
           if (hasTextValue(review?.commentEquilibrio)) nextCounts.equilibrio += 1;
           if (hasTextValue(review?.commentDiversidade)) nextCounts.diversidade += 1;
           if (hasTextValue(review?.commentRating)) nextCounts.rating += 1;
+
+          for (const metricKey of metricKeys) {
+            totals[metricKey] += Number(review?.[metricKey]) || 0;
+          }
+
+          if (review?.contractType && nextContractStats[review.contractType] != null) {
+            nextContractStats[review.contractType] += 1;
+          }
+          if (review?.entrySource && nextSourceStats[review.entrySource] != null) {
+            nextSourceStats[review.entrySource] += 1;
+          }
         }
 
         setItemCommentCounts(nextCounts);
+        const reviewCount = (reviews || []).length;
+        setCompanyReviewCount(reviewCount);
+        setCompanyContractStats(nextContractStats);
+        setCompanySourceStats(nextSourceStats);
+        setCompanyAverages(
+          Object.fromEntries(
+            metricKeys.map((key) => [
+              key,
+              reviewCount > 0 ? Number((totals[key] / reviewCount).toFixed(2)) : 0,
+            ])
+          )
+        );
       } catch (err) {
         if (!alive) return;
         setItemCommentCounts({});
+        setCompanyReviewCount(0);
+        setCompanyContractStats({ pj: 0, clt: 0 });
+        setCompanySourceStats({ indicacao: 0, siteVagas: 0, gruposWhatsapp: 0, redesSociais: 0 });
+        setCompanyAverages({});
       }
     };
 
@@ -1040,8 +1133,53 @@ function CompanyDetails({ theme, toggleTheme }) {
     { key: "reconhecimento", label: "Reconhecimento" },
     { key: "equilibrio", label: "Rotatividade" },
     { key: "diversidade", label: "Atitudes de discriminação" },
-    { key: "rating", label: "Saúde e Segurança" },
+    { key: "rating", label: "Segurança" },
   ];
+
+  const sourceConfig = [
+    { key: "indicacao", label: "Indicacao", color: "#2563eb" },
+    { key: "siteVagas", label: "Site de vagas", color: "#16a34a" },
+    { key: "gruposWhatsapp", label: "Grupos WhatsApp", color: "#d97706" },
+    { key: "redesSociais", label: "Redes sociais", color: "#9333ea" },
+  ];
+
+  const contractConfig = [
+    { key: "pj", label: "PJ", color: "#0284c7" },
+    { key: "clt", label: "CLT", color: "#16a34a" },
+  ];
+
+  const buildPieData = (stats, config) => {
+    const total = config.reduce((sum, item) => sum + (stats?.[item.key] || 0), 0);
+    if (!total) {
+      return {
+        chart: "#e5e7eb 0deg 360deg",
+        items: config.map((item) => ({ ...item, percent: 0 })),
+      };
+    }
+
+    let cursor = 0;
+    const items = config.map((item) => {
+      const value = stats?.[item.key] || 0;
+      const percent = (value / total) * 100;
+      const deg = (percent / 100) * 360;
+      const start = cursor;
+      cursor += deg;
+      return {
+        ...item,
+        percent,
+        slice: `${item.color} ${start.toFixed(2)}deg ${cursor.toFixed(2)}deg`,
+      };
+    });
+
+    return {
+      chart: items.filter((item) => item.percent > 0).map((item) => item.slice).join(", "),
+      items,
+    };
+  };
+
+  const companyContractPieData = buildPieData(companyContractStats, contractConfig);
+  const companySourcePieData = buildPieData(companySourceStats, sourceConfig);
+  const globalContractPieData = buildPieData(globalContractStats, contractConfig);
 
   const visibleComments = useMemo(() => {
     const filterReplies = (replies) => {
@@ -1158,9 +1296,70 @@ function CompanyDetails({ theme, toggleTheme }) {
           </div>
         )}
 
+        <aside className="mt-6 lg:float-right lg:w-80 lg:ml-6 space-y-4">
+          <div className="bg-white rounded-2xl shadow-sm p-4 border border-blue-100">
+            <h2 className="text-sm font-bold text-blue-800 mb-2">Classificacao profissional da empresa</h2>
+            <p className="text-xs text-blue-600 mb-3">Distribuicao PJ x CLT nas avaliacoes desta empresa.</p>
+            <div className="flex items-center gap-4">
+              <div
+                className="w-24 h-24 rounded-full border border-gray-200"
+                style={{ background: `conic-gradient(${companyContractPieData.chart})` }}
+              />
+              <div className="space-y-1 text-xs">
+                {companyContractPieData.items.map((item) => (
+                  <p key={`company_contract_${item.key}`} className="flex items-center gap-2 text-slate-700">
+                    <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                    {item.label}: {item.percent.toFixed(0)}%
+                  </p>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm p-4 border border-blue-100">
+            <h2 className="text-sm font-bold text-blue-800 mb-2">Classificacao profissional geral</h2>
+            <p className="text-xs text-blue-600 mb-3">Distribuicao PJ x CLT de todos os profissionais que avaliaram.</p>
+            <div className="flex items-center gap-4">
+              <div
+                className="w-24 h-24 rounded-full border border-gray-200"
+                style={{ background: `conic-gradient(${globalContractPieData.chart})` }}
+              />
+              <div className="space-y-1 text-xs">
+                {globalContractPieData.items.map((item) => (
+                  <p key={`global_contract_${item.key}`} className="flex items-center gap-2 text-slate-700">
+                    <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                    {item.label}: {item.percent.toFixed(0)}%
+                  </p>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm p-4 border border-blue-100">
+            <h2 className="text-sm font-bold text-blue-800 mb-2">Como entrou na empresa</h2>
+            <p className="text-xs text-blue-600 mb-3">Origem das candidaturas nas avaliacoes desta empresa.</p>
+            <div className="flex items-center gap-4">
+              <div
+                className="w-24 h-24 rounded-full border border-gray-200"
+                style={{ background: `conic-gradient(${companySourcePieData.chart})` }}
+              />
+              <div className="space-y-1 text-xs">
+                {companySourcePieData.items.map((item) => (
+                  <p key={`source_${item.key}`} className="flex items-center gap-2 text-slate-700">
+                    <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                    {item.label}: {item.percent.toFixed(0)}%
+                  </p>
+                ))}
+              </div>
+            </div>
+          </div>
+        </aside>
+
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
           {scoreFields.map((field) => {
-            const value = company[field.key];
+            const value = companyReviewCount > 0
+              ? companyAverages[field.key]
+              : company[field.key];
             if (typeof value !== "number" || value <= 0) return null;
             return (
               <div key={field.key} className="bg-gray-50 dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
@@ -1187,6 +1386,8 @@ function CompanyDetails({ theme, toggleTheme }) {
             );
           })}
         </div>
+
+        <div className="clear-both" />
 
         <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
           <h2 className="text-lg font-bold text-blue-800 font-azonix tracking-[0.08em] mb-4">Sobre a empresa</h2>
@@ -1356,34 +1557,38 @@ function CompanyDetails({ theme, toggleTheme }) {
                             </button>
                           </>
                         )}
-                        <button
-                          type="button"
-                          onClick={() =>
-                            reportTarget({
-                              targetId: comment.id,
-                              targetType: "comment",
-                              author: comment.author,
-                              text: comment.text,
-                            })
-                          }
-                          className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
-                        >
-                          Denunciar conteúdo
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            reportTarget({
-                              targetId: `user_${getAuthorBlockKey(comment.author)}`,
-                              targetType: "user",
-                              author: comment.author,
-                              text: "",
-                            })
-                          }
-                          className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
-                        >
-                          Denunciar usuário
-                        </button>
+                        {!isOwnedByCurrentUser(comment) && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              reportTarget({
+                                targetId: comment.id,
+                                targetType: "comment",
+                                author: comment.author,
+                                text: comment.text,
+                              })
+                            }
+                            className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
+                          >
+                            Denunciar conteúdo
+                          </button>
+                        )}
+                        {!isOwnedByCurrentUser(comment) && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              reportTarget({
+                                targetId: `user_${getAuthorBlockKey(comment.author)}`,
+                                targetType: "user",
+                                author: comment.author,
+                                text: "",
+                              })
+                            }
+                            className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
+                          >
+                            Denunciar usuário
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -1514,34 +1719,38 @@ function CompanyDetails({ theme, toggleTheme }) {
                                     </button>
                                   </>
                                 )}
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    reportTarget({
-                                      targetId: reply.id,
-                                      targetType: "reply",
-                                      author: reply.author,
-                                      text: reply.text,
-                                    })
-                                  }
-                                  className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
-                                >
-                                  Denunciar conteúdo
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    reportTarget({
-                                      targetId: `user_${getAuthorBlockKey(reply.author)}`,
-                                      targetType: "user",
-                                      author: reply.author,
-                                      text: "",
-                                    })
-                                  }
-                                  className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
-                                >
-                                  Denunciar usuário
-                                </button>
+                                {!isOwnedByCurrentUser(reply) && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      reportTarget({
+                                        targetId: reply.id,
+                                        targetType: "reply",
+                                        author: reply.author,
+                                        text: reply.text,
+                                      })
+                                    }
+                                    className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
+                                  >
+                                    Denunciar conteúdo
+                                  </button>
+                                )}
+                                {!isOwnedByCurrentUser(reply) && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      reportTarget({
+                                        targetId: `user_${getAuthorBlockKey(reply.author)}`,
+                                        targetType: "user",
+                                        author: reply.author,
+                                        text: "",
+                                      })
+                                    }
+                                    className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
+                                  >
+                                    Denunciar usuário
+                                  </button>
+                                )}
                               </div>
                             </div>
                             {editingTargetId === reply.id ? (

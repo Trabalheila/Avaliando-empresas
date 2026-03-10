@@ -18,7 +18,7 @@ const ITEM_CONFIG = {
   reconhecimento: { label: "Reconhecimento", commentKey: "commentReconhecimento" },
   equilibrio: { label: "Rotatividade", commentKey: "commentEquilibrio" },
   diversidade: { label: "Atitudes de discriminação", commentKey: "commentDiversidade" },
-  rating: { label: "Saúde e Segurança", commentKey: "commentRating" },
+  rating: { label: "Segurança", commentKey: "commentRating" },
 };
 
 function toDateLabel(value) {

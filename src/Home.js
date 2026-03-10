@@ -25,6 +25,13 @@ const PUBLIC_COMPANIES_BLOCKLIST = new Set([
   "petrobras",
 ]);
 
+const METRIC_KEYS = [
+  "rating", "salario", "beneficios", "cultura", "oportunidades",
+  "inovacao", "lideranca", "diversidade", "ambiente", "equilibrio",
+  "reconhecimento", "comunicacao", "etica", "desenvolvimento",
+  "saudeBemEstar", "impactoSocial", "reputacao", "estimacaoOrganizacao",
+];
+
 function normalizeCompanyKey(name) {
   return (name || "")
     .toString()
@@ -219,6 +226,7 @@ function Home({ theme, toggleTheme }) {
           cnpj: null,
           sourceStats: { indicacao: 0, siteVagas: 0, gruposWhatsapp: 0, redesSociais: 0 },
           contractStats: { pj: 0, clt: 0 },
+          reviewCount: 0,
           rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
           inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
           reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
@@ -242,13 +250,6 @@ function Home({ theme, toggleTheme }) {
       const n = Number(v);
       return Number.isFinite(n) ? n : 0;
     };
-
-    const metricKeys = [
-      "rating", "salario", "beneficios", "cultura", "oportunidades",
-      "inovacao", "lideranca", "diversidade", "ambiente", "equilibrio",
-      "reconhecimento", "comunicacao", "etica", "desenvolvimento",
-      "saudeBemEstar", "impactoSocial", "reputacao", "estimacaoOrganizacao",
-    ];
 
     const syncFromFirestore = async () => {
       try {
@@ -286,6 +287,7 @@ function Home({ theme, toggleTheme }) {
                 website: rc?.website || null,
                 sourceStats: rc?.sourceStats || null,
                 contractStats: rc?.contractStats || null,
+                reviewCount: Number(rc?.reviewCount) || 0,
                 rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
                 inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
                 reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
@@ -302,16 +304,24 @@ function Home({ theme, toggleTheme }) {
 
             if (!agg.has(companyName)) {
               const entry = { count: 0 };
-              for (const key of metricKeys) {
+              for (const key of METRIC_KEYS) {
                 entry[key] = 0;
               }
+              entry.sourceStats = { indicacao: 0, siteVagas: 0, gruposWhatsapp: 0, redesSociais: 0 };
+              entry.contractStats = { pj: 0, clt: 0 };
               agg.set(companyName, entry);
             }
 
             const bucket = agg.get(companyName);
             bucket.count += 1;
-            for (const key of metricKeys) {
+            for (const key of METRIC_KEYS) {
               bucket[key] += toNumberOrZero(review[key]);
+            }
+            if (review?.entrySource && bucket.sourceStats[review.entrySource] != null) {
+              bucket.sourceStats[review.entrySource] += 1;
+            }
+            if (review?.contractType && bucket.contractStats[review.contractType] != null) {
+              bucket.contractStats[review.contractType] += 1;
             }
           }
 
@@ -319,9 +329,12 @@ function Home({ theme, toggleTheme }) {
             const current = map.get(companyName) || { company: companyName };
             const next = { ...current };
 
-            for (const key of metricKeys) {
+            for (const key of METRIC_KEYS) {
               next[key] = bucket.count > 0 ? Number((bucket[key] / bucket.count).toFixed(2)) : 0;
             }
+            next.reviewCount = bucket.count;
+            next.sourceStats = bucket.sourceStats;
+            next.contractStats = bucket.contractStats;
 
             map.set(companyName, next);
           }
@@ -781,6 +794,16 @@ function Home({ theme, toggleTheme }) {
         prev.map((emp) => {
           if (emp.company !== company.value) return emp;
 
+          const previousCount = Number(emp?.reviewCount) || 0;
+          const nextCount = previousCount + 1;
+
+          const averagedMetrics = {};
+          for (const key of METRIC_KEYS) {
+            const prevAvg = Number(emp?.[key]) || 0;
+            const incoming = Number(evaluationData?.[key]) || 0;
+            averagedMetrics[key] = Number((((prevAvg * previousCount) + incoming) / nextCount).toFixed(2));
+          }
+
           const sourceStats = {
             indicacao: emp?.sourceStats?.indicacao || 0,
             siteVagas: emp?.sourceStats?.siteVagas || 0,
@@ -797,7 +820,8 @@ function Home({ theme, toggleTheme }) {
 
           return {
             ...emp,
-            ...evaluationData,
+            ...averagedMetrics,
+            reviewCount: nextCount,
             sourceStats,
             contractStats,
           };
@@ -953,7 +977,7 @@ function Home({ theme, toggleTheme }) {
                 ...(persisted.resumeData || {}),
                 ...(mergedProfile.resumeData || {}),
               },
-              avatar: mergedProfile.avatar || persisted.avatar,
+              avatar: persisted.avatar || mergedProfile.avatar,
             };
           }
         } catch (loadErr) {
@@ -1043,7 +1067,7 @@ function Home({ theme, toggleTheme }) {
               ...(persisted.resumeData || {}),
               ...(mergedProfile.resumeData || {}),
             },
-            avatar: mergedProfile.avatar || persisted.avatar,
+            avatar: persisted.avatar || mergedProfile.avatar,
           };
         }
       } catch (loadErr) {
@@ -1125,6 +1149,14 @@ function Home({ theme, toggleTheme }) {
     onGoogleLogin: handleGoogleLogin,
     getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
     handleSaibaMais,
+    globalContractStats: empresas.reduce(
+      (acc, emp) => {
+        acc.pj += Number(emp?.contractStats?.pj) || 0;
+        acc.clt += Number(emp?.contractStats?.clt) || 0;
+        return acc;
+      },
+      { pj: 0, clt: 0 }
+    ),
   };
 
   return isMobile ? (
