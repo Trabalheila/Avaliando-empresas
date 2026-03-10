@@ -4,7 +4,7 @@ import { getCompanyLogoCandidates } from "../utils/getCompanyLogo";
 import { db } from "../firebase";
 import { collection, doc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
 import { hasCompanyInResumeExperiences } from "../utils/resumeParser";
-import { listRecentReviews, listReviewsByCompanySlug } from "../services/reviews";
+import { listReviewsByCompanySlug } from "../services/reviews";
 
 function normalizeKey(value) {
   return (value || "")
@@ -244,14 +244,12 @@ function CompanyDetails({ theme, toggleTheme }) {
   const [itemCommentCounts, setItemCommentCounts] = React.useState({});
   const [companyReviewCount, setCompanyReviewCount] = React.useState(0);
   const [companyAverages, setCompanyAverages] = React.useState({});
-  const [companyContractStats, setCompanyContractStats] = React.useState({ pj: 0, clt: 0 });
   const [companySourceStats, setCompanySourceStats] = React.useState({
     indicacao: 0,
     siteVagas: 0,
     gruposWhatsapp: 0,
     redesSociais: 0,
   });
-  const [globalContractStats, setGlobalContractStats] = React.useState({ pj: 0, clt: 0 });
 
   const average = companyReviewCount > 0
     ? calculateAverage({ ...company, ...companyAverages })
@@ -314,35 +312,6 @@ function CompanyDetails({ theme, toggleTheme }) {
   React.useEffect(() => {
     let alive = true;
 
-    const loadGlobalContractStats = async () => {
-      try {
-        const reviews = await listRecentReviews(2000);
-        if (!alive) return;
-
-        const next = { pj: 0, clt: 0 };
-        for (const review of reviews || []) {
-          const type = (review?.contractType || "").toString().toLowerCase();
-          if (type === "pj" || type === "clt") {
-            next[type] += 1;
-          }
-        }
-        setGlobalContractStats(next);
-      } catch {
-        if (!alive) return;
-        setGlobalContractStats({ pj: 0, clt: 0 });
-      }
-    };
-
-    loadGlobalContractStats();
-
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  React.useEffect(() => {
-    let alive = true;
-
     const loadItemCommentsCount = async () => {
       const companySlug = (company?.company || "")
         .toString()
@@ -394,7 +363,6 @@ function CompanyDetails({ theme, toggleTheme }) {
           "rating",
         ];
         const totals = Object.fromEntries(metricKeys.map((key) => [key, 0]));
-        const nextContractStats = { pj: 0, clt: 0 };
         const nextSourceStats = {
           indicacao: 0,
           siteVagas: 0,
@@ -421,9 +389,6 @@ function CompanyDetails({ theme, toggleTheme }) {
             totals[metricKey] += Number(review?.[metricKey]) || 0;
           }
 
-          if (review?.contractType && nextContractStats[review.contractType] != null) {
-            nextContractStats[review.contractType] += 1;
-          }
           if (review?.entrySource && nextSourceStats[review.entrySource] != null) {
             nextSourceStats[review.entrySource] += 1;
           }
@@ -432,7 +397,6 @@ function CompanyDetails({ theme, toggleTheme }) {
         setItemCommentCounts(nextCounts);
         const reviewCount = (reviews || []).length;
         setCompanyReviewCount(reviewCount);
-        setCompanyContractStats(nextContractStats);
         setCompanySourceStats(nextSourceStats);
         setCompanyAverages(
           Object.fromEntries(
@@ -446,7 +410,6 @@ function CompanyDetails({ theme, toggleTheme }) {
         if (!alive) return;
         setItemCommentCounts({});
         setCompanyReviewCount(0);
-        setCompanyContractStats({ pj: 0, clt: 0 });
         setCompanySourceStats({ indicacao: 0, siteVagas: 0, gruposWhatsapp: 0, redesSociais: 0 });
         setCompanyAverages({});
       }
@@ -1143,11 +1106,6 @@ function CompanyDetails({ theme, toggleTheme }) {
     { key: "redesSociais", label: "Redes sociais", color: "#9333ea" },
   ];
 
-  const contractConfig = [
-    { key: "pj", label: "PJ", color: "#0284c7" },
-    { key: "clt", label: "CLT", color: "#16a34a" },
-  ];
-
   const buildPieData = (stats, config) => {
     const total = config.reduce((sum, item) => sum + (stats?.[item.key] || 0), 0);
     if (!total) {
@@ -1177,9 +1135,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     };
   };
 
-  const companyContractPieData = buildPieData(companyContractStats, contractConfig);
   const companySourcePieData = buildPieData(companySourceStats, sourceConfig);
-  const globalContractPieData = buildPieData(globalContractStats, contractConfig);
 
   const visibleComments = useMemo(() => {
     const filterReplies = (replies) => {
@@ -1297,44 +1253,6 @@ function CompanyDetails({ theme, toggleTheme }) {
         )}
 
         <aside className="mt-6 lg:float-right lg:w-80 lg:ml-6 space-y-4">
-          <div className="bg-white rounded-2xl shadow-sm p-4 border border-blue-100">
-            <h2 className="text-sm font-bold text-blue-800 mb-2">Classificacao profissional da empresa</h2>
-            <p className="text-xs text-blue-600 mb-3">Distribuicao PJ x CLT nas avaliacoes desta empresa.</p>
-            <div className="flex items-center gap-4">
-              <div
-                className="w-24 h-24 rounded-full border border-gray-200"
-                style={{ background: `conic-gradient(${companyContractPieData.chart})` }}
-              />
-              <div className="space-y-1 text-xs">
-                {companyContractPieData.items.map((item) => (
-                  <p key={`company_contract_${item.key}`} className="flex items-center gap-2 text-slate-700">
-                    <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                    {item.label}: {item.percent.toFixed(0)}%
-                  </p>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-sm p-4 border border-blue-100">
-            <h2 className="text-sm font-bold text-blue-800 mb-2">Classificacao profissional geral</h2>
-            <p className="text-xs text-blue-600 mb-3">Distribuicao PJ x CLT de todos os profissionais que avaliaram.</p>
-            <div className="flex items-center gap-4">
-              <div
-                className="w-24 h-24 rounded-full border border-gray-200"
-                style={{ background: `conic-gradient(${globalContractPieData.chart})` }}
-              />
-              <div className="space-y-1 text-xs">
-                {globalContractPieData.items.map((item) => (
-                  <p key={`global_contract_${item.key}`} className="flex items-center gap-2 text-slate-700">
-                    <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                    {item.label}: {item.percent.toFixed(0)}%
-                  </p>
-                ))}
-              </div>
-            </div>
-          </div>
-
           <div className="bg-white rounded-2xl shadow-sm p-4 border border-blue-100">
             <h2 className="text-sm font-bold text-blue-800 mb-2">Como entrou na empresa</h2>
             <p className="text-xs text-blue-600 mb-3">Origem das candidaturas nas avaliacoes desta empresa.</p>
