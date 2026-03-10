@@ -425,7 +425,20 @@ function TrabalheiLaMobile({
 
       <main className="px-4 space-y-6">
         {/* LOGIN */}
-        <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700">
+        <section
+          className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700"
+          style={{ animation: "homeLoginSectionIn 700ms ease-out both" }}
+        >
+          <style>{`
+            @keyframes homeLoginSectionIn {
+              from { opacity: 0; transform: translateY(16px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+            @keyframes homeCalloutIn {
+              from { opacity: 0; transform: translateY(10px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+          `}</style>
           <h2 className="text-sm uppercase tracking-[0.14em] font-extrabold text-blue-800 dark:text-blue-200 text-center mb-3">Acesso para Avaliar</h2>
           <div className="flex flex-col items-center space-y-3">
             <div className="w-full max-w-xs -ml-2">
@@ -447,12 +460,29 @@ function TrabalheiLaMobile({
             </button>
             <Link
               to="/pseudonym"
-              className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-lime-400 text-emerald-950 shadow-[0_0_16px_rgba(132,204,22,0.95)] hover:bg-lime-300 hover:shadow-[0_0_20px_rgba(132,204,22,1)] transition"
+              className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-lime-400 text-emerald-950 shadow-[0_0_12px_rgba(20,83,45,0.85),0_0_24px_rgba(132,204,22,0.65)] animate-pulse hover:bg-lime-300 hover:shadow-[0_0_14px_rgba(20,83,45,0.9),0_0_26px_rgba(132,204,22,0.75)] transition"
               aria-label="Ir para editar perfil"
               title="Editar perfil"
             >
               <FaUserEdit className="text-base" />
             </Link>
+            <div
+              className="w-full flex flex-col items-center justify-center gap-1"
+              style={{ animation: "homeCalloutIn 900ms ease-out both" }}
+            >
+              <p className="text-black font-extrabold text-lg leading-tight text-center">
+                clique para criar um perfil anônimo
+              </p>
+              <svg
+                className="w-32 h-10 text-black animate-bounce"
+                viewBox="0 0 220 70"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M8 12H104V2L210 35L104 68V58H8V12Z" stroke="currentColor" strokeWidth="6" fill="none" />
+              </svg>
+            </div>
             {isAuthenticated && (
               <div className="w-full flex justify-end">
                 <button

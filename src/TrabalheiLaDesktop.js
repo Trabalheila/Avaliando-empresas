@@ -268,7 +268,20 @@ function TrabalheiLaDesktop({
           <div className="flex-1">
 
             {/* LOGIN ATUALIZADO (Sem Google, LinkedIn Corrigido) */}
-            <section className="bg-white rounded-3xl shadow-xl p-6 mb-6 border border-blue-100">
+            <section
+              className="bg-white rounded-3xl shadow-xl p-6 mb-6 border border-blue-100"
+              style={{ animation: "homeLoginSectionIn 700ms ease-out both" }}
+            >
+              <style>{`
+                @keyframes homeLoginSectionIn {
+                  from { opacity: 0; transform: translateY(18px); }
+                  to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes homeCalloutIn {
+                  from { opacity: 0; transform: translateX(-18px); }
+                  to { opacity: 1; transform: translateX(0); }
+                }
+              `}</style>
               <h2 className="text-3xl font-extrabold text-blue-900 dark:text-blue-900 text-center mb-2 tracking-wide font-azonix">Login para Avaliar</h2>
               <div className="w-28 h-1 mx-auto mb-5 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
               <div className="flex flex-col items-center space-y-4">
@@ -290,12 +303,29 @@ function TrabalheiLaDesktop({
                 </button>
                 <Link
                   to="/pseudonym"
-                  className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-lime-400 text-emerald-950 shadow-[0_0_18px_rgba(132,204,22,0.95)] hover:bg-lime-300 hover:shadow-[0_0_22px_rgba(132,204,22,1)] transition"
+                  className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-lime-400 text-emerald-950 shadow-[0_0_14px_rgba(20,83,45,0.85),0_0_28px_rgba(132,204,22,0.65)] animate-pulse hover:bg-lime-300 hover:shadow-[0_0_16px_rgba(20,83,45,0.9),0_0_30px_rgba(132,204,22,0.75)] transition"
                   aria-label="Ir para editar perfil"
                   title="Editar perfil"
                 >
                   <FaUserEdit className="text-xl" />
                 </Link>
+                <div
+                  className="w-full max-w-2xl flex items-center justify-center gap-3"
+                  style={{ animation: "homeCalloutIn 950ms ease-out both" }}
+                >
+                  <p className="text-black font-extrabold text-[2.2rem] leading-[1.06] tracking-tight text-left">
+                    clique para criar<br />um perfil anônimo
+                  </p>
+                  <svg
+                    className="w-52 h-16 text-black animate-bounce"
+                    viewBox="0 0 220 70"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                  >
+                    <path d="M8 12H104V2L210 35L104 68V58H8V12Z" stroke="currentColor" strokeWidth="6" fill="none" />
+                  </svg>
+                </div>
                 {isAuthenticated && (
                   <div className="w-full flex justify-end">
                     <button
