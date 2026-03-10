@@ -154,7 +154,15 @@ function TrabalheiLaDesktop({
       <div className="w-full max-w-6xl">
 
         {/* HEADER */}
-        <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-3rem)] max-w-6xl bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border-2 border-blue-200 dark:border-slate-700">
+        <header className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-b-3xl shadow-2xl p-8 border-2 border-blue-200 dark:border-slate-700">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="absolute right-5 top-5 px-3 py-2 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            aria-label="Alternar tema"
+          >
+            {theme === "dark" ? "🌙 Tema" : "☀️ Tema"}
+          </button>
           <div className="flex items-center justify-between">
             <div className="flex flex-col items-center">
 
@@ -228,14 +236,6 @@ function TrabalheiLaDesktop({
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={toggleTheme}
-                    className="px-3 py-2 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-                    aria-label="Alternar tema"
-                  >
-                    {theme === 'dark' ? '🌙 Tema' : '☀️ Tema'}
-                  </button>
                 </div>
               )}
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">{firebaseStatus}</p>
@@ -259,7 +259,7 @@ function TrabalheiLaDesktop({
           </div>
         </header>
 
-        <div className="h-[22rem]" />
+        <div className="h-[23rem]" />
 
         {/* CONTEÚDO - 2 COLUNAS */}
         <div className="flex gap-6 mb-8">
