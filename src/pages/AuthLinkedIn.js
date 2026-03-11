@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { saveUserProfile } from "../services/users";
+import { resolveProfileId } from "../utils/profileIdentity";
 
 function AuthLinkedIn() {
   const navigate = useNavigate();
@@ -23,10 +25,31 @@ function AuthLinkedIn() {
       console.warn("State mismatch (possível CSRF). Continuando mesmo assim.");
     }
 
-    const saveAndNotify = (profile) => {
-      const storedProfile = profile || {};
+    const saveAndNotify = async (profile) => {
+      const picture = profile?.picture || profile?.avatar || "";
+      const storedProfile = {
+        ...(profile || {}),
+        picture,
+        avatar: profile?.avatar || picture,
+        loginProvider: "linkedin",
+      };
+
+      const profileId = resolveProfileId(storedProfile);
+      storedProfile.profileId = profileId;
+
       localStorage.setItem("userProfile", JSON.stringify(storedProfile));
       window.dispatchEvent(new Event("trabalheiLa_user_updated"));
+
+      try {
+        await saveUserProfile({
+          id: profileId,
+          ...storedProfile,
+          profileId,
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.warn("Falha ao persistir perfil LinkedIn:", err);
+      }
 
       try {
         if (window.opener && window.opener !== window && typeof window.opener.postMessage === "function") {

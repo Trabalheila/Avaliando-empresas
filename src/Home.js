@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import TrabalheiLaMobile from "./TrabalheiLaMobile";
 import TrabalheiLaDesktop from "./TrabalheiLaDesktop";
 import { empresasBrasileiras } from "./empresas";
@@ -88,6 +88,7 @@ function sortCompaniesAlphabetically(items) {
 function Home({ theme, toggleTheme }) {
   const REVIEW_DRAFT_STORAGE_KEY = "trabalheiLa_review_draft_v1";
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [firebaseStatus, setFirebaseStatus] = useState("verificando...");
 
@@ -864,8 +865,13 @@ function Home({ theme, toggleTheme }) {
       if (storedProfile) {
         try {
           const parsed = JSON.parse(storedProfile);
-          setUserProfile(parsed);
-          setIsAuthenticated(isProfileAuthenticated(parsed));
+          const normalizedProfile = {
+            ...parsed,
+            avatar: parsed?.avatar || parsed?.picture || "",
+            picture: parsed?.picture || parsed?.avatar || "",
+          };
+          setUserProfile(normalizedProfile);
+          setIsAuthenticated(isProfileAuthenticated(normalizedProfile));
         } catch {
           setUserProfile({});
           setIsAuthenticated(false);
@@ -958,12 +964,14 @@ function Home({ theme, toggleTheme }) {
 
       if (data) {
         const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+        const incomingPicture = data?.picture || data?.avatar || "";
         let mergedProfile = {
           ...existingProfile,
           ...data,
           loginProvider: "linkedin",
           linkedInUrl: data?.linkedInUrl || existingProfile?.linkedInUrl || null,
-          avatar: data.avatar || data.picture || existingProfile.avatar,
+          avatar: incomingPicture || existingProfile?.avatar || existingProfile?.picture || "",
+          picture: incomingPicture || existingProfile?.picture || existingProfile?.avatar || "",
         };
 
         const profileId = resolveProfileId(mergedProfile);
@@ -977,7 +985,18 @@ function Home({ theme, toggleTheme }) {
                 ...(persisted.resumeData || {}),
                 ...(mergedProfile.resumeData || {}),
               },
-              avatar: persisted.avatar || mergedProfile.avatar,
+              avatar:
+                mergedProfile.avatar ||
+                persisted.avatar ||
+                persisted.picture ||
+                mergedProfile.picture ||
+                "",
+              picture:
+                mergedProfile.picture ||
+                persisted.picture ||
+                persisted.avatar ||
+                mergedProfile.avatar ||
+                "",
             };
           }
         } catch (loadErr) {
@@ -1003,7 +1022,8 @@ function Home({ theme, toggleTheme }) {
             id: profileId,
             name: mergedProfile.name,
             email: mergedProfile.email,
-            picture: mergedProfile.picture,
+            picture: mergedProfile.picture || mergedProfile.avatar || "",
+            avatar: mergedProfile.avatar || mergedProfile.picture || "",
             loginProvider: "linkedin",
             linkedinProfile: mergedProfile.linkedInUrl || null,
             linkedinExperiences: Array.isArray(mergedProfile.linkedinExperiences) ? mergedProfile.linkedinExperiences : [],
@@ -1046,6 +1066,7 @@ function Home({ theme, toggleTheme }) {
         name: user.displayName || "Usuário",
         email: user.email || "",
         picture: user.photoURL || "",
+        avatar: user.photoURL || "",
         loginProvider: "google",
       };
 
@@ -1053,7 +1074,8 @@ function Home({ theme, toggleTheme }) {
       let mergedProfile = {
         ...existingProfile,
         ...googleData,
-        avatar: existingProfile.avatar || googleData.picture,
+        avatar: googleData.avatar || existingProfile.avatar || existingProfile.picture || "",
+        picture: googleData.picture || existingProfile.picture || existingProfile.avatar || "",
       };
 
       const profileId = resolveProfileId(mergedProfile);
@@ -1067,7 +1089,18 @@ function Home({ theme, toggleTheme }) {
               ...(persisted.resumeData || {}),
               ...(mergedProfile.resumeData || {}),
             },
-            avatar: persisted.avatar || mergedProfile.avatar,
+            avatar:
+              mergedProfile.avatar ||
+              persisted.avatar ||
+              persisted.picture ||
+              mergedProfile.picture ||
+              "",
+            picture:
+              mergedProfile.picture ||
+              persisted.picture ||
+              persisted.avatar ||
+              mergedProfile.avatar ||
+              "",
           };
         }
       } catch (loadErr) {
@@ -1092,7 +1125,8 @@ function Home({ theme, toggleTheme }) {
           id: profileId,
           name: mergedProfile.name,
           email: mergedProfile.email,
-          picture: mergedProfile.picture,
+          picture: mergedProfile.picture || mergedProfile.avatar || "",
+          avatar: mergedProfile.avatar || mergedProfile.picture || "",
           loginProvider: "google",
           profileId,
           updatedAt: new Date().toISOString(),
@@ -1123,6 +1157,26 @@ function Home({ theme, toggleTheme }) {
       setIsLoading(false);
     }
   }, [loadPersistedProfile, promptProfileCompletion]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search || "");
+    const linkedInCode = params.get("linkedin_code") || params.get("code");
+    const linkedInError = params.get("linkedin_error") || params.get("error");
+    const linkedInErrorDescription =
+      params.get("linkedin_error_description") || params.get("error_description") || "";
+
+    if (linkedInError) {
+      setError(`Falha ao conectar com LinkedIn: ${linkedInErrorDescription || linkedInError}`);
+      return;
+    }
+
+    if (!linkedInCode) return;
+
+    handleLoginSuccess({ code: linkedInCode });
+
+    const cleanUrl = `${window.location.pathname}${window.location.hash || ""}`;
+    window.history.replaceState({}, "", cleanUrl || "/");
+  }, [location.search, handleLoginSuccess]);
 
   const commonProps = {
     company, setCompany, rating, setRating, commentRating, setCommentRating,

@@ -441,7 +441,7 @@ function TrabalheiLaMobile({
           `}</style>
           <h2 className="text-sm uppercase tracking-[0.14em] font-extrabold text-blue-800 dark:text-blue-200 text-center mb-3">Acesso para Avaliar</h2>
           <div className="flex flex-col items-center space-y-3">
-            <div className="w-full max-w-xs -ml-2">
+            <div className="w-full max-w-xs">
               <LoginLinkedInButton 
                 clientId={linkedInClientId} 
                 redirectUri={linkedInRedirectUri}
@@ -454,7 +454,7 @@ function TrabalheiLaMobile({
               type="button"
               onClick={onGoogleLogin}
               disabled={isLoading}
-              className="w-full max-w-xs -ml-2 flex items-center justify-center gap-3 bg-white border border-blue-200 text-blue-800 font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-50 transition-colors text-sm md:text-base disabled:opacity-60"
+              className="w-full max-w-xs flex items-center justify-center gap-3 bg-white border border-blue-200 text-blue-800 font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-50 transition-colors text-sm md:text-base disabled:opacity-60"
             >
               <FaGoogle className="text-lg" /> Cadastrar com Google
             </button>

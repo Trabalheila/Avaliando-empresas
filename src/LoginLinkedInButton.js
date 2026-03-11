@@ -53,7 +53,7 @@ const LoginLinkedInButton = ({
     const popup = window.open(
       authUrl,
       "LinkedIn Login",
-      `width=${width},height=${height},left=${left},top=${top},noopener,noreferrer`
+      `width=${width},height=${height},left=${left},top=${top},resizable,scrollbars`
     );
 
     // 2) se popup foi bloqueado (muito comum), faz redirect na mesma aba
@@ -165,7 +165,7 @@ const LoginLinkedInButton = ({
       onClick={handleLogin}
       disabled={disabled}
       className={`
-        px-4 py-2 rounded-lg font-semibold text-sm md:text-base transition-all
+        px-4 py-2 min-h-[42px] rounded-lg font-semibold text-sm md:text-base transition-all
         flex items-center justify-center gap-2 max-w-xs w-full
         ${
           disabled

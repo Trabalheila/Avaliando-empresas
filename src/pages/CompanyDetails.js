@@ -373,7 +373,7 @@ function CompanyDetails({ theme, toggleTheme }) {
         for (const review of reviews || []) {
           if (hasTextValue(review?.commentComunicacao)) nextCounts.comunicacao += 1;
           if (hasTextValue(review?.commentEtica)) nextCounts.etica += 1;
-          if (hasTextValue(review?.commentSalario)) nextCounts.salario += 1;
+          if (hasTextValue(review?.commentSalario) || hasTextValue(review?.commentBeneficios)) nextCounts.salario += 1;
           if (hasTextValue(review?.commentCultura)) nextCounts.cultura += 1;
           if (hasTextValue(review?.commentSaudeBemEstar)) nextCounts.saudeBemEstar += 1;
           if (hasTextValue(review?.commentLideranca)) nextCounts.lideranca += 1;

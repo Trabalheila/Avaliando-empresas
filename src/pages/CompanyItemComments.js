@@ -6,19 +6,19 @@ import { db } from "../firebase";
 import { collection, doc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
 
 const ITEM_CONFIG = {
-  comunicacao: { label: "Contato do RH", commentKey: "commentComunicacao" },
-  etica: { label: "Proposta e acerto salarial", commentKey: "commentEtica" },
-  salario: { label: "Salário e benefícios", commentKey: "commentSalario" },
-  cultura: { label: "Visão e valores da empresa", commentKey: "commentCultura" },
-  saudeBemEstar: { label: "Preocupação com o bem-estar", commentKey: "commentSaudeBemEstar" },
-  lideranca: { label: "Acessibilidade e respeito da liderança", commentKey: "commentLideranca" },
-  ambiente: { label: "Estímulo ao respeito entre colegas", commentKey: "commentAmbiente" },
-  estimacaoOrganizacao: { label: "Estímulo à organização", commentKey: "commentEstimacaoOrganizacao" },
-  desenvolvimento: { label: "Planos de cargos e salários", commentKey: "commentDesenvolvimento" },
-  reconhecimento: { label: "Reconhecimento", commentKey: "commentReconhecimento" },
-  equilibrio: { label: "Rotatividade", commentKey: "commentEquilibrio" },
-  diversidade: { label: "Atitudes de discriminação", commentKey: "commentDiversidade" },
-  rating: { label: "Segurança", commentKey: "commentRating" },
+  comunicacao: { label: "Contato do RH", commentKeys: ["commentComunicacao"] },
+  etica: { label: "Proposta e acerto salarial", commentKeys: ["commentEtica"] },
+  salario: { label: "Salário e benefícios", commentKeys: ["commentSalario", "commentBeneficios"] },
+  cultura: { label: "Visão e valores da empresa", commentKeys: ["commentCultura"] },
+  saudeBemEstar: { label: "Preocupação com o bem-estar", commentKeys: ["commentSaudeBemEstar"] },
+  lideranca: { label: "Acessibilidade e respeito da liderança", commentKeys: ["commentLideranca"] },
+  ambiente: { label: "Estímulo ao respeito entre colegas", commentKeys: ["commentAmbiente"] },
+  estimacaoOrganizacao: { label: "Estímulo à organização", commentKeys: ["commentEstimacaoOrganizacao"] },
+  desenvolvimento: { label: "Planos de cargos e salários", commentKeys: ["commentDesenvolvimento"] },
+  reconhecimento: { label: "Reconhecimento", commentKeys: ["commentReconhecimento"] },
+  equilibrio: { label: "Rotatividade", commentKeys: ["commentEquilibrio"] },
+  diversidade: { label: "Atitudes de discriminação", commentKeys: ["commentDiversidade"] },
+  rating: { label: "Segurança", commentKeys: ["commentRating"] },
 };
 
 function toDateLabel(value) {
@@ -194,19 +194,26 @@ function CompanyItemComments({ theme, toggleTheme }) {
         const reviews = await listReviewsByCompanySlug(companySlug, 300);
         if (!alive) return;
 
-        const commentKey = itemConfig.commentKey;
+        const commentKeys = Array.isArray(itemConfig.commentKeys) ? itemConfig.commentKeys : [];
         const filtered = (reviews || [])
-          .filter((review) => typeof review?.[commentKey] === "string" && review[commentKey].trim())
-          .map((review) => ({
-            id: review.id,
-            pseudonym: review.pseudonym || "Anônimo",
-            comment: review[commentKey].trim(),
-            score: review?.[itemKey],
+          .map((review) => {
+            const selectedComment = commentKeys
+              .map((key) => review?.[key])
+              .find((value) => typeof value === "string" && value.trim());
+
+            if (!selectedComment) return null;
+
+            return {
+              id: review.id,
+              pseudonym: review.pseudonym || "Anônimo",
+              comment: selectedComment.trim(),
+              score: review?.[itemKey],
             createdAt:
               typeof review?.createdAt?.toDate === "function"
                 ? review.createdAt.toDate().toISOString()
                 : review?.createdAt || "",
-          }))
+          })
+          .filter(Boolean)
           .sort((a, b) => toSortableTime(b.createdAt) - toSortableTime(a.createdAt));
 
         setEntries(filtered);

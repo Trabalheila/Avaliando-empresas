@@ -285,9 +285,10 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     if (profile?.resumeData?.mimeType) setResumeMimeType(profile.resumeData.mimeType);
     if (profile?.resumeData?.readConfirmed) setResumeReadConfirmed(!!profile.resumeData.readConfirmed);
     if (profile?.resumeData?.rawText) setResumeText(profile.resumeData.rawText);
-    if (profile?.avatar) {
-      setAvatar(profile.avatar);
-      setAvatarFileLabel(typeof profile.avatar === "string" && profile.avatar.startsWith("data:") ? "Imagem atual" : "Nenhum escolhido");
+    const resolvedAvatar = profile?.avatar || profile?.picture || "";
+    if (resolvedAvatar) {
+      setAvatar(resolvedAvatar);
+      setAvatarFileLabel(typeof resolvedAvatar === "string" && resolvedAvatar.startsWith("data:") ? "Imagem atual" : "Nenhum escolhido");
       setAvatarDirty(false);
     }
   }, []);
@@ -390,6 +391,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         ...existingProfile,
         profileId,
         avatar,
+        picture: avatar || existingProfile?.picture || "",
       };
 
       localStorage.setItem("userProfile", JSON.stringify(nextProfile));
@@ -801,6 +803,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         phone: phone.trim() || undefined,
         educationLevel: educationLevel.trim() || undefined,
         avatar,
+        picture: avatar || existingProfile?.picture || undefined,
         verification: {
           ...(existingProfile?.verification || {}),
           certified: isCertifiedProfile,

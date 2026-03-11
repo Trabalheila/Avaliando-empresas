@@ -10,22 +10,64 @@
       (function () {
         const params = new URLSearchParams(window.location.search);
         const code = params.get("code");
+        const state = params.get("state");
         const error = params.get("error");
         const errorDescription = params.get("error_description");
 
         const APP_URL = "https://www.trabalheila.com.br";
+        const APP_ORIGIN = new URL(APP_URL).origin;
+
+        const hasOpener =
+          window.opener &&
+          window.opener !== window &&
+          typeof window.opener.postMessage === "function";
 
         if (code) {
-          window.location.replace(`${APP_URL}/?linkedin_code=${encodeURIComponent(code)}`);
+          if (hasOpener) {
+            try {
+              window.opener.postMessage(
+                {
+                  type: "linkedin_oauth",
+                  code,
+                  state,
+                },
+                APP_ORIGIN
+              );
+              window.close();
+              return;
+            } catch (err) {
+              console.warn("Falha ao notificar opener do LinkedIn:", err);
+            }
+          }
+
+          const qs = new URLSearchParams({ code });
+          if (state) qs.set("state", state);
+          window.location.replace(`${APP_URL}/auth/linkedin?${qs.toString()}`);
           return;
         }
 
         if (error) {
+          if (hasOpener) {
+            try {
+              window.opener.postMessage(
+                {
+                  type: "linkedin_oauth_error",
+                  message: errorDescription || error,
+                },
+                APP_ORIGIN
+              );
+              window.close();
+              return;
+            } catch (err) {
+              console.warn("Falha ao notificar erro ao opener do LinkedIn:", err);
+            }
+          }
+
           const qs = new URLSearchParams({
-            linkedin_error: error,
-            linkedin_error_description: errorDescription || "",
+            error,
+            error_description: errorDescription || "",
           });
-          window.location.replace(`${APP_URL}/?${qs.toString()}`);
+          window.location.replace(`${APP_URL}/auth/linkedin?${qs.toString()}`);
           return;
         }
 

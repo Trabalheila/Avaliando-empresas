@@ -41,15 +41,22 @@ export function getCompanyBySlug(companies, slug) {
 
 export async function listReviewsByCompanySlug(slug, take = 80) {
   const ref = collection(db, "reviews");
-  const q = query(
-    ref,
-    where("companySlug", "==", slug),
-    orderBy("createdAt", "desc"),
-    limit(take)
-  );
+  // Evita depender de índice composto (companySlug + createdAt).
+  const q = query(ref, where("companySlug", "==", slug), limit(take));
+
+  const toMillis = (value) => {
+    if (!value) return 0;
+    if (typeof value?.toDate === "function") {
+      return value.toDate().getTime();
+    }
+    const parsed = new Date(value).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
 
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => toMillis(b?.createdAt) - toMillis(a?.createdAt));
 }
 
 export async function listRecentReviews(take = 1000) {
