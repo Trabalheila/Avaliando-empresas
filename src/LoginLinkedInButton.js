@@ -10,6 +10,22 @@ const LoginLinkedInButton = ({
   onLoginFailure,
   disabled,
 }) => {
+  const shouldUseDirectRedirect = () => {
+    if (typeof window === "undefined") return false;
+
+    const ua = (window.navigator?.userAgent || "").toLowerCase();
+    const isMobileDevice =
+      /android|iphone|ipad|ipod|iemobile|opera mini|mobile/.test(ua) ||
+      window.matchMedia?.("(max-width: 768px)")?.matches;
+
+    // In-app browsers costumam quebrar popup/opener.
+    const isInAppBrowser =
+      /fbav|fban|instagram|line\//.test(ua) ||
+      (ua.includes("wv") && ua.includes("android"));
+
+    return Boolean(isMobileDevice || isInAppBrowser);
+  };
+
   const handleLogin = () => {
     if (disabled) return;
 
@@ -43,6 +59,11 @@ const LoginLinkedInButton = ({
     });
 
     const authUrl = `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`;
+
+    if (shouldUseDirectRedirect()) {
+      window.location.assign(authUrl);
+      return;
+    }
 
     const width = 500;
     const height = 650;
