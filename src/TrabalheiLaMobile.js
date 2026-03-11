@@ -473,15 +473,6 @@ function TrabalheiLaMobile({
               <p className="text-black font-extrabold text-lg leading-tight text-center">
                 clique para criar um perfil anônimo
               </p>
-              <svg
-                className="w-32 h-10 text-black animate-bounce"
-                viewBox="0 0 220 70"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
-              >
-                <path d="M8 12H104V2L210 35L104 68V58H8V12Z" stroke="currentColor" strokeWidth="6" fill="none" />
-              </svg>
             </div>
             {isAuthenticated && (
               <div className="w-full flex justify-end">

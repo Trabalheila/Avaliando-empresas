@@ -310,21 +310,12 @@ function TrabalheiLaDesktop({
                   <FaUserEdit className="text-xl" />
                 </Link>
                 <div
-                  className="w-full max-w-2xl flex items-center justify-center gap-3"
+                  className="w-full max-w-2xl flex items-center justify-center"
                   style={{ animation: "homeCalloutIn 950ms ease-out both" }}
                 >
-                  <p className="text-black font-extrabold text-[2.2rem] leading-[1.06] tracking-tight text-left">
+                  <p className="text-black font-extrabold text-[2.2rem] leading-[1.06] tracking-tight text-center">
                     clique para criar<br />um perfil anônimo
                   </p>
-                  <svg
-                    className="w-52 h-16 text-black animate-bounce"
-                    viewBox="0 0 220 70"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
-                  >
-                    <path d="M8 12H104V2L210 35L104 68V58H8V12Z" stroke="currentColor" strokeWidth="6" fill="none" />
-                  </svg>
                 </div>
                 {isAuthenticated && (
                   <div className="w-full flex justify-end">
