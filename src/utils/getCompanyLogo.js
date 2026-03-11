@@ -44,15 +44,49 @@ function normalizeUrlToDomain(website) {
   }
 }
 
+function buildDomainCandidates(companyName, websiteDomain, mappedDomain) {
+  const out = [];
+
+  if (websiteDomain) out.push(websiteDomain);
+  if (mappedDomain) out.push(mappedDomain);
+
+  const normalizedName = (companyName || "")
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Heuristica simples para aumentar cobertura quando nao ha website no cadastro.
+  if (normalizedName) {
+    const compact = normalizedName.replace(/\s+/g, "");
+    if (compact.length >= 3) {
+      out.push(`${compact}.com.br`);
+      out.push(`${compact}.com`);
+      out.push(`${compact}.net`);
+    }
+
+    const firstToken = normalizedName.split(" ")[0];
+    if (firstToken && firstToken.length >= 3 && firstToken !== compact) {
+      out.push(`${firstToken}.com.br`);
+      out.push(`${firstToken}.com`);
+    }
+  }
+
+  return [...new Set(out)].slice(0, 4);
+}
+
 export function getCompanyLogoCandidates(companyName, options = {}) {
   const size = options.size || 128;
   const websiteDomain = normalizeUrlToDomain(options.website);
   const mappedDomain = COMPANY_DOMAINS[companyName];
-  const domain = websiteDomain || mappedDomain;
+  const domains = buildDomainCandidates(companyName, websiteDomain, mappedDomain);
 
   const candidates = [];
-  if (domain) {
-    // 1) Logo Clearbit (melhor resolução para marcas conhecidas)
+  for (const domain of domains) {
+    // 1) Logo Clearbit (bom para marcas conhecidas)
     candidates.push(`https://logo.clearbit.com/${encodeURIComponent(domain)}?size=${size}`);
 
     // 2) Google favicon em alta (boa cobertura geral)
@@ -60,9 +94,18 @@ export function getCompanyLogoCandidates(companyName, options = {}) {
 
     // 3) DuckDuckGo icon endpoint (fallback adicional)
     candidates.push(`https://icons.duckduckgo.com/ip3/${encodeURIComponent(domain)}.ico`);
+
+    // 4) Unavatar agrega varias fontes e costuma cobrir bem dominios comuns
+    candidates.push(`https://unavatar.io/${encodeURIComponent(domain)}?fallback=false`);
+
+    // 5) Icon Horse costuma funcionar bem para favicon de sites corporativos
+    candidates.push(`https://icon.horse/icon/${encodeURIComponent(domain)}`);
+
+    // 6) Fallback backend: tenta og:image/twitter:image/icon do proprio site
+    candidates.push(`/api/company-logo?domain=${encodeURIComponent(domain)}&size=${size}`);
   }
 
-  // 4) Fallback garantido para qualquer empresa
+  // Fallback garantido para qualquer empresa.
   candidates.push(
     `https://ui-avatars.com/api/?name=${encodeURIComponent(companyName)}&background=0D8ABC&color=fff&size=${size}&font-size=0.4`
   );
