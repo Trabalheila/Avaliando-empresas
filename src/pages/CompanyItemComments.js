@@ -208,10 +208,11 @@ function CompanyItemComments({ theme, toggleTheme }) {
               pseudonym: review.pseudonym || "Anônimo",
               comment: selectedComment.trim(),
               score: review?.[itemKey],
-            createdAt:
-              typeof review?.createdAt?.toDate === "function"
-                ? review.createdAt.toDate().toISOString()
-                : review?.createdAt || "",
+              createdAt:
+                typeof review?.createdAt?.toDate === "function"
+                  ? review.createdAt.toDate().toISOString()
+                  : review?.createdAt || "",
+            };
           })
           .filter(Boolean)
           .sort((a, b) => toSortableTime(b.createdAt) - toSortableTime(a.createdAt));
