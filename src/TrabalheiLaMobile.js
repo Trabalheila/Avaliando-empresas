@@ -292,6 +292,8 @@ function TrabalheiLaMobile({
   const contractPieData = buildPieData(selectedCompanyData?.contractStats, contractConfig);
   const globalContractPieData = buildPieData(globalContractStats, contractConfig);
   const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
+  const headerRef = React.useRef(null);
+  const [headerSpacerHeight, setHeaderSpacerHeight] = React.useState(0);
 
   const getTopSliceLabel = (pieData) => {
     const topItem = pieData.items.reduce((best, current) => (current.percent > best.percent ? current : best), pieData.items[0]);
@@ -301,9 +303,18 @@ function TrabalheiLaMobile({
     return `${topItem.label} lidera com ${topItem.percent.toFixed(0)}%`;
   };
 
-  const headerSpacerClass = isAuthenticated
-    ? (company ? "h-[15.5rem]" : "h-[12.5rem]")
-    : (company ? "h-[11.5rem]" : "h-[9.5rem]");
+  React.useEffect(() => {
+    const updateHeaderSpacer = () => {
+      setHeaderSpacerHeight(headerRef.current?.offsetHeight || 0);
+    };
+
+    updateHeaderSpacer();
+    window.addEventListener("resize", updateHeaderSpacer);
+
+    return () => {
+      window.removeEventListener("resize", updateHeaderSpacer);
+    };
+  }, [company, firebaseStatus, hasCompletedProfile, isAuthenticated, theme, userProfile?.avatar, userProfile?.name, userProfile?.verification?.certified, userPseudonym]);
 
   return (
     <div
@@ -313,7 +324,7 @@ function TrabalheiLaMobile({
           : "bg-gradient-to-b from-blue-50 via-sky-50 to-blue-100"
       }`}
     >
-      <header className="fixed top-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm px-3 py-2 z-50 border-b border-blue-100 dark:border-slate-700">
+      <header ref={headerRef} className="fixed top-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm px-3 py-2 z-50 border-b border-blue-100 dark:border-slate-700">
         <div className="text-center">
           <h1 className="text-[1.35rem] font-black text-blue-900 dark:text-blue-100 font-azonix tracking-[0.07em] leading-none whitespace-nowrap">
             TRABALHEI LÁ
@@ -434,7 +445,7 @@ function TrabalheiLaMobile({
         <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 text-center">{firebaseStatus}</p>
       </header>
 
-      <div className={headerSpacerClass} />
+      <div style={{ height: headerSpacerHeight }} />
 
       <main className="px-4 space-y-6">
         {/* LOGIN */}
