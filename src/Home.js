@@ -969,6 +969,7 @@ function Home({ theme, toggleTheme }) {
           ...existingProfile,
           ...data,
           loginProvider: "linkedin",
+          fallback: false,
           linkedInUrl: data?.linkedInUrl || existingProfile?.linkedInUrl || null,
           avatar: incomingPicture || existingProfile?.avatar || existingProfile?.picture || "",
           picture: incomingPicture || existingProfile?.picture || existingProfile?.avatar || "",
@@ -1074,6 +1075,7 @@ function Home({ theme, toggleTheme }) {
       let mergedProfile = {
         ...existingProfile,
         ...googleData,
+        fallback: false,
         avatar: googleData.avatar || existingProfile.avatar || existingProfile.picture || "",
         picture: googleData.picture || existingProfile.picture || existingProfile.avatar || "",
       };

@@ -32,6 +32,7 @@ function AuthLinkedIn() {
         picture,
         avatar: profile?.avatar || picture,
         loginProvider: "linkedin",
+        fallback: false,
       };
 
       const profileId = resolveProfileId(storedProfile);

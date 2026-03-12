@@ -72,5 +72,5 @@ export function resolveProfileId(profile, options = {}) {
 export function isProfileAuthenticated(profile) {
   if (!profile || typeof profile !== "object") return false;
   const hasIdentity = Boolean(resolveProfileId(profile, { persistGeneratedId: false }));
-  return hasIdentity && profile?.fallback !== true;
+  return hasIdentity;
 }
