@@ -1170,6 +1170,197 @@ function CompanyDetails({ theme, toggleTheme }) {
     })[0] || null;
   }, [visibleComments]);
 
+  const renderCommentReplies = React.useCallback(
+    (replies = []) => {
+      return (replies || []).map((reply) => (
+        <div key={reply.id} className="bg-gray-50 dark:bg-slate-900 p-3 rounded-xl border border-gray-200 dark:border-slate-700">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{reply.author}</p>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <p className="text-xs text-gray-500 dark:text-slate-400">
+                {new Date(reply.createdAt).toLocaleString()}
+                {reply.editedAt ? " (editado)" : ""}
+              </p>
+              <button
+                type="button"
+                onClick={() => setReplyTo(reply.id)}
+                className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
+              >
+                Responder
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpenReactionPickerId((prev) => (prev === `reply_${reply.id}` ? null : `reply_${reply.id}`))}
+                className="h-7 w-7 rounded-full border border-gray-300 bg-gray-100 text-gray-600 hover:bg-gray-200 transition flex items-center justify-center"
+                aria-label="Reagir à resposta"
+                title="Reagir"
+              >
+                🙂
+              </button>
+              {openReactionPickerId === `reply_${reply.id}` && (
+                <div className="flex flex-wrap items-center gap-1">
+                  {reactions.map((reaction) => {
+                    const animKey = `${reply.id}__${reaction.key}`;
+                    const isAnimated = animatedReactionKey === animKey;
+                    return (
+                      <button
+                        key={reaction.key}
+                        type="button"
+                        onClick={() => handleReact(reply.id, reaction.key)}
+                        className={`flex items-center gap-1 px-2 py-1 border border-gray-200 dark:border-slate-700 rounded-full bg-white dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 transition-transform ${isAnimated ? "reaction-burst" : ""}`}
+                        aria-label={`Reagir com ${reaction.label}`}
+                      >
+                        <span className="text-base">{reaction.label}</span>
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-100">
+                          {reply.reactions?.[reaction.key] || 0}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {canManageContent(reply) && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => startEditingItem(reply)}
+                    className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteItem(reply)}
+                    className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
+                  >
+                    Apagar ({getRemainingManageTimeLabel(reply)})
+                  </button>
+                </>
+              )}
+              {!isOwnedByCurrentUser(reply) && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    reportTarget({
+                      targetId: reply.id,
+                      targetType: "reply",
+                      author: reply.author,
+                      text: reply.text,
+                    })
+                  }
+                  className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
+                >
+                  Denunciar conteúdo
+                </button>
+              )}
+              {!isOwnedByCurrentUser(reply) && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    reportTarget({
+                      targetId: `user_${getAuthorBlockKey(reply.author)}`,
+                      targetType: "user",
+                      author: reply.author,
+                      text: "",
+                    })
+                  }
+                  className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
+                >
+                  Denunciar usuário
+                </button>
+              )}
+            </div>
+          </div>
+          {editingTargetId === reply.id ? (
+            <div className="mt-2 space-y-2">
+              <textarea
+                value={editingText}
+                onChange={(e) => setEditingText(e.target.value)}
+                className="w-full p-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows={2}
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={cancelEditing}
+                  className="px-3 py-1 text-xs font-semibold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => saveEditedItem(reply)}
+                  className="px-3 py-1 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Salvar edição
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-1 text-sm text-slate-800 dark:text-slate-100">{reply.text}</p>
+          )}
+
+          {replyTo === reply.id && (
+            <div className="mt-3 bg-gray-50 dark:bg-slate-900 p-3 rounded-xl border border-gray-200 dark:border-slate-700">
+              <textarea
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder="Escreva sua resposta..."
+                className="w-full p-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows={2}
+              />
+              <div className="flex justify-end gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReplyTo(null);
+                    setReplyText("");
+                  }}
+                  className="px-3 py-1 text-sm font-semibold text-gray-600 dark:text-slate-300 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleReply(reply.id)}
+                  className="px-3 py-1 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700"
+                >
+                  Enviar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {Array.isArray(reply.replies) && reply.replies.length > 0 && (
+            <div className="mt-3 ml-3 space-y-3 border-l-2 border-blue-100 dark:border-slate-700 pl-3">
+              {renderCommentReplies(reply.replies)}
+            </div>
+          )}
+        </div>
+      ));
+    },
+    [
+      animatedReactionKey,
+      canManageContent,
+      deleteItem,
+      editingTargetId,
+      editingText,
+      getRemainingManageTimeLabel,
+      getAuthorBlockKey,
+      handleReact,
+      handleReply,
+      isOwnedByCurrentUser,
+      openReactionPickerId,
+      reactions,
+      reportTarget,
+      replyText,
+      replyTo,
+      saveEditedItem,
+      setEditingText,
+      startEditingItem,
+    ]
+  );
+
 
   if (!company) {
     return (
@@ -1571,137 +1762,7 @@ function CompanyDetails({ theme, toggleTheme }) {
                     )}
 
                     {comment.replies?.length > 0 && (
-                      <div className="mt-4 space-y-3">
-                        {comment.replies.map((reply) => (
-                          <div key={reply.id} className="bg-gray-50 dark:bg-slate-900 p-3 rounded-xl border border-gray-200 dark:border-slate-700">
-                            <div className="flex items-center justify-between">
-                              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{reply.author}</p>
-                              <div className="flex flex-wrap items-center justify-end gap-2">
-                                <p className="text-xs text-gray-500 dark:text-slate-400">
-                                  {new Date(reply.createdAt).toLocaleString()}
-                                  {reply.editedAt ? " (editado)" : ""}
-                                </p>
-                                <button
-                                  type="button"
-                                  onClick={() => setReplyTo(reply.id)}
-                                  className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
-                                >
-                                  Responder
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setOpenReactionPickerId((prev) => (prev === `reply_${reply.id}` ? null : `reply_${reply.id}`))}
-                                  className="h-7 w-7 rounded-full border border-gray-300 bg-gray-100 text-gray-600 hover:bg-gray-200 transition flex items-center justify-center"
-                                  aria-label="Reagir à resposta"
-                                  title="Reagir"
-                                >
-                                  🙂
-                                </button>
-                                {openReactionPickerId === `reply_${reply.id}` && (
-                                  <div className="flex flex-wrap items-center gap-1">
-                                    {reactions.map((reaction) => {
-                                      const animKey = `${reply.id}__${reaction.key}`;
-                                      const isAnimated = animatedReactionKey === animKey;
-                                      return (
-                                        <button
-                                          key={reaction.key}
-                                          type="button"
-                                          onClick={() => handleReact(reply.id, reaction.key)}
-                                          className={`flex items-center gap-1 px-2 py-1 border border-gray-200 dark:border-slate-700 rounded-full bg-white dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 transition-transform ${isAnimated ? "reaction-burst" : ""}`}
-                                          aria-label={`Reagir com ${reaction.label}`}
-                                        >
-                                          <span className="text-base">{reaction.label}</span>
-                                          <span className="text-xs font-semibold text-slate-700 dark:text-slate-100">
-                                            {reply.reactions?.[reaction.key] || 0}
-                                          </span>
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                                {canManageContent(reply) && (
-                                  <>
-                                    <button
-                                      type="button"
-                                      onClick={() => startEditingItem(reply)}
-                                      className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
-                                    >
-                                      Editar
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => deleteItem(reply)}
-                                      className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
-                                    >
-                                      Apagar ({getRemainingManageTimeLabel(reply)})
-                                    </button>
-                                  </>
-                                )}
-                                {!isOwnedByCurrentUser(reply) && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      reportTarget({
-                                        targetId: reply.id,
-                                        targetType: "reply",
-                                        author: reply.author,
-                                        text: reply.text,
-                                      })
-                                    }
-                                    className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
-                                  >
-                                    Denunciar conteúdo
-                                  </button>
-                                )}
-                                {!isOwnedByCurrentUser(reply) && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      reportTarget({
-                                        targetId: `user_${getAuthorBlockKey(reply.author)}`,
-                                        targetType: "user",
-                                        author: reply.author,
-                                        text: "",
-                                      })
-                                    }
-                                    className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:underline"
-                                  >
-                                    Denunciar usuário
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                            {editingTargetId === reply.id ? (
-                              <div className="mt-2 space-y-2">
-                                <textarea
-                                  value={editingText}
-                                  onChange={(e) => setEditingText(e.target.value)}
-                                  className="w-full p-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  rows={2}
-                                />
-                                <div className="flex justify-end gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={cancelEditing}
-                                    className="px-3 py-1 text-xs font-semibold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100"
-                                  >
-                                    Cancelar
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => saveEditedItem(reply)}
-                                    className="px-3 py-1 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-                                  >
-                                    Salvar edição
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <p className="mt-1 text-sm text-slate-800 dark:text-slate-100">{reply.text}</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                      <div className="mt-4 space-y-3">{renderCommentReplies(comment.replies)}</div>
                     )}
                   </div>
                 ))

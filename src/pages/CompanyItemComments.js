@@ -32,6 +32,34 @@ function toSortableTime(value) {
   return Number.isFinite(parsed.getTime()) ? parsed.getTime() : 0;
 }
 
+function createEmptyReactions() {
+  return { thumbsDown: 0, laugh: 0, thumbsUp: 0, cry: 0, clap: 0 };
+}
+
+function normalizeReactions(reactions) {
+  return {
+    thumbsDown: reactions?.thumbsDown || 0,
+    laugh: reactions?.laugh || 0,
+    thumbsUp: reactions?.thumbsUp || 0,
+    cry: reactions?.cry || 0,
+    clap: reactions?.clap || 0,
+  };
+}
+
+function normalizeReply(reply) {
+  return {
+    id: reply?.id || `reply_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+    author: reply?.author || "Anônimo",
+    text: reply?.text || "",
+    createdAt:
+      typeof reply?.createdAt?.toDate === "function"
+        ? reply.createdAt.toDate().toISOString()
+        : reply?.createdAt || new Date().toISOString(),
+    reactions: normalizeReactions(reply?.reactions),
+    replies: Array.isArray(reply?.replies) ? reply.replies.map(normalizeReply) : [],
+  };
+}
+
 function getTotalReactions(item) {
   return Object.values(item?.reactions || {}).reduce((sum, value) => sum + (value || 0), 0);
 }
@@ -45,32 +73,20 @@ function normalizeCommentDoc(id, data) {
       typeof data?.createdAt?.toDate === "function"
         ? data.createdAt.toDate().toISOString()
         : data?.createdAt || new Date().toISOString(),
-    reactions: {
-      thumbsDown: data?.reactions?.thumbsDown || 0,
-      laugh: data?.reactions?.laugh || 0,
-      thumbsUp: data?.reactions?.thumbsUp || 0,
-      cry: data?.reactions?.cry || 0,
-      clap: data?.reactions?.clap || 0,
-    },
-    replies: Array.isArray(data?.replies)
-      ? data.replies.map((reply) => ({
-          id: reply?.id || `${Date.now()}_${Math.random().toString(16).slice(2)}`,
-          author: reply?.author || "Anônimo",
-          text: reply?.text || "",
-          createdAt:
-            typeof reply?.createdAt?.toDate === "function"
-              ? reply.createdAt.toDate().toISOString()
-              : reply?.createdAt || new Date().toISOString(),
-          reactions: {
-            thumbsDown: reply?.reactions?.thumbsDown || 0,
-            laugh: reply?.reactions?.laugh || 0,
-            thumbsUp: reply?.reactions?.thumbsUp || 0,
-            cry: reply?.reactions?.cry || 0,
-            clap: reply?.reactions?.clap || 0,
-          },
-          replies: Array.isArray(reply?.replies) ? reply.replies : [],
-        }))
-      : [],
+    reactions: normalizeReactions(data?.reactions),
+    replies: Array.isArray(data?.replies) ? data.replies.map(normalizeReply) : [],
+  };
+}
+
+function normalizeEntryThread(entryId, data) {
+  return {
+    entryId,
+    reactions: normalizeReactions(data?.reactions),
+    replies: Array.isArray(data?.replies) ? data.replies.map(normalizeReply) : [],
+    updatedAt:
+      typeof data?.updatedAt?.toDate === "function"
+        ? data.updatedAt.toDate().toISOString()
+        : data?.updatedAt || new Date().toISOString(),
   };
 }
 
@@ -120,6 +136,9 @@ function CompanyItemComments({ theme, toggleTheme }) {
   const [commentError, setCommentError] = React.useState("");
   const [replyToId, setReplyToId] = React.useState(null);
   const [replyText, setReplyText] = React.useState("");
+  const [entryThreads, setEntryThreads] = React.useState({});
+  const [entryReplyTarget, setEntryReplyTarget] = React.useState(null);
+  const [entryReplyText, setEntryReplyText] = React.useState("");
 
   const reactions = [
     { key: "thumbsDown", label: "👎" },
@@ -134,6 +153,22 @@ function CompanyItemComments({ theme, toggleTheme }) {
     return `item_comments_${companyName}_${itemKey}`;
   }, [companyName, itemKey]);
 
+  const getEntryThreadsStorageKey = React.useCallback(() => {
+    if (!companyName || !itemKey) return null;
+    return `item_entry_threads_${companyName}_${itemKey}`;
+  }, [companyName, itemKey]);
+
+  const getCompanySlug = React.useCallback(() => slugifyCompany(companyName || ""), [companyName]);
+
+  const getEntryThreadDocId = React.useCallback((entryId) => {
+    const slug = getCompanySlug();
+    const safeEntryId = (entryId || "")
+      .toString()
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]+/g, "_");
+    return `entry_thread_${slug}_${itemKey}_${safeEntryId}`;
+  }, [getCompanySlug, itemKey]);
+
   const saveComments = React.useCallback(
     (nextComments) => {
       setComments(nextComments);
@@ -145,6 +180,19 @@ function CompanyItemComments({ theme, toggleTheme }) {
       }
     },
     [getCommentsStorageKey]
+  );
+
+  const saveEntryThreads = React.useCallback(
+    (nextThreads) => {
+      setEntryThreads(nextThreads);
+      try {
+        const key = getEntryThreadsStorageKey();
+        if (key) localStorage.setItem(key, JSON.stringify(nextThreads));
+      } catch {
+        // ignore
+      }
+    },
+    [getEntryThreadsStorageKey]
   );
 
   const syncCommentsToFirestore = React.useCallback(
@@ -174,6 +222,33 @@ function CompanyItemComments({ theme, toggleTheme }) {
       }
     },
     [companyName, itemConfig?.label, itemKey]
+  );
+
+  const syncEntryThreadToFirestore = React.useCallback(
+    async (entryId, nextThread) => {
+      const companySlug = getCompanySlug();
+      if (!companySlug || !itemKey || !entryId) return;
+
+      try {
+        await setDoc(
+          doc(db, "item_comment_threads", getEntryThreadDocId(entryId)),
+          {
+            type: "entry_thread",
+            companySlug,
+            companyName,
+            itemKey,
+            entryId,
+            reactions: normalizeReactions(nextThread?.reactions),
+            replies: Array.isArray(nextThread?.replies) ? nextThread.replies : [],
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
+      } catch {
+        // ignore remote sync failures
+      }
+    },
+    [companyName, getCompanySlug, getEntryThreadDocId, itemKey]
   );
 
   React.useEffect(() => {
@@ -250,6 +325,21 @@ function CompanyItemComments({ theme, toggleTheme }) {
   }, [getCommentsStorageKey]);
 
   React.useEffect(() => {
+    const key = getEntryThreadsStorageKey();
+    if (!key) {
+      setEntryThreads({});
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem(key);
+      setEntryThreads(stored ? JSON.parse(stored) : {});
+    } catch {
+      setEntryThreads({});
+    }
+  }, [getEntryThreadsStorageKey]);
+
+  React.useEffect(() => {
     let alive = true;
 
     const loadRemoteComments = async () => {
@@ -281,6 +371,43 @@ function CompanyItemComments({ theme, toggleTheme }) {
       alive = false;
     };
   }, [companyName, itemKey, saveComments]);
+
+  React.useEffect(() => {
+    let alive = true;
+
+    const loadRemoteEntryThreads = async () => {
+      const companySlug = getCompanySlug();
+      if (!companySlug || !itemKey) return;
+
+      try {
+        const ref = collection(db, "item_comment_threads");
+        const q = query(ref, where("companySlug", "==", companySlug), limit(300));
+        const snap = await getDocs(q);
+        if (!alive || snap.empty) return;
+
+        const nextThreads = {};
+        snap.docs.forEach((d) => {
+          const data = d.data() || {};
+          if (data?.type !== "entry_thread") return;
+          if (data?.itemKey !== itemKey) return;
+          if (!data?.entryId) return;
+          nextThreads[data.entryId] = normalizeEntryThread(data.entryId, data);
+        });
+
+        if (Object.keys(nextThreads).length > 0) {
+          saveEntryThreads(nextThreads);
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    loadRemoteEntryThreads();
+
+    return () => {
+      alive = false;
+    };
+  }, [getCompanySlug, itemKey, saveEntryThreads]);
 
   const handleAddComment = () => {
     const text = (commentText || "").trim();
@@ -329,6 +456,48 @@ function CompanyItemComments({ theme, toggleTheme }) {
     const next = incrementReactionById(comments, targetId, reactionKey);
     saveComments(next);
     syncCommentsToFirestore(next);
+  };
+
+  const getEntryThread = React.useCallback(
+    (entryId) =>
+      entryThreads?.[entryId] || {
+        entryId,
+        reactions: createEmptyReactions(),
+        replies: [],
+        updatedAt: new Date().toISOString(),
+      },
+    [entryThreads]
+  );
+
+  const handleReactEntry = (entryId, targetId, reactionKey) => {
+    const currentThread = getEntryThread(entryId);
+    let nextThread = currentThread;
+
+    if (targetId === entryId) {
+      nextThread = {
+        ...currentThread,
+        reactions: {
+          ...normalizeReactions(currentThread.reactions),
+          [reactionKey]: (currentThread?.reactions?.[reactionKey] || 0) + 1,
+        },
+      };
+    } else {
+      nextThread = {
+        ...currentThread,
+        replies: incrementReactionById(currentThread.replies || [], targetId, reactionKey),
+      };
+    }
+
+    const nextThreads = {
+      ...entryThreads,
+      [entryId]: {
+        ...nextThread,
+        updatedAt: new Date().toISOString(),
+      },
+    };
+
+    saveEntryThreads(nextThreads);
+    syncEntryThreadToFirestore(entryId, nextThreads[entryId]);
   };
 
   const renderReplies = (items) => {
@@ -399,6 +568,113 @@ function CompanyItemComments({ theme, toggleTheme }) {
     ));
   };
 
+  const handleReplyToEntryThread = (entryId, targetId) => {
+    const text = (entryReplyText || "").trim();
+    if (!text) return;
+
+    const reply = {
+      id: `item_entry_reply_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      author: (localStorage.getItem("userPseudonym") || "Anônimo").toString().trim() || "Anônimo",
+      text,
+      createdAt: new Date().toISOString(),
+      reactions: createEmptyReactions(),
+      replies: [],
+    };
+
+    const currentThread = getEntryThread(entryId);
+    const nextReplies =
+      targetId === entryId
+        ? [...(currentThread.replies || []), reply]
+        : addReplyToItem(currentThread.replies || [], targetId, reply);
+
+    const nextThread = {
+      ...currentThread,
+      replies: nextReplies,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const nextThreads = {
+      ...entryThreads,
+      [entryId]: nextThread,
+    };
+
+    saveEntryThreads(nextThreads);
+    syncEntryThreadToFirestore(entryId, nextThread);
+    setEntryReplyTarget(null);
+    setEntryReplyText("");
+  };
+
+  const renderEntryThreadReplies = (entryId, items) => {
+    return (items || []).map((reply) => {
+      const targetKey = `${entryId}::${reply.id}`;
+      return (
+        <div
+          key={reply.id}
+          className="mt-3 ml-4 pl-3 border-l-2 border-blue-100 dark:border-slate-700"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{reply.author}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{toDateLabel(reply.createdAt)}</p>
+          </div>
+          <p className="mt-1 text-sm text-slate-700 dark:text-slate-100 whitespace-pre-line">{reply.text}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {reactions.map((reaction) => (
+              <button
+                key={`${reply.id}_${reaction.key}`}
+                type="button"
+                onClick={() => handleReactEntry(entryId, reply.id, reaction.key)}
+                className="text-xs px-2 py-1 rounded-full border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"
+              >
+                {reaction.label} {reply?.reactions?.[reaction.key] || 0}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setEntryReplyTarget(targetKey)}
+              className="text-xs font-semibold text-blue-700 hover:underline"
+            >
+              Responder
+            </button>
+            <span className="text-xs text-slate-500">Total: {getTotalReactions(reply)}</span>
+          </div>
+
+          {entryReplyTarget === targetKey && (
+            <div className="mt-2">
+              <textarea
+                value={entryReplyText}
+                onChange={(e) => setEntryReplyText(e.target.value)}
+                rows={2}
+                placeholder="Escreva sua resposta..."
+                className="w-full p-2 text-sm border border-gray-200 rounded-lg"
+              />
+              <div className="mt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEntryReplyTarget(null);
+                    setEntryReplyText("");
+                  }}
+                  className="px-3 py-1 text-xs rounded-lg border border-gray-200"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleReplyToEntryThread(entryId, reply.id)}
+                  className="px-3 py-1 text-xs rounded-lg bg-blue-600 text-white"
+                >
+                  Enviar resposta
+                </button>
+              </div>
+            </div>
+          )}
+
+          {Array.isArray(reply.replies) && reply.replies.length > 0 && renderEntryThreadReplies(entryId, reply.replies)}
+        </div>
+      );
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 py-10 px-4">
       <div className="max-w-4xl mx-auto flex items-center justify-between mb-3 gap-2">
@@ -467,6 +743,64 @@ function CompanyItemComments({ theme, toggleTheme }) {
                 <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                   Nota neste item: {typeof entry.score === "number" ? entry.score.toFixed(1) : "--"}
                 </p>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {reactions.map((reaction) => (
+                    <button
+                      key={`${entry.id}_${reaction.key}`}
+                      type="button"
+                      onClick={() => handleReactEntry(entry.id, entry.id, reaction.key)}
+                      className="text-xs px-2 py-1 rounded-full border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"
+                    >
+                      {reaction.label} {getEntryThread(entry.id)?.reactions?.[reaction.key] || 0}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setEntryReplyTarget(`${entry.id}::${entry.id}`)}
+                    className="text-xs font-semibold text-blue-700 hover:underline"
+                  >
+                    Responder
+                  </button>
+                  <span className="text-xs text-slate-500">
+                    Total: {getTotalReactions({ reactions: getEntryThread(entry.id)?.reactions })}
+                  </span>
+                </div>
+
+                {entryReplyTarget === `${entry.id}::${entry.id}` && (
+                  <div className="mt-3">
+                    <textarea
+                      value={entryReplyText}
+                      onChange={(e) => setEntryReplyText(e.target.value)}
+                      rows={2}
+                      placeholder="Escreva sua resposta..."
+                      className="w-full p-2 text-sm border border-gray-200 rounded-lg"
+                    />
+                    <div className="mt-2 flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEntryReplyTarget(null);
+                          setEntryReplyText("");
+                        }}
+                        className="px-3 py-1 text-xs rounded-lg border border-gray-200"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleReplyToEntryThread(entry.id, entry.id)}
+                        className="px-3 py-1 text-xs rounded-lg bg-blue-600 text-white"
+                      >
+                        Enviar resposta
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {Array.isArray(getEntryThread(entry.id)?.replies) &&
+                  getEntryThread(entry.id).replies.length > 0 &&
+                  renderEntryThreadReplies(entry.id, getEntryThread(entry.id).replies)}
               </article>
             ))}
           </div>
