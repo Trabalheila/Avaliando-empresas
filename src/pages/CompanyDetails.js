@@ -1170,9 +1170,8 @@ function CompanyDetails({ theme, toggleTheme }) {
     })[0] || null;
   }, [visibleComments]);
 
-  const renderCommentReplies = React.useCallback(
-    (replies = []) => {
-      return (replies || []).map((reply) => (
+  const renderCommentReplies = (replies = []) => {
+    return (replies || []).map((reply) => (
         <div key={reply.id} className="bg-gray-50 dark:bg-slate-900 p-3 rounded-xl border border-gray-200 dark:border-slate-700">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{reply.author}</p>
@@ -1338,28 +1337,7 @@ function CompanyDetails({ theme, toggleTheme }) {
           )}
         </div>
       ));
-    },
-    [
-      animatedReactionKey,
-      canManageContent,
-      deleteItem,
-      editingTargetId,
-      editingText,
-      getRemainingManageTimeLabel,
-      getAuthorBlockKey,
-      handleReact,
-      handleReply,
-      isOwnedByCurrentUser,
-      openReactionPickerId,
-      reactions,
-      reportTarget,
-      replyText,
-      replyTo,
-      saveEditedItem,
-      setEditingText,
-      startEditingItem,
-    ]
-  );
+  };
 
 
   if (!company) {
