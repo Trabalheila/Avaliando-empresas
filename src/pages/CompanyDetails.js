@@ -254,6 +254,9 @@ function CompanyDetails({ theme, toggleTheme }) {
   const average = companyReviewCount > 0
     ? calculateAverage({ ...company, ...companyAverages })
     : calculateAverage(company);
+  const averageScore = Number.parseFloat(average);
+  const hasAverageScore = Number.isFinite(averageScore);
+  const isRecommendedCompany = hasAverageScore && averageScore >= 3;
 
   const evaluations = getEvaluations();
   const localEvaluationCount = Object.keys(evaluations).length;
@@ -1410,6 +1413,18 @@ function CompanyDetails({ theme, toggleTheme }) {
             >
               Ver vagas no LinkedIn
             </button>
+            {hasAverageScore && (
+              <div
+                className={`px-4 py-2 rounded-xl border font-bold text-sm flex flex-col items-center justify-center leading-tight ${
+                  isRecommendedCompany
+                    ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                    : "bg-red-50 border-red-200 text-red-700"
+                }`}
+              >
+                <span className="text-xl" aria-hidden="true">{isRecommendedCompany ? "✓" : "X"}</span>
+                <span>{isRecommendedCompany ? "Empresa indicada" : "Empresa não indicada"}</span>
+              </div>
+            )}
           </div>
         </div>
 

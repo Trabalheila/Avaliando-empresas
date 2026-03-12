@@ -81,6 +81,8 @@ function TrabalheiLaDesktop({
 
   const companyNote = selectedCompanyData ? calcularMedia(selectedCompanyData) : "--";
   const isCompanyUnrated = companyNote === "--";
+  const companyNoteValue = Number.parseFloat(companyNote);
+  const isCompanyRecommended = !isCompanyUnrated && Number.isFinite(companyNoteValue) && companyNoteValue >= 3;
 
   const sourceConfig = [
     { key: "indicacao", label: "Indicação", color: "#2563eb" },
@@ -191,6 +193,17 @@ function TrabalheiLaDesktop({
                 <p className="text-xl font-extrabold text-white">{isCompanyUnrated ? "--" : `${companyNote}/5`}</p>
                 <p className={`text-xs ${isCompanyUnrated ? "text-slate-200" : "text-blue-200"}`}>NOTA</p>
               </div>
+              {!isCompanyUnrated && (
+                <p
+                  className={`mt-2 text-[11px] font-bold px-2 py-1 rounded-lg border ${
+                    isCompanyRecommended
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : "bg-red-50 text-red-700 border-red-200"
+                  }`}
+                >
+                  {isCompanyRecommended ? "✓ Empresa indicada" : "X Empresa não indicada"}
+                </p>
+              )}
             </div>
 
             <div className="flex-1 text-center px-8">
@@ -545,12 +558,21 @@ function TrabalheiLaDesktop({
                   {top3.map((emp, i) => {
                     const media = calcularMedia(emp);
                     const isUnrated = media === "--";
+                    const mediaValue = Number.parseFloat(media);
+                    const isRecommendedCompany = !isUnrated && Number.isFinite(mediaValue) && mediaValue >= 3;
                     return (
                       <div key={i} className={`${isUnrated ? "bg-slate-200 text-slate-600" : `bg-gradient-to-r ${getMedalColor(i)} text-white`} rounded-2xl p-3`}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="text-2xl">{getMedalEmoji(i)}</span>
-                            <p className="font-bold text-sm">{emp.company}</p>
+                            <div>
+                              <p className="font-bold text-sm">{emp.company}</p>
+                              {!isUnrated && (
+                                <p className={`text-[11px] font-bold ${isUnrated ? "text-slate-600" : "text-white/90"}`}>
+                                  {isRecommendedCompany ? "✓ Empresa indicada" : "X Empresa não indicada"}
+                                </p>
+                              )}
+                            </div>
                           </div>
                           <div className={`${isUnrated ? "bg-slate-300 text-slate-700" : "bg-white/20 text-white"} px-2 py-1 rounded-full font-bold text-xs`}>
                             {isUnrated ? "--" : `${media} ⭐`}

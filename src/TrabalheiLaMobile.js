@@ -155,6 +155,8 @@ function TrabalheiLaMobile({
     setLogoIndex(0);
   }, [selectedCompanyData?.company, selectedCompanyData?.website]);
   const companyAverage = selectedCompanyData ? calcularMedia(selectedCompanyData) : "--";
+  const companyAverageValue = Number.parseFloat(companyAverage);
+  const isCompanyRecommended = companyAverage !== "--" && Number.isFinite(companyAverageValue) && companyAverageValue >= 3;
 
 
   const getBadgeColor = (media) => {
@@ -355,6 +357,17 @@ function TrabalheiLaMobile({
                       <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">/5</span>
                     )}
                   </div>
+                  {companyAverage !== "--" && (
+                    <p
+                      className={`mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                        isCompanyRecommended
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : "bg-red-50 text-red-700 border-red-200"
+                      }`}
+                    >
+                      {isCompanyRecommended ? "✓ Empresa indicada" : "X Empresa não indicada"}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -692,11 +705,20 @@ function TrabalheiLaMobile({
               {top3.map((emp, i) => {
                 const media = calcularMedia(emp);
                 const isUnrated = media === "--";
+                const mediaValue = Number.parseFloat(media);
+                const isRecommendedCompany = !isUnrated && Number.isFinite(mediaValue) && mediaValue >= 3;
                 return (
                   <div key={i} className={`${isUnrated ? "bg-slate-200 text-slate-600" : `bg-gradient-to-r ${getMedalColor(i)} text-white`} rounded-xl p-3 flex justify-between items-center`}>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       <span className="text-xl">{getMedalEmoji(i)}</span>
-                      <p className="font-bold text-sm truncate max-w-[120px]">{emp.company}</p>
+                      <div className="min-w-0">
+                        <p className="font-bold text-sm truncate max-w-[120px]">{emp.company}</p>
+                        {!isUnrated && (
+                          <p className={`text-[10px] font-bold ${isUnrated ? "text-slate-600" : "text-white/90"}`}>
+                            {isRecommendedCompany ? "✓ Empresa indicada" : "X Empresa não indicada"}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <div className={`${isUnrated ? "bg-slate-300 text-slate-700" : "bg-white/20 text-white"} px-2 py-1 rounded-lg font-bold text-xs`}>
                       {isUnrated ? "--" : `${media} ⭐`}
