@@ -302,7 +302,7 @@ function TrabalheiLaDesktop({
                   <LoginLinkedInButton
                     clientId={linkedInClientId}
                     onLoginSuccess={onLoginSuccess}
-                    onLoginFailure={(e) => console.error("Erro no LinkedIn:", e)}
+                    onLoginFailure={(err) => setError(err?.message || String(err))}
                     disabled={isLoading}
                   />
                 </div>
