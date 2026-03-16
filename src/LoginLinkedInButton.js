@@ -89,6 +89,15 @@ const LoginLinkedInButton = ({
 
     const authUrl = `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`;
 
+    // Fluxo por redirect completo é mais estável no desktop do que popup/opener.
+    // Mantemos a mesma experiência já validada no mobile.
+    const forceFullPageRedirect = true;
+
+    if (forceFullPageRedirect) {
+      window.location.assign(authUrl);
+      return;
+    }
+
     if (shouldUseDirectRedirect()) {
       window.location.assign(authUrl);
       return;
