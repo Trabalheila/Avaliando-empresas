@@ -1,8 +1,20 @@
 // src/components/LoginLinkedInButton.js
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { FaLinkedinIn } from "react-icons/fa";
 
-function LoginLinkedInButton({ clientId, redirectUri }) {
+function LoginLinkedInButton({ clientId, redirectUri, onLoginSuccess }) {
+  const messageListenerRef = useRef(null);
+
+  // Remove o listener anterior se o componente desmontar
+  useEffect(() => {
+    return () => {
+      if (messageListenerRef.current) {
+        window.removeEventListener("message", messageListenerRef.current);
+        messageListenerRef.current = null;
+      }
+    };
+  }, []);
+
   const handleLogin = useCallback(() => {
     // Garante que vai pegar a chave, seja por prop ou direto do .env
     const finalClientId = clientId || process.env.REACT_APP_LINKEDIN_CLIENT_ID;
@@ -19,7 +31,6 @@ function LoginLinkedInButton({ clientId, redirectUri }) {
 
     const scope = "openid profile email";
 
-    // CORREÇÃO CRÍTICA: Usando apenas '&' para separar os parâmetros
     const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${finalClientId}&redirect_uri=${encodeURIComponent(finalRedirectUri)}&state=${state}&scope=${encodeURIComponent(scope)}`;
 
     // Abre o fluxo em uma janela popup (sem sair da página)
@@ -36,9 +47,37 @@ function LoginLinkedInButton({ clientId, redirectUri }) {
 
     if (!popup) {
       alert("Popup bloqueado. Permita popups para continuar o login.");
+      return;
     }
 
-  }, [clientId, redirectUri]);
+    // Remove listener anterior, se existir
+    if (messageListenerRef.current) {
+      window.removeEventListener("message", messageListenerRef.current);
+    }
+
+    // Escuta o postMessage enviado pelo AuthLinkedIn após autenticação bem-sucedida
+    const handleMessage = (event) => {
+      if (event.origin !== window.location.origin) return;
+
+      const { type, profile, message: errMessage } = event.data || {};
+
+      if (type === "linkedin_oauth") {
+        window.removeEventListener("message", handleMessage);
+        messageListenerRef.current = null;
+        if (typeof onLoginSuccess === "function") {
+          onLoginSuccess({ profile });
+        }
+      } else if (type === "linkedin_oauth_error") {
+        window.removeEventListener("message", handleMessage);
+        messageListenerRef.current = null;
+        console.error("Erro no login LinkedIn:", errMessage);
+      }
+    };
+
+    messageListenerRef.current = handleMessage;
+    window.addEventListener("message", handleMessage);
+
+  }, [clientId, redirectUri, onLoginSuccess]);
 
   return (
     <button

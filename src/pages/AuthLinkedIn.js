@@ -39,8 +39,28 @@ function AuthLinkedIn() {
       storedProfile.profileId = profileId;
 
       localStorage.setItem("userProfile", JSON.stringify(storedProfile));
-      window.dispatchEvent(new Event("trabalheiLa_user_updated"));
 
+      // Notifica a janela principal ANTES do await do Firestore para não bloquear o retorno.
+      // O perfil já está salvo no localStorage e pode ser lido imediatamente.
+      try {
+        if (window.opener && window.opener !== window && typeof window.opener.postMessage === "function") {
+          window.opener.postMessage({ type: "linkedin_oauth", profile: storedProfile }, window.location.origin);
+          window.close();
+          // Persiste no Firestore em background após fechar o popup
+          saveUserProfile({
+            id: profileId,
+            ...storedProfile,
+            profileId,
+            updatedAt: new Date().toISOString(),
+          }).catch((err) => console.warn("Falha ao persistir perfil LinkedIn:", err));
+          return;
+        }
+      } catch (err) {
+        // Ignore cross-origin errors
+      }
+
+      // Fallback: sem opener — persiste e navega nesta aba
+      window.dispatchEvent(new Event("trabalheiLa_user_updated"));
       try {
         await saveUserProfile({
           id: profileId,
@@ -50,16 +70,6 @@ function AuthLinkedIn() {
         });
       } catch (err) {
         console.warn("Falha ao persistir perfil LinkedIn:", err);
-      }
-
-      try {
-        if (window.opener && window.opener !== window && typeof window.opener.postMessage === "function") {
-          window.opener.postMessage({ type: "linkedin_oauth", profile: storedProfile }, window.location.origin);
-          window.close();
-          return;
-        }
-      } catch (err) {
-        // Ignore cross-origin errors
       }
 
       navigate("/pseudonym");

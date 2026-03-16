@@ -745,12 +745,15 @@ function Home({ theme, toggleTheme }) {
       return;
     }
 
+    const authorProfileId = resolveProfileId(userProfile, { persistGeneratedId: false }) || "";
+
     setIsLoading(true);
     setError(null);
 
     const evaluationData = {
       company: company.value,
       pseudonym,
+      authorProfileId,
       rating, commentRating, salario, commentSalario, beneficios, commentBeneficios,
       cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao,
       lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente,
@@ -845,7 +848,7 @@ function Home({ theme, toggleTheme }) {
       setIsLoading(false);
       setCaptchaConfirmed(false);
     }
-  }, [isAuthenticated, captchaConfirmed, company, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment, entrySource, contractType, navigate]);
+  }, [isAuthenticated, captchaConfirmed, company, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment, entrySource, contractType, navigate, userProfile]);
 
   const handleSaibaMais = useCallback(() => {
     if (!company) {

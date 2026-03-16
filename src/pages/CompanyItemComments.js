@@ -1,9 +1,10 @@
 import React from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { FaMoon, FaSun } from "react-icons/fa";
-import { listReviewsByCompanySlug, slugifyCompany } from "../services/reviews";
+import { deleteOwnReview, isReviewOwnedByCurrentUser, listReviewsByCompanySlug, slugifyCompany } from "../services/reviews";
 import { db } from "../firebase";
-import { collection, doc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
+import { getStoredProfileId } from "../utils/profileIdentity";
 
 const ITEM_CONFIG = {
   comunicacao: { label: "Contato do RH", commentKeys: ["commentComunicacao"] },
@@ -139,6 +140,8 @@ function CompanyItemComments({ theme, toggleTheme }) {
   const [entryThreads, setEntryThreads] = React.useState({});
   const [entryReplyTarget, setEntryReplyTarget] = React.useState(null);
   const [entryReplyText, setEntryReplyText] = React.useState("");
+  const [entryActionNotice, setEntryActionNotice] = React.useState("");
+  const [deletingEntryId, setDeletingEntryId] = React.useState("");
 
   const reactions = [
     { key: "thumbsDown", label: "👎" },
@@ -168,6 +171,10 @@ function CompanyItemComments({ theme, toggleTheme }) {
       .replace(/[^a-zA-Z0-9_-]+/g, "_");
     return `entry_thread_${slug}_${itemKey}_${safeEntryId}`;
   }, [getCompanySlug, itemKey]);
+
+  const getCurrentPseudonym = React.useCallback(() => {
+    return (localStorage.getItem("userPseudonym") || "Anônimo").toString().trim();
+  }, []);
 
   const saveComments = React.useCallback(
     (nextComments) => {
@@ -281,6 +288,7 @@ function CompanyItemComments({ theme, toggleTheme }) {
             return {
               id: review.id,
               pseudonym: review.pseudonym || "Anônimo",
+              authorProfileId: review?.authorProfileId || review?.profileId || "",
               comment: selectedComment.trim(),
               score: review?.[itemKey],
               createdAt:
@@ -467,6 +475,58 @@ function CompanyItemComments({ theme, toggleTheme }) {
         updatedAt: new Date().toISOString(),
       },
     [entryThreads]
+  );
+
+  const handleDeleteEntryReview = React.useCallback(
+    async (entry) => {
+      if (!entry?.id) return;
+
+      const confirmed = window.confirm("Tem certeza que deseja apagar a sua avaliação deste item? Esta ação não pode ser desfeita.");
+      if (!confirmed) return;
+
+      setDeletingEntryId(entry.id);
+      setEntryActionNotice("");
+      setErrorMsg("");
+
+      try {
+        await deleteOwnReview({
+          reviewId: entry.id,
+          currentProfileId: getStoredProfileId(),
+          currentPseudonym: getCurrentPseudonym(),
+        });
+
+        setEntries((prev) => prev.filter((item) => item.id !== entry.id));
+
+        const nextThreads = { ...entryThreads };
+        delete nextThreads[entry.id];
+        saveEntryThreads(nextThreads);
+
+        try {
+          await deleteDoc(doc(db, "item_comment_threads", getEntryThreadDocId(entry.id)));
+        } catch {
+          // ignore remote cleanup failures
+        }
+
+        try {
+          const evaluationsKey = `evaluations_${companyName}`;
+          const stored = localStorage.getItem(evaluationsKey);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            delete parsed[entry.pseudonym];
+            localStorage.setItem(evaluationsKey, JSON.stringify(parsed));
+          }
+        } catch {
+          // ignore local cache cleanup failures
+        }
+
+        setEntryActionNotice("Sua avaliação foi apagada com sucesso.");
+      } catch (err) {
+        setErrorMsg(err?.message || "Não foi possível apagar esta avaliação.");
+      } finally {
+        setDeletingEntryId("");
+      }
+    },
+    [companyName, entryThreads, getCurrentPseudonym, getEntryThreadDocId, saveEntryThreads]
   );
 
   const handleReactEntry = (entryId, targetId, reactionKey) => {
@@ -730,6 +790,11 @@ function CompanyItemComments({ theme, toggleTheme }) {
           </div>
         ) : (
           <div className="mt-6 space-y-3">
+            {entryActionNotice && (
+              <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                {entryActionNotice}
+              </div>
+            )}
             {entries.map((entry) => (
               <article
                 key={entry.id}
@@ -765,6 +830,16 @@ function CompanyItemComments({ theme, toggleTheme }) {
                   <span className="text-xs text-slate-500">
                     Total: {getTotalReactions({ reactions: getEntryThread(entry.id)?.reactions })}
                   </span>
+                  {isReviewOwnedByCurrentUser(entry, { profileId: getStoredProfileId(), pseudonym: getCurrentPseudonym() }) && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteEntryReview(entry)}
+                      disabled={deletingEntryId === entry.id}
+                      className="text-xs font-semibold text-rose-700 hover:underline disabled:opacity-60 disabled:no-underline"
+                    >
+                      {deletingEntryId === entry.id ? "Apagando avaliação..." : "Apagar minha avaliação"}
+                    </button>
+                  )}
                 </div>
 
                 {entryReplyTarget === `${entry.id}::${entry.id}` && (

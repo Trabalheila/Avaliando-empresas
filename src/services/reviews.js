@@ -11,6 +11,7 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   increment,
   serverTimestamp,
 } from "firebase/firestore";
@@ -94,6 +95,49 @@ export async function saveReview(review) {
 
   await setDoc(reviewRef, payload);
   return { id: reviewId, ...payload };
+}
+
+export function isReviewOwnedByCurrentUser(review, options = {}) {
+  const currentProfileId = (options.profileId || "").toString().trim();
+  const reviewProfileId = (review?.authorProfileId || review?.profileId || "").toString().trim();
+
+  if (currentProfileId && reviewProfileId) {
+    return currentProfileId === reviewProfileId;
+  }
+
+  const currentPseudonymSlug = slugifyCompany(options.pseudonym || "");
+  const reviewPseudonymSlug = slugifyCompany(review?.pseudonym || "");
+
+  return Boolean(currentPseudonymSlug && reviewPseudonymSlug && currentPseudonymSlug === reviewPseudonymSlug);
+}
+
+export async function deleteOwnReview({ reviewId, currentProfileId = "", currentPseudonym = "" }) {
+  if (!reviewId) {
+    throw new Error("Avaliação inválida para exclusão.");
+  }
+
+  if (!auth.currentUser) {
+    await signInAnonymously(auth);
+  }
+
+  const reviewRef = doc(db, "reviews", reviewId);
+  const existing = await getDoc(reviewRef);
+
+  if (!existing.exists()) {
+    return { deleted: false, reason: "not_found" };
+  }
+
+  const review = { id: existing.id, ...existing.data() };
+  if (!isReviewOwnedByCurrentUser(review, { profileId: currentProfileId, pseudonym: currentPseudonym })) {
+    throw new Error("Você só pode apagar avaliações feitas pelo seu próprio perfil.");
+  }
+
+  await deleteDoc(reviewRef);
+
+  const reactionSnap = await getDocs(query(collection(db, "reviewReactions"), where("reviewId", "==", reviewId), limit(200)));
+  await Promise.all(reactionSnap.docs.map((reactionDoc) => deleteDoc(reactionDoc.ref)));
+
+  return { deleted: true, review };
 }
 
 export async function reactToReview({ reviewId, uid, reaction }) {
