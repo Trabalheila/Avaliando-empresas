@@ -1,6 +1,33 @@
 import React from "react";
 
 const DEFAULT_SCOPE = "openid profile email";
+const LINKEDIN_OAUTH_RESULT_KEY = "linkedin_oauth_result";
+
+function readLinkedInOAuthResult() {
+  try {
+    const raw = localStorage.getItem(LINKEDIN_OAUTH_RESULT_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    const createdAt = Number(parsed?.createdAt || 0);
+    if (createdAt && Date.now() - createdAt > 5 * 60 * 1000) {
+      localStorage.removeItem(LINKEDIN_OAUTH_RESULT_KEY);
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function clearLinkedInOAuthResult() {
+  try {
+    localStorage.removeItem(LINKEDIN_OAUTH_RESULT_KEY);
+  } catch {
+    // ignore storage failures
+  }
+}
 
 const LoginLinkedInButton = ({
   clientId: clientIdProp,
@@ -50,6 +77,8 @@ const LoginLinkedInButton = ({
       // sem drama: se storage falhar, seguimos
     }
 
+    clearLinkedInOAuthResult();
+
     const params = new URLSearchParams({
       response_type: "code",
       client_id: clientId, // obrigatório no LinkedIn <sources>[1]</sources>
@@ -85,8 +114,69 @@ const LoginLinkedInButton = ({
 
     let finished = false;
 
+    const consumeOAuthResult = (payload) => {
+      if (!payload || finished) return false;
+
+      const data = payload?.payload || payload;
+      if (!data) return false;
+
+      const returnedState = data.state;
+      const code = data.code;
+      const profile = data.profile;
+      const message = data.message;
+
+      const storedState = (() => {
+        try {
+          return sessionStorage.getItem("linkedin_oauth_state");
+        } catch {
+          return null;
+        }
+      })();
+
+      if (storedState && returnedState && storedState !== returnedState) {
+        cleanup();
+        clearLinkedInOAuthResult();
+        onLoginFailure?.(new Error("State inválido (possível CSRF)"));
+        return true;
+      }
+
+      if (data.type === "linkedin_oauth_error") {
+        cleanup();
+        clearLinkedInOAuthResult();
+        try {
+          popup.close();
+        } catch {}
+        onLoginFailure?.(new Error(message || "Falha ao autenticar com LinkedIn"));
+        return true;
+      }
+
+      if (data.type !== "linkedin_oauth") {
+        return false;
+      }
+
+      cleanup();
+      clearLinkedInOAuthResult();
+      try {
+        popup.close();
+      } catch {}
+
+      if (profile) {
+        onLoginSuccess?.({ profile });
+        return true;
+      }
+
+      if (!code) {
+        onLoginFailure?.(new Error("Callback do LinkedIn sem 'code'"));
+        return true;
+      }
+
+      onLoginSuccess?.({ code, state: returnedState || storedState || state });
+      return true;
+    };
+
     const cleanup = () => {
       window.removeEventListener("message", onMessage);
+      window.removeEventListener("storage", onStorage);
       clearInterval(interval);
       finished = true;
     };
@@ -106,64 +196,30 @@ const LoginLinkedInButton = ({
       const data = event.data;
       if (!data) return;
 
-      if (data.type === "linkedin_oauth_error") {
-        cleanup();
-        try {
-          popup.close();
-        } catch {}
-        onLoginFailure?.(new Error(data.message || "Falha ao autenticar com LinkedIn"));
-        return;
-      }
+      consumeOAuthResult(data);
+    };
 
-      if (data.type !== "linkedin_oauth") return;
+    const onStorage = (event) => {
+      if (event.key !== LINKEDIN_OAUTH_RESULT_KEY || !event.newValue) return;
 
-      const returnedState = data.state;
-      const code = data.code;
-      const profile = data.profile;
-
-      const storedState = (() => {
-        try {
-          return sessionStorage.getItem("linkedin_oauth_state");
-        } catch {
-          return null;
-        }
-      })();
-
-      if (profile) {
-        // Recebe os dados do backend (login concluído)
-        cleanup();
-        try {
-          popup.close();
-        } catch {}
-        onLoginSuccess?.({ profile });
-        return;
-      }
-
-      if (!code) {
-        cleanup();
-        onLoginFailure?.(new Error("Callback do LinkedIn sem 'code'"));
-        return;
-      }
-
-      if (storedState && returnedState && storedState !== returnedState) {
-        cleanup();
-        onLoginFailure?.(new Error("State inválido (possível CSRF)"));
-        return;
-      }
-
-      cleanup();
       try {
-        popup.close();
-      } catch {}
-
-      onLoginSuccess?.({ code, state: returnedState || storedState || state });
+        consumeOAuthResult(JSON.parse(event.newValue));
+      } catch {
+        // ignore malformed storage values
+      }
     };
 
     window.addEventListener("message", onMessage);
+    window.addEventListener("storage", onStorage);
 
     const startedAt = Date.now();
     const interval = setInterval(() => {
       if (finished) return;
+
+      const storedResult = readLinkedInOAuthResult();
+      if (storedResult && consumeOAuthResult(storedResult)) {
+        return;
+      }
 
       if (popup.closed) {
         cleanup();

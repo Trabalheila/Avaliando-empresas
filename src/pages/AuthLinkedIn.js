@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { saveUserProfile } from "../services/users";
 import { resolveProfileId } from "../utils/profileIdentity";
 
+const LINKEDIN_OAUTH_RESULT_KEY = "linkedin_oauth_result";
+
 function AuthLinkedIn() {
   const navigate = useNavigate();
 
@@ -40,6 +42,19 @@ function AuthLinkedIn() {
 
       localStorage.setItem("userProfile", JSON.stringify(storedProfile));
 
+      try {
+        localStorage.setItem(
+          LINKEDIN_OAUTH_RESULT_KEY,
+          JSON.stringify({
+            type: "linkedin_oauth",
+            payload: { type: "linkedin_oauth", profile: storedProfile },
+            createdAt: Date.now(),
+          })
+        );
+      } catch {
+        // ignore storage failures
+      }
+
       // Notifica a janela principal ANTES do await do Firestore para não bloquear o retorno.
       // O perfil já está salvo no localStorage e pode ser lido imediatamente.
       try {
@@ -76,6 +91,19 @@ function AuthLinkedIn() {
     };
 
     const notifyFailure = (message) => {
+      try {
+        localStorage.setItem(
+          LINKEDIN_OAUTH_RESULT_KEY,
+          JSON.stringify({
+            type: "linkedin_oauth_error",
+            payload: { type: "linkedin_oauth_error", message },
+            createdAt: Date.now(),
+          })
+        );
+      } catch {
+        // ignore storage failures
+      }
+
       try {
         if (window.opener && window.opener !== window && typeof window.opener.postMessage === "function") {
           window.opener.postMessage({ type: "linkedin_oauth_error", message }, window.location.origin);

@@ -8,14 +8,29 @@
 
     <script>
       (function () {
+        const RESULT_KEY = "linkedin_oauth_result";
         const params = new URLSearchParams(window.location.search);
         const code = params.get("code");
         const state = params.get("state");
         const error = params.get("error");
         const errorDescription = params.get("error_description");
 
-        const APP_URL = "https://www.trabalheila.com.br";
-        const APP_ORIGIN = new URL(APP_URL).origin;
+        const APP_ORIGIN = window.location.origin;
+        const APP_URL = APP_ORIGIN;
+
+        const persistResult = (payload) => {
+          try {
+            localStorage.setItem(
+              RESULT_KEY,
+              JSON.stringify({
+                ...payload,
+                createdAt: Date.now(),
+              })
+            );
+          } catch (err) {
+            console.warn("Falha ao persistir retorno do LinkedIn no storage:", err);
+          }
+        };
 
         const hasOpener =
           window.opener &&
@@ -23,16 +38,17 @@
           typeof window.opener.postMessage === "function";
 
         if (code) {
+          const payload = {
+            type: "linkedin_oauth",
+            code,
+            state,
+          };
+
+          persistResult(payload);
+
           if (hasOpener) {
             try {
-              window.opener.postMessage(
-                {
-                  type: "linkedin_oauth",
-                  code,
-                  state,
-                },
-                APP_ORIGIN
-              );
+              window.opener.postMessage(payload, APP_ORIGIN);
               window.close();
               return;
             } catch (err) {
@@ -47,15 +63,16 @@
         }
 
         if (error) {
+          const payload = {
+            type: "linkedin_oauth_error",
+            message: errorDescription || error,
+          };
+
+          persistResult(payload);
+
           if (hasOpener) {
             try {
-              window.opener.postMessage(
-                {
-                  type: "linkedin_oauth_error",
-                  message: errorDescription || error,
-                },
-                APP_ORIGIN
-              );
+              window.opener.postMessage(payload, APP_ORIGIN);
               window.close();
               return;
             } catch (err) {
