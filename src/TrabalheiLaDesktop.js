@@ -301,6 +301,7 @@ function TrabalheiLaDesktop({
                 <div className="w-full max-w-xs -ml-3">
                   <LoginLinkedInButton
                     clientId={linkedInClientId}
+                    redirectUri={linkedInRedirectUri}
                     onLoginSuccess={onLoginSuccess}
                     onLoginFailure={(err) => setError(err?.message || String(err))}
                     disabled={isLoading}

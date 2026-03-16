@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { saveUserProfile } from "../services/users";
 import { resolveProfileId } from "../utils/profileIdentity";
+import { getLinkedInRedirectUri } from "../utils/linkedinAuth";
 
 const LINKEDIN_OAUTH_RESULT_KEY = "linkedin_oauth_result";
 
@@ -122,7 +123,7 @@ function AuthLinkedIn() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         code,
-        redirectUri: process.env.REACT_APP_LINKEDIN_REDIRECT_URI,
+        redirectUri: getLinkedInRedirectUri(),
       }),
     })
       .then((r) => r.json())

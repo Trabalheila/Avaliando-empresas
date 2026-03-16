@@ -16,6 +16,7 @@ import {
   normalizeEmail,
   resolveProfileId,
 } from "./utils/profileIdentity";
+import { getLinkedInRedirectUri } from "./utils/linkedinAuth";
 
 const CONNECTOR_WORDS = new Set(["de", "da", "do", "das", "dos", "e"]);
 const LEGAL_SUFFIXES = new Set(["S.A", "SA", "S/A", "LTDA", "ME", "MEI", "EPP", "EIRELI", "SPE", "SCP"]);
@@ -859,7 +860,7 @@ function Home({ theme, toggleTheme }) {
   }, [company, navigate]);
 
   const linkedInClientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID;
-  const linkedInRedirectUri = process.env.REACT_APP_LINKEDIN_REDIRECT_URI;
+  const linkedInRedirectUri = getLinkedInRedirectUri();
 
   useEffect(() => {
     const updateFromStorage = () => {
@@ -954,7 +955,7 @@ function Home({ theme, toggleTheme }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             code,
-            redirectUri: process.env.REACT_APP_LINKEDIN_REDIRECT_URI,
+            redirectUri: linkedInRedirectUri,
           }),
         });
 
@@ -1051,7 +1052,7 @@ function Home({ theme, toggleTheme }) {
     } finally {
       setIsLoading(false);
     }
-  }, [loadPersistedProfile, promptProfileCompletion]);
+  }, [linkedInRedirectUri, loadPersistedProfile, promptProfileCompletion]);
 
   const handleGoogleLogin = useCallback(async () => {
     setIsLoading(true);
