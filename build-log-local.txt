@@ -2,7 +2,44 @@
 > trabalhei-la@1.0.0 build
 > react-scripts build
 
-(node:12148) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
+(node:15668) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
 (Use `node --trace-deprecation ...` to show where the warning was created)
 Creating an optimized production build...
-Deseja finalizar o arquivo em lotes (S/N)? Deseja finalizar o arquivo em lotes (S/N)? Deseja finalizar o arquivo em lotes (S/N)? Deseja finalizar o arquivo em lotes (S/N)? Deseja finalizar o arquivo em lotes (S/N)? Deseja finalizar o arquivo em lotes (S/N)? Deseja finalizar o arquivo em lotes (S/N)? Deseja finalizar o arquivo em lotes (S/N)? Deseja finalizar o arquivo em lotes (S/N)? Deseja finalizar o arquivo em lotes (S/N)? 
+Compiled with warnings.
+
+[eslint] 
+src\pages\CompanyDetails.js
+  Line 425:9:   The 'reactions' array makes the dependencies of useCallback Hook (at line 1342) change on every render. To fix this, wrap the initialization of 'reactions' in its own useMemo() Hook                                         react-hooks/exhaustive-deps
+  Line 446:9:   The 'isOwnedByCurrentUser' function makes the dependencies of useCallback Hook (at line 1342) change on every render. To fix this, wrap the definition of 'isOwnedByCurrentUser' in its own useCallback() Hook                react-hooks/exhaustive-deps
+  Line 450:9:   The 'canManageContent' function makes the dependencies of useCallback Hook (at line 1342) change on every render. To fix this, wrap the definition of 'canManageContent' in its own useCallback() Hook                        react-hooks/exhaustive-deps
+  Line 457:9:   The 'getRemainingManageTimeLabel' function makes the dependencies of useCallback Hook (at line 1342) change on every render. To fix this, wrap the definition of 'getRemainingManageTimeLabel' in its own useCallback() Hook  react-hooks/exhaustive-deps
+  Line 772:9:   The 'getAuthorBlockKey' function makes the dependencies of useCallback Hook (at line 1342) change on every render. To fix this, wrap the definition of 'getAuthorBlockKey' in its own useCallback() Hook                      react-hooks/exhaustive-deps
+  Line 803:9:   The 'reportTarget' function makes the dependencies of useCallback Hook (at line 1342) change on every render. To fix this, wrap the definition of 'reportTarget' in its own useCallback() Hook                                react-hooks/exhaustive-deps
+  Line 904:9:   The 'handleReact' function makes the dependencies of useCallback Hook (at line 1342) change on every render. To fix this, wrap the definition of 'handleReact' in its own useCallback() Hook                                  react-hooks/exhaustive-deps
+  Line 947:9:   The 'handleReply' function makes the dependencies of useCallback Hook (at line 1342) change on every render. To fix this, wrap the definition of 'handleReply' in its own useCallback() Hook                                  react-hooks/exhaustive-deps
+  Line 1006:9:  The 'startEditingItem' function makes the dependencies of useCallback Hook (at line 1342) change on every render. To fix this, wrap the definition of 'startEditingItem' in its own useCallback() Hook                        react-hooks/exhaustive-deps
+  Line 1022:9:  The 'saveEditedItem' function makes the dependencies of useCallback Hook (at line 1342) change on every render. To fix this, wrap the definition of 'saveEditedItem' in its own useCallback() Hook                            react-hooks/exhaustive-deps
+  Line 1059:9:  The 'deleteItem' function makes the dependencies of useCallback Hook (at line 1342) change on every render. To fix this, wrap the definition of 'deleteItem' in its own useCallback() Hook                                    react-hooks/exhaustive-deps
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+File sizes after gzip:
+
+  495.84 kB  build\static\js\main.56362635.js
+  8.93 kB    build\static\css\main.081b166c.css
+  160 B      build\static\js\488.5866287b.chunk.js
+
+The project was built assuming it is hosted at /.
+You can control this with the homepage field in your package.json.
+
+The build folder is ready to be deployed.
+You may serve it with a static server:
+
+  npm install -g serve
+  serve -s build
+
+Find out more about deployment here:
+
+  https://cra.link/deployment
+
