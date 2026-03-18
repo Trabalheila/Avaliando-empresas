@@ -1048,7 +1048,8 @@ function Home({ theme, toggleTheme }) {
       }
     } catch (err) {
       console.error("Erro ao validar login no backend:", err);
-      setError("Falha ao conectar com o LinkedIn.");
+      const rawMessage = String(err?.message || "").trim();
+      setError(rawMessage ? `Falha ao conectar com o LinkedIn: ${rawMessage}` : "Falha ao conectar com o LinkedIn.");
     } finally {
       setIsLoading(false);
     }
