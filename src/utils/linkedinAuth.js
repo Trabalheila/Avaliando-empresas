@@ -6,7 +6,6 @@ export function getLinkedInRedirectUri() {
   }
 
   if (typeof window !== "undefined" && window.location) {
-    const origin = String(window.location.origin || "").replace(/\/+$/, "");
     const hostname = String(window.location.hostname || "").toLowerCase();
     const port = String(window.location.port || "");
     const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
