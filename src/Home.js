@@ -17,6 +17,7 @@ import {
   resolveProfileId,
 } from "./utils/profileIdentity";
 import { getLinkedInRedirectUri } from "./utils/linkedinAuth";
+import { buildApiUrl } from "./utils/apiBase";
 
 const CONNECTOR_WORDS = new Set(["de", "da", "do", "das", "dos", "e"]);
 const LEGAL_SUFFIXES = new Set(["S.A", "SA", "S/A", "LTDA", "ME", "MEI", "EPP", "EIRELI", "SPE", "SCP"]);
@@ -950,7 +951,7 @@ function Home({ theme, toggleTheme }) {
       let data = profile;
 
       if (!data && code) {
-        const response = await fetch("/api/linkedin-auth", {
+        const response = await fetch(buildApiUrl("/api/linkedin-auth"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -959,7 +960,16 @@ function Home({ theme, toggleTheme }) {
           }),
         });
 
-        data = await response.json();
+        const rawText = await response.text();
+        try {
+          data = rawText ? JSON.parse(rawText) : {};
+        } catch {
+          data = { error: rawText || `Erro HTTP ${response.status}` };
+        }
+
+        if (!response.ok && !data?.error) {
+          data = { ...data, error: `Erro HTTP ${response.status}` };
+        }
 
         if (data.error) {
           throw new Error(data.error);

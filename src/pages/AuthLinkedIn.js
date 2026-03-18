@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { saveUserProfile } from "../services/users";
 import { resolveProfileId } from "../utils/profileIdentity";
 import { getLinkedInRedirectUri } from "../utils/linkedinAuth";
+import { buildApiUrl } from "../utils/apiBase";
 
 const LINKEDIN_OAUTH_RESULT_KEY = "linkedin_oauth_result";
 
@@ -13,12 +14,22 @@ function AuthLinkedIn() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get("code");
     const state = urlParams.get("state");
+    const error = urlParams.get("error");
+    const errorDescription = urlParams.get("error_description") || "";
 
     const savedState = sessionStorage.getItem("linkedin_oauth_state");
 
     if (!code) {
-      console.error("Código ausente no retorno do LinkedIn.");
-      navigate("/");
+      if (error) {
+        const query = new URLSearchParams({
+          linkedin_error: error,
+          linkedin_error_description: errorDescription,
+        });
+        navigate(`/?${query.toString()}`);
+      } else {
+        console.error("Código ausente no retorno do LinkedIn.");
+        navigate("/");
+      }
       return;
     }
 
@@ -118,7 +129,7 @@ function AuthLinkedIn() {
       navigate("/?linkedin_error=1");
     };
 
-    fetch("/api/linkedin-auth", {
+    fetch(buildApiUrl("/api/linkedin-auth"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -126,7 +137,21 @@ function AuthLinkedIn() {
         redirectUri: getLinkedInRedirectUri(),
       }),
     })
-      .then((r) => r.json())
+      .then(async (response) => {
+        const rawText = await response.text();
+        let data = {};
+        try {
+          data = rawText ? JSON.parse(rawText) : {};
+        } catch {
+          data = { error: rawText || `Erro HTTP ${response.status}` };
+        }
+
+        if (!response.ok && !data?.error) {
+          data = { ...data, error: `Erro HTTP ${response.status}` };
+        }
+
+        return data;
+      })
       .then((data) => {
         if (data.error) {
           console.error("Erro no login:", data.error);
@@ -139,7 +164,7 @@ function AuthLinkedIn() {
       })
       .catch((err) => {
         console.error("Erro ao conectar com backend.", err);
-        notifyFailure("Falha ao conectar com LinkedIn");
+        notifyFailure(err?.message || "Falha ao conectar com LinkedIn");
       });
   }, [navigate]);
 
