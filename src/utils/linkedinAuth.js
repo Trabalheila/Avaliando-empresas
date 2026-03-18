@@ -1,4 +1,5 @@
 export function getLinkedInRedirectUri() {
+  const prodRedirectUri = "https://www.trabalheila.com.br/auth/auth/";
   const envRedirectUri = (process.env.REACT_APP_LINKEDIN_REDIRECT_URI || "").trim();
   if (envRedirectUri) {
     return envRedirectUri;
@@ -15,11 +16,12 @@ export function getLinkedInRedirectUri() {
       return "http://localhost:3000/auth/auth/";
     }
 
-    // Capacitor mobile costuma executar em localhost (sem :3000).
-    if (isLocalhost && origin) {
-      return `${origin}/auth/auth/`;
+    // Em app mobile (localhost sem :3000), use callback de produção
+    // para evitar rejeição de redirect_uri não cadastrada no LinkedIn.
+    if (isLocalhost) {
+      return prodRedirectUri;
     }
   }
 
-  return "https://www.trabalheila.com.br/auth/auth/";
+  return prodRedirectUri;
 }
