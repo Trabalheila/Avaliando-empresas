@@ -914,13 +914,8 @@ function Home({ theme, toggleTheme }) {
 
   const promptProfileCompletion = useCallback(() => {
     if (typeof window === "undefined") return;
-    const shouldCompleteNow = window.confirm(
-      "Seus dados de perfil sao importantes e fundamentais para participar do Trabalhei La. Deseja completar o cadastro agora?"
-    );
-
-    if (shouldCompleteNow) {
-      navigate("/pseudonym");
-    }
+    // Evita depender de confirm() em mobile/in-app browsers, onde pode falhar silenciosamente.
+    navigate("/pseudonym");
   }, [navigate]);
 
   const loadPersistedProfile = useCallback(async (profile) => {
@@ -1184,6 +1179,8 @@ function Home({ theme, toggleTheme }) {
 
     if (linkedInError) {
       setError(`Falha ao conectar com LinkedIn: ${linkedInErrorDescription || linkedInError}`);
+      const cleanUrl = `${window.location.pathname}${window.location.hash || ""}`;
+      window.history.replaceState({}, "", cleanUrl || "/");
       return;
     }
 

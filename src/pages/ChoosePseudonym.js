@@ -314,7 +314,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   useEffect(() => {
     const profile = localStorage.getItem("userProfile");
     if (!profile) {
-      navigate("/");
+      // Permite acesso anônimo à página de perfil (e.g. botão verde).
+      // Inicializa um perfil vazio para que o formulário funcione sem redirecionar.
+      localStorage.setItem("userProfile", JSON.stringify({ loginProvider: "anonymous", fallback: true }));
       return;
     }
 
