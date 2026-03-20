@@ -34,6 +34,8 @@ const METRIC_KEYS = [
   "saudeBemEstar", "impactoSocial", "reputacao", "estimacaoOrganizacao",
 ];
 
+const LINKEDIN_OAUTH_RESULT_KEY = "linkedin_oauth_result";
+
 function normalizeCompanyKey(name) {
   return (name || "")
     .toString()
@@ -1172,19 +1174,48 @@ function Home({ theme, toggleTheme }) {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search || "");
-    const linkedInCode = params.get("linkedin_code") || params.get("code");
-    const linkedInError = params.get("linkedin_error") || params.get("error");
-    const linkedInErrorDescription =
+    let linkedInCode = params.get("linkedin_code") || params.get("code");
+    let linkedInError = params.get("linkedin_error") || params.get("error");
+    let linkedInErrorDescription =
       params.get("linkedin_error_description") || params.get("error_description") || "";
+
+    if (!linkedInCode && !linkedInError) {
+      try {
+        const rawStored = localStorage.getItem(LINKEDIN_OAUTH_RESULT_KEY);
+        if (rawStored) {
+          const stored = JSON.parse(rawStored);
+          const payload = stored?.payload || stored;
+
+          if (payload?.type === "linkedin_oauth_error") {
+            linkedInError = payload?.message || "Erro desconhecido no login LinkedIn";
+          } else if (payload?.type === "linkedin_oauth") {
+            linkedInCode = payload?.code || "";
+          }
+        }
+      } catch {
+        // ignore malformed storage values
+      }
+    }
 
     if (linkedInError) {
       setError(`Falha ao conectar com LinkedIn: ${linkedInErrorDescription || linkedInError}`);
+      try {
+        localStorage.removeItem(LINKEDIN_OAUTH_RESULT_KEY);
+      } catch {
+        // ignore storage failures
+      }
       const cleanUrl = `${window.location.pathname}${window.location.hash || ""}`;
       window.history.replaceState({}, "", cleanUrl || "/");
       return;
     }
 
     if (!linkedInCode) return;
+
+    try {
+      localStorage.removeItem(LINKEDIN_OAUTH_RESULT_KEY);
+    } catch {
+      // ignore storage failures
+    }
 
     handleLoginSuccess({ code: linkedInCode });
 
