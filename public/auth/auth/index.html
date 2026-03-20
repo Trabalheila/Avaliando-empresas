@@ -56,9 +56,9 @@
             }
           }
 
-          const qs = new URLSearchParams({ code });
+          const qs = new URLSearchParams({ linkedin_code: code });
           if (state) qs.set("state", state);
-          window.location.replace(`${APP_URL}/auth/linkedin?${qs.toString()}`);
+          window.location.replace(`${APP_URL}/?${qs.toString()}`);
           return;
         }
 
@@ -81,10 +81,10 @@
           }
 
           const qs = new URLSearchParams({
-            error,
-            error_description: errorDescription || "",
+            linkedin_error: error,
+            linkedin_error_description: errorDescription || "",
           });
-          window.location.replace(`${APP_URL}/auth/linkedin?${qs.toString()}`);
+          window.location.replace(`${APP_URL}/?${qs.toString()}`);
           return;
         }
 
