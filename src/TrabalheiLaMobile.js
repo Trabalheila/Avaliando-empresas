@@ -326,15 +326,15 @@ function TrabalheiLaMobile({
     >
       <header ref={headerRef} className="fixed top-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm px-3 py-2 z-50 border-b border-blue-100 dark:border-slate-700">
         <div className="text-center">
-          <h1 className="text-[1.35rem] font-black text-blue-900 dark:text-blue-100 font-azonix tracking-[0.07em] leading-none whitespace-nowrap">
-            TRABALHEI LÁ
+          <h1 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border border-blue-200 dark:border-blue-500 bg-gradient-to-r from-blue-100 via-white to-blue-100 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 shadow-[0_4px_16px_rgba(37,99,235,0.18)]">
+            <FaStar className="text-[0.72rem] text-amber-500" />
+            <span className="text-[1.18rem] font-black text-blue-900 dark:text-blue-100 font-azonix tracking-[0.09em] leading-none whitespace-nowrap">
+              TRABALHEI LÁ
+            </span>
           </h1>
-          <div className="w-24 h-1 mx-auto mt-1.5 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
-          <p className="mt-1 text-[0.9rem] leading-tight font-extrabold text-blue-800 dark:text-blue-200">
-            Evoluindo o mercado de trabalho
-          </p>
-          <p className="mt-0.5 text-[0.72rem] leading-tight font-semibold text-blue-600 dark:text-blue-300">
-            Sua opinião é anônima e ajuda outros profissionais
+          <div className="w-20 h-1 mx-auto mt-1 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
+          <p className="mt-1 text-[0.72rem] leading-tight font-bold text-blue-700 dark:text-blue-200">
+            Sua opinião anônima evolui o mercado de trabalho
           </p>
         </div>
 
