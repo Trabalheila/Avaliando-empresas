@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase";
@@ -45,15 +45,39 @@ function companyFromSlugAndReviews(slug, reviews) {
   return { name, slug, logoUrl, google };
 }
 
+const REACTION_OPTIONS = [
+  { key: "like", emoji: "👍" },
+  { key: "dislike", emoji: "👎" },
+  { key: "heart", emoji: "❤️" },
+  { key: "wow", emoji: "😮" },
+  { key: "angry", emoji: "😡" },
+];
+
+const HOLD_TO_REACT_MS = 450;
+
+function getReviewScore(review) {
+  const score = review?.ratings?.geral;
+  return Number.isFinite(score) ? score : -1;
+}
+
+function toMillis(value) {
+  if (!value) return 0;
+  if (typeof value?.toDate === "function") return value.toDate().getTime();
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 export default function CompanyPage() {
   const { slug } = useParams();
 
   const [company, setCompany] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [uid, setUid] = useState(null);
+  const [openReactionMenuFor, setOpenReactionMenuFor] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
+  const holdTimerRef = useRef(null);
 
   // garante um uid (anônimo) para reagir
   useEffect(() => {
@@ -113,6 +137,27 @@ export default function CompanyPage() {
   }, [slug]);
 
   const avg = useMemo(() => avgFromReviews(reviews), [reviews]);
+  const orderedReviews = useMemo(() => {
+    return [...reviews].sort((a, b) => {
+      const scoreDiff = getReviewScore(b) - getReviewScore(a);
+      if (scoreDiff !== 0) return scoreDiff;
+      return toMillis(b?.createdAt) - toMillis(a?.createdAt);
+    });
+  }, [reviews]);
+
+  function clearHoldTimer() {
+    if (!holdTimerRef.current) return;
+    clearTimeout(holdTimerRef.current);
+    holdTimerRef.current = null;
+  }
+
+  function startHoldToReact(reviewId) {
+    clearHoldTimer();
+    holdTimerRef.current = setTimeout(() => {
+      setOpenReactionMenuFor(reviewId);
+      holdTimerRef.current = null;
+    }, HOLD_TO_REACT_MS);
+  }
 
   async function handleReact(reviewId, reaction) {
     try {
@@ -124,10 +169,17 @@ export default function CompanyPage() {
       const r = await listReviewsByCompanySlug(slug, 80);
       setReviews(r || []);
       setCompany(companyFromSlugAndReviews(slug, r || []));
+      setOpenReactionMenuFor(null);
     } catch (err) {
       console.error(err);
     }
   }
+
+  useEffect(() => {
+    return () => {
+      clearHoldTimer();
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -207,13 +259,13 @@ export default function CompanyPage() {
             Comentários anônimos
           </h2>
 
-          {reviews.length === 0 ? (
+          {orderedReviews.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-5 text-slate-600">
               Nenhum comentário ainda.
             </div>
           ) : (
             <div className="space-y-4">
-              {reviews.map((r) => (
+              {orderedReviews.map((r) => (
                 <div
                   key={r.id}
                   className="bg-white rounded-2xl border border-slate-200 p-5"
@@ -238,42 +290,43 @@ export default function CompanyPage() {
                   </div>
 
                   {r.commentGeral && (
-                    <p className="mt-3 text-slate-700 text-sm whitespace-pre-wrap">
-                      {r.commentGeral}
-                    </p>
+                    <div className="mt-3">
+                      <p className="text-xs font-bold text-slate-500">Algo que queira acrescentar?</p>
+                      <p className="text-slate-700 text-sm whitespace-pre-wrap">
+                        {r.commentGeral}
+                      </p>
+                    </div>
                   )}
 
-                  <div className="mt-4 flex flex-wrap gap-2 text-sm">
+                  <div className="mt-4">
                     <button
-                      onClick={() => handleReact(r.id, "like")}
-                      className="px-3 py-1.5 rounded-full border border-slate-200 hover:bg-slate-50"
+                      type="button"
+                      onMouseDown={() => startHoldToReact(r.id)}
+                      onMouseUp={clearHoldTimer}
+                      onMouseLeave={clearHoldTimer}
+                      onTouchStart={() => startHoldToReact(r.id)}
+                      onTouchEnd={clearHoldTimer}
+                      onTouchCancel={clearHoldTimer}
+                      onClick={(e) => e.preventDefault()}
+                      className="px-3 py-1.5 rounded-full border border-slate-200 hover:bg-slate-50 text-sm"
                     >
-                      👍 {r.reactions?.like ?? 0}
+                      🙂 Segure para reagir
                     </button>
-                    <button
-                      onClick={() => handleReact(r.id, "dislike")}
-                      className="px-3 py-1.5 rounded-full border border-slate-200 hover:bg-slate-50"
-                    >
-                      👎 {r.reactions?.dislike ?? 0}
-                    </button>
-                    <button
-                      onClick={() => handleReact(r.id, "heart")}
-                      className="px-3 py-1.5 rounded-full border border-slate-200 hover:bg-slate-50"
-                    >
-                      ❤️ {r.reactions?.heart ?? 0}
-                    </button>
-                    <button
-                      onClick={() => handleReact(r.id, "wow")}
-                      className="px-3 py-1.5 rounded-full border border-slate-200 hover:bg-slate-50"
-                    >
-                      😮 {r.reactions?.wow ?? 0}
-                    </button>
-                    <button
-                      onClick={() => handleReact(r.id, "angry")}
-                      className="px-3 py-1.5 rounded-full border border-slate-200 hover:bg-slate-50"
-                    >
-                      😡 {r.reactions?.angry ?? 0}
-                    </button>
+
+                    {openReactionMenuFor === r.id && (
+                      <div className="mt-2 flex flex-wrap gap-2 text-sm">
+                        {REACTION_OPTIONS.map((item) => (
+                          <button
+                            key={item.key}
+                            type="button"
+                            onClick={() => handleReact(r.id, item.key)}
+                            className="px-3 py-1.5 rounded-full border border-slate-200 hover:bg-slate-50"
+                          >
+                            {item.emoji} {r.reactions?.[item.key] ?? 0}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

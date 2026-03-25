@@ -244,18 +244,18 @@ function TrabalheiLaMobile({
   );
 
   const campos = [
-    { label: "Contato do RH", icon: <FaComments className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao },
-    { label: "Proposta e acerto salarial", icon: <FaMoneyBillWave className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200", value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica },
-    { label: "Salário e benefícios", icon: <FaGift className="text-rose-600" />, iconBg: "from-rose-50 to-red-100 border-rose-200", value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario },
+    { label: "Processo de Recrutamento", icon: <FaComments className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao },
+    { label: "Proposta salarial e benefícios", icon: <FaMoneyBillWave className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200", value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica },
+    { label: "Data do Salário", icon: <FaGift className="text-rose-600" />, iconBg: "from-rose-50 to-red-100 border-rose-200", value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario },
     { label: "Visão e valores da empresa", icon: <FaBuilding className="text-slate-700" />, iconBg: "from-slate-50 to-slate-100 border-slate-300", value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura },
     { label: "Preocupação com o bem-estar", icon: <FaHeart className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200", value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar },
     { label: "Acessibilidade e respeito da liderança", icon: <FaUserTie className="text-violet-700" />, iconBg: "from-violet-50 to-indigo-100 border-violet-200", value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca },
-    { label: "Estímulo ao respeito entre colegas", icon: <FaBuilding className="text-teal-700" />, iconBg: "from-teal-50 to-emerald-100 border-teal-200", value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente },
-    { label: "Estímulo à organização", icon: <FaBuilding className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao },
+    { label: "Estímulo ao respeito", icon: <FaBuilding className="text-teal-700" />, iconBg: "from-teal-50 to-emerald-100 border-teal-200", value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente },
+    { label: "Processo de Recrutamento", icon: <FaBuilding className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao },
     { label: "Planos de cargos e salários", icon: <FaGraduationCap className="text-fuchsia-700" />, iconBg: "from-fuchsia-50 to-pink-100 border-fuchsia-200", value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento },
     { label: "Reconhecimento", icon: <FaTrophy className="text-amber-600" />, iconBg: "from-amber-50 to-orange-100 border-amber-200", value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento },
     { label: "Rotatividade", subtitle: "(Demite com facilidade?)", icon: <FaChartLine className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio },
-    { label: "Atitudes de discriminação", icon: <FaGlobe className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade },
+    { label: "sofreu discriminação?", icon: <FaGlobe className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade },
     { label: "Segurança", icon: <FaStar className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating },
   ];
 
@@ -538,7 +538,7 @@ function TrabalheiLaMobile({
                   onClick={() => setShowNewCompanyInput(!showNewCompanyInput)}
                   className="w-full py-2 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition"
                 >
-                  {showNewCompanyInput ? "Cancelar" : "+ Adicionar nova empresa"}
+                  {showNewCompanyInput ? "Cancelar" : "Adicione a empresa"}
                 </button>
               </div>
 
@@ -688,7 +688,7 @@ function TrabalheiLaMobile({
             </div>
 
             <div className="bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border border-gray-200 dark:border-slate-700">
-              <label className="text-slate-700 dark:text-blue-200 font-semibold text-sm block mb-2">Comentário Geral</label>
+              <label className="text-slate-700 dark:text-blue-200 font-semibold text-sm block mb-2">Algo que queira acrescentar?</label>
               <textarea
                 className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                 placeholder="Descreva sua experiência na empresa..."

@@ -7,18 +7,18 @@ import { collection, deleteDoc, doc, getDocs, limit, orderBy, query, setDoc, whe
 import { getStoredProfileId } from "../utils/profileIdentity";
 
 const ITEM_CONFIG = {
-  comunicacao: { label: "Contato do RH", commentKeys: ["commentComunicacao"] },
-  etica: { label: "Proposta e acerto salarial", commentKeys: ["commentEtica"] },
-  salario: { label: "Salário e benefícios", commentKeys: ["commentSalario", "commentBeneficios"] },
+  comunicacao: { label: "Processo de Recrutamento", commentKeys: ["commentComunicacao"] },
+  etica: { label: "Proposta salarial e benefícios", commentKeys: ["commentEtica"] },
+  salario: { label: "Data do Salário", commentKeys: ["commentSalario", "commentBeneficios"] },
   cultura: { label: "Visão e valores da empresa", commentKeys: ["commentCultura"] },
   saudeBemEstar: { label: "Preocupação com o bem-estar", commentKeys: ["commentSaudeBemEstar"] },
   lideranca: { label: "Acessibilidade e respeito da liderança", commentKeys: ["commentLideranca"] },
-  ambiente: { label: "Estímulo ao respeito entre colegas", commentKeys: ["commentAmbiente"] },
-  estimacaoOrganizacao: { label: "Estímulo à organização", commentKeys: ["commentEstimacaoOrganizacao"] },
+  ambiente: { label: "Estímulo ao respeito", commentKeys: ["commentAmbiente"] },
+  estimacaoOrganizacao: { label: "Processo de Recrutamento", commentKeys: ["commentEstimacaoOrganizacao"] },
   desenvolvimento: { label: "Planos de cargos e salários", commentKeys: ["commentDesenvolvimento"] },
   reconhecimento: { label: "Reconhecimento", commentKeys: ["commentReconhecimento"] },
   equilibrio: { label: "Rotatividade", commentKeys: ["commentEquilibrio"] },
-  diversidade: { label: "Atitudes de discriminação", commentKeys: ["commentDiversidade"] },
+  diversidade: { label: "sofreu discriminação?", commentKeys: ["commentDiversidade"] },
   rating: { label: "Segurança", commentKeys: ["commentRating"] },
 };
 
@@ -142,6 +142,8 @@ function CompanyItemComments({ theme, toggleTheme }) {
   const [entryReplyText, setEntryReplyText] = React.useState("");
   const [entryActionNotice, setEntryActionNotice] = React.useState("");
   const [deletingEntryId, setDeletingEntryId] = React.useState("");
+  const [openReactionPickerId, setOpenReactionPickerId] = React.useState(null);
+  const reactionHoldTimeout = React.useRef(null);
 
   const reactions = [
     { key: "thumbsDown", label: "👎" },
@@ -150,6 +152,67 @@ function CompanyItemComments({ theme, toggleTheme }) {
     { key: "cry", label: "😢" },
     { key: "clap", label: "👏" },
   ];
+
+  const clearReactionHoldTimer = React.useCallback(() => {
+    if (!reactionHoldTimeout.current) return;
+    clearTimeout(reactionHoldTimeout.current);
+    reactionHoldTimeout.current = null;
+  }, []);
+
+  const startReactionHold = React.useCallback(
+    (pickerId) => {
+      clearReactionHoldTimer();
+      reactionHoldTimeout.current = setTimeout(() => {
+        setOpenReactionPickerId(pickerId);
+        reactionHoldTimeout.current = null;
+      }, 450);
+    },
+    [clearReactionHoldTimer]
+  );
+
+  React.useEffect(() => {
+    return () => {
+      clearReactionHoldTimer();
+    };
+  }, [clearReactionHoldTimer]);
+
+  const renderHoldToReactControls = ({ pickerId, onReact, getCount }) => (
+    <>
+      <button
+        type="button"
+        onMouseDown={() => startReactionHold(pickerId)}
+        onMouseUp={clearReactionHoldTimer}
+        onMouseLeave={clearReactionHoldTimer}
+        onTouchStart={() => startReactionHold(pickerId)}
+        onTouchEnd={clearReactionHoldTimer}
+        onTouchCancel={clearReactionHoldTimer}
+        onClick={(e) => e.preventDefault()}
+        className="text-xs px-2 py-1 rounded-full border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"
+        aria-label="Segure para reagir"
+        title="Segure para reagir"
+      >
+        🙂 Segure para reagir
+      </button>
+
+      {openReactionPickerId === pickerId && (
+        <div className="flex flex-wrap items-center gap-2">
+          {reactions.map((reaction) => (
+            <button
+              key={`${pickerId}_${reaction.key}`}
+              type="button"
+              onClick={() => {
+                onReact(reaction.key);
+                setOpenReactionPickerId(null);
+              }}
+              className="text-xs px-2 py-1 rounded-full border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"
+            >
+              {reaction.label} {getCount(reaction.key)}
+            </button>
+          ))}
+        </div>
+      )}
+    </>
+  );
 
   const getCommentsStorageKey = React.useCallback(() => {
     if (!companyName || !itemKey) return null;
@@ -572,16 +635,11 @@ function CompanyItemComments({ theme, toggleTheme }) {
         </div>
         <p className="mt-1 text-sm text-slate-700 dark:text-slate-100 whitespace-pre-line">{reply.text}</p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          {reactions.map((reaction) => (
-            <button
-              key={`${reply.id}_${reaction.key}`}
-              type="button"
-              onClick={() => handleReact(reply.id, reaction.key)}
-              className="text-xs px-2 py-1 rounded-full border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"
-            >
-              {reaction.label} {reply?.reactions?.[reaction.key] || 0}
-            </button>
-          ))}
+          {renderHoldToReactControls({
+            pickerId: `discussion_reply_${reply.id}`,
+            onReact: (reactionKey) => handleReact(reply.id, reactionKey),
+            getCount: (reactionKey) => reply?.reactions?.[reactionKey] || 0,
+          })}
           <button
             type="button"
             onClick={() => setReplyToId(reply.id)}
@@ -678,16 +736,11 @@ function CompanyItemComments({ theme, toggleTheme }) {
           </div>
           <p className="mt-1 text-sm text-slate-700 dark:text-slate-100 whitespace-pre-line">{reply.text}</p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            {reactions.map((reaction) => (
-              <button
-                key={`${reply.id}_${reaction.key}`}
-                type="button"
-                onClick={() => handleReactEntry(entryId, reply.id, reaction.key)}
-                className="text-xs px-2 py-1 rounded-full border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"
-              >
-                {reaction.label} {reply?.reactions?.[reaction.key] || 0}
-              </button>
-            ))}
+            {renderHoldToReactControls({
+              pickerId: `entry_reply_${entryId}_${reply.id}`,
+              onReact: (reactionKey) => handleReactEntry(entryId, reply.id, reactionKey),
+              getCount: (reactionKey) => reply?.reactions?.[reactionKey] || 0,
+            })}
             <button
               type="button"
               onClick={() => setEntryReplyTarget(targetKey)}
@@ -810,16 +863,11 @@ function CompanyItemComments({ theme, toggleTheme }) {
                 </p>
 
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {reactions.map((reaction) => (
-                    <button
-                      key={`${entry.id}_${reaction.key}`}
-                      type="button"
-                      onClick={() => handleReactEntry(entry.id, entry.id, reaction.key)}
-                      className="text-xs px-2 py-1 rounded-full border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"
-                    >
-                      {reaction.label} {getEntryThread(entry.id)?.reactions?.[reaction.key] || 0}
-                    </button>
-                  ))}
+                  {renderHoldToReactControls({
+                    pickerId: `entry_root_${entry.id}`,
+                    onReact: (reactionKey) => handleReactEntry(entry.id, entry.id, reactionKey),
+                    getCount: (reactionKey) => getEntryThread(entry.id)?.reactions?.[reactionKey] || 0,
+                  })}
                   <button
                     type="button"
                     onClick={() => setEntryReplyTarget(`${entry.id}::${entry.id}`)}
@@ -931,16 +979,11 @@ function CompanyItemComments({ theme, toggleTheme }) {
                     <p className="mt-2 text-sm text-slate-700 dark:text-slate-100 whitespace-pre-line">{comment.text}</p>
 
                     <div className="mt-3 flex flex-wrap items-center gap-2">
-                      {reactions.map((reaction) => (
-                        <button
-                          key={`${comment.id}_${reaction.key}`}
-                          type="button"
-                          onClick={() => handleReact(comment.id, reaction.key)}
-                          className="text-xs px-2 py-1 rounded-full border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"
-                        >
-                          {reaction.label} {comment?.reactions?.[reaction.key] || 0}
-                        </button>
-                      ))}
+                      {renderHoldToReactControls({
+                        pickerId: `discussion_comment_${comment.id}`,
+                        onReact: (reactionKey) => handleReact(comment.id, reactionKey),
+                        getCount: (reactionKey) => comment?.reactions?.[reactionKey] || 0,
+                      })}
                       <button
                         type="button"
                         onClick={() => setReplyToId(comment.id)}

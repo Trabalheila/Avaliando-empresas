@@ -234,6 +234,7 @@ function CompanyDetails({ theme, toggleTheme }) {
   const [openReactionPickerId, setOpenReactionPickerId] = React.useState(null);
   const [nowTimestamp, setNowTimestamp] = React.useState(Date.now());
   const reactionAnimationTimeout = React.useRef(null);
+  const reactionHoldTimeout = React.useRef(null);
   const [insights, setInsights] = React.useState(null);
   const [insightsLoading, setInsightsLoading] = React.useState(false);
   const logoCandidates = company
@@ -270,6 +271,9 @@ function CompanyDetails({ theme, toggleTheme }) {
     return () => {
       if (reactionAnimationTimeout.current) {
         clearTimeout(reactionAnimationTimeout.current);
+      }
+      if (reactionHoldTimeout.current) {
+        clearTimeout(reactionHoldTimeout.current);
       }
     };
   }, []);
@@ -432,6 +436,20 @@ function CompanyDetails({ theme, toggleTheme }) {
     { key: "cry", label: "😢" },
     { key: "clap", label: "👏" },
   ];
+
+  const clearReactionHoldTimer = () => {
+    if (!reactionHoldTimeout.current) return;
+    clearTimeout(reactionHoldTimeout.current);
+    reactionHoldTimeout.current = null;
+  };
+
+  const startReactionHold = (pickerId) => {
+    clearReactionHoldTimer();
+    reactionHoldTimeout.current = setTimeout(() => {
+      setOpenReactionPickerId(pickerId);
+      reactionHoldTimeout.current = null;
+    }, 450);
+  };
 
   const getTotalReactions = (comment) => {
     return Object.values(comment.reactions || {}).reduce((sum, v) => sum + (v || 0), 0);
@@ -1087,18 +1105,18 @@ function CompanyDetails({ theme, toggleTheme }) {
   };
 
   const scoreFields = [
-    { key: "comunicacao", label: "Contato do RH" },
-    { key: "etica", label: "Proposta e acerto salarial" },
-    { key: "salario", label: "Salário e benefícios" },
+    { key: "comunicacao", label: "Processo de Recrutamento" },
+    { key: "etica", label: "Proposta salarial e benefícios" },
+    { key: "salario", label: "Data do Salário" },
     { key: "cultura", label: "Visão e valores da empresa" },
     { key: "saudeBemEstar", label: "Preocupação com o bem-estar" },
     { key: "lideranca", label: "Acessibilidade e respeito da liderança" },
-    { key: "ambiente", label: "Estímulo ao respeito entre colegas" },
-    { key: "estimacaoOrganizacao", label: "Estímulo à organização" },
+    { key: "ambiente", label: "Estímulo ao respeito" },
+    { key: "estimacaoOrganizacao", label: "Processo de Recrutamento" },
     { key: "desenvolvimento", label: "Planos de cargos e salários" },
     { key: "reconhecimento", label: "Reconhecimento" },
     { key: "equilibrio", label: "Rotatividade" },
-    { key: "diversidade", label: "Atitudes de discriminação" },
+    { key: "diversidade", label: "sofreu discriminação?" },
     { key: "rating", label: "Segurança" },
   ];
 
@@ -1192,10 +1210,16 @@ function CompanyDetails({ theme, toggleTheme }) {
               </button>
               <button
                 type="button"
-                onClick={() => setOpenReactionPickerId((prev) => (prev === `reply_${reply.id}` ? null : `reply_${reply.id}`))}
+                onMouseDown={() => startReactionHold(`reply_${reply.id}`)}
+                onMouseUp={clearReactionHoldTimer}
+                onMouseLeave={clearReactionHoldTimer}
+                onTouchStart={() => startReactionHold(`reply_${reply.id}`)}
+                onTouchEnd={clearReactionHoldTimer}
+                onTouchCancel={clearReactionHoldTimer}
+                onClick={(e) => e.preventDefault()}
                 className="h-7 w-7 rounded-full border border-gray-300 bg-gray-100 text-gray-600 hover:bg-gray-200 transition flex items-center justify-center"
                 aria-label="Reagir à resposta"
-                title="Reagir"
+                title="Segure para reagir"
               >
                 🙂
               </button>
@@ -1612,10 +1636,16 @@ function CompanyDetails({ theme, toggleTheme }) {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setOpenReactionPickerId((prev) => (prev === `comment_${comment.id}` ? null : `comment_${comment.id}`))}
+                          onMouseDown={() => startReactionHold(`comment_${comment.id}`)}
+                          onMouseUp={clearReactionHoldTimer}
+                          onMouseLeave={clearReactionHoldTimer}
+                          onTouchStart={() => startReactionHold(`comment_${comment.id}`)}
+                          onTouchEnd={clearReactionHoldTimer}
+                          onTouchCancel={clearReactionHoldTimer}
+                          onClick={(e) => e.preventDefault()}
                           className="h-7 w-7 rounded-full border border-gray-300 bg-gray-100 text-gray-600 hover:bg-gray-200 transition flex items-center justify-center"
                           aria-label="Reagir ao comentário"
-                          title="Reagir"
+                          title="Segure para reagir"
                         >
                           🙂
                         </button>
