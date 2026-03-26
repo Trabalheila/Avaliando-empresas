@@ -1,10 +1,6 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
     "api/create-checkout-session.js": {
-      "maxDuration": 30
-    },
-    "api/stripe-webhook.js": {
       "maxDuration": 30
     },
     "api/admin-reviews.js": {

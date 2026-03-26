@@ -4,9 +4,23 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2024-06-20",
 });
 
+function getAppOrigin(req) {
+  const headerOrigin = req.headers.origin;
+  if (headerOrigin) return headerOrigin;
+
+  if (process.env.APP_BASE_URL) return process.env.APP_BASE_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+
+  return "http://localhost:3000";
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return res.status(500).json({ error: "STRIPE_SECRET_KEY nao configurado." });
   }
 
   const { cnpj } = req.body || {};
@@ -20,7 +34,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "STRIPE_PRICE_ID_PREMIUM nao configurado." });
   }
 
-  const origin = req.headers.origin || process.env.APP_BASE_URL || "http://localhost:3000";
+  const origin = getAppOrigin(req);
 
   try {
     const session = await stripe.checkout.sessions.create({
