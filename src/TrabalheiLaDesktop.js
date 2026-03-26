@@ -26,6 +26,7 @@ function TrabalheiLaDesktop({
   generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
   handleSaibaMais,
   showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany, handleConfirmNewCompany, pendingCompanyData, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
+  sectorFilter, setSectorFilter, setoresList,
   linkedInClientId, linkedInRedirectUri, error, setError, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, selectedCompanyData, calcularMedia,
   handleLogout,
   onGoogleLogin,
@@ -392,11 +393,18 @@ function TrabalheiLaDesktop({
                       <div className="flex gap-2">
                         <input type="text"
                           className="flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="CNPJ (apenas números)"
+                          placeholder="00.000.000/0001-00"
                           value={newCompanyCnpj}
-                          onChange={(e) => setNewCompanyCnpj(e.target.value)}
+                          onChange={(e) => {
+                            const d = e.target.value.replace(/\D/g, "").slice(0, 14);
+                            let m = d;
+                            if (d.length > 12) m = `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12)}`;
+                            else if (d.length > 8) m = `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8)}`;
+                            else if (d.length > 5) m = `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5)}`;
+                            else if (d.length > 2) m = `${d.slice(0,2)}.${d.slice(2)}`;
+                            setNewCompanyCnpj(m);
+                          }}
                           inputMode="numeric"
-                          pattern="[0-9]*"
                           autoComplete="off"
                         />
                         <button type="button" onClick={handleAddNewCompany}
@@ -411,6 +419,9 @@ function TrabalheiLaDesktop({
                         <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-900">
                           <p className="font-semibold">Empresa encontrada: {pendingCompanyData.company}</p>
                           <p className="text-xs text-blue-700 mt-1">CNPJ: {pendingCompanyData.cnpj}</p>
+                          {pendingCompanyData.cnaeDescricao && (
+                            <p className="text-xs text-emerald-700 mt-0.5">Setor: {pendingCompanyData.cnaeDescricao}</p>
+                          )}
                           <p className="mt-2 font-medium">👍 Está correto?</p>
                           <button
                             type="button"
@@ -621,6 +632,18 @@ function TrabalheiLaDesktop({
 
               <h2 className="text-2xl font-extrabold text-blue-900 dark:text-blue-900 text-center mb-2 font-azonix tracking-wide">🏆 Ranking de Empresas</h2>
               <div className="w-24 h-1 mx-auto mb-4 rounded-full bg-gradient-to-r from-yellow-300 via-amber-500 to-yellow-300" />
+              {Array.isArray(setoresList) && setoresList.length > 0 && (
+                <select
+                  value={sectorFilter}
+                  onChange={(e) => setSectorFilter(e.target.value)}
+                  className="w-full mb-4 p-2 text-sm border border-blue-200 rounded-xl bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  <option value="">Todos os setores</option>
+                  {setoresList.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              )}
 
               {Array.isArray(top3) && top3.length > 0 && (
                 <div className="mb-4 space-y-2">

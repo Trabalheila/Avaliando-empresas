@@ -105,6 +105,7 @@ function TrabalheiLaMobile({
   empresas, top3,
   showNewCompanyInput, setShowNewCompanyInput,
   handleAddNewCompany, handleConfirmNewCompany, pendingCompanyData, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
+  sectorFilter, setSectorFilter, setoresList,
   handleSaibaMais,
   linkedInClientId, linkedInRedirectUri,
   error, setError, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, safeCompanyOptions,
@@ -558,11 +559,18 @@ function TrabalheiLaMobile({
                 <div className="mt-3 space-y-2">
                   <input
                     value={newCompanyCnpj}
-                    onChange={(e) => setNewCompanyCnpj(e.target.value)}
-                    placeholder="CNPJ (apenas números)"
+                    onChange={(e) => {
+                      const d = e.target.value.replace(/\D/g, "").slice(0, 14);
+                      let m = d;
+                      if (d.length > 12) m = `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12)}`;
+                      else if (d.length > 8) m = `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8)}`;
+                      else if (d.length > 5) m = `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5)}`;
+                      else if (d.length > 2) m = `${d.slice(0,2)}.${d.slice(2)}`;
+                      setNewCompanyCnpj(m);
+                    }}
+                    placeholder="00.000.000/0001-00"
                     className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                     inputMode="numeric"
-                    pattern="[0-9]*"
                     autoComplete="off"
                   />
                   {cnpjError && <p className="text-sm text-red-600">{cnpjError}</p>}
@@ -579,6 +587,9 @@ function TrabalheiLaMobile({
                     <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-900">
                       <p className="font-semibold">Empresa encontrada: {pendingCompanyData.company}</p>
                       <p className="text-xs text-blue-700 mt-1">CNPJ: {pendingCompanyData.cnpj}</p>
+                      {pendingCompanyData.cnaeDescricao && (
+                        <p className="text-xs text-emerald-700 mt-0.5">Setor: {pendingCompanyData.cnaeDescricao}</p>
+                      )}
                       <p className="mt-2 font-medium">👍 Está correto?</p>
                       <button
                         type="button"
@@ -772,6 +783,18 @@ function TrabalheiLaMobile({
         {/* RANKING */}
         <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700">
           <h2 className="text-sm uppercase tracking-[0.14em] font-extrabold text-blue-800 dark:text-blue-200 text-center mb-3">🏆 Ranking</h2>
+          {Array.isArray(setoresList) && setoresList.length > 0 && (
+            <select
+              value={sectorFilter}
+              onChange={(e) => setSectorFilter(e.target.value)}
+              className="w-full mb-3 p-2 text-sm border border-blue-200 rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+              <option value="">Todos os setores</option>
+              {setoresList.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          )}
           {Array.isArray(top3) && top3.length > 0 && (
             <div className="mb-4 space-y-2">
               {top3.map((emp, i) => {

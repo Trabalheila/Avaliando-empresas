@@ -144,6 +144,7 @@ function Home({ theme, toggleTheme }) {
   const [newCompanyCnpj, setNewCompanyCnpj] = useState("");
   const [cnpjError, setCnpjError] = useState(null);
   const [pendingCompanyData, setPendingCompanyData] = useState(null);
+  const [sectorFilter, setSectorFilter] = useState("");
   const [rating, setRating] = useState(0);
   const [commentRating, setCommentRating] = useState("");
   const [salario, setSalario] = useState(0);
@@ -387,15 +388,25 @@ function Home({ theme, toggleTheme }) {
     return average.toFixed(1);
   }, [getCompanyAverageValue]);
 
+  const setoresList = useMemo(() => {
+    const seen = new Set();
+    return empresas
+      .map((emp) => emp.cnaeDescricao)
+      .filter((s) => s && !seen.has(s) && seen.add(s));
+  }, [empresas]);
+
   const top3 = useMemo(() => {
-    return [...empresas]
+    const filtered = sectorFilter
+      ? empresas.filter((emp) => emp.cnaeDescricao === sectorFilter)
+      : empresas;
+    return [...filtered]
       .sort((a, b) => {
         const avgA = getCompanyAverageValue(a);
         const avgB = getCompanyAverageValue(b);
         return (avgB ?? -1) - (avgA ?? -1);
       })
       .slice(0, 3);
-  }, [empresas, getCompanyAverageValue]);
+  }, [empresas, getCompanyAverageValue, sectorFilter]);
 
   const getMedalColor = (index) => {
     if (index === 0) return "from-yellow-400 to-yellow-600";
@@ -652,11 +663,15 @@ function Home({ theme, toggleTheme }) {
       }
 
       const website = data.site || data.website || null;
+      const cnaeCode = data.atividade_principal?.[0]?.code || null;
+      const cnaeDescricao = data.atividade_principal?.[0]?.text || null;
 
       setPendingCompanyData({
         company: companyName,
         cnpj: cleanedCnpj,
         website,
+        cnaeCode,
+        cnaeDescricao,
       });
     } catch (err) {
       setCnpjError(err.message);
@@ -691,6 +706,8 @@ function Home({ theme, toggleTheme }) {
       company: pendingCompanyData.company,
       cnpj: pendingCompanyData.cnpj,
       website: pendingCompanyData.website || null,
+      cnaeCode: pendingCompanyData.cnaeCode || null,
+      cnaeDescricao: pendingCompanyData.cnaeDescricao || null,
       sourceStats: { indicacao: 0, siteVagas: 0, gruposWhatsapp: 0, redesSociais: 0 },
       contractStats: { pj: 0, clt: 0 },
       workModelStats: { presencial: 0, hibrida: 0, remota: 0 },
@@ -716,6 +733,8 @@ function Home({ theme, toggleTheme }) {
         company: newCompanyData.company,
         cnpj: newCompanyData.cnpj,
         website: newCompanyData.website,
+        cnaeCode: newCompanyData.cnaeCode,
+        cnaeDescricao: newCompanyData.cnaeDescricao,
       });
     } catch (saveErr) {
       console.warn("Falha ao salvar empresa no Firebase:", saveErr);
@@ -1262,6 +1281,7 @@ function Home({ theme, toggleTheme }) {
     estimacaoOrganizacao, setEstimacaoOrganizacao, commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao,
     entrySource, setEntrySource, contractType, setContractType, workModel, setWorkModel,
     generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
+    sectorFilter, setSectorFilter, setoresList,
     newCompanyCnpj, setNewCompanyCnpj, cnpjError,
     showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany,
     handleConfirmNewCompany, pendingCompanyData,
