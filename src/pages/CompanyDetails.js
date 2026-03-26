@@ -5,6 +5,7 @@ import { db } from "../firebase";
 import { collection, doc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
 import { hasCompanyInResumeExperiences } from "../utils/resumeParser";
 import { listReviewsByCompanySlug } from "../services/reviews";
+import { getUserRole, isPremium } from "../utils/rbac";
 
 function normalizeKey(value) {
   return (value || "")
@@ -237,6 +238,19 @@ function CompanyDetails({ theme, toggleTheme }) {
   const reactionHoldTimeout = React.useRef(null);
   const [insights, setInsights] = React.useState(null);
   const [insightsLoading, setInsightsLoading] = React.useState(false);
+
+    // RBAC
+    const userRole = React.useMemo(() => getUserRole(), []);
+    const userIsPremium = React.useMemo(() => isPremium(), []);
+
+    // Dashboard premium: dados de tendência por período
+    const [trendData, setTrendData] = React.useState([]);
+    const [trendLoading, setTrendLoading] = React.useState(false);
+    const [trendError, setTrendError] = React.useState("");
+    const [periodStart, setPeriodStart] = React.useState("");
+    const [periodEnd, setPeriodEnd] = React.useState("");
+    const [selectedTrendKey, setSelectedTrendKey] = React.useState("rating");
+    const [dashboardVisible, setDashboardVisible] = React.useState(false);
   const logoCandidates = company
     ? getCompanyLogoCandidates(company.company, { size: 128, website: company.website })
     : [];
@@ -546,6 +560,42 @@ function CompanyDetails({ theme, toggleTheme }) {
       return hasCompanyInResumeExperiences(company.company, userProfile?.resumeData);
     } catch {
       return false;
+
+      const fetchTrend = React.useCallback(async () => {
+        if (!userIsPremium || !company?.company) return;
+        const slug = company.company
+          .toString()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-");
+        setTrendLoading(true);
+        setTrendError("");
+        try {
+          const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+          const res = await fetch("/api/admin-reviews", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              companySlug: slug,
+              is_premium: profile?.is_premium || userRole === "admin_empresa",
+              periodStart: periodStart || undefined,
+              periodEnd: periodEnd || undefined,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Erro ao buscar tendências.");
+          setTrendData(data.trend || []);
+        } catch (err) {
+          setTrendError(err.message);
+        } finally {
+          setTrendLoading(false);
+        }
+      }, [userIsPremium, company?.company, userRole, periodStart, periodEnd]);
+
+      React.useEffect(() => {
+        if (userIsPremium && dashboardVisible) fetchTrend();
+      }, [fetchTrend, userIsPremium, dashboardVisible]);
     }
   }, [company?.company]);
 
@@ -1514,6 +1564,157 @@ function CompanyDetails({ theme, toggleTheme }) {
         </div>
 
         <div className="clear-both" />
+
+        {/* ── DASHBOARD PREMIUM (admin_empresa / is_premium) ── */}
+        {userIsPremium ? (
+          <div className="mt-8 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-sm p-6 border border-indigo-200">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-widest text-indigo-600 bg-indigo-100 border border-indigo-200 rounded-full px-3 py-1">
+                  {userRole === "admin_empresa" ? "Admin Empresa" : "Premium"}
+                </span>
+                <h2 className="mt-2 text-lg font-bold text-indigo-900">Dashboard Detalhado</h2>
+                <p className="text-xs text-indigo-600">
+                  Tendência de cada quesito ao longo do tempo com filtro por período.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDashboardVisible((v) => !v)}
+                className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition"
+              >
+                {dashboardVisible ? "Fechar Dashboard" : "Abrir Dashboard"}
+              </button>
+            </div>
+
+            {dashboardVisible && (
+              <>
+                {/* Filtros de período */}
+                <div className="flex flex-wrap gap-3 mb-5 items-end">
+                  <div>
+                    <label className="text-xs font-semibold text-indigo-700 block mb-1">De</label>
+                    <input
+                      type="date"
+                      value={periodStart}
+                      onChange={(e) => setPeriodStart(e.target.value)}
+                      className="p-2 border border-indigo-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-indigo-700 block mb-1">Até</label>
+                    <input
+                      type="date"
+                      value={periodEnd}
+                      onChange={(e) => setPeriodEnd(e.target.value)}
+                      className="p-2 border border-indigo-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={fetchTrend}
+                    disabled={trendLoading}
+                    className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition disabled:opacity-60"
+                  >
+                    {trendLoading ? "Buscando..." : "Aplicar filtro"}
+                  </button>
+                  {(periodStart || periodEnd) && (
+                    <button
+                      type="button"
+                      onClick={() => { setPeriodStart(""); setPeriodEnd(""); }}
+                      className="px-3 py-2 text-xs text-indigo-700 border border-indigo-200 rounded-xl hover:bg-indigo-100 transition"
+                    >
+                      Limpar
+                    </button>
+                  )}
+                </div>
+
+                {/* Seletor de quesito */}
+                <div className="mb-4">
+                  <label className="text-xs font-semibold text-indigo-700 block mb-1">Quesito em foco</label>
+                  <select
+                    value={selectedTrendKey}
+                    onChange={(e) => setSelectedTrendKey(e.target.value)}
+                    className="p-2 border border-indigo-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  >
+                    {scoreFields.map((f) => (
+                      <option key={f.key} value={f.key}>{f.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {trendError && (
+                  <p className="text-sm text-red-600 mb-3">{trendError}</p>
+                )}
+
+                {trendData.length === 0 && !trendLoading && !trendError && (
+                  <p className="text-sm text-indigo-500">Nenhum dado encontrado para o período selecionado.</p>
+                )}
+
+                {trendData.length > 0 && (() => {
+                  const maxVal = Math.max(...trendData.map((d) => d.averages?.[selectedTrendKey] || 0), 1);
+                  return (
+                    <div className="space-y-2">
+                      {trendData.map((row) => {
+                        const val = row.averages?.[selectedTrendKey] || 0;
+                        const pct = maxVal > 0 ? (val / 5) * 100 : 0;
+                        const barColor =
+                          val >= 4 ? "bg-emerald-500" :
+                          val >= 3 ? "bg-lime-500" :
+                          val >= 2 ? "bg-yellow-500" : "bg-red-500";
+                        return (
+                          <div key={row.month} className="flex items-center gap-3">
+                            <span className="text-xs font-mono text-indigo-700 w-16 shrink-0">{row.month}</span>
+                            <div className="flex-1 h-4 bg-indigo-100 rounded-full overflow-hidden">
+                              <div
+                                className={`${barColor} h-full rounded-full transition-all`}
+                                style={{ width: `${pct.toFixed(1)}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-bold text-indigo-800 w-8 text-right">{val.toFixed(1)}</span>
+                            <span className="text-xs text-indigo-500">({row.count} av.)</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+
+                {trendData.length > 0 && (() => {
+                  const last = trendData[trendData.length - 1];
+                  return (
+                    <div className="mt-6">
+                      <p className="text-xs font-bold text-indigo-700 mb-2 uppercase tracking-wide">
+                        Médias por quesito — {last.month} ({last.count} avaliações)
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {scoreFields.map((f) => {
+                          const v = last.averages?.[f.key] || 0;
+                          return (
+                            <div key={f.key} className="flex justify-between items-center bg-white rounded-lg px-3 py-2 border border-indigo-100">
+                              <span className="text-xs text-slate-700">{f.label}</span>
+                              <span className={`text-xs font-bold ${getScoreColor(v)}`}>{v > 0 ? v.toFixed(1) : "—"}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="mt-8 bg-gradient-to-br from-slate-50 to-indigo-50 rounded-2xl p-6 border border-indigo-200 flex items-center gap-4">
+            <div className="text-3xl">🔒</div>
+            <div>
+              <p className="font-bold text-indigo-800 text-sm">Dashboard Detalhado — Premium</p>
+              <p className="text-xs text-indigo-600 mt-0.5">
+                Veja a tendência de cada quesito mês a mês e filtre por período.
+                Disponível para gestores cadastrados como <strong>Admin Empresa</strong>.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
           <h2 className="text-lg font-bold text-blue-800 font-azonix tracking-[0.08em] mb-4">Sobre a empresa</h2>
