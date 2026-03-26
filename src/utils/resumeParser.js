@@ -37,7 +37,7 @@ const NOISE_LINE_PATTERN =
 // Padrões de dados sensíveis inline que podem aparecer dentro de linhas de texto livre.
 const INLINE_CPF_PATTERN = /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g;
 const INLINE_PHONE_PATTERN = /\(?\d{2}\)?[\s-]?\d{4,5}[-\s]?\d{4}/g;
-const INLINE_EMAIL_PATTERN = /[\w.+\-]+@[\w\-]+\.[a-z]{2,}/gi;
+const INLINE_EMAIL_PATTERN = /[\w.+-]+@[\w-]+\.[a-z]{2,}/gi;
 const INLINE_CEP_PATTERN = /\b\d{5}-?\d{3}\b/g;
 
 function normalizeText(value) {
