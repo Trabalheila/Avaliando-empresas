@@ -2,7 +2,11 @@ import React from "react";
 import { Link } from "react-router-dom";
 import Select from "react-select";
 import { getCompanyLogoCandidates } from "./utils/getCompanyLogo";
-import { FaBuilding, FaPlus, FaStar, FaRegStar, FaMoneyBillWave, FaGift, FaUsers, FaChartLine, FaUserTie, FaGlobe, FaTrophy, FaComments, FaGraduationCap, FaHeart, FaUserEdit, FaGoogle } from "react-icons/fa";
+import { FaBuilding, FaPlus, FaStar, FaRegStar, FaUserEdit, FaGoogle } from "react-icons/fa";
+import {
+  FiMessageCircle, FiDollarSign, FiCompass, FiCalendar, FiUsers,
+  FiBriefcase, FiShield, FiHeart, FiRepeat, FiAward, FiTrendingUp, FiAlertCircle,
+} from "react-icons/fi";
 import LoginLinkedInButton from "./LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
 
@@ -18,7 +22,7 @@ function TrabalheiLaDesktop({
   desenvolvimento, setDesenvolvimento, commentDesenvolvimento, setCommentDesenvolvimento, saudeBemEstar, setSaudeBemEstar, commentSaudeBemEstar, setCommentSaudeBemEstar,
   impactoSocial, setImpactoSocial, commentImpactoSocial, setCommentImpactoSocial, reputacao, setReputacao, commentReputacao, setCommentReputacao,
   estimacaoOrganizacao, setEstimacaoOrganizacao, commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao,
-  entrySource, setEntrySource, contractType, setContractType,
+  entrySource, setEntrySource, contractType, setContractType, workModel, setWorkModel,
   generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
   handleSaibaMais,
   showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany, handleConfirmNewCompany, pendingCompanyData, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
@@ -26,6 +30,7 @@ function TrabalheiLaDesktop({
   handleLogout,
   onGoogleLogin,
   globalContractStats,
+  globalWorkModelStats,
   getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed
 }) {
@@ -64,19 +69,19 @@ function TrabalheiLaDesktop({
   );
 
   const campos = [
-    { label: "Processo de Recrutamento", value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao, icon: <FaComments className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200" },
-    { label: "Proposta salarial e benefícios", value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica, icon: <FaMoneyBillWave className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200" },
-    { label: "Data do Salário", value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario, icon: <FaGift className="text-rose-600" />, iconBg: "from-rose-50 to-red-100 border-rose-200" },
-    { label: "Visão e valores da empresa", value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura, icon: <FaBuilding className="text-blue-700" />, iconBg: "from-blue-50 to-sky-100 border-blue-200" },
-    { label: "Preocupação com o bem-estar", value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar, icon: <FaHeart className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200" },
-    { label: "Acessibilidade e respeito da liderança", value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca, icon: <FaUserTie className="text-indigo-600" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200" },
-    { label: "Estímulo ao respeito", value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente, icon: <FaUsers className="text-violet-600" />, iconBg: "from-violet-50 to-fuchsia-100 border-violet-200" },
-    { label: "Processo de Recrutamento", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao, icon: <FaBuilding className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200" },
-    { label: "Planos de cargos e salários", value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento, icon: <FaGraduationCap className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200" },
-    { label: "Reconhecimento", value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento, icon: <FaTrophy className="text-amber-700" />, iconBg: "from-amber-50 to-orange-100 border-amber-200" },
-    { label: "Rotatividade", subtitle: "(Demite com facilidade?)", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio, icon: <FaChartLine className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300" },
-    { label: "sofreu discriminação?", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade, icon: <FaGlobe className="text-teal-600" />, iconBg: "from-teal-50 to-cyan-100 border-teal-200" },
-    { label: "Segurança", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FaStar className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200" },
+    { label: "Processo de Recrutamento", value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao, icon: <FiMessageCircle className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200" },
+    { label: "Proposta salarial e benefícios", value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica, icon: <FiDollarSign className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200" },
+    { label: "Visão e valores da empresa", value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura, icon: <FiCompass className="text-blue-700" />, iconBg: "from-blue-50 to-sky-100 border-blue-200" },
+    { label: "Data do Pagamento", value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario, icon: <FiCalendar className="text-rose-600" />, iconBg: "from-rose-50 to-red-100 border-rose-200" },
+    { label: "Acessibilidade e respeito da liderança", value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca, icon: <FiUsers className="text-indigo-600" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200" },
+    { label: "Condições de trabalho", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao, icon: <FiBriefcase className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200" },
+    { label: "Estímulo ao respeito", value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente, icon: <FiUsers className="text-violet-600" />, iconBg: "from-violet-50 to-fuchsia-100 border-violet-200" },
+    { label: "sofreu discriminação?", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade, icon: <FiAlertCircle className="text-teal-600" />, iconBg: "from-teal-50 to-cyan-100 border-teal-200" },
+    { label: "Segurança e integridade", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FiShield className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200" },
+    { label: "Preocupação com o bem estar", value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar, icon: <FiHeart className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200" },
+    { label: "Rotatividade", subtitle: "(Demite com facilidade?)", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio, icon: <FiRepeat className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300" },
+    { label: "Reconhecimento", value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento, icon: <FiAward className="text-amber-700" />, iconBg: "from-amber-50 to-orange-100 border-amber-200" },
+    { label: "Planos de cargos e salários", value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento, icon: <FiTrendingUp className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200" },
   ];
 
   const companyNote = selectedCompanyData ? calcularMedia(selectedCompanyData) : "--";
@@ -94,6 +99,12 @@ function TrabalheiLaDesktop({
   const contractConfig = [
     { key: "pj", label: "PJ", color: "#0284c7" },
     { key: "clt", label: "CLT", color: "#16a34a" },
+  ];
+
+  const workModelConfig = [
+    { key: "presencial", label: "Presencial", color: "#2563eb" },
+    { key: "hibrida", label: "Híbrida (Semi presencial)", color: "#d97706" },
+    { key: "remota", label: "Remota", color: "#16a34a" },
   ];
 
   const buildPieData = (stats, config) => {
@@ -128,6 +139,8 @@ function TrabalheiLaDesktop({
   const sourcePieData = buildPieData(selectedCompanyData?.sourceStats, sourceConfig);
   const contractPieData = buildPieData(selectedCompanyData?.contractStats, contractConfig);
   const globalContractPieData = buildPieData(globalContractStats, contractConfig);
+  const workModelPieData = buildPieData(selectedCompanyData?.workModelStats, workModelConfig);
+  const globalWorkModelPieData = buildPieData(globalWorkModelStats, workModelConfig);
   const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
 
   const getTopSliceLabel = (pieData) => {
@@ -447,6 +460,23 @@ function TrabalheiLaDesktop({
                       ))}
                     </div>
                   </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                  <p className="text-sm font-bold text-blue-800 mb-2">Modelo de trabalho</p>
+                  <div className="space-y-2 text-sm text-slate-700">
+                    {workModelConfig.map((item) => (
+                      <label key={item.key} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="workModel"
+                          checked={workModel === item.key}
+                          onChange={() => setWorkModel(item.key)}
+                        />
+                        {item.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
                 </div>
 
                 {campos.map((campo, idx) => (
@@ -494,7 +524,7 @@ function TrabalheiLaDesktop({
             <div className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100 sticky top-6">
               <div className="mb-4 space-y-4">
                 <div className="bg-white border border-blue-100 rounded-xl p-4">
-                  <p className="text-sm font-bold text-blue-800 mb-1">Classificacao profissional da empresa</p>
+                  <p className="text-sm font-bold text-blue-800 mb-1">Classificação profissional da empresa</p>
                   <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(contractPieData)}</p>
                   <div className="flex items-center gap-4">
                     <div
@@ -513,7 +543,7 @@ function TrabalheiLaDesktop({
                 </div>
 
                 <div className="bg-white border border-blue-100 rounded-xl p-4">
-                  <p className="text-sm font-bold text-blue-800 mb-1">Classificacao profissional geral</p>
+                  <p className="text-sm font-bold text-blue-800 mb-1">Classificação profissional geral</p>
                   <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(globalContractPieData)}</p>
                   <div className="flex items-center gap-4">
                     <div
@@ -523,6 +553,25 @@ function TrabalheiLaDesktop({
                     <div className="space-y-1 text-xs">
                       {globalContractPieData.items.map((item) => (
                         <p key={`global_contract_${item.key}`} className="flex items-center gap-2 text-slate-700">
+                          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                          {item.label}: {item.percent.toFixed(0)}%
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-blue-100 rounded-xl p-4">
+                  <p className="text-sm font-bold text-blue-800 mb-1">Modelo de trabalho geral</p>
+                  <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(globalWorkModelPieData)}</p>
+                  <div className="flex items-center gap-4">
+                    <div
+                      className="w-24 h-24 rounded-full border border-gray-200"
+                      style={{ background: `conic-gradient(${globalWorkModelPieData.chart})` }}
+                    />
+                    <div className="space-y-1 text-xs">
+                      {globalWorkModelPieData.items.map((item) => (
+                        <p key={`global_work_model_${item.key}`} className="flex items-center gap-2 text-slate-700">
                           <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                           {item.label}: {item.percent.toFixed(0)}%
                         </p>
@@ -542,6 +591,25 @@ function TrabalheiLaDesktop({
                     <div className="space-y-1 text-xs">
                       {sourcePieData.items.map((item) => (
                         <p key={`source_${item.key}`} className="flex items-center gap-2 text-slate-700">
+                          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                          {item.label}: {item.percent.toFixed(0)}%
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-blue-100 rounded-xl p-4">
+                  <p className="text-sm font-bold text-blue-800 mb-1">Modelo de trabalho na empresa</p>
+                  <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(workModelPieData)}</p>
+                  <div className="flex items-center gap-4">
+                    <div
+                      className="w-24 h-24 rounded-full border border-gray-200"
+                      style={{ background: `conic-gradient(${workModelPieData.chart})` }}
+                    />
+                    <div className="space-y-1 text-xs">
+                      {workModelPieData.items.map((item) => (
+                        <p key={`company_work_model_${item.key}`} className="flex items-center gap-2 text-slate-700">
                           <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                           {item.label}: {item.percent.toFixed(0)}%
                         </p>

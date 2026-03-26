@@ -9,17 +9,17 @@ import { getStoredProfileId } from "../utils/profileIdentity";
 const ITEM_CONFIG = {
   comunicacao: { label: "Processo de Recrutamento", commentKeys: ["commentComunicacao"] },
   etica: { label: "Proposta salarial e benefícios", commentKeys: ["commentEtica"] },
-  salario: { label: "Data do Salário", commentKeys: ["commentSalario", "commentBeneficios"] },
   cultura: { label: "Visão e valores da empresa", commentKeys: ["commentCultura"] },
-  saudeBemEstar: { label: "Preocupação com o bem-estar", commentKeys: ["commentSaudeBemEstar"] },
+  salario: { label: "Data do Pagamento", commentKeys: ["commentSalario", "commentBeneficios"] },
   lideranca: { label: "Acessibilidade e respeito da liderança", commentKeys: ["commentLideranca"] },
+  estimacaoOrganizacao: { label: "Condições de trabalho", commentKeys: ["commentEstimacaoOrganizacao"] },
   ambiente: { label: "Estímulo ao respeito", commentKeys: ["commentAmbiente"] },
-  estimacaoOrganizacao: { label: "Processo de Recrutamento", commentKeys: ["commentEstimacaoOrganizacao"] },
-  desenvolvimento: { label: "Planos de cargos e salários", commentKeys: ["commentDesenvolvimento"] },
-  reconhecimento: { label: "Reconhecimento", commentKeys: ["commentReconhecimento"] },
-  equilibrio: { label: "Rotatividade", commentKeys: ["commentEquilibrio"] },
   diversidade: { label: "sofreu discriminação?", commentKeys: ["commentDiversidade"] },
-  rating: { label: "Segurança", commentKeys: ["commentRating"] },
+  rating: { label: "Segurança e integridade", commentKeys: ["commentRating"] },
+  saudeBemEstar: { label: "Preocupação com o bem estar", commentKeys: ["commentSaudeBemEstar"] },
+  equilibrio: { label: "Rotatividade", commentKeys: ["commentEquilibrio"] },
+  reconhecimento: { label: "Reconhecimento", commentKeys: ["commentReconhecimento"] },
+  desenvolvimento: { label: "Planos de cargos e salários", commentKeys: ["commentDesenvolvimento"] },
 };
 
 function toDateLabel(value) {

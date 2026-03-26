@@ -137,15 +137,15 @@ async function fetchCompanyInsightsByName(companyName) {
       entity?.descriptions?.pt?.value ||
       entity?.descriptions?.en?.value ||
       bestMatch?.description ||
-      "Nao identificado automaticamente",
-    sector: industryValue?.id ? labelsMap[industryValue.id] : "Nao identificado automaticamente",
-    location: hqValue?.id ? labelsMap[hqValue.id] : "Nao identificado automaticamente",
-    website: typeof websiteValue === "string" ? websiteValue : "Nao identificado automaticamente",
+      "Não identificado automaticamente",
+    sector: industryValue?.id ? labelsMap[industryValue.id] : "Não identificado automaticamente",
+    location: hqValue?.id ? labelsMap[hqValue.id] : "Não identificado automaticamente",
+    website: typeof websiteValue === "string" ? websiteValue : "Não identificado automaticamente",
     socialLinks: [
-      { label: "LinkedIn", value: linkedinValue ? `https://www.linkedin.com/company/${linkedinValue}` : "Nao identificado automaticamente" },
-      { label: "X / Twitter", value: twitterValue ? `https://twitter.com/${twitterValue}` : "Nao identificado automaticamente" },
-      { label: "Instagram", value: instagramValue ? `https://instagram.com/${instagramValue}` : "Nao identificado automaticamente" },
-      { label: "Facebook", value: facebookValue ? `https://facebook.com/${facebookValue}` : "Nao identificado automaticamente" },
+      { label: "LinkedIn", value: linkedinValue ? `https://www.linkedin.com/company/${linkedinValue}` : "Não identificado automaticamente" },
+      { label: "X / Twitter", value: twitterValue ? `https://twitter.com/${twitterValue}` : "Não identificado automaticamente" },
+      { label: "Instagram", value: instagramValue ? `https://instagram.com/${instagramValue}` : "Não identificado automaticamente" },
+      { label: "Facebook", value: facebookValue ? `https://facebook.com/${facebookValue}` : "Não identificado automaticamente" },
     ],
   };
 }
@@ -505,26 +505,26 @@ function CompanyDetails({ theme, toggleTheme }) {
       company.setor ||
       company.segmento ||
       company.industry ||
-      "Nao identificado automaticamente";
+      "Não identificado automaticamente";
 
     const location =
       insights?.location ||
       [company.cidade, company.estado, company.pais].filter(Boolean).join(" - ") ||
-      "Nao identificado automaticamente";
+      "Não identificado automaticamente";
 
     const website =
       insights?.website ||
       company.website ||
       company.site ||
       company.url ||
-      "Nao identificado automaticamente";
+      "Não identificado automaticamente";
 
     const cnpj = company.cnpj || "Nao informado";
 
     const socialLinks = insights?.socialLinks || [
-      { label: "LinkedIn", value: company.linkedin || "Nao identificado automaticamente" },
-      { label: "Instagram", value: company.instagram || "Nao identificado automaticamente" },
-      { label: "Facebook", value: company.facebook || "Nao identificado automaticamente" },
+      { label: "LinkedIn", value: company.linkedin || "Não identificado automaticamente" },
+      { label: "Instagram", value: company.instagram || "Não identificado automaticamente" },
+      { label: "Facebook", value: company.facebook || "Não identificado automaticamente" },
     ];
 
     const description = insights?.description || "Informacao automatica ainda nao identificada para esta empresa.";
@@ -1107,21 +1107,21 @@ function CompanyDetails({ theme, toggleTheme }) {
   const scoreFields = [
     { key: "comunicacao", label: "Processo de Recrutamento" },
     { key: "etica", label: "Proposta salarial e benefícios" },
-    { key: "salario", label: "Data do Salário" },
     { key: "cultura", label: "Visão e valores da empresa" },
-    { key: "saudeBemEstar", label: "Preocupação com o bem-estar" },
+    { key: "salario", label: "Data do Pagamento" },
     { key: "lideranca", label: "Acessibilidade e respeito da liderança" },
+    { key: "estimacaoOrganizacao", label: "Condições de trabalho" },
     { key: "ambiente", label: "Estímulo ao respeito" },
-    { key: "estimacaoOrganizacao", label: "Processo de Recrutamento" },
-    { key: "desenvolvimento", label: "Planos de cargos e salários" },
-    { key: "reconhecimento", label: "Reconhecimento" },
-    { key: "equilibrio", label: "Rotatividade" },
     { key: "diversidade", label: "sofreu discriminação?" },
-    { key: "rating", label: "Segurança" },
+    { key: "rating", label: "Segurança e integridade" },
+    { key: "saudeBemEstar", label: "Preocupação com o bem estar" },
+    { key: "equilibrio", label: "Rotatividade" },
+    { key: "reconhecimento", label: "Reconhecimento" },
+    { key: "desenvolvimento", label: "Planos de cargos e salários" },
   ];
 
   const sourceConfig = [
-    { key: "indicacao", label: "Indicacao", color: "#2563eb" },
+    { key: "indicacao", label: "Indicação", color: "#2563eb" },
     { key: "siteVagas", label: "Site de vagas", color: "#16a34a" },
     { key: "gruposWhatsapp", label: "Grupos WhatsApp", color: "#d97706" },
     { key: "redesSociais", label: "Redes sociais", color: "#9333ea" },

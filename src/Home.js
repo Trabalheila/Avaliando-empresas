@@ -183,6 +183,7 @@ function Home({ theme, toggleTheme }) {
   const [generalComment, setGeneralComment] = useState("");
   const [entrySource, setEntrySource] = useState("");
   const [contractType, setContractType] = useState("");
+  const [workModel, setWorkModel] = useState("");
   const didHydrateDraftRef = React.useRef(false);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -231,6 +232,7 @@ function Home({ theme, toggleTheme }) {
           cnpj: null,
           sourceStats: { indicacao: 0, siteVagas: 0, gruposWhatsapp: 0, redesSociais: 0 },
           contractStats: { pj: 0, clt: 0 },
+          workModelStats: { presencial: 0, hibrida: 0, remota: 0 },
           reviewCount: 0,
           rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
           inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
@@ -292,6 +294,7 @@ function Home({ theme, toggleTheme }) {
                 website: rc?.website || null,
                 sourceStats: rc?.sourceStats || null,
                 contractStats: rc?.contractStats || null,
+                workModelStats: rc?.workModelStats || null,
                 reviewCount: Number(rc?.reviewCount) || 0,
                 rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
                 inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
@@ -314,6 +317,7 @@ function Home({ theme, toggleTheme }) {
               }
               entry.sourceStats = { indicacao: 0, siteVagas: 0, gruposWhatsapp: 0, redesSociais: 0 };
               entry.contractStats = { pj: 0, clt: 0 };
+              entry.workModelStats = { presencial: 0, hibrida: 0, remota: 0 };
               agg.set(companyName, entry);
             }
 
@@ -328,6 +332,9 @@ function Home({ theme, toggleTheme }) {
             if (review?.contractType && bucket.contractStats[review.contractType] != null) {
               bucket.contractStats[review.contractType] += 1;
             }
+            if (review?.workModel && bucket.workModelStats[review.workModel] != null) {
+              bucket.workModelStats[review.workModel] += 1;
+            }
           }
 
           for (const [companyName, bucket] of agg.entries()) {
@@ -340,6 +347,7 @@ function Home({ theme, toggleTheme }) {
             next.reviewCount = bucket.count;
             next.sourceStats = bucket.sourceStats;
             next.contractStats = bucket.contractStats;
+            next.workModelStats = bucket.workModelStats;
 
             map.set(companyName, next);
           }
@@ -480,6 +488,7 @@ function Home({ theme, toggleTheme }) {
       if (typeof draft?.generalComment === "string") setGeneralComment(draft.generalComment);
       if (typeof draft?.entrySource === "string") setEntrySource(draft.entrySource);
       if (typeof draft?.contractType === "string") setContractType(draft.contractType);
+      if (typeof draft?.workModel === "string") setWorkModel(draft.workModel);
     } catch (err) {
       console.warn("Falha ao carregar rascunho da avaliacao:", err);
     } finally {
@@ -531,6 +540,7 @@ function Home({ theme, toggleTheme }) {
       generalComment,
       entrySource,
       contractType,
+      workModel,
       updatedAt: new Date().toISOString(),
     };
 
@@ -580,6 +590,7 @@ function Home({ theme, toggleTheme }) {
     generalComment,
     entrySource,
     contractType,
+    workModel,
   ]);
 
   useEffect(() => {
@@ -682,6 +693,7 @@ function Home({ theme, toggleTheme }) {
       website: pendingCompanyData.website || null,
       sourceStats: { indicacao: 0, siteVagas: 0, gruposWhatsapp: 0, redesSociais: 0 },
       contractStats: { pj: 0, clt: 0 },
+      workModelStats: { presencial: 0, hibrida: 0, remota: 0 },
       rating: 0, salario: 0, beneficios: 0, cultura: 0, oportunidades: 0,
       inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
       reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
@@ -742,6 +754,11 @@ function Home({ theme, toggleTheme }) {
       return;
     }
 
+    if (!workModel) {
+      setError("Selecione o modelo de trabalho.");
+      return;
+    }
+
     const pseudonym = localStorage.getItem("userPseudonym");
     if (!pseudonym) {
       setError("Por favor, defina um pseudônimo antes de avaliar.");
@@ -767,6 +784,7 @@ function Home({ theme, toggleTheme }) {
       generalComment,
       entrySource,
       contractType,
+      workModel,
       timestamp: new Date().toISOString(),
     };
 
@@ -826,12 +844,20 @@ function Home({ theme, toggleTheme }) {
             [contractType]: (emp?.contractStats?.[contractType] || 0) + 1,
           };
 
+          const workModelStats = {
+            presencial: emp?.workModelStats?.presencial || 0,
+            hibrida: emp?.workModelStats?.hibrida || 0,
+            remota: emp?.workModelStats?.remota || 0,
+            [workModel]: (emp?.workModelStats?.[workModel] || 0) + 1,
+          };
+
           return {
             ...emp,
             ...averagedMetrics,
             reviewCount: nextCount,
             sourceStats,
             contractStats,
+            workModelStats,
           };
         })
       );
@@ -852,7 +878,7 @@ function Home({ theme, toggleTheme }) {
       setIsLoading(false);
       setCaptchaConfirmed(false);
     }
-  }, [isAuthenticated, captchaConfirmed, company, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment, entrySource, contractType, navigate, userProfile]);
+  }, [isAuthenticated, captchaConfirmed, company, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment, entrySource, contractType, workModel, navigate, userProfile]);
 
   const handleSaibaMais = useCallback(() => {
     if (!company) {
@@ -1234,7 +1260,7 @@ function Home({ theme, toggleTheme }) {
     desenvolvimento, setDesenvolvimento, commentDesenvolvimento, setCommentDesenvolvimento, saudeBemEstar, setSaudeBemEstar, commentSaudeBemEstar, setCommentSaudeBemEstar,
     impactoSocial, setImpactoSocial, commentImpactoSocial, setCommentImpactoSocial, reputacao, setReputacao, commentReputacao, setCommentReputacao,
     estimacaoOrganizacao, setEstimacaoOrganizacao, commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao,
-    entrySource, setEntrySource, contractType, setContractType,
+    entrySource, setEntrySource, contractType, setContractType, workModel, setWorkModel,
     generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
     newCompanyCnpj, setNewCompanyCnpj, cnpjError,
     showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany,
@@ -1255,6 +1281,15 @@ function Home({ theme, toggleTheme }) {
         return acc;
       },
       { pj: 0, clt: 0 }
+    ),
+    globalWorkModelStats: empresas.reduce(
+      (acc, emp) => {
+        acc.presencial += Number(emp?.workModelStats?.presencial) || 0;
+        acc.hibrida += Number(emp?.workModelStats?.hibrida) || 0;
+        acc.remota += Number(emp?.workModelStats?.remota) || 0;
+        return acc;
+      },
+      { presencial: 0, hibrida: 0, remota: 0 }
     ),
   };
 
