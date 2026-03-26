@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Empresas publicas com campos basicos.
+    match /empresas/{cnpj} {
+      allow read: if true;
+
+      // Escrita da empresa: apenas backend/admin.
+      allow write: if false;
+    }
+
+    // Dados sensiveis separados para permitir controle por regra.
+    // Estrutura sugerida:
+    // /empresas_private/{cnpj} {
+    //   detalhes_rh: ...,
+    //   salarios_detalhados: ...,
+    //   relatorios_ia: ...
+    // }
+    match /empresas_private/{cnpj} {
+      allow read: if
+        exists(/databases/$(database)/documents/empresas/$(cnpj)) &&
+        get(/databases/$(database)/documents/empresas/$(cnpj)).data.isPremium == true;
+
+      allow write: if false;
+    }
+  }
+}

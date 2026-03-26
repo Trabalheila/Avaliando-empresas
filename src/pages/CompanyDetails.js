@@ -6,6 +6,8 @@ import { collection, doc, getDocs, limit, orderBy, query, setDoc, where } from "
 import { hasCompanyInResumeExperiences } from "../utils/resumeParser";
 import { listReviewsByCompanySlug } from "../services/reviews";
 import { getUserRole, isPremium } from "../utils/rbac";
+import { handleCheckout } from "../services/billing";
+import PremiumPieCard from "../components/PremiumPieCard";
 
 function normalizeKey(value) {
   return (value || "")
@@ -251,6 +253,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     const [periodEnd, setPeriodEnd] = React.useState("");
     const [selectedTrendKey, setSelectedTrendKey] = React.useState("rating");
     const [dashboardVisible, setDashboardVisible] = React.useState(false);
+    const [checkoutLoading, setCheckoutLoading] = React.useState(false);
   const logoCandidates = company
     ? getCompanyLogoCandidates(company.company, { size: 128, website: company.website })
     : [];
@@ -560,44 +563,62 @@ function CompanyDetails({ theme, toggleTheme }) {
       return hasCompanyInResumeExperiences(company.company, userProfile?.resumeData);
     } catch {
       return false;
-
-      const fetchTrend = React.useCallback(async () => {
-        if (!userIsPremium || !company?.company) return;
-        const slug = company.company
-          .toString()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-");
-        setTrendLoading(true);
-        setTrendError("");
-        try {
-          const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
-          const res = await fetch("/api/admin-reviews", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              companySlug: slug,
-              is_premium: profile?.is_premium || userRole === "admin_empresa",
-              periodStart: periodStart || undefined,
-              periodEnd: periodEnd || undefined,
-            }),
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || "Erro ao buscar tendências.");
-          setTrendData(data.trend || []);
-        } catch (err) {
-          setTrendError(err.message);
-        } finally {
-          setTrendLoading(false);
-        }
-      }, [userIsPremium, company?.company, userRole, periodStart, periodEnd]);
-
-      React.useEffect(() => {
-        if (userIsPremium && dashboardVisible) fetchTrend();
-      }, [fetchTrend, userIsPremium, dashboardVisible]);
     }
   }, [company?.company]);
+
+  const fetchTrend = React.useCallback(async () => {
+    if (!userIsPremium || !company?.company) return;
+    const slug = company.company
+      .toString()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-");
+    setTrendLoading(true);
+    setTrendError("");
+    try {
+      const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      const res = await fetch("/api/admin-reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companySlug: slug,
+          is_premium: profile?.is_premium || userRole === "admin_empresa",
+          periodStart: periodStart || undefined,
+          periodEnd: periodEnd || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao buscar tendências.");
+      setTrendData(data.trend || []);
+    } catch (err) {
+      setTrendError(err.message);
+    } finally {
+      setTrendLoading(false);
+    }
+  }, [userIsPremium, company?.company, userRole, periodStart, periodEnd]);
+
+  React.useEffect(() => {
+    if (userIsPremium && dashboardVisible) fetchTrend();
+  }, [fetchTrend, userIsPremium, dashboardVisible]);
+
+  const handlePremiumUnlock = React.useCallback(async () => {
+    const cnpj = (companyInfo?.cnpj || "").toString();
+    const cleaned = cnpj.replace(/\D/g, "");
+    if (cleaned.length !== 14) {
+      setActionNotice("Esta empresa ainda nao possui CNPJ valido para checkout premium.");
+      return;
+    }
+
+    setCheckoutLoading(true);
+    try {
+      await handleCheckout(cleaned);
+    } catch (err) {
+      setActionNotice(err?.message || "Nao foi possivel iniciar o checkout premium.");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  }, [companyInfo?.cnpj]);
 
   const getCommentsKey = React.useCallback(() => {
     return company ? `comments_${company.company}` : null;
@@ -1511,8 +1532,11 @@ function CompanyDetails({ theme, toggleTheme }) {
         )}
 
         <aside className="mt-6 lg:float-right lg:w-80 lg:ml-6 space-y-4">
-          <div className="bg-white rounded-2xl shadow-sm p-4 border border-blue-100">
-            <h2 className="text-sm font-bold text-blue-800 mb-2">Como entrou na empresa</h2>
+          <PremiumPieCard
+            isPremium={userIsPremium}
+            title="Como entrou na empresa"
+            onUnlock={handlePremiumUnlock}
+          >
             <p className="text-xs text-blue-600 mb-3">Origem das candidaturas nas avaliacoes desta empresa.</p>
             <div className="flex items-center gap-4">
               <div
@@ -1528,7 +1552,10 @@ function CompanyDetails({ theme, toggleTheme }) {
                 ))}
               </div>
             </div>
-          </div>
+            {checkoutLoading && (
+              <p className="mt-2 text-xs text-blue-700">Redirecionando para o checkout premium...</p>
+            )}
+          </PremiumPieCard>
         </aside>
 
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">

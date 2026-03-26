@@ -3,13 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "engines": {
-    "node": "24.x"
+    "node": "20.x"
   },
   "dependencies": {
     "@capacitor/android": "^8.2.0",
     "@capacitor/cli": "^8.2.0",
     "@capacitor/core": "^8.2.0",
     "@react-oauth/google": "^0.12.1",
+    "@stripe/stripe-js": "^4.10.0",
+    "firebase-admin": "^12.7.0",
     "firebase": "^12.9.0",
     "mammoth": "^1.8.0",
     "pdfjs-dist": "^4.10.38",
@@ -19,7 +21,8 @@
     "react-icons": "^5.5.0",
     "react-linkedin-login-oauth2": "^2.0.1",
     "react-router-dom": "^7.13.0",
-    "react-select": "^5.10.2"
+    "react-select": "^5.10.2",
+    "stripe": "^16.9.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

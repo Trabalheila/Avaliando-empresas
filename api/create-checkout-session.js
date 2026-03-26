@@ -1,0 +1,47 @@
+import Stripe from "stripe";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2024-06-20",
+});
+
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const { cnpj } = req.body || {};
+  const cleanedCnpj = (cnpj || "").toString().replace(/\D/g, "");
+
+  if (cleanedCnpj.length !== 14) {
+    return res.status(400).json({ error: "CNPJ invalido." });
+  }
+
+  if (!process.env.STRIPE_PRICE_ID_PREMIUM) {
+    return res.status(500).json({ error: "STRIPE_PRICE_ID_PREMIUM nao configurado." });
+  }
+
+  const origin = req.headers.origin || process.env.APP_BASE_URL || "http://localhost:3000";
+
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      line_items: [
+        {
+          price: process.env.STRIPE_PRICE_ID_PREMIUM,
+          quantity: 1,
+        },
+      ],
+      success_url: `${origin}/?billing=success`,
+      cancel_url: `${origin}/?billing=cancelled`,
+      client_reference_id: cleanedCnpj,
+      metadata: {
+        cnpj: cleanedCnpj,
+      },
+    });
+
+    return res.status(200).json({ sessionId: session.id });
+  } catch (err) {
+    console.error("Erro create-checkout-session:", err);
+    return res.status(500).json({ error: "Falha ao criar sessao de checkout." });
+  }
+}
