@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useEffect, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getUserProfile, getUserProfileByCpf, saveUserProfile } from "../services/users";
-import { extractResumeText, parseResumeText } from "../utils/resumeParser";
+import { extractResumeText, parseResumeText, normalizePeriod } from "../utils/resumeParser";
 import { normalizeEmail, resolveProfileId } from "../utils/profileIdentity";
 
 const predefinedAvatars = [
@@ -38,6 +38,7 @@ function mapLinkedInExperience(item) {
     company,
     role,
     period,
+    periodNormalized: normalizePeriod(period),
     details,
     confidence: 0.9,
     confidenceLevel: "alta",
@@ -142,6 +143,7 @@ function parseLinkedInExperienceText(rawText) {
       company,
       role,
       period: periodLine,
+      periodNormalized: normalizePeriod(periodLine),
       details,
       confidence: periodLine ? 0.88 : 0.72,
       confidenceLevel: periodLine ? "alta" : "media",
@@ -164,6 +166,7 @@ function normalizeExperiencesForReview(items) {
     const defaultStatus = confidence === "alta" ? "confirmada" : "pendente";
     return {
       ...item,
+      periodNormalized: item?.periodNormalized || normalizePeriod(item?.period),
       reviewStatus: item?.reviewStatus || defaultStatus,
     };
   });
@@ -943,6 +946,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 placeholder="Periodo (ex.: 2020 - 2023)"
                 className="mt-2 w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              {exp.periodNormalized && exp.periodNormalized !== (exp.period || "") && (
+                <p className="text-xs text-slate-500 mt-0.5 pl-1">Ótimo: <span className="font-semibold text-blue-700">{exp.periodNormalized}</span></p>
+              )}
               <textarea
                 value={exp.details || ""}
                 onChange={(e) => handleExperienceFieldChange(originalIndex, "details", e.target.value)}

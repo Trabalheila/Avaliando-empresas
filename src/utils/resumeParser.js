@@ -34,6 +34,12 @@ const DATE_RANGE_PATTERN =
 const NOISE_LINE_PATTERN =
   /(linkedin\.com|github\.com|@|email|e-mail|telefone|celular|whatsapp|cpf|rg\b|endereco|rua\b|avenida\b|bairro|cep\b|contato)/i;
 
+// Padrões de dados sensíveis inline que podem aparecer dentro de linhas de texto livre.
+const INLINE_CPF_PATTERN = /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g;
+const INLINE_PHONE_PATTERN = /\(?\d{2}\)?[\s-]?\d{4,5}[-\s]?\d{4}/g;
+const INLINE_EMAIL_PATTERN = /[\w.+\-]+@[\w\-]+\.[a-z]{2,}/gi;
+const INLINE_CEP_PATTERN = /\b\d{5}-?\d{3}\b/g;
+
 function normalizeText(value) {
   return (value || "")
     .toString()
@@ -169,10 +175,11 @@ function parseExperienceBlock(lines, knownCompaniesMap) {
     }) ||
     "Nao identificado";
 
-  const details = filtered
+  const rawDetails = filtered
     .filter((line) => line !== companyLine && line !== roleLine && line !== periodLine)
     .slice(0, 4)
     .join(" | ");
+  const details = scrubSensitiveFromDetails(rawDetails);
 
   let confidence = 0;
   if (companyLine) confidence += 0.45;
@@ -188,10 +195,50 @@ function parseExperienceBlock(lines, knownCompaniesMap) {
     company: companyLine || "Nao identificado",
     role: roleLine,
     period: periodLine,
+    periodNormalized: normalizePeriod(periodLine),
     details,
     confidence,
     confidenceLevel,
   };
+}
+
+/**
+ * Normaliza o período bruto extraído do currículo para o formato "AAAA-AAAA" ou "AAAA-Atual".
+ * Exemplos:
+ *   "03/2020 - atual"  → "2020-Atual"
+ *   "2018 a 2021"      → "2018-2021"
+ *   "jan de 2019"      → "2019"
+ */
+function normalizePeriod(raw) {
+  if (!raw) return "";
+  const text = raw.toString().trim();
+  const isCurrent = /atual|presente|current|momento/i.test(text);
+  const years = Array.from(text.matchAll(/\b((?:19|20)\d{2})\b/g)).map((m) => m[1]);
+
+  if (years.length >= 2) {
+    const start = years[0];
+    const end = isCurrent ? "Atual" : years[years.length - 1];
+    return `${start}-${end}`;
+  }
+  if (years.length === 1) {
+    return isCurrent ? `${years[0]}-Atual` : years[0];
+  }
+  if (isCurrent) return "Atual";
+  return text;
+}
+
+/**
+ * Remove dados sensíveis que possam aparecer inline dentro de campos de texto livre
+ * (ex: CPF, telefone, e-mail, CEP embutidos em uma descrição de cargo).
+ */
+function scrubSensitiveFromDetails(text) {
+  return (text || "")
+    .replace(INLINE_CPF_PATTERN, "")
+    .replace(INLINE_PHONE_PATTERN, "")
+    .replace(INLINE_EMAIL_PATTERN, "")
+    .replace(INLINE_CEP_PATTERN, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 function deduplicateExperiences(items) {
@@ -294,6 +341,8 @@ export async function extractResumeText(file) {
 
   throw new Error("Formato ainda nao suportado para leitura automatica. Use PDF, DOCX, TXT, MD ou RTF.");
 }
+
+export { normalizePeriod };
 
 export function parseResumeText(rawText, knownCompanies = []) {
   const text = (rawText || "").replace(/\r/g, "\n");
