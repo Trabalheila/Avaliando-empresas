@@ -1,9 +1,5 @@
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2024-06-20",
-});
-
 function getAppOrigin(req) {
   const headerOrigin = req.headers.origin;
   if (headerOrigin) return headerOrigin;
@@ -22,6 +18,10 @@ export default async function handler(req, res) {
   if (!process.env.STRIPE_SECRET_KEY) {
     return res.status(500).json({ error: "STRIPE_SECRET_KEY nao configurado." });
   }
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: "2024-06-20",
+  });
 
   const { cnpj } = req.body || {};
   const cleanedCnpj = (cnpj || "").toString().replace(/\D/g, "");
@@ -56,6 +56,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ sessionId: session.id });
   } catch (err) {
     console.error("Erro create-checkout-session:", err);
-    return res.status(500).json({ error: "Falha ao criar sessao de checkout." });
+    const stripeMessage = err?.raw?.message || err?.message || "Falha ao criar sessao de checkout.";
+    return res.status(500).json({ error: `Falha ao criar sessao de checkout: ${stripeMessage}` });
   }
 }
