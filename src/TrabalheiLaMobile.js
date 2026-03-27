@@ -360,7 +360,7 @@ function TrabalheiLaMobile({
                     <img
                       src={companyLogoUrl}
                       alt="Logo da empresa"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain p-1"
                       onError={() => {
                         if (logoIndex < logoCandidates.length - 1) {
                           setLogoIndex((prev) => prev + 1);
