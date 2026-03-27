@@ -30,10 +30,18 @@ const COMPANY_DOMAINS = {
   "Meta": "meta.com",
 };
 
-const COMPANY_LOGO_OVERRIDES = {
-  "aplus engenharia": "/company-logos/aplus-engenharia.svg",
-  "aplus ensenharia": "/company-logos/aplus-engenharia.svg",
-};
+const COMPANY_LOGO_OVERRIDES = [
+  {
+    aliases: [
+      "aplus engenharia",
+      "aplus ensenharia",
+      "a plus engenharia",
+      "aplus engenharia ltda",
+      "aplus engenharia eireli",
+    ],
+    logoUrl: "/company-logos/aplus-engenharia.svg",
+  },
+];
 
 function normalizeCompanyKey(value) {
   return (value || "")
@@ -44,6 +52,23 @@ function normalizeCompanyKey(value) {
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function getCompanyLogoOverride(companyName) {
+  const normalized = normalizeCompanyKey(companyName);
+  if (!normalized) return "";
+
+  for (const rule of COMPANY_LOGO_OVERRIDES) {
+    const aliases = (rule.aliases || []).map(normalizeCompanyKey).filter(Boolean);
+    const matched = aliases.some(
+      (alias) => normalized === alias || normalized.startsWith(`${alias} `) || normalized.includes(alias)
+    );
+    if (matched) {
+      return rule.logoUrl || "";
+    }
+  }
+
+  return "";
 }
 
 export function getCompanyLogoUrl(companyName, size = 128) {
@@ -96,8 +121,7 @@ function buildDomainCandidates(companyName, websiteDomain, mappedDomain) {
 
 export function getCompanyLogoCandidates(companyName, options = {}) {
   const size = options.size || 128;
-  const normalizedCompanyName = normalizeCompanyKey(companyName);
-  const localLogoOverride = COMPANY_LOGO_OVERRIDES[normalizedCompanyName];
+  const localLogoOverride = getCompanyLogoOverride(companyName);
   const websiteDomain = normalizeUrlToDomain(options.website);
   const mappedDomain = COMPANY_DOMAINS[companyName];
   const domains = buildDomainCandidates(companyName, websiteDomain, mappedDomain);
