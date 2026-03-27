@@ -30,6 +30,22 @@ const COMPANY_DOMAINS = {
   "Meta": "meta.com",
 };
 
+const COMPANY_LOGO_OVERRIDES = {
+  "aplus engenharia": "/company-logos/aplus-engenharia.svg",
+  "aplus ensenharia": "/company-logos/aplus-engenharia.svg",
+};
+
+function normalizeCompanyKey(value) {
+  return (value || "")
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function getCompanyLogoUrl(companyName, size = 128) {
   return getCompanyLogoCandidates(companyName, { size })[0];
 }
@@ -80,11 +96,17 @@ function buildDomainCandidates(companyName, websiteDomain, mappedDomain) {
 
 export function getCompanyLogoCandidates(companyName, options = {}) {
   const size = options.size || 128;
+  const normalizedCompanyName = normalizeCompanyKey(companyName);
+  const localLogoOverride = COMPANY_LOGO_OVERRIDES[normalizedCompanyName];
   const websiteDomain = normalizeUrlToDomain(options.website);
   const mappedDomain = COMPANY_DOMAINS[companyName];
   const domains = buildDomainCandidates(companyName, websiteDomain, mappedDomain);
 
   const candidates = [];
+  if (localLogoOverride) {
+    candidates.push(localLogoOverride);
+  }
+
   for (const domain of domains) {
     // 1) Logo Clearbit (bom para marcas conhecidas)
     candidates.push(`https://logo.clearbit.com/${encodeURIComponent(domain)}?size=${size}`);

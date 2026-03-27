@@ -10,6 +10,16 @@ function getAppOrigin(req) {
   return "http://localhost:3000";
 }
 
+function normalizeCompanySlug(value) {
+  return (value || "")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -23,11 +33,14 @@ export default async function handler(req, res) {
     apiVersion: "2024-06-20",
   });
 
-  const { cnpj } = req.body || {};
+  const { cnpj, companySlug, companyName } = req.body || {};
   const cleanedCnpj = (cnpj || "").toString().replace(/\D/g, "");
+  const hasValidCnpj = cleanedCnpj.length === 14;
+  const normalizedCompanySlug = normalizeCompanySlug(companySlug);
+  const normalizedCompanyName = (companyName || "").toString().trim();
 
-  if (cleanedCnpj.length !== 14) {
-    return res.status(400).json({ error: "CNPJ invalido." });
+  if (!hasValidCnpj && !normalizedCompanySlug) {
+    return res.status(400).json({ error: "Informe CNPJ valido ou companySlug para vincular o checkout." });
   }
 
   if (!process.env.STRIPE_PRICE_ID_PREMIUM) {
@@ -37,6 +50,10 @@ export default async function handler(req, res) {
   const origin = getAppOrigin(req);
 
   try {
+    const clientReferenceId = hasValidCnpj
+      ? cleanedCnpj
+      : `slug:${normalizedCompanySlug}`;
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [
@@ -47,9 +64,11 @@ export default async function handler(req, res) {
       ],
       success_url: `${origin}/?billing=success`,
       cancel_url: `${origin}/?billing=cancelled`,
-      client_reference_id: cleanedCnpj,
+      client_reference_id: clientReferenceId,
       metadata: {
-        cnpj: cleanedCnpj,
+        cnpj: hasValidCnpj ? cleanedCnpj : "",
+        companySlug: normalizedCompanySlug || "",
+        companyName: normalizedCompanyName || "",
       },
     });
 

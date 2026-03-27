@@ -10,10 +10,20 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2024-06-20",
 });
 
+function normalizeCompanySlug(value) {
+  return (value || "")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 /**
  * Cloud Function: webhookStripe
- * Escuta checkout.session.completed, pega o client_reference_id (CNPJ)
- * e atualiza /empresas/{CNPJ} com isPremium=true e dataExpiracao.
+ * Escuta checkout.session.completed e atualiza premium.
+ * Prioriza vinculo por CNPJ e usa companySlug como fallback.
  */
 exports.webhookStripe = onRequest({
   cors: false,
@@ -42,12 +52,30 @@ exports.webhookStripe = onRequest({
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
-    const cnpj = (session.client_reference_id || session.metadata?.cnpj || "")
+    const rawClientReference = (session.client_reference_id || "").toString().trim();
+    const metadata = session.metadata || {};
+
+    const cnpjFromReference = rawClientReference
       .toString()
       .replace(/\D/g, "");
+    const cnpjFromMetadata = (metadata.cnpj || "")
+      .toString()
+      .replace(/\D/g, "");
+    const cnpj = cnpjFromMetadata.length === 14
+      ? cnpjFromMetadata
+      : (cnpjFromReference.length === 14 ? cnpjFromReference : "");
 
-    if (!cnpj || cnpj.length !== 14) {
-      logger.warn("checkout.session.completed sem CNPJ valido", { sessionId: session.id });
+    const companySlugFromReference = rawClientReference.startsWith("slug:")
+      ? rawClientReference.slice(5)
+      : "";
+    const companySlug = normalizeCompanySlug(metadata.companySlug || companySlugFromReference);
+    const companyName = (metadata.companyName || "").toString().trim();
+
+    if (!cnpj && !companySlug) {
+      logger.warn("checkout.session.completed sem vinculo valido", {
+        sessionId: session.id,
+        rawClientReference,
+      });
       return res.status(200).json({ received: true, ignored: true });
     }
 
@@ -67,22 +95,58 @@ exports.webhookStripe = onRequest({
       }
     }
 
-    const empresaRef = db.collection("empresas").doc(cnpj);
-    await empresaRef.set(
-      {
+    const stripeData = {
+      checkoutSessionId: session.id,
+      customerId: session.customer || null,
+      subscriptionId: session.subscription || null,
+      cnpj: cnpj || null,
+      companySlug: companySlug || null,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    const writes = [];
+
+    if (cnpj) {
+      const empresaRef = db.collection("empresas").doc(cnpj);
+      writes.push(
+        empresaRef.set(
+          {
+            isPremium: true,
+            dataExpiracao,
+            stripe: stripeData,
+          },
+          { merge: true }
+        )
+      );
+    }
+
+    if (companySlug) {
+      const companyRef = db.collection("companies").doc(companySlug);
+      const companyPayload = {
+        slug: companySlug,
         isPremium: true,
         dataExpiracao,
-        stripe: {
-          checkoutSessionId: session.id,
-          customerId: session.customer || null,
-          subscriptionId: session.subscription || null,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
-      },
-      { merge: true }
-    );
+        stripe: stripeData,
+      };
+      if (companyName) {
+        companyPayload.name = companyName;
+      }
 
-    logger.info("Empresa atualizada para premium", { cnpj, sessionId: session.id });
+      writes.push(
+        companyRef.set(
+          companyPayload,
+          { merge: true }
+        )
+      );
+    }
+
+    await Promise.all(writes);
+
+    logger.info("Empresa atualizada para premium", {
+      cnpj: cnpj || null,
+      companySlug: companySlug || null,
+      sessionId: session.id,
+    });
   }
 
   return res.status(200).json({ received: true });

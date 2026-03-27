@@ -605,22 +605,34 @@ function CompanyDetails({ theme, toggleTheme }) {
 
   const handlePremiumUnlock = React.useCallback(async () => {
     setPremiumNotice("");
+    const companyName = (company?.company || "").toString().trim();
+    const companySlug = companyName
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+/g, "")
+      .replace(/-+$/g, "");
     const cnpj = (companyInfo?.cnpj || "").toString();
     const cleaned = cnpj.replace(/\D/g, "");
-    if (cleaned.length !== 14) {
-      setPremiumNotice("Esta empresa ainda nao possui CNPJ valido para checkout premium.");
+    if (!companySlug) {
+      setPremiumNotice("Nao foi possivel identificar a empresa para iniciar o checkout premium.");
       return;
     }
 
     setCheckoutLoading(true);
     try {
-      await handleCheckout(cleaned);
+      await handleCheckout({
+        cnpj: cleaned,
+        companySlug,
+        companyName,
+      });
     } catch (err) {
       setPremiumNotice(err?.message || "Nao foi possivel iniciar o checkout premium.");
     } finally {
       setCheckoutLoading(false);
     }
-  }, [companyInfo?.cnpj]);
+  }, [company?.company, companyInfo?.cnpj]);
 
   const getCommentsKey = React.useCallback(() => {
     return company ? `comments_${company.company}` : null;

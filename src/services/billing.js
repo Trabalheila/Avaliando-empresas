@@ -15,19 +15,33 @@ function getStripe() {
 }
 
 /**
- * Redireciona para o Stripe Checkout e envia o CNPJ como client_reference_id.
+ * Redireciona para o Stripe Checkout.
+ * Prioriza CNPJ quando disponível e usa companySlug como fallback de vínculo.
  * O backend deve criar a sessao no endpoint /api/create-checkout-session.
  */
-export async function handleCheckout(cnpj) {
-  const cleanedCnpj = (cnpj || "").toString().replace(/\D/g, "");
-  if (cleanedCnpj.length !== 14) {
-    throw new Error("CNPJ invalido. Informe 14 digitos.");
+export async function handleCheckout({ cnpj, companySlug, companyName } = {}) {
+  const cleanedCnpjRaw = (cnpj || "").toString().replace(/\D/g, "");
+  const cleanedCnpj = cleanedCnpjRaw.length === 14 ? cleanedCnpjRaw : "";
+  const normalizedCompanySlug = (companySlug || "")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  if (!cleanedCnpj && !normalizedCompanySlug) {
+    throw new Error("Nao foi possivel identificar a empresa para iniciar o checkout.");
   }
 
   const response = await fetch(buildApiUrl("/api/create-checkout-session"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ cnpj: cleanedCnpj }),
+    body: JSON.stringify({
+      cnpj: cleanedCnpj || null,
+      companySlug: normalizedCompanySlug || null,
+      companyName: (companyName || "").toString().trim() || null,
+    }),
   });
 
   const payload = await response.json();
