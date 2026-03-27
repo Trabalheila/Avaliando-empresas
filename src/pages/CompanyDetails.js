@@ -254,6 +254,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     const [selectedTrendKey, setSelectedTrendKey] = React.useState("rating");
     const [dashboardVisible, setDashboardVisible] = React.useState(false);
     const [checkoutLoading, setCheckoutLoading] = React.useState(false);
+    const [premiumNotice, setPremiumNotice] = React.useState("");
   const logoCandidates = company
     ? getCompanyLogoCandidates(company.company, { size: 128, website: company.website })
     : [];
@@ -603,10 +604,11 @@ function CompanyDetails({ theme, toggleTheme }) {
   }, [fetchTrend, userIsPremium, dashboardVisible]);
 
   const handlePremiumUnlock = React.useCallback(async () => {
+    setPremiumNotice("");
     const cnpj = (companyInfo?.cnpj || "").toString();
     const cleaned = cnpj.replace(/\D/g, "");
     if (cleaned.length !== 14) {
-      setActionNotice("Esta empresa ainda nao possui CNPJ valido para checkout premium.");
+      setPremiumNotice("Esta empresa ainda nao possui CNPJ valido para checkout premium.");
       return;
     }
 
@@ -614,7 +616,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     try {
       await handleCheckout(cleaned);
     } catch (err) {
-      setActionNotice(err?.message || "Nao foi possivel iniciar o checkout premium.");
+      setPremiumNotice(err?.message || "Nao foi possivel iniciar o checkout premium.");
     } finally {
       setCheckoutLoading(false);
     }
@@ -1536,6 +1538,7 @@ function CompanyDetails({ theme, toggleTheme }) {
             isPremium={userIsPremium}
             title="Como entrou na empresa"
             onUnlock={handlePremiumUnlock}
+            isUnlocking={checkoutLoading}
           >
             <p className="text-xs text-blue-600 mb-3">Origem das candidaturas nas avaliacoes desta empresa.</p>
             <div className="flex items-center gap-4">
@@ -1556,6 +1559,12 @@ function CompanyDetails({ theme, toggleTheme }) {
               <p className="mt-2 text-xs text-blue-700">Redirecionando para o checkout premium...</p>
             )}
           </PremiumPieCard>
+
+          {!userIsPremium && premiumNotice && (
+            <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+              {premiumNotice}
+            </p>
+          )}
         </aside>
 
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">

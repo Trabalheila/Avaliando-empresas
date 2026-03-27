@@ -9,7 +9,13 @@ import React from "react";
  * - children: conteudo do grafico
  * - onUnlock: callback do botao "Ver Dados Premium"
  */
-export default function PremiumPieCard({ isPremium, title, children, onUnlock }) {
+export default function PremiumPieCard({
+  isPremium,
+  title,
+  children,
+  onUnlock,
+  isUnlocking = false,
+}) {
   return (
     <section className="relative bg-white rounded-2xl border border-slate-200 p-4 overflow-hidden">
       <h3 className="text-sm font-extrabold text-slate-800 mb-3">{title}</h3>
@@ -23,9 +29,10 @@ export default function PremiumPieCard({ isPremium, title, children, onUnlock })
           <button
             type="button"
             onClick={onUnlock}
-            className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition"
+            disabled={isUnlocking}
+            className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition"
           >
-            Ver Dados Premium
+            {isUnlocking ? "Abrindo checkout..." : "Ver Dados Premium"}
           </button>
         </div>
       )}
