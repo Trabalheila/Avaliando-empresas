@@ -4,6 +4,26 @@ import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase";
 import { listReviewsByCompanySlug, reactToReview } from "../services/reviews";
 
+function normalizeCompanyName(value) {
+  return (value || "")
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isAplusEngineering(value) {
+  const normalized = normalizeCompanyName(value);
+  return (
+    normalized.includes("aplus engenharia") ||
+    normalized.includes("a plus engenharia") ||
+    normalized.includes("aplus ensenharia")
+  );
+}
+
 function avgFromReviews(reviews) {
   const vals = (reviews || [])
     .map((r) => r?.ratings?.geral)
@@ -40,9 +60,13 @@ function companyFromSlugAndReviews(slug, reviews) {
     r0?.empresaLogoUrl ??
     null;
 
+  const finalLogoUrl = isAplusEngineering(name)
+    ? "/company-logos/aplus-engenharia.svg"
+    : logoUrl;
+
   const google = r0?.company?.google ?? null;
 
-  return { name, slug, logoUrl, google };
+  return { name, slug, logoUrl: finalLogoUrl, google };
 }
 
 const REACTION_OPTIONS = [

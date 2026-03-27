@@ -1,7 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 170" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
   <title id="title">APLUS Engenharia</title>
   <desc id="desc">Logotipo com fundo azul escuro e texto branco APLUS ENGENHARIA.</desc>
-  <rect width="340" height="170" rx="16" fill="#111E56"/>
-  <text x="24" y="92" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="700" letter-spacing="2">APLUS</text>
-  <text x="26" y="128" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="500" letter-spacing="7">ENGENHARIA</text>
+  <rect width="256" height="256" rx="18" fill="#1B2456"/>
+  <text
+    x="128"
+    y="130"
+    fill="#FFFFFF"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="66"
+    font-weight="700"
+    text-anchor="middle"
+    letter-spacing="2"
+  >
+    APLUS
+  </text>
+  <text
+    x="128"
+    y="170"
+    fill="#FFFFFF"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="20"
+    font-weight="600"
+    text-anchor="middle"
+    letter-spacing="6"
+  >
+    ENGENHARIA
+  </text>
 </svg>
