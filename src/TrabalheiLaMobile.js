@@ -117,7 +117,7 @@ function TrabalheiLaMobile({
   selectedCompanyData,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
 }) {
-  const { t } = useTranslation();
+  // const { t } = useTranslation();
   const legacyMetricsBridge = {
     beneficios, setBeneficios,
     oportunidades, setOportunidades,
