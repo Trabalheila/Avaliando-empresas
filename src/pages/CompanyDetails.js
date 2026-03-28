@@ -38,11 +38,8 @@ function CompanyDetails({ theme, toggleTheme }) {
       }
     }
     tryEnrichCompany();
-  }, [company?.cnpj, company?.slug, company?.ramo, company?.cidade, company?.estado, company?.descricao]);
 
-import { getUserRole, isPremium } from "../utils/rbac";
-import { handleCheckout } from "../services/billing";
-import PremiumPieCard from "../components/PremiumPieCard";
+  }, [company?.cnpj, company?.slug, company?.ramo, company?.cidade, company?.estado, company?.descricao]);
 
 function normalizeKey(value) {
   return (value || "")
