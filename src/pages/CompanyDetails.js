@@ -5,6 +5,7 @@ import { db } from "../firebase";
 import { collection, doc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
 import { hasCompanyInResumeExperiences } from "../utils/resumeParser";
 import { listReviewsByCompanySlug } from "../services/reviews";
+import { listCompanies } from "../services/companies";
 import { getUserRole, isPremium } from "../utils/rbac";
 import { handleCheckout } from "../services/billing";
 import PremiumPieCard from "../components/PremiumPieCard";
@@ -16,6 +17,18 @@ function normalizeKey(value) {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim();
+}
+
+function toSlug(value) {
+  return (value || "")
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+/g, "")
+    .replace(/-+$/g, "");
 }
 
 const AUTO_MODERATION_TERMS = [
@@ -255,6 +268,19 @@ function CompanyDetails({ theme, toggleTheme }) {
     const [dashboardVisible, setDashboardVisible] = React.useState(false);
     const [checkoutLoading, setCheckoutLoading] = React.useState(false);
     const [premiumNotice, setPremiumNotice] = React.useState("");
+  const [premiumAudience, setPremiumAudience] = React.useState(() => {
+    const saved = (localStorage.getItem("premium_audience") || "worker").toString();
+    return saved === "employer" ? "employer" : "worker";
+  });
+  const [premiumPaymentMethod, setPremiumPaymentMethod] = React.useState(() => {
+    const saved = (localStorage.getItem("premium_payment_method") || "card").toString();
+    return saved === "pix" ? "pix" : "card";
+  });
+  const [compareOptions, setCompareOptions] = React.useState([]);
+  const [compareTargetSlug, setCompareTargetSlug] = React.useState("");
+  const [compareSnapshot, setCompareSnapshot] = React.useState(null);
+  const [compareLoading, setCompareLoading] = React.useState(false);
+  const [compareError, setCompareError] = React.useState("");
   const logoCandidates = company
     ? getCompanyLogoCandidates(company.company, { size: 128, website: company.website })
     : [];
@@ -284,6 +310,14 @@ function CompanyDetails({ theme, toggleTheme }) {
   React.useEffect(() => {
     setLogoIndex(0);
   }, [company?.company, company?.website]);
+
+  React.useEffect(() => {
+    localStorage.setItem("premium_audience", premiumAudience);
+  }, [premiumAudience]);
+
+  React.useEffect(() => {
+    localStorage.setItem("premium_payment_method", premiumPaymentMethod);
+  }, [premiumPaymentMethod]);
 
   React.useEffect(() => {
     return () => {
@@ -626,13 +660,15 @@ function CompanyDetails({ theme, toggleTheme }) {
         cnpj: cleaned,
         companySlug,
         companyName,
+        audience: premiumAudience,
+        paymentMethod: premiumPaymentMethod,
       });
     } catch (err) {
       setPremiumNotice(err?.message || "Nao foi possivel iniciar o checkout premium.");
     } finally {
       setCheckoutLoading(false);
     }
-  }, [company?.company, companyInfo?.cnpj]);
+  }, [company?.company, companyInfo?.cnpj, premiumAudience, premiumPaymentMethod]);
 
   const getCommentsKey = React.useCallback(() => {
     return company ? `comments_${company.company}` : null;
@@ -640,16 +676,70 @@ function CompanyDetails({ theme, toggleTheme }) {
 
   const getCompanySlug = React.useCallback(() => {
     if (!company?.company) return "";
-    return company.company
-      .toString()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+/g, "")
-      .replace(/-+$/g, "");
+    return toSlug(company.company);
   }, [company]);
+
+  React.useEffect(() => {
+    let alive = true;
+
+    const loadCompareOptions = async () => {
+      const currentSlug = getCompanySlug();
+      if (!currentSlug) {
+        if (alive) {
+          setCompareOptions([]);
+          setCompareTargetSlug("");
+        }
+        return;
+      }
+
+      const optionMap = new Map();
+
+      try {
+        const stored = JSON.parse(localStorage.getItem("empresasData") || "[]");
+        for (const item of stored) {
+          const itemName = (item?.company || item?.name || "").toString().trim();
+          const itemSlug = toSlug(itemName);
+          if (!itemSlug || itemSlug === currentSlug) continue;
+          if (!optionMap.has(itemSlug)) {
+            optionMap.set(itemSlug, { slug: itemSlug, name: itemName || itemSlug });
+          }
+        }
+      } catch {
+        // fallback silencioso
+      }
+
+      try {
+        const remoteCompanies = await listCompanies(250);
+        for (const item of remoteCompanies || []) {
+          const itemName = (item?.name || item?.company || item?.slug || "").toString().trim();
+          const itemSlug = toSlug(item?.slug || itemName);
+          if (!itemSlug || itemSlug === currentSlug) continue;
+          if (!optionMap.has(itemSlug)) {
+            optionMap.set(itemSlug, { slug: itemSlug, name: itemName || itemSlug });
+          }
+        }
+      } catch {
+        // mantém opções locais se o remoto falhar
+      }
+
+      if (!alive) return;
+
+      const merged = [...optionMap.values()]
+        .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+        .slice(0, 80);
+
+      setCompareOptions(merged);
+      if (!merged.some((item) => item.slug === compareTargetSlug)) {
+        setCompareTargetSlug(merged[0]?.slug || "");
+      }
+    };
+
+    loadCompareOptions();
+
+    return () => {
+      alive = false;
+    };
+  }, [company?.company, getCompanySlug, compareTargetSlug]);
 
   const getReactionsKey = React.useCallback(() => {
     return company ? `comment_reactions_${company.company}` : null;
@@ -1205,6 +1295,167 @@ function CompanyDetails({ theme, toggleTheme }) {
     { key: "desenvolvimento", label: "Planos de cargos e salários" },
   ];
 
+  const currentMetrics = useMemo(() => {
+    const source = companyReviewCount > 0 ? companyAverages : (company || {});
+    return Object.fromEntries(
+      scoreFields.map((field) => {
+        const value = Number(source?.[field.key]) || 0;
+        return [field.key, value > 0 ? value : 0];
+      })
+    );
+  }, [companyReviewCount, companyAverages, company, scoreFields]);
+
+  React.useEffect(() => {
+    let alive = true;
+
+    const loadCompareSnapshot = async () => {
+      if (!userIsPremium || !compareTargetSlug) {
+        if (alive) {
+          setCompareSnapshot(null);
+          setCompareError("");
+        }
+        return;
+      }
+
+      setCompareLoading(true);
+      setCompareError("");
+      try {
+        const reviews = await listReviewsByCompanySlug(compareTargetSlug, 300);
+        if (!alive) return;
+
+        const totals = Object.fromEntries(scoreFields.map((field) => [field.key, 0]));
+        const count = (reviews || []).length;
+        for (const review of reviews || []) {
+          for (const field of scoreFields) {
+            totals[field.key] += Number(review?.[field.key]) || 0;
+          }
+        }
+
+        const averages = Object.fromEntries(
+          scoreFields.map((field) => [
+            field.key,
+            count > 0 ? Number((totals[field.key] / count).toFixed(2)) : 0,
+          ])
+        );
+
+        const target = compareOptions.find((item) => item.slug === compareTargetSlug);
+        setCompareSnapshot({
+          slug: compareTargetSlug,
+          name: target?.name || compareTargetSlug,
+          count,
+          averages,
+        });
+      } catch (err) {
+        if (!alive) return;
+        setCompareSnapshot(null);
+        setCompareError("Nao foi possivel carregar os dados da empresa para comparacao.");
+      } finally {
+        if (!alive) return;
+        setCompareLoading(false);
+      }
+    };
+
+    loadCompareSnapshot();
+
+    return () => {
+      alive = false;
+    };
+  }, [userIsPremium, compareTargetSlug, compareOptions, scoreFields]);
+
+  const comparisonRows = useMemo(() => {
+    if (!compareSnapshot?.averages) return [];
+    return scoreFields
+      .map((field) => {
+        const currentValue = Number(currentMetrics?.[field.key]) || 0;
+        const targetValue = Number(compareSnapshot.averages?.[field.key]) || 0;
+        return {
+          key: field.key,
+          label: field.label,
+          currentValue,
+          targetValue,
+          delta: Number((currentValue - targetValue).toFixed(2)),
+        };
+      })
+      .filter((row) => row.currentValue > 0 || row.targetValue > 0)
+      .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+  }, [scoreFields, currentMetrics, compareSnapshot]);
+
+  const premiumRadar = useMemo(() => {
+    const entries = scoreFields
+      .map((field) => ({
+        key: field.key,
+        label: field.label,
+        value: Number(currentMetrics?.[field.key]) || 0,
+      }))
+      .filter((item) => item.value > 0);
+
+    const strengths = [...entries].sort((a, b) => b.value - a.value).slice(0, 3);
+    const risks = [...entries].sort((a, b) => a.value - b.value).slice(0, 3);
+
+    const trendDelta = trendData.length >= 2
+      ? Number(((trendData[trendData.length - 1]?.averages?.rating || 0) - (trendData[0]?.averages?.rating || 0)).toFixed(2))
+      : 0;
+
+    return { strengths, risks, trendDelta };
+  }, [scoreFields, currentMetrics, trendData]);
+
+  const premiumAudienceLabel = premiumAudience === "employer" ? "Empresario" : "Trabalhador";
+  const premiumBenefitsByAudience = premiumAudience === "employer"
+    ? [
+        "Benchmark de reputacao contra outras empresas",
+        "Sinal rapido de risco em lideranca, cultura e rotatividade",
+        "Relatorio executivo para RH e liderancas",
+      ]
+    : [
+        "Comparacao clara entre empresas antes de aceitar proposta",
+        "Tendencia real de avaliacao para evitar cilada",
+        "Relatorio com pontos fortes e riscos para decidir melhor",
+      ];
+
+  const handleDownloadPremiumReport = React.useCallback(() => {
+    const lines = [];
+    lines.push(`Relatorio Premium - ${company?.company || "Empresa"}`);
+    lines.push(`Gerado em: ${new Date().toLocaleString("pt-BR")}`);
+    lines.push("");
+    lines.push(`Media geral: ${hasAverageScore ? `${averageScore.toFixed(1)} / 5` : "Nao disponivel"}`);
+    lines.push(`Total de avaliacoes: ${evaluationCount}`);
+    lines.push("");
+    lines.push("Top pontos fortes:");
+    for (const item of premiumRadar.strengths) {
+      lines.push(`- ${item.label}: ${item.value.toFixed(1)}`);
+    }
+    lines.push("");
+    lines.push("Pontos de atencao:");
+    for (const item of premiumRadar.risks) {
+      lines.push(`- ${item.label}: ${item.value.toFixed(1)}`);
+    }
+
+    if (trendData.length >= 2) {
+      lines.push("");
+      lines.push(`Tendencia de seguranca e integridade no periodo: ${premiumRadar.trendDelta >= 0 ? "+" : ""}${premiumRadar.trendDelta.toFixed(2)}`);
+    }
+
+    if (compareSnapshot?.name && comparisonRows.length > 0) {
+      lines.push("");
+      lines.push(`Comparacao com ${compareSnapshot.name}:`);
+      for (const row of comparisonRows.slice(0, 6)) {
+        const signal = row.delta >= 0 ? "+" : "";
+        lines.push(`- ${row.label}: ${currentMetrics[row.key].toFixed(1)} vs ${row.targetValue.toFixed(1)} (${signal}${row.delta.toFixed(2)})`);
+      }
+    }
+
+    const content = lines.join("\n");
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `relatorio-premium-${toSlug(company?.company || "empresa")}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, [company?.company, hasAverageScore, averageScore, evaluationCount, premiumRadar, trendData, compareSnapshot, comparisonRows, currentMetrics]);
+
   const sourceConfig = [
     { key: "indicacao", label: "Indicação", color: "#2563eb" },
     { key: "siteVagas", label: "Site de vagas", color: "#16a34a" },
@@ -1546,6 +1797,73 @@ function CompanyDetails({ theme, toggleTheme }) {
         )}
 
         <aside className="mt-6 lg:float-right lg:w-80 lg:ml-6 space-y-4">
+          <section className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4">
+            <p className="text-xs font-extrabold uppercase tracking-wide text-blue-700">Plano Premium</p>
+            <h3 className="text-sm font-bold text-slate-900 mt-1">Beneficios para {premiumAudienceLabel}</h3>
+
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setPremiumAudience("worker")}
+                className={`px-3 py-2 text-xs font-bold rounded-lg border transition ${
+                  premiumAudience === "worker"
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-blue-700 border-blue-200 hover:bg-blue-100"
+                }`}
+              >
+                Trabalhador
+              </button>
+              <button
+                type="button"
+                onClick={() => setPremiumAudience("employer")}
+                className={`px-3 py-2 text-xs font-bold rounded-lg border transition ${
+                  premiumAudience === "employer"
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-blue-700 border-blue-200 hover:bg-blue-100"
+                }`}
+              >
+                Empresario
+              </button>
+            </div>
+
+            <ul className="mt-3 space-y-1.5 text-xs text-slate-700">
+              {premiumBenefitsByAudience.map((item) => (
+                <li key={item}>• {item}</li>
+              ))}
+            </ul>
+
+            <div className="mt-4">
+              <p className="text-xs font-semibold text-blue-800 mb-1.5">Forma de pagamento</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPremiumPaymentMethod("card")}
+                  className={`px-3 py-2 text-xs font-bold rounded-lg border transition ${
+                    premiumPaymentMethod === "card"
+                      ? "bg-slate-900 text-white border-slate-900"
+                      : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
+                  }`}
+                >
+                  Cartao
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPremiumPaymentMethod("pix")}
+                  className={`px-3 py-2 text-xs font-bold rounded-lg border transition ${
+                    premiumPaymentMethod === "pix"
+                      ? "bg-emerald-600 text-white border-emerald-600"
+                      : "bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                  }`}
+                >
+                  PIX
+                </button>
+              </div>
+              <p className="mt-2 text-[11px] text-slate-500">
+                PIX usa pagamento unico. Cartao segue assinatura recorrente.
+              </p>
+            </div>
+          </section>
+
           <PremiumPieCard
             isPremium={userIsPremium}
             title="Como entrou na empresa"
@@ -1577,6 +1895,57 @@ function CompanyDetails({ theme, toggleTheme }) {
               {premiumNotice}
             </p>
           )}
+
+          <PremiumPieCard
+            isPremium={userIsPremium}
+            title="Comparador de empresas"
+            onUnlock={handlePremiumUnlock}
+            isUnlocking={checkoutLoading}
+          >
+            <p className="text-xs text-blue-600 mb-2">Compare esta empresa com outra e veja onde ela ganha ou perde.</p>
+            <select
+              value={compareTargetSlug}
+              onChange={(e) => setCompareTargetSlug(e.target.value)}
+              className="w-full p-2 rounded-lg border border-slate-200 text-sm"
+            >
+              {compareOptions.length === 0 && <option value="">Sem opcoes de comparacao</option>}
+              {compareOptions.map((item) => (
+                <option key={item.slug} value={item.slug}>{item.name}</option>
+              ))}
+            </select>
+
+            {compareLoading && <p className="mt-2 text-xs text-slate-500">Carregando comparacao...</p>}
+            {compareError && <p className="mt-2 text-xs text-red-600">{compareError}</p>}
+
+            {!compareLoading && !compareError && comparisonRows.length > 0 && (
+              <div className="mt-3 space-y-1.5">
+                {comparisonRows.slice(0, 5).map((row) => (
+                  <div key={row.key} className="flex items-center justify-between text-xs bg-slate-50 rounded-md px-2 py-1">
+                    <span className="text-slate-700">{row.label}</span>
+                    <span className={`font-semibold ${row.delta >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                      {row.delta >= 0 ? "+" : ""}{row.delta.toFixed(1)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </PremiumPieCard>
+
+          <PremiumPieCard
+            isPremium={userIsPremium}
+            title="Relatorio executivo"
+            onUnlock={handlePremiumUnlock}
+            isUnlocking={checkoutLoading}
+          >
+            <p className="text-xs text-blue-600 mb-3">Gere um resumo com pontos fortes, riscos e comparativo para decidir com clareza.</p>
+            <button
+              type="button"
+              onClick={handleDownloadPremiumReport}
+              className="w-full px-3 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition"
+            >
+              Baixar relatorio em .txt
+            </button>
+          </PremiumPieCard>
         </aside>
 
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1763,6 +2132,55 @@ function CompanyDetails({ theme, toggleTheme }) {
             </div>
           </div>
         )}
+
+        <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-lg font-bold text-blue-800">Radar de decisão Premium</h2>
+              <p className="text-xs text-slate-600">Resumo prático para apoiar sua decisão de candidatura.</p>
+            </div>
+            {!userIsPremium && (
+              <button
+                type="button"
+                onClick={handlePremiumUnlock}
+                disabled={checkoutLoading}
+                className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-70"
+              >
+                {checkoutLoading ? "Abrindo checkout..." : "Desbloquear Premium"}
+              </button>
+            )}
+          </div>
+
+          <div className={userIsPremium ? "" : "pointer-events-none select-none blur-[5px] opacity-80"}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Pontos fortes</p>
+                <ul className="mt-2 space-y-1 text-sm text-emerald-900">
+                  {premiumRadar.strengths.map((item) => (
+                    <li key={`strength_${item.key}`}>{item.label}: {item.value.toFixed(1)}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-rose-700">Pontos de atenção</p>
+                <ul className="mt-2 space-y-1 text-sm text-rose-900">
+                  {premiumRadar.risks.map((item) => (
+                    <li key={`risk_${item.key}`}>{item.label}: {item.value.toFixed(1)}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-indigo-700">Sinal de tendência</p>
+              <p className="mt-1 text-sm text-indigo-900">
+                {trendData.length >= 2
+                  ? `No período analisado, a métrica de segurança e integridade variou ${premiumRadar.trendDelta >= 0 ? "+" : ""}${premiumRadar.trendDelta.toFixed(2)} ponto(s).`
+                  : "Ative o Dashboard Detalhado para capturar tendência mensal e enriquecer este radar."}
+              </p>
+            </div>
+          </div>
+        </div>
 
         <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
           <h2 className="text-lg font-bold text-blue-800 font-azonix tracking-[0.08em] mb-4">Sobre a empresa</h2>

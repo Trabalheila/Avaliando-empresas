@@ -24,5 +24,49 @@ service cloud.firestore {
 
       allow write: if false;
     }
+
+    // Avaliações de empresas.
+    match /reviews/{reviewId} {
+      // Qualquer pessoa pode ler avaliações.
+      allow read: if true;
+
+      // Criação: requer usuário autenticado (mínimo anônimo).
+      allow create: if request.auth != null;
+
+      // Edição: apenas o autor original pode editar, identificado pelo uid do Firebase Auth.
+      // Campos de identidade (uid, pseudonym, company, companySlug, createdAt) não podem ser alterados.
+      allow update: if request.auth != null
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.pseudonym == resource.data.pseudonym
+        && request.resource.data.company == resource.data.company
+        && request.resource.data.companySlug == resource.data.companySlug;
+
+      // Exclusão: apenas o autor original pode apagar.
+      allow delete: if request.auth != null
+        && resource.data.uid == request.auth.uid;
+    }
+
+    // Reações a avaliações (uma por usuário por review).
+    match /reviewReactions/{reactionId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      // Reações são imutáveis (idempotência garantida no cliente).
+      allow update, delete: if false;
+    }
+
+    // Comentários de discussão por item da empresa.
+    match /item_comments/{commentId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null;
+    }
+
+    // Threads de reações/respostas por entrada de item.
+    match /item_comment_threads/{threadId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
   }
 }

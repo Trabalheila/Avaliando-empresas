@@ -90,11 +90,44 @@ export async function saveReview(review) {
   const payload = {
     ...review,
     companySlug,
+    uid: auth.currentUser.uid,
     createdAt: serverTimestamp(),
   };
 
   await setDoc(reviewRef, payload);
   return { id: reviewId, ...payload };
+}
+
+export async function updateOwnReview({ reviewId, updates, currentProfileId = "", currentPseudonym = "" }) {
+  if (!reviewId) {
+    throw new Error("Avaliação inválida para edição.");
+  }
+
+  if (!auth.currentUser) {
+    await signInAnonymously(auth);
+  }
+
+  const reviewRef = doc(db, "reviews", reviewId);
+  const existing = await getDoc(reviewRef);
+
+  if (!existing.exists()) {
+    throw new Error("Avaliação não encontrada.");
+  }
+
+  const review = { id: existing.id, ...existing.data() };
+  if (!isReviewOwnedByCurrentUser(review, { profileId: currentProfileId, pseudonym: currentPseudonym })) {
+    throw new Error("Você só pode editar avaliações feitas pelo seu próprio perfil.");
+  }
+
+  // Remove campos de identidade para evitar adulteração.
+  const { pseudonym: _p, company: _c, companySlug: _cs, authorProfileId: _a, uid: _u, createdAt: _ca, ...safeUpdates } = updates;
+
+  await updateDoc(reviewRef, {
+    ...safeUpdates,
+    updatedAt: serverTimestamp(),
+  });
+
+  return { id: reviewId, ...review, ...safeUpdates };
 }
 
 export function isReviewOwnedByCurrentUser(review, options = {}) {

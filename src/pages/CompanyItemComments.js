@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { FaMoon, FaSun } from "react-icons/fa";
-import { deleteOwnReview, isReviewOwnedByCurrentUser, listReviewsByCompanySlug, slugifyCompany } from "../services/reviews";
+import { deleteOwnReview, isReviewOwnedByCurrentUser, listReviewsByCompanySlug, slugifyCompany, updateOwnReview } from "../services/reviews";
 import { db } from "../firebase";
 import { collection, deleteDoc, doc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
 import { getStoredProfileId } from "../utils/profileIdentity";
@@ -142,6 +142,10 @@ function CompanyItemComments({ theme, toggleTheme }) {
   const [entryReplyText, setEntryReplyText] = React.useState("");
   const [entryActionNotice, setEntryActionNotice] = React.useState("");
   const [deletingEntryId, setDeletingEntryId] = React.useState("");
+  const [editingEntryId, setEditingEntryId] = React.useState(null);
+  const [editingComment, setEditingComment] = React.useState("");
+  const [editingScore, setEditingScore] = React.useState(0);
+  const [savingEditId, setSavingEditId] = React.useState("");
   const [openReactionPickerId, setOpenReactionPickerId] = React.useState(null);
   const reactionHoldTimeout = React.useRef(null);
 
@@ -592,6 +596,53 @@ function CompanyItemComments({ theme, toggleTheme }) {
     [companyName, entryThreads, getCurrentPseudonym, getEntryThreadDocId, saveEntryThreads]
   );
 
+  const handleStartEditEntry = React.useCallback((entry) => {
+    setEditingEntryId(entry.id);
+    setEditingComment(entry.comment || "");
+    setEditingScore(typeof entry.score === "number" ? entry.score : 0);
+    setEntryActionNotice("");
+    setErrorMsg("");
+  }, []);
+
+  const handleSaveEditEntry = React.useCallback(
+    async (entry) => {
+      if (!entry?.id) return;
+
+      const primaryCommentKey = (itemConfig?.commentKeys || [])[0];
+      if (!primaryCommentKey) return;
+
+      setSavingEditId(entry.id);
+      setErrorMsg("");
+
+      try {
+        await updateOwnReview({
+          reviewId: entry.id,
+          updates: {
+            [primaryCommentKey]: editingComment.trim(),
+            [itemKey]: editingScore,
+          },
+          currentProfileId: getStoredProfileId(),
+          currentPseudonym: getCurrentPseudonym(),
+        });
+
+        setEntries((prev) =>
+          prev.map((item) =>
+            item.id !== entry.id
+              ? item
+              : { ...item, comment: editingComment.trim(), score: editingScore }
+          )
+        );
+        setEditingEntryId(null);
+        setEntryActionNotice("Avaliação atualizada com sucesso.");
+      } catch (err) {
+        setErrorMsg(err?.message || "Não foi possível salvar a edição.");
+      } finally {
+        setSavingEditId("");
+      }
+    },
+    [editingComment, editingScore, itemConfig, itemKey, getCurrentPseudonym]
+  );
+
   const handleReactEntry = (entryId, targetId, reactionKey) => {
     const currentThread = getEntryThread(entryId);
     let nextThread = currentThread;
@@ -879,15 +930,74 @@ function CompanyItemComments({ theme, toggleTheme }) {
                     Total: {getTotalReactions({ reactions: getEntryThread(entry.id)?.reactions })}
                   </span>
                   {isReviewOwnedByCurrentUser(entry, { profileId: getStoredProfileId(), pseudonym: getCurrentPseudonym() }) && (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteEntryReview(entry)}
-                      disabled={deletingEntryId === entry.id}
-                      className="text-xs font-semibold text-rose-700 hover:underline disabled:opacity-60 disabled:no-underline"
-                    >
-                      {deletingEntryId === entry.id ? "Apagando avaliação..." : "Apagar minha avaliação"}
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleStartEditEntry(entry)}
+                        disabled={deletingEntryId === entry.id || savingEditId === entry.id}
+                        className="text-xs font-semibold text-indigo-700 hover:underline disabled:opacity-60 disabled:no-underline"
+                      >
+                        Editar minha avaliação
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteEntryReview(entry)}
+                        disabled={deletingEntryId === entry.id || savingEditId === entry.id}
+                        className="text-xs font-semibold text-rose-700 hover:underline disabled:opacity-60 disabled:no-underline"
+                      >
+                        {deletingEntryId === entry.id ? "Apagando avaliação..." : "Apagar minha avaliação"}
+                      </button>
+                    </>
                   )}
+
+                {editingEntryId === entry.id && (
+                  <div className="mt-3 p-3 rounded-xl border border-indigo-200 bg-indigo-50 dark:bg-slate-800 dark:border-slate-600">
+                    <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 mb-2">Editar avaliação</p>
+                    <textarea
+                      value={editingComment}
+                      onChange={(e) => setEditingComment(e.target.value)}
+                      rows={3}
+                      maxLength={1000}
+                      placeholder="Edite seu comentário..."
+                      className="w-full p-2 text-sm border border-indigo-200 rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100"
+                    />
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="text-xs text-slate-600 dark:text-slate-400">Nota:</span>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setEditingScore(star)}
+                          className={`text-lg leading-none ${editingScore >= star ? "text-yellow-400" : "text-slate-300 dark:text-slate-600"}`}
+                          aria-label={`${star} estrela${star > 1 ? "s" : ""}`}
+                        >
+                          ★
+                        </button>
+                      ))}
+                      {editingScore > 0 && (
+                        <span className="text-xs text-slate-500">{editingScore}/5</span>
+                      )}
+                    </div>
+                    <div className="mt-3 flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditingEntryId(null)}
+                        disabled={savingEditId === entry.id}
+                        className="px-3 py-1 text-xs rounded-lg border border-gray-200 dark:border-slate-600 disabled:opacity-60"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveEditEntry(entry)}
+                        disabled={savingEditId === entry.id || !editingComment.trim()}
+                        className="px-3 py-1 text-xs rounded-lg bg-indigo-600 text-white disabled:opacity-60"
+                      >
+                        {savingEditId === entry.id ? "Salvando..." : "Salvar alterações"}
+                      </button>
+                    </div>
+                  </div>
+                )}
                 </div>
 
                 {entryReplyTarget === `${entry.id}::${entry.id}` && (
