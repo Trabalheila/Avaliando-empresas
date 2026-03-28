@@ -1,5 +1,5 @@
 import React from "react";
-import { useTranslation } from 'react-i18next';
+
 
 /**
  * Exemplo de bloqueio visual para grafico premium.
@@ -17,27 +17,33 @@ export default function PremiumPieCard({
   onUnlock,
   isUnlocking = false,
 }) {
-  const { t } = useTranslation();
   return (
     <section className="relative bg-white rounded-2xl border border-slate-200 p-4 overflow-hidden">
-      <h3 className="text-sm font-extrabold text-slate-800 mb-3">{t(title) || title}</h3>
-
-      <div className={isPremium ? "" : "pointer-events-none select-none blur-[6px] opacity-75"}>
-        {children}
+      <h3 className="text-lg font-extrabold text-blue-700 mb-1 uppercase text-center">PLANO PREMIUM</h3>
+      <div className="text-sm font-bold text-slate-800 mb-3 text-center">Benefícios para Trabalhador</div>
+      <div className="flex justify-center mb-3">
+        <button className="px-4 py-1 rounded-l-xl bg-blue-700 text-white font-bold">Trabalhador</button>
+        <button className="px-4 py-1 rounded-r-xl bg-white border border-blue-700 text-blue-700 font-bold">Empresario</button>
       </div>
-
-      {!isPremium && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-white/10 via-white/40 to-white/90">
+      <ul className="text-sm text-slate-800 mb-4 pl-4 list-disc">
+        <li>Comparacao clara entre empresas antes de aceitar proposta</li>
+        <li>Tendencia real de avaliacao para evitar cilada</li>
+        <li>Relatorio com pontos fortes e riscos para decidir melhor</li>
+      </ul>
+      <div className="flex flex-col items-center">
+        {!isPremium && (
           <button
             type="button"
             onClick={onUnlock}
             disabled={isUnlocking}
-            className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition"
+            className="px-6 py-2 rounded-xl bg-blue-600 text-white text-base font-bold hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition mb-3"
           >
-            {isUnlocking ? t('abrindo_checkout') : t('ver_dados_premium')}
+            Desbloquear Premium
           </button>
-        </div>
-      )}
+        )}
+        <div className="text-lg font-bold text-black text-center mt-2">Através do Mercado Pago</div>
+        <div className="text-xs text-slate-700 text-center">PIX usa pagamento unico. Cartao segue assinatura recorrente.</div>
+      </div>
     </section>
   );
 }
