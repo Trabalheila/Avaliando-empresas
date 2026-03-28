@@ -188,6 +188,7 @@ function CompanyDetails({ theme, toggleTheme }) {
   const [searchParams] = useSearchParams();
   const name = searchParams.get("name");
 
+
   const company = useMemo(() => {
     if (!name) return null;
     try {
@@ -199,6 +200,22 @@ function CompanyDetails({ theme, toggleTheme }) {
       return null;
     }
   }, [name]);
+
+  // Enriquecimento automático via Brasil API
+  React.useEffect(() => {
+    async function tryEnrichCompany() {
+      if (!company?.cnpj || !company?.slug) return;
+      // Só busca se faltar ramo/cidade/estado/descricao
+      if (!company.ramo || !company.cidade || !company.estado || !company.descricao) {
+        const enriched = await enrichCompanyWithBrasilAPI(company.cnpj);
+        if (enriched) {
+          const ref = doc(db, "companies", company.slug);
+          await updateDoc(ref, enriched);
+        }
+      }
+    }
+    tryEnrichCompany();
+  }, [company?.cnpj, company?.slug, company?.ramo, company?.cidade, company?.estado, company?.descricao]);
 
   const calculateAverage = (emp) => {
     if (!emp) return "--";
