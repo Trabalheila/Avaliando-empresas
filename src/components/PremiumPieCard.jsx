@@ -34,7 +34,7 @@ export default function PremiumPieCard({
             disabled={isUnlocking}
             className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition"
           >
-            {isUnlocking ? t('Abrindo checkout...') : t('Ver Dados Premium')}
+            {isUnlocking ? t('abrindo_checkout') : t('ver_dados_premium')}
           </button>
         </div>
       )}

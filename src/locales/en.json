@@ -11,5 +11,7 @@
   "card": "Card",
   "pix": "PIX",
   "pix_note": "PIX is a one-time payment. Card is a recurring subscription.",
-  "see_linkedin_jobs": "See jobs on LinkedIn"
+  "see_linkedin_jobs": "See jobs on LinkedIn",
+  "ver_dados_premium": "See Premium Data",
+  "abrindo_checkout": "Opening checkout..."
 }
