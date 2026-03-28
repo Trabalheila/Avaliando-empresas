@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getCompanyLogoCandidates } from "../utils/getCompanyLogo";
 import { db } from "../firebase";
@@ -6,6 +6,9 @@ import { collection, doc, getDocs, limit, orderBy, query, setDoc, where, updateD
 import { hasCompanyInResumeExperiences } from "../utils/resumeParser";
 import { listReviewsByCompanySlug } from "../services/reviews";
 import { listCompanies, enrichCompanyWithBrasilAPI } from "../services/companies";
+import { getUserRole, isPremium } from "../utils/rbac";
+import { handleCheckout } from "../services/billing";
+import PremiumPieCard from "../components/PremiumPieCard";
 // ...existing code...
 
 function normalizeKey(value) {
