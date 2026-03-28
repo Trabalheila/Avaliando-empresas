@@ -6,40 +6,7 @@ import { collection, doc, getDocs, limit, orderBy, query, setDoc, where, updateD
 import { hasCompanyInResumeExperiences } from "../utils/resumeParser";
 import { listReviewsByCompanySlug } from "../services/reviews";
 import { listCompanies, enrichCompanyWithBrasilAPI } from "../services/companies";
-function CompanyDetails({ theme, toggleTheme }) {
-  const EDIT_DELETE_WINDOW_MS = 5 * 60 * 1000;
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const name = searchParams.get("name");
-
-  const company = useMemo(() => {
-    if (!name) return null;
-    try {
-      const stored = localStorage.getItem("empresasData");
-      if (!stored) return null;
-      const empresas = JSON.parse(stored);
-      return empresas.find((emp) => emp.company === name) || null;
-    } catch (err) {
-      return null;
-    }
-  }, [name]);
-
-  // Enriquecimento automático via Brasil API
-  React.useEffect(() => {
-    async function tryEnrichCompany() {
-      if (!company?.cnpj || !company?.slug) return;
-      // Só busca se faltar ramo/cidade/estado/descricao
-      if (!company.ramo || !company.cidade || !company.estado || !company.descricao) {
-        const enriched = await enrichCompanyWithBrasilAPI(company.cnpj);
-        if (enriched) {
-          const ref = doc(db, "companies", company.slug);
-          await updateDoc(ref, enriched);
-        }
-      }
-    }
-    tryEnrichCompany();
-
-  }, [company?.cnpj, company?.slug, company?.ramo, company?.cidade, company?.estado, company?.descricao]);
+// ...existing code...
 
 function normalizeKey(value) {
   return (value || "")
