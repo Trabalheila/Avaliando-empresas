@@ -19,7 +19,7 @@ function getStripe() {
  * Prioriza CNPJ quando disponível e usa companySlug como fallback de vínculo.
  * O backend deve criar a sessao no endpoint /api/create-checkout-session.
  */
-export async function handleCheckout({ cnpj, companySlug, companyName } = {}) {
+export async function handleCheckout({ cnpj, companySlug, companyName, audience, paymentMethod } = {}) {
   const cleanedCnpjRaw = (cnpj || "").toString().replace(/\D/g, "");
   const cleanedCnpj = cleanedCnpjRaw.length === 14 ? cleanedCnpjRaw : "";
   const normalizedCompanySlug = (companySlug || "")
@@ -41,12 +41,23 @@ export async function handleCheckout({ cnpj, companySlug, companyName } = {}) {
       cnpj: cleanedCnpj || null,
       companySlug: normalizedCompanySlug || null,
       companyName: (companyName || "").toString().trim() || null,
+      audience: ["worker", "employer"].includes(audience) ? audience : "worker",
+      paymentMethod: paymentMethod === "pix" ? "pix" : "card",
     }),
   });
 
   const payload = await response.json();
-  if (!response.ok || !payload?.sessionId) {
+  if (!response.ok) {
     throw new Error(payload?.error || "Nao foi possivel iniciar o checkout.");
+  }
+
+  if (payload?.redirectMode === "url" && payload?.checkoutUrl) {
+    window.location.assign(payload.checkoutUrl);
+    return;
+  }
+
+  if (!payload?.sessionId) {
+    throw new Error("Resposta de checkout invalida: sessionId ausente.");
   }
 
   const stripe = await getStripe();

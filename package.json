@@ -12,6 +12,7 @@
     "@react-oauth/google": "^0.12.1",
     "@stripe/stripe-js": "^4.10.0",
     "firebase": "^12.9.0",
+    "firebase-admin": "^13.7.0",
     "mammoth": "^1.8.0",
     "pdfjs-dist": "^4.10.38",
     "react": "^18.3.1",
