@@ -9,6 +9,9 @@
     "api/cnpj.js": {
       "maxDuration": 30
     },
+    "api/stripe-webhook.js": {
+      "maxDuration": 30
+    },
     "api/webhook.js": {
       "maxDuration": 30
     }
