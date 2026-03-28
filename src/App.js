@@ -73,12 +73,8 @@ function getPreferredTheme() {
   return 'light';
 }
 
-function applyTheme(theme) {
-  if (typeof document === 'undefined') return;
-  document.documentElement.classList.toggle('dark', theme === 'dark');
-}
 
-  
+function App() {
   const location = useLocation();
   const navigationType = useNavigationType();
   const [theme, setTheme] = useState(getPreferredTheme);
@@ -92,14 +88,10 @@ function applyTheme(theme) {
   const [transitionEasing, setTransitionEasing] = useState(initialProfile.easing);
   const transitionTimeoutRef = useRef(null);
 
-
   useEffect(() => {
     applyTheme(theme);
     window.localStorage.setItem('trabalheiLa_theme', theme);
   }, [theme]);
-
-
-
 
   const toggleTheme = useMemo(() => {
     return () => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -161,10 +153,8 @@ function applyTheme(theme) {
     </Routes>
   );
 
-
   return (
     <>
-
       <div
         className="route-transition-stage"
         style={{
