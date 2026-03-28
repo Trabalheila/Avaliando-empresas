@@ -1,4 +1,9 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿// Função para aplicar o tema (dark/light)
+function applyTheme(theme) {
+  if (typeof document === 'undefined') return;
+  document.documentElement.classList.toggle('dark', theme === 'dark');
+}
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Routes, Route, useLocation, useNavigationType } from 'react-router-dom';
 import Home from './Home';
 import './i18n';
