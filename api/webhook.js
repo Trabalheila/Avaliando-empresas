@@ -1,5 +1,3 @@
-import Stripe from "stripe";
-
 function normalizeCompanySlug(value) {
   return (value || "")
     .toString()
@@ -77,17 +75,18 @@ async function getRawBody(req) {
   return Buffer.from("");
 }
 
-let stripeClient;
-function getStripeClient() {
+let stripeClientInstance;
+async function getStripeClient() {
   if (!process.env.STRIPE_SECRET_KEY) {
     throw new Error("STRIPE_SECRET_KEY nao configurado.");
   }
-  if (!stripeClient) {
-    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  if (!stripeClientInstance) {
+    const { default: Stripe } = await import("stripe");
+    stripeClientInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: "2024-06-20",
     });
   }
-  return stripeClient;
+  return stripeClientInstance;
 }
 
 function getMercadoPagoAccessToken() {
@@ -162,7 +161,7 @@ async function handleStripeWebhook(req, res) {
   }
 
   let event;
-  const stripe = getStripeClient();
+  const stripe = await getStripeClient();
 
   try {
     const rawBody = await getRawBody(req);

@@ -1,5 +1,3 @@
-import Stripe from "stripe";
-
 function getAppOrigin(req) {
   const headerOrigin = req.headers.origin;
   if (headerOrigin) return headerOrigin;
@@ -163,6 +161,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "STRIPE_SECRET_KEY nao configurado." });
   }
 
+  const { default: Stripe } = await import("stripe");
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
     apiVersion: "2024-06-20",
   });
