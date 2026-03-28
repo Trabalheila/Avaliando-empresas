@@ -2,11 +2,28 @@ import React, { useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getCompanyLogoCandidates } from "../utils/getCompanyLogo";
 import { db } from "../firebase";
-import { collection, doc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
+import { collection, doc, getDocs, limit, orderBy, query, setDoc, where, updateDoc } from "firebase/firestore";
 import { hasCompanyInResumeExperiences } from "../utils/resumeParser";
 import { listReviewsByCompanySlug } from "../services/reviews";
 import { listCompanies, enrichCompanyWithBrasilAPI } from "../services/companies";
-import { updateDoc } from "firebase/firestore";
+function CompanyDetails({ theme, toggleTheme }) {
+  const EDIT_DELETE_WINDOW_MS = 5 * 60 * 1000;
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const name = searchParams.get("name");
+
+  const company = useMemo(() => {
+    if (!name) return null;
+    try {
+      const stored = localStorage.getItem("empresasData");
+      if (!stored) return null;
+      const empresas = JSON.parse(stored);
+      return empresas.find((emp) => emp.company === name) || null;
+    } catch (err) {
+      return null;
+    }
+  }, [name]);
+
   // Enriquecimento automático via Brasil API
   React.useEffect(() => {
     async function tryEnrichCompany() {
