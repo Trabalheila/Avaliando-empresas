@@ -87,13 +87,10 @@ function getPreferredLanguage() {
 }
 
 function App() {
-  const { i18n, t } = useTranslation();
+  const { i18n } = useTranslation();
   const location = useLocation();
   const navigationType = useNavigationType();
   const [theme, setTheme] = useState(getPreferredTheme);
-  const [language, setLanguage] = useState(() => {
-    return localStorage.getItem('i18nextLng') || getPreferredLanguage();
-  });
   const [currentLocation, setCurrentLocation] = useState(location);
   const [outgoingLocation, setOutgoingLocation] = useState(null);
   const [incomingLocation, setIncomingLocation] = useState(location);
