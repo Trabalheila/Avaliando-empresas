@@ -76,10 +76,19 @@ function applyTheme(theme) {
   document.documentElement.classList.toggle('dark', theme === 'dark');
 }
 
+
+function getPreferredLanguage() {
+  if (typeof window === 'undefined') return 'pt';
+  const stored = window.localStorage.getItem('trabalheiLa_lang');
+  if (stored) return stored;
+  return 'pt';
+}
+
 function App() {
   const location = useLocation();
   const navigationType = useNavigationType();
   const [theme, setTheme] = useState(getPreferredTheme);
+  const [language, setLanguage] = useState(getPreferredLanguage);
   const [currentLocation, setCurrentLocation] = useState(location);
   const [outgoingLocation, setOutgoingLocation] = useState(null);
   const [incomingLocation, setIncomingLocation] = useState(location);
@@ -90,10 +99,15 @@ function App() {
   const [transitionEasing, setTransitionEasing] = useState(initialProfile.easing);
   const transitionTimeoutRef = useRef(null);
 
+
   useEffect(() => {
     applyTheme(theme);
     window.localStorage.setItem('trabalheiLa_theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    window.localStorage.setItem('trabalheiLa_lang', language);
+  }, [language]);
 
   const toggleTheme = useMemo(() => {
     return () => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -155,39 +169,55 @@ function App() {
     </Routes>
   );
 
+
   return (
-    <div
-      className="route-transition-stage"
-      style={{
-        '--route-transition-ms': `${transitionDurationMs}ms`,
-        '--route-transition-ease': transitionEasing,
-      }}
-    >
-      {isTransitioning && outgoingLocation ? (
-        <>
-          <div
-            key={`out-${outgoingLocation.pathname}${outgoingLocation.search}`}
-            className={`route-layer route-layer-exit ${
-              transitionDirection === 'back' ? 'route-exit-back' : 'route-exit-forward'
-            }`}
-          >
-            {renderRoutes(outgoingLocation)}
+    <>
+      <div className="w-full flex items-center justify-end px-4 py-2 bg-blue-50 border-b border-blue-100">
+        <label htmlFor="lang-select" className="mr-2 text-xs text-blue-900 font-semibold">Idioma:</label>
+        <select
+          id="lang-select"
+          value={language}
+          onChange={e => setLanguage(e.target.value)}
+          className="text-xs rounded border border-blue-200 px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+        >
+          <option value="pt">Português</option>
+          <option value="en">English</option>
+          <option value="es">Español</option>
+        </select>
+      </div>
+      <div
+        className="route-transition-stage"
+        style={{
+          '--route-transition-ms': `${transitionDurationMs}ms`,
+          '--route-transition-ease': transitionEasing,
+        }}
+      >
+        {isTransitioning && outgoingLocation ? (
+          <>
+            <div
+              key={`out-${outgoingLocation.pathname}${outgoingLocation.search}`}
+              className={`route-layer route-layer-exit ${
+                transitionDirection === 'back' ? 'route-exit-back' : 'route-exit-forward'
+              }`}
+            >
+              {renderRoutes(outgoingLocation)}
+            </div>
+            <div
+              key={`in-${incomingLocation.pathname}${incomingLocation.search}`}
+              className={`route-layer route-layer-enter ${
+                transitionDirection === 'back' ? 'route-enter-back' : 'route-enter-forward'
+              }`}
+            >
+              {renderRoutes(incomingLocation)}
+            </div>
+          </>
+        ) : (
+          <div className="route-layer route-layer-steady">
+            {renderRoutes(currentLocation)}
           </div>
-          <div
-            key={`in-${incomingLocation.pathname}${incomingLocation.search}`}
-            className={`route-layer route-layer-enter ${
-              transitionDirection === 'back' ? 'route-enter-back' : 'route-enter-forward'
-            }`}
-          >
-            {renderRoutes(incomingLocation)}
-          </div>
-        </>
-      ) : (
-        <div className="route-layer route-layer-steady">
-          {renderRoutes(currentLocation)}
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }
 export default App;
