@@ -5,7 +5,23 @@ import { db } from "../firebase";
 import { collection, doc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
 import { hasCompanyInResumeExperiences } from "../utils/resumeParser";
 import { listReviewsByCompanySlug } from "../services/reviews";
-import { listCompanies } from "../services/companies";
+import { listCompanies, enrichCompanyWithBrasilAPI } from "../services/companies";
+import { doc, updateDoc } from "firebase/firestore";
+  // Enriquecimento automático via Brasil API
+  React.useEffect(() => {
+    async function tryEnrichCompany() {
+      if (!company?.cnpj || !company?.slug) return;
+      // Só busca se faltar ramo/cidade/estado/descricao
+      if (!company.ramo || !company.cidade || !company.estado || !company.descricao) {
+        const enriched = await enrichCompanyWithBrasilAPI(company.cnpj);
+        if (enriched) {
+          const ref = doc(db, "companies", company.slug);
+          await updateDoc(ref, enriched);
+        }
+      }
+    }
+    tryEnrichCompany();
+  }, [company?.cnpj, company?.slug, company?.ramo, company?.cidade, company?.estado, company?.descricao]);
 import { getUserRole, isPremium } from "../utils/rbac";
 import { handleCheckout } from "../services/billing";
 import PremiumPieCard from "../components/PremiumPieCard";
@@ -2191,14 +2207,23 @@ function CompanyDetails({ theme, toggleTheme }) {
             <div>
               <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Descricao automatica</p>
               <p className="text-sm text-slate-800 font-medium">{companyInfo?.description}</p>
+              {companyInfo?.description?.includes("Não identificado") && (
+                <button className="mt-1 text-xs text-blue-600 underline" onClick={() => alert('Sugestão: envie um email para contato@trabalheila.com.br com as informações da empresa!')}>Sugerir informações desta empresa</button>
+              )}
             </div>
             <div>
               <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Ramo</p>
               <p className="text-sm text-slate-800 font-medium">{companyInfo?.sector}</p>
+              {companyInfo?.sector?.includes("Não identificado") && (
+                <button className="mt-1 text-xs text-blue-600 underline" onClick={() => alert('Sugestão: envie um email para contato@trabalheila.com.br com o ramo da empresa!')}>Sugerir informações desta empresa</button>
+              )}
             </div>
             <div>
               <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Localização</p>
               <p className="text-sm text-slate-800 font-medium">{companyInfo?.location}</p>
+              {companyInfo?.location?.includes("Não identificado") && (
+                <button className="mt-1 text-xs text-blue-600 underline" onClick={() => alert('Sugestão: envie um email para contato@trabalheila.com.br com a localização da empresa!')}>Sugerir informações desta empresa</button>
+              )}
             </div>
             <div>
               <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">CNPJ</p>
@@ -2207,14 +2232,22 @@ function CompanyDetails({ theme, toggleTheme }) {
             <div>
               <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Site</p>
               <p className="text-sm text-slate-800 font-medium break-all">{companyInfo?.website}</p>
+              {companyInfo?.website?.includes("Não identificado") && (
+                <button className="mt-1 text-xs text-blue-600 underline" onClick={() => alert('Sugestão: envie um email para contato@trabalheila.com.br com o site da empresa!')}>Sugerir informações desta empresa</button>
+              )}
             </div>
             <div>
               <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Redes sociais</p>
               <div className="mt-1 space-y-1">
                 {(companyInfo?.socialLinks || []).map((item) => (
-                  <p key={item.label} className="text-sm text-slate-800 font-medium">
-                    {item.label}: {item.value}
-                  </p>
+                  <div key={item.label}>
+                    <p className="text-sm text-slate-800 font-medium">
+                      {item.label}: {item.value}
+                    </p>
+                    {item.value?.includes("Não identificado") && (
+                      <button className="mt-1 text-xs text-blue-600 underline" onClick={() => alert(`Sugestão: envie um email para contato@trabalheila.com.br com o link do ${item.label}!`)}>Sugerir informações desta empresa</button>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>

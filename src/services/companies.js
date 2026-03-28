@@ -1,3 +1,22 @@
+// Enriquecimento automático via Brasil API
+export async function enrichCompanyWithBrasilAPI(cnpj) {
+  if (!cnpj) return null;
+  try {
+    const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
+    if (!response.ok) return null;
+    const data = await response.json();
+    return {
+      ramo: data.cnae_fiscal_descricao || null,
+      cidade: data.municipio || null,
+      estado: data.uf || null,
+      descricao: data.nome_fantasia || data.razao_social || null,
+      logradouro: data.logradouro || null,
+      site: data.site || null,
+    };
+  } catch (err) {
+    return null;
+  }
+}
 import { auth, db } from "../firebase";
 import { signInAnonymously } from "firebase/auth";
 import { collection, doc, getDocs, query, orderBy, limit as limitDocs, setDoc, serverTimestamp } from "firebase/firestore";
