@@ -1279,7 +1279,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     setActionNotice("Conteúdo apagado com sucesso.");
   };
 
-  const scoreFields = [
+  const scoreFields = useMemo(() => [
     { key: "comunicacao", label: "Processo de Recrutamento" },
     { key: "etica", label: "Proposta salarial e benefícios" },
     { key: "cultura", label: "Visão e valores da empresa" },
@@ -1293,7 +1293,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     { key: "equilibrio", label: "Rotatividade" },
     { key: "reconhecimento", label: "Reconhecimento" },
     { key: "desenvolvimento", label: "Planos de cargos e salários" },
-  ];
+  ], []);
 
   const currentMetrics = useMemo(() => {
     const source = companyReviewCount > 0 ? companyAverages : (company || {});
