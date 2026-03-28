@@ -186,17 +186,23 @@ function App() {
         <select
           id="lang-select"
           value={language}
-          onChange={e => {
-            setLanguage(e.target.value);
-            i18n.changeLanguage(e.target.value);
-            localStorage.setItem('i18nextLng', e.target.value);
-          }}
-          className="text-xs rounded border border-blue-200 px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+          onChange={e => setLanguage(e.target.value)}
+          className="text-xs rounded border border-blue-200 px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 mr-2"
         >
           <option value="pt">Português</option>
           <option value="en">English</option>
           <option value="es">Español</option>
         </select>
+        <button
+          type="button"
+          onClick={() => {
+            i18n.changeLanguage(language);
+            localStorage.setItem('i18nextLng', language);
+          }}
+          className="text-xs px-3 py-1 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
+        >
+          Aplicar
+        </button>
       </div>
       <div
         className="route-transition-stage"
