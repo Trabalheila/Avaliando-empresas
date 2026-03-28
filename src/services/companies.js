@@ -1,3 +1,9 @@
+
+import { auth, db } from "../firebase";
+import { signInAnonymously } from "firebase/auth";
+import { collection, doc, getDocs, query, orderBy, limit as limitDocs, setDoc, serverTimestamp } from "firebase/firestore";
+import { slugifyCompany } from "./reviews";
+
 // Enriquecimento automático via Brasil API
 export async function enrichCompanyWithBrasilAPI(cnpj) {
   if (!cnpj) return null;
@@ -17,10 +23,6 @@ export async function enrichCompanyWithBrasilAPI(cnpj) {
     return null;
   }
 }
-import { auth, db } from "../firebase";
-import { signInAnonymously } from "firebase/auth";
-import { collection, doc, getDocs, query, orderBy, limit as limitDocs, setDoc, serverTimestamp } from "firebase/firestore";
-import { slugifyCompany } from "./reviews";
 
 export async function listCompanies(take = 200) {
   const ref = collection(db, "companies");

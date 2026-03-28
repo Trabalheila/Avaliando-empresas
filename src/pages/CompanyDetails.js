@@ -6,7 +6,7 @@ import { collection, doc, getDocs, limit, orderBy, query, setDoc, where } from "
 import { hasCompanyInResumeExperiences } from "../utils/resumeParser";
 import { listReviewsByCompanySlug } from "../services/reviews";
 import { listCompanies, enrichCompanyWithBrasilAPI } from "../services/companies";
-import { doc, updateDoc } from "firebase/firestore";
+import { updateDoc } from "firebase/firestore";
   // Enriquecimento automático via Brasil API
   React.useEffect(() => {
     async function tryEnrichCompany() {
