@@ -78,10 +78,7 @@ function applyTheme(theme) {
   document.documentElement.classList.toggle('dark', theme === 'dark');
 }
 
-
-
-
-  //
+  
   const location = useLocation();
   const navigationType = useNavigationType();
   const [theme, setTheme] = useState(getPreferredTheme);
