@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from 'react-i18next';
 import { Link } from "react-router-dom";
 import Select from "react-select";
 import { getCompanyLogoCandidates } from "./utils/getCompanyLogo";
@@ -36,6 +37,7 @@ function TrabalheiLaDesktop({
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed
 }) {
 
+  const { t } = useTranslation();
   const selectStyles = {
     control: (base) => ({ ...base, borderRadius: "0.75rem", padding: "0.25rem", borderColor: "#d1d5db", boxShadow: "none", "&:hover": { borderColor: "#3b82f6" } }),
     option: (base, state) => ({ ...base, backgroundColor: state.isFocused ? "#eff6ff" : "white", color: "#1e293b", cursor: "pointer" }),
@@ -70,19 +72,19 @@ function TrabalheiLaDesktop({
   );
 
   const campos = [
-    { label: "Processo de Recrutamento", value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao, icon: <FiMessageCircle className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200" },
-    { label: "Proposta salarial e benefícios", value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica, icon: <FiDollarSign className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200" },
-    { label: "Visão e valores da empresa", value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura, icon: <FiCompass className="text-blue-700" />, iconBg: "from-blue-50 to-sky-100 border-blue-200" },
-    { label: "Data do Pagamento", value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario, icon: <FiCalendar className="text-rose-600" />, iconBg: "from-rose-50 to-red-100 border-rose-200" },
-    { label: "Acessibilidade e respeito da liderança", value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca, icon: <FiUsers className="text-indigo-600" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200" },
-    { label: "Condições de trabalho", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao, icon: <FiBriefcase className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200" },
-    { label: "Estímulo ao respeito", value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente, icon: <FiUsers className="text-violet-600" />, iconBg: "from-violet-50 to-fuchsia-100 border-violet-200" },
-    { label: "sofreu discriminação?", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade, icon: <FiAlertCircle className="text-teal-600" />, iconBg: "from-teal-50 to-cyan-100 border-teal-200" },
-    { label: "Segurança e integridade", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FiShield className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200" },
-    { label: "Preocupação com o bem estar", value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar, icon: <FiHeart className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200" },
-    { label: "Rotatividade", subtitle: "(Demite com facilidade?)", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio, icon: <FiRepeat className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300" },
-    { label: "Reconhecimento", value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento, icon: <FiAward className="text-amber-700" />, iconBg: "from-amber-50 to-orange-100 border-amber-200" },
-    { label: "Planos de cargos e salários", value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento, icon: <FiTrendingUp className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200" },
+    { label: t('Processo de Recrutamento'), value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao, icon: <FiMessageCircle className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200" },
+    { label: t('Proposta salarial e benefícios'), value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica, icon: <FiDollarSign className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200" },
+    { label: t('Visão e valores da empresa'), value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura, icon: <FiCompass className="text-blue-700" />, iconBg: "from-blue-50 to-sky-100 border-blue-200" },
+    { label: t('Data do Pagamento'), value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario, icon: <FiCalendar className="text-rose-600" />, iconBg: "from-rose-50 to-red-100 border-rose-200" },
+    { label: t('Acessibilidade e respeito da liderança'), value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca, icon: <FiUsers className="text-indigo-600" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200" },
+    { label: t('Condições de trabalho'), value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao, icon: <FiBriefcase className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200" },
+    { label: t('Estímulo ao respeito'), value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente, icon: <FiUsers className="text-violet-600" />, iconBg: "from-violet-50 to-fuchsia-100 border-violet-200" },
+    { label: t('Sofreu discriminação?'), value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade, icon: <FiAlertCircle className="text-teal-600" />, iconBg: "from-teal-50 to-cyan-100 border-teal-200" },
+    { label: t('Segurança e integridade'), value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FiShield className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200" },
+    { label: t('Preocupação com o bem estar'), value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar, icon: <FiHeart className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200" },
+    { label: t('Rotatividade'), subtitle: t('(Demite com facilidade?)'), value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio, icon: <FiRepeat className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300" },
+    { label: t('Reconhecimento'), value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento, icon: <FiAward className="text-amber-700" />, iconBg: "from-amber-50 to-orange-100 border-amber-200" },
+    { label: t('Planos de cargos e salários'), value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento, icon: <FiTrendingUp className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200" },
   ];
 
   const companyNote = selectedCompanyData ? calcularMedia(selectedCompanyData) : "--";
@@ -168,6 +170,18 @@ function TrabalheiLaDesktop({
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-6">
       <div className="w-full max-w-6xl">
+        {/* Banner Premium */}
+        <div className="mb-8 mt-2 flex items-center justify-center">
+          <div className="flex flex-col md:flex-row items-center gap-4 bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-400 rounded-2xl shadow-lg px-6 py-4 border-2 border-blue-200 dark:border-slate-700">
+            <span className="text-white text-lg md:text-xl font-bold drop-shadow">Conheça o <span className="underline">Premium</span> e tenha acesso a relatórios exclusivos!</span>
+            <button
+              className="mt-2 md:mt-0 px-5 py-2 rounded-lg bg-white text-blue-700 font-bold shadow hover:bg-blue-50 transition"
+              onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
+            >
+              Ver benefícios
+            </button>
+          </div>
+        </div>
 
         {/* HEADER */}
         <header className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-b-3xl shadow-2xl p-8 border-2 border-blue-200 dark:border-slate-700">
@@ -226,10 +240,10 @@ function TrabalheiLaDesktop({
               </h1>
               <div className="w-44 h-1.5 mx-auto rounded-full bg-gradient-to-r from-blue-300 via-blue-700 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500 mb-3" />
               <p className="text-blue-700 dark:text-blue-200 text-xl font-extrabold leading-tight mb-1">
-                Evoluindo o mercado de trabalho
+                {t('Evoluindo o mercado de trabalho')}
               </p>
               <p className="text-blue-600 dark:text-blue-300 text-sm font-semibold leading-tight mb-3">
-                Sua opinião é anônima e ajuda outros profissionais
+                {t('Sua opinião é anônima e ajuda outros profissionais')}
               </p>
 
               {isAuthenticated && (
@@ -274,7 +288,7 @@ function TrabalheiLaDesktop({
                   company ? "hover:bg-blue-800" : "opacity-60 cursor-not-allowed"
                 }`}
               >
-                CLIQUE E SAIBA MAIS
+                {t('CLIQUE E SAIBA MAIS')}
               </button>
             </div>
 

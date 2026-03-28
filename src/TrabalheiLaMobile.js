@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from 'react-i18next';
 import { Link } from "react-router-dom";
 import {
   FaStar, FaUserEdit, FaGoogle, FaBuilding,
@@ -116,6 +117,7 @@ function TrabalheiLaMobile({
   selectedCompanyData,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
 }) {
+  const { t } = useTranslation();
   const legacyMetricsBridge = {
     beneficios, setBeneficios,
     oportunidades, setOportunidades,
@@ -178,6 +180,8 @@ function TrabalheiLaMobile({
   };
 
   const getMedalColor = (index) => {
+      // Exemplo de uso de tradução:
+      // t('Processo de Recrutamento')
     if (index === 0) return "from-yellow-400 to-yellow-600";
     if (index === 1) return "from-gray-300 to-gray-500";
     if (index === 2) return "from-orange-300 to-orange-500";

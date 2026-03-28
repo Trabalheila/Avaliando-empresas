@@ -1,0 +1,15 @@
+{
+  "premium_plan": "Plano Premium",
+  "benefits": "Benefícios para Trabalhador",
+  "worker": "Trabalhador",
+  "employer": "Empresário",
+  "company_indicated": "Empresa indicada",
+  "compare_companies": "Comparacao clara entre empresas antes de aceitar proposta",
+  "real_trend": "Tendencia real de avaliacao para evitar cilada",
+  "report": "Relatório com pontos fortes e riscos para decidir melhor",
+  "payment_method": "Forma de pagamento",
+  "card": "Cartão",
+  "pix": "PIX",
+  "pix_note": "PIX usa pagamento unico. Cartao segue assinatura recorrente.",
+  "see_linkedin_jobs": "Ver vagas no LinkedIn"
+}

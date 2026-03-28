@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from 'react-i18next';
 
 /**
  * Exemplo de bloqueio visual para grafico premium.
@@ -16,9 +17,10 @@ export default function PremiumPieCard({
   onUnlock,
   isUnlocking = false,
 }) {
+  const { t } = useTranslation();
   return (
     <section className="relative bg-white rounded-2xl border border-slate-200 p-4 overflow-hidden">
-      <h3 className="text-sm font-extrabold text-slate-800 mb-3">{title}</h3>
+      <h3 className="text-sm font-extrabold text-slate-800 mb-3">{t(title) || title}</h3>
 
       <div className={isPremium ? "" : "pointer-events-none select-none blur-[6px] opacity-75"}>
         {children}
@@ -32,7 +34,7 @@ export default function PremiumPieCard({
             disabled={isUnlocking}
             className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition"
           >
-            {isUnlocking ? "Abrindo checkout..." : "Ver Dados Premium"}
+            {isUnlocking ? t('Abrindo checkout...') : t('Ver Dados Premium')}
           </button>
         </div>
       )}

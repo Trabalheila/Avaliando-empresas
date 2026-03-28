@@ -1,6 +1,8 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Routes, Route, useLocation, useNavigationType } from 'react-router-dom';
 import Home from './Home';
+import './i18n';
+import { useTranslation } from 'react-i18next';
 import AuthLinkedIn from './pages/AuthLinkedIn';
 import ChoosePseudonym from './pages/ChoosePseudonym';
 import CompanyDetails from './pages/CompanyDetails';
@@ -85,10 +87,13 @@ function getPreferredLanguage() {
 }
 
 function App() {
+  const { i18n, t } = useTranslation();
   const location = useLocation();
   const navigationType = useNavigationType();
   const [theme, setTheme] = useState(getPreferredTheme);
-  const [language, setLanguage] = useState(getPreferredLanguage);
+  const [language, setLanguage] = useState(() => {
+    return localStorage.getItem('i18nextLng') || getPreferredLanguage();
+  });
   const [currentLocation, setCurrentLocation] = useState(location);
   const [outgoingLocation, setOutgoingLocation] = useState(null);
   const [incomingLocation, setIncomingLocation] = useState(location);
@@ -105,9 +110,13 @@ function App() {
     window.localStorage.setItem('trabalheiLa_theme', theme);
   }, [theme]);
 
+
   useEffect(() => {
-    window.localStorage.setItem('trabalheiLa_lang', language);
-  }, [language]);
+    if (language && i18n.language !== language) {
+      i18n.changeLanguage(language);
+    }
+    window.localStorage.setItem('i18nextLng', language);
+  }, [language, i18n]);
 
   const toggleTheme = useMemo(() => {
     return () => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -173,11 +182,15 @@ function App() {
   return (
     <>
       <div className="w-full flex items-center justify-end px-4 py-2 bg-blue-50 border-b border-blue-100">
-        <label htmlFor="lang-select" className="mr-2 text-xs text-blue-900 font-semibold">Idioma:</label>
+        <label htmlFor="lang-select" className="mr-2 text-xs text-blue-900 font-semibold">{t('Idioma') || 'Idioma'}:</label>
         <select
           id="lang-select"
           value={language}
-          onChange={e => setLanguage(e.target.value)}
+          onChange={e => {
+            setLanguage(e.target.value);
+            i18n.changeLanguage(e.target.value);
+            localStorage.setItem('i18nextLng', e.target.value);
+          }}
           className="text-xs rounded border border-blue-200 px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
         >
           <option value="pt">Português</option>

@@ -1886,6 +1886,13 @@ function CompanyDetails({ theme, toggleTheme }) {
               <p className="mt-2 text-[11px] text-slate-500">
                 PIX usa pagamento unico. Cartao segue assinatura recorrente.
               </p>
+              <button
+                type="button"
+                className="mt-3 w-full py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
+                onClick={() => alert('Em breve: mais informações sobre pagamento premium!')}
+              >
+                Clique aqui
+              </button>
             </div>
           </section>
 
@@ -1996,7 +2003,8 @@ function CompanyDetails({ theme, toggleTheme }) {
                 <button
                   type="button"
                   onClick={() => navigate(`/empresa/comentarios-item?name=${encodeURIComponent(company.company)}&item=${field.key}`)}
-                  className="mt-3 text-xs font-semibold text-blue-700 hover:text-blue-900 hover:underline"
+                  className="mt-3 text-xs font-medium text-cyan-300 hover:text-white hover:underline focus:text-white focus:underline transition-colors"
+                  style={{ textShadow: '0 1px 6px #222, 0 0 2px #00eaff' }}
                 >
                   Ver comentários deste item ({itemCommentCounts[field.key] || 0})
                 </button>
