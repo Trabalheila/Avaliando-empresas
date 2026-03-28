@@ -22,6 +22,7 @@ import { updateDoc } from "firebase/firestore";
     }
     tryEnrichCompany();
   }, [company?.cnpj, company?.slug, company?.ramo, company?.cidade, company?.estado, company?.descricao]);
+
 import { getUserRole, isPremium } from "../utils/rbac";
 import { handleCheckout } from "../services/billing";
 import PremiumPieCard from "../components/PremiumPieCard";
@@ -200,6 +201,7 @@ function CompanyDetails({ theme, toggleTheme }) {
       return null;
     }
   }, [name]);
+
 
   // Enriquecimento automático via Brasil API
   React.useEffect(() => {
