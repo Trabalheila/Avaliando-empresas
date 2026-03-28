@@ -2,7 +2,7 @@
 import { Routes, Route, useLocation, useNavigationType } from 'react-router-dom';
 import Home from './Home';
 import './i18n';
-import { useTranslation } from 'react-i18next';
+
 import AuthLinkedIn from './pages/AuthLinkedIn';
 import ChoosePseudonym from './pages/ChoosePseudonym';
 import CompanyDetails from './pages/CompanyDetails';
@@ -79,15 +79,9 @@ function applyTheme(theme) {
 }
 
 
-function getPreferredLanguage() {
-  if (typeof window === 'undefined') return 'pt';
-  const stored = window.localStorage.getItem('trabalheiLa_lang');
-  if (stored) return stored;
-  return 'pt';
-}
 
-function App() {
-  const { i18n } = useTranslation();
+
+  //
   const location = useLocation();
   const navigationType = useNavigationType();
   const [theme, setTheme] = useState(getPreferredTheme);
