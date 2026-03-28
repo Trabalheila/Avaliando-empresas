@@ -108,12 +108,7 @@ function App() {
   }, [theme]);
 
 
-  useEffect(() => {
-    if (language && i18n.language !== language) {
-      i18n.changeLanguage(language);
-    }
-    window.localStorage.setItem('i18nextLng', language);
-  }, [language, i18n]);
+
 
   const toggleTheme = useMemo(() => {
     return () => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
