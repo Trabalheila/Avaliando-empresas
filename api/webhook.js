@@ -10,6 +10,53 @@ function normalizeCompanySlug(value) {
     .replace(/^-+|-+$/g, "");
 }
 
+function normalizeProviderValue(value) {
+  return (value || "")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z]/g, "");
+}
+
+function getWebhookProvider(req) {
+  const queryProvider = normalizeProviderValue(req.query?.provider || "");
+  if (queryProvider === "stripe") return "stripe";
+  if (queryProvider === "mercadopago" || queryProvider === "mp") return "mercadopago";
+
+  if (req.headers["stripe-signature"]) return "stripe";
+
+  const queryType = (req.query?.type || req.query?.topic || "").toString().trim().toLowerCase();
+  if (queryType === "payment" || queryType.startsWith("payment.")) return "mercadopago";
+
+  const bodyType = (req.body?.type || req.body?.action || "").toString().trim().toLowerCase();
+  if (bodyType === "payment" || bodyType.startsWith("payment.")) return "mercadopago";
+
+  return "stripe";
+}
+
+function normalizeAudience(value) {
+  return ["worker", "employer"].includes(value) ? value : "worker";
+}
+
+function toDigits(value) {
+  return (value || "").toString().replace(/\D/g, "");
+}
+
+function parseCompanyFromReference(reference) {
+  const ref = (reference || "").toString().trim();
+  const digits = toDigits(ref);
+
+  if (digits.length === 14) {
+    return { cnpj: digits, companySlug: "" };
+  }
+
+  if (ref.startsWith("slug:")) {
+    return { cnpj: "", companySlug: normalizeCompanySlug(ref.slice(5)) };
+  }
+
+  return { cnpj: "", companySlug: normalizeCompanySlug(ref) };
+}
+
 async function getRawBody(req) {
   if (Buffer.isBuffer(req.body)) return req.body;
   if (typeof req.body === "string") return Buffer.from(req.body);
@@ -41,6 +88,14 @@ function getStripeClient() {
     });
   }
   return stripeClient;
+}
+
+function getMercadoPagoAccessToken() {
+  const token = (process.env.MERCADO_PAGO_ACCESS_TOKEN || "").toString().trim();
+  if (!token) {
+    throw new Error("MERCADO_PAGO_ACCESS_TOKEN nao configurado.");
+  }
+  return token;
 }
 
 let adminResourcesPromise;
@@ -88,6 +143,15 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  const provider = getWebhookProvider(req);
+  if (provider === "mercadopago") {
+    return handleMercadoPagoWebhook(req, res);
+  }
+
+  return handleStripeWebhook(req, res);
+}
+
+async function handleStripeWebhook(req, res) {
   const signature = req.headers["stripe-signature"];
   if (!signature) {
     return res.status(400).json({ error: "Missing stripe-signature" });
@@ -129,9 +193,7 @@ export default async function handler(req, res) {
       : "";
     const companySlug = normalizeCompanySlug(metadata.companySlug || companySlugFromReference);
     const companyName = (metadata.companyName || "").toString().trim();
-    const audience = ["worker", "employer"].includes(metadata.audience)
-      ? metadata.audience
-      : "worker";
+    const audience = normalizeAudience(metadata.audience);
     const paymentMethod = metadata.paymentMethod === "pix" ? "pix" : "card";
     const billingMode = metadata.billingMode === "payment_pix" ? "payment_pix" : "subscription_card";
 
@@ -200,5 +262,153 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error("Erro ao processar webhook", err);
     return res.status(500).json({ error: "Falha ao processar webhook" });
+  }
+}
+
+function getMercadoPagoPaymentId(req) {
+  const queryDataId = req.query?.["data.id"];
+  const queryId = req.query?.id;
+  const bodyDataId = req.body?.data?.id;
+  const bodyId = req.body?.id;
+
+  const selected = queryDataId || bodyDataId || queryId || bodyId || "";
+  const digits = toDigits(selected);
+  return digits || "";
+}
+
+function getMercadoPagoNotificationType(req) {
+  const values = [
+    req.query?.type,
+    req.query?.topic,
+    req.body?.type,
+    req.body?.action,
+  ];
+
+  return values
+    .map((value) => (value || "").toString().trim().toLowerCase())
+    .find(Boolean) || "";
+}
+
+function mapMercadoPagoMethod(paymentMethodId) {
+  if ((paymentMethodId || "").toString().toLowerCase() === "pix") return "pix";
+  return "card";
+}
+
+async function fetchMercadoPagoPayment(paymentId) {
+  const token = getMercadoPagoAccessToken();
+  const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const responseText = await response.text();
+  let json;
+  try {
+    json = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    json = {};
+  }
+
+  if (!response.ok) {
+    const message = json?.message || "Falha ao consultar pagamento no Mercado Pago.";
+    throw new Error(message);
+  }
+
+  return json;
+}
+
+async function handleMercadoPagoWebhook(req, res) {
+  try {
+    const notificationType = getMercadoPagoNotificationType(req);
+    if (notificationType && notificationType !== "payment" && !notificationType.startsWith("payment.")) {
+      return res.status(200).json({ received: true, ignored: true, reason: "unsupported_notification_type" });
+    }
+
+    const paymentId = getMercadoPagoPaymentId(req);
+    if (!paymentId) {
+      return res.status(200).json({ received: true, ignored: true, reason: "missing_payment_id" });
+    }
+
+    const payment = await fetchMercadoPagoPayment(paymentId);
+    if ((payment?.status || "").toString().toLowerCase() !== "approved") {
+      return res.status(200).json({ received: true, ignored: true, reason: "payment_not_approved" });
+    }
+
+    const metadata = payment?.metadata || {};
+    const fromReference = parseCompanyFromReference(payment?.external_reference || "");
+    const cnpjFromMetadata = toDigits(metadata.cnpj);
+    const cnpj = cnpjFromMetadata.length === 14 ? cnpjFromMetadata : fromReference.cnpj;
+    const companySlug = normalizeCompanySlug(metadata.companySlug || fromReference.companySlug);
+    const companyName = (metadata.companyName || "").toString().trim();
+    const audience = normalizeAudience((metadata.audience || "").toString());
+    const paymentMethod = mapMercadoPagoMethod(payment?.payment_method_id || "");
+    const billingMode = paymentMethod === "pix" ? "payment_pix" : "payment_single";
+
+    if (!cnpj && !companySlug) {
+      return res.status(200).json({ received: true, ignored: true, reason: "missing_company_reference" });
+    }
+
+    const { db, FieldValue, Timestamp } = await getAdminResources();
+    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+    const dataExpiracao = Timestamp.fromDate(new Date(Date.now() + thirtyDaysMs));
+
+    const mercadoPagoData = {
+      provider: "mercadopago",
+      paymentId: payment.id || null,
+      status: payment.status || null,
+      statusDetail: payment.status_detail || null,
+      paymentMethodId: payment.payment_method_id || null,
+      payerEmail: payment?.payer?.email || null,
+      transactionAmount: payment.transaction_amount || null,
+      currencyId: payment.currency_id || "BRL",
+      cnpj: cnpj || null,
+      companySlug: companySlug || null,
+      audience,
+      paymentMethod,
+      billingMode,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    const writes = [];
+
+    if (cnpj) {
+      writes.push(
+        db.collection("empresas").doc(cnpj).set(
+          {
+            isPremium: true,
+            dataExpiracao,
+            billing: mercadoPagoData,
+            mercadopago: mercadoPagoData,
+          },
+          { merge: true }
+        )
+      );
+    }
+
+    if (companySlug) {
+      const companyPayload = {
+        slug: companySlug,
+        isPremium: true,
+        dataExpiracao,
+        billing: mercadoPagoData,
+        mercadopago: mercadoPagoData,
+      };
+      if (companyName) {
+        companyPayload.name = companyName;
+      }
+
+      writes.push(
+        db.collection("companies").doc(companySlug).set(companyPayload, { merge: true })
+      );
+    }
+
+    await Promise.all(writes);
+
+    return res.status(200).json({ received: true, updated: true, provider: "mercadopago" });
+  } catch (err) {
+    console.error("Erro ao processar webhook Mercado Pago", err);
+    return res.status(500).json({ error: err?.message || "Falha ao processar webhook Mercado Pago" });
   }
 }
