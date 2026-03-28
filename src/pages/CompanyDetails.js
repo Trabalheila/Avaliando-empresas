@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getCompanyLogoCandidates } from "../utils/getCompanyLogo";
 import { db } from "../firebase";
@@ -205,26 +205,32 @@ function CompanyDetails({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const name = searchParams.get("name");
+  const [company, setCompany] = useState(null);
 
-
-  const company = useMemo(() => {
-    if (!name) return null;
+  // Busca empresa ao montar/com nome mudar
+  useEffect(() => {
+    if (!name) {
+      setCompany(null);
+      return;
+    }
     try {
       const stored = localStorage.getItem("empresasData");
-      if (!stored) return null;
+      if (!stored) {
+        setCompany(null);
+        return;
+      }
       const empresas = JSON.parse(stored);
-      return empresas.find((emp) => emp.company === name) || null;
+      const found = empresas.find((emp) => emp.company === name) || null;
+      setCompany(found);
     } catch (err) {
-      return null;
+      setCompany(null);
     }
   }, [name]);
 
-
   // Enriquecimento automático via Brasil API
-  React.useEffect(() => {
+  useEffect(() => {
     async function tryEnrichCompany() {
       if (!company?.cnpj || !company?.slug) return;
-      // Só busca se faltar ramo/cidade/estado/descricao
       if (!company.ramo || !company.cidade || !company.estado || !company.descricao) {
         const enriched = await enrichCompanyWithBrasilAPI(company.cnpj);
         if (enriched) {
@@ -234,7 +240,7 @@ function CompanyDetails({ theme, toggleTheme }) {
       }
     }
     tryEnrichCompany();
-  }, [company?.cnpj, company?.slug, company?.ramo, company?.cidade, company?.estado, company?.descricao]);
+  }, [company]);
 
   const calculateAverage = (emp) => {
     if (!emp) return "--";
