@@ -1824,7 +1824,7 @@ function CompanyDetails({ theme, toggleTheme }) {
         <aside className="mt-6 lg:float-right lg:w-80 lg:ml-6 space-y-4">
           <section className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4">
             <p className="text-xs font-extrabold uppercase tracking-wide text-blue-700">Plano Premium</p>
-            <h3 className="text-sm font-bold text-slate-900 mt-1">Beneficios para {premiumAudienceLabel}</h3>
+            <h3 className="text-sm font-bold text-slate-900 mt-1">Benefícios para {premiumAudienceLabel}</h3>
 
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button
@@ -1847,7 +1847,7 @@ function CompanyDetails({ theme, toggleTheme }) {
                     : "bg-white text-blue-700 border-blue-200 hover:bg-blue-100"
                 }`}
               >
-                Empresario
+                Empresário
               </button>
             </div>
 
@@ -1857,42 +1857,18 @@ function CompanyDetails({ theme, toggleTheme }) {
               ))}
             </ul>
 
-            <div className="mt-4">
-              <p className="text-xs font-semibold text-blue-800 mb-1.5">Forma de pagamento</p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPremiumPaymentMethod("card")}
-                  className={`px-3 py-2 text-xs font-bold rounded-lg border transition ${
-                    premiumPaymentMethod === "card"
-                      ? "bg-slate-900 text-white border-slate-900"
-                      : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
-                  }`}
-                >
-                  Cartao
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPremiumPaymentMethod("pix")}
-                  className={`px-3 py-2 text-xs font-bold rounded-lg border transition ${
-                    premiumPaymentMethod === "pix"
-                      ? "bg-emerald-600 text-white border-emerald-600"
-                      : "bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50"
-                  }`}
-                >
-                  PIX
-                </button>
-              </div>
-              <p className="mt-2 text-[11px] text-slate-500">
-                PIX usa pagamento unico. Cartao segue assinatura recorrente.
-              </p>
+            <div className="mt-4 flex flex-col items-center">
               <button
                 type="button"
-                className="mt-3 w-full py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
-                onClick={() => alert('Em breve: mais informações sobre pagamento premium!')}
+                className="w-full py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
+                onClick={handlePremiumUnlock}
+                disabled={checkoutLoading}
               >
-                Clique aqui
+                TORNAR-SE PREMIUM
               </button>
+              <div className="text-xs text-slate-700 text-center mt-2">
+                O pagamento será realizado via Mercado Pago. Você poderá escolher a forma de pagamento (PIX, cartão, etc) dentro do checkout.
+              </div>
             </div>
           </section>
 
