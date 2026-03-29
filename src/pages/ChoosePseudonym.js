@@ -2,6 +2,8 @@ import React, { useCallback, useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getUserProfile, getUserProfileByCpf, saveUserProfile } from "../services/users";
 import { normalizeEmail, resolveProfileId } from "../utils/profileIdentity";
+import { extractResumeText, parseResumeText } from "../utils/resumeParser";
+import { getLinkedInRedirectUri } from "../utils/linkedinAuth";
 
 const predefinedAvatars = [
   "🧑", "🧑‍💼", "🧑‍🔧", "🧑‍💻", "🧑‍🔬", "👩‍🏫", "👨‍🍳", "👩‍⚕️", "👨‍🚀", "👩‍🎨",
@@ -96,6 +98,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   const [glassdoorText, setGlassdoorText] = useState("");
   const [manualCompany, setManualCompany] = useState("");
   const [manualRole, setManualRole] = useState("");
+  const [isParsingResume, setIsParsingResume] = useState(false);
   const [isCertifiedProfile, setIsCertifiedProfile] = useState(false);
   const [isVerificationPending, setIsVerificationPending] = useState(false);
   const [verifiedCompany, setVerifiedCompany] = useState("");
@@ -260,6 +263,37 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     }
   }, [avatar]);
 
+  const handleResumeUpload = useCallback(async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError(null);
+    setInfo("");
+    setIsParsingResume(true);
+
+    try {
+      const text = await extractResumeText(file);
+      const parsed = parseResumeText(text, []);
+      const imported = (parsed.experiencesStructured || []).map((item) => ({
+        company: item.company || "",
+        role: item.role || "",
+        source: "curriculo",
+        verified: false,
+      })).filter((item) => item.company || item.role);
+
+      if (imported.length > 0) {
+        setStructuredExperiences((prev) => dedupeExperiences([...prev, ...imported]));
+        setInfo(`Importamos ${imported.length} experiência(s) do currículo.`);
+      } else {
+        setInfo("Não encontramos experiências no currículo. Tente adicionar manualmente.");
+      }
+    } catch (err) {
+      setError(err?.message || "Não foi possível ler o currículo automaticamente.");
+    } finally {
+      setIsParsingResume(false);
+      e.target.value = "";
+    }
+  }, []);
+
   const handleFillFromLinkedIn = useCallback(async () => {
     try {
       const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
@@ -286,6 +320,34 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         } catch (err) {
           console.warn("Falha ao buscar dados remotos da conta:", err);
         }
+      }
+
+      const provider = (mergedProfile?.loginProvider || "").toString().toLowerCase();
+      const hasLinkedInData = provider === "linkedin" || Boolean(mergedProfile?.linkedInUrl);
+
+      // Se não tem login LinkedIn, inicia o fluxo OAuth
+      if (!hasLinkedInData) {
+        const clientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID || "";
+        const redirectUri = getLinkedInRedirectUri();
+
+        if (!clientId || clientId.trim().length < 5) {
+          setError("Client ID do LinkedIn não configurado. Defina REACT_APP_LINKEDIN_CLIENT_ID no arquivo .env");
+          return;
+        }
+
+        const state = Math.random().toString(36).slice(2);
+        try { sessionStorage.setItem("linkedin_oauth_state", state); } catch { /* ignore */ }
+
+        const params = new URLSearchParams({
+          response_type: "code",
+          client_id: clientId,
+          redirect_uri: redirectUri,
+          scope: "openid profile email",
+          state,
+        });
+
+        window.location.assign(`https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`);
+        return;
       }
 
       const fallbackName = [mergedProfile?.localizedFirstName, mergedProfile?.localizedLastName]
@@ -592,20 +654,41 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 </p>
               </div>
 
+              {/* 0. Upload de Currículo */}
+              <div className="bg-white dark:bg-slate-900 rounded-xl border border-blue-200 dark:border-slate-600 p-4">
+                <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">
+                  Carregar currículo (PDF, DOCX, TXT)
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
+                  O sistema extrai automaticamente empresa e cargo de cada experiência.
+                </p>
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.txt,.md,.rtf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                  onChange={handleResumeUpload}
+                  className="w-full text-sm"
+                />
+                {isParsingResume && (
+                  <p className="text-xs text-blue-700 mt-2">Lendo e interpretando currículo...</p>
+                )}
+              </div>
+
               {/* 1. LinkedIn OAuth */}
               <div className="bg-white dark:bg-slate-900 rounded-xl border border-blue-200 dark:border-slate-600 p-4">
                 <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">
                   LinkedIn (verificado automaticamente)
                 </p>
                 <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
-                  Experiências importadas via login LinkedIn recebem selo de autenticidade.
+                  {isLinkedInLogin
+                    ? "Experiências importadas via login LinkedIn recebem selo de autenticidade."
+                    : "Clique para entrar com LinkedIn e importar suas experiências com selo de autenticidade."}
                 </p>
                 <button
                   type="button"
                   onClick={handleFillFromLinkedIn}
                   className="w-full py-2.5 rounded-xl border border-blue-200 text-blue-700 font-semibold hover:bg-blue-50 transition"
                 >
-                  Importar do LinkedIn
+                  {isLinkedInLogin ? "Importar do LinkedIn" : "Entrar com LinkedIn e importar"}
                 </button>
                 {isLinkedInLogin && (
                   <p className="text-xs text-emerald-700 mt-2">Login LinkedIn detectado.</p>
