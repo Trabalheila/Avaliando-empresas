@@ -475,7 +475,6 @@ function CompanyDetails({ theme, toggleTheme }) {
         setItemCommentCounts(nextCounts);
         const reviewCount = (reviews || []).length;
         setCompanyReviewCount(reviewCount);
-        setCompanySourceStats(nextSourceStats);
         setCompanyAverages(
           Object.fromEntries(
             metricKeys.map((key) => [
@@ -488,7 +487,6 @@ function CompanyDetails({ theme, toggleTheme }) {
         if (!alive) return;
         setItemCommentCounts({});
         setCompanyReviewCount(0);
-        setCompanySourceStats({ indicacao: 0, siteVagas: 0, gruposWhatsapp: 0, redesSociais: 0 });
         setCompanyAverages({});
       }
     };
@@ -1330,7 +1328,6 @@ function CompanyDetails({ theme, toggleTheme }) {
     const loadCompareSnapshot = async () => {
       if (!userIsPremium || !compareTargetSlug) {
         if (alive) {
-          setCompareSnapshot(null);
           // Linha removida: setCompareError não é mais usado
         }
         return;
@@ -1358,15 +1355,8 @@ function CompanyDetails({ theme, toggleTheme }) {
         );
 
         const target = compareOptions.find((item) => item.slug === compareTargetSlug);
-        setCompareSnapshot({
-          slug: compareTargetSlug,
-          name: target?.name || compareTargetSlug,
-          count,
-          averages,
-        });
       } catch (err) {
         if (!alive) return;
-        setCompareSnapshot(null);
         // Linha removida: setCompareError não é mais usado
       } finally {
         if (!alive) return;
