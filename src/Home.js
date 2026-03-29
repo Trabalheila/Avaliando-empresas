@@ -5,7 +5,7 @@ import TrabalheiLaDesktop from "./TrabalheiLaDesktop";
 import { empresasBrasileiras } from "./empresas";
 import { saveReview, listRecentReviews } from "./services/reviews";
 import { saveCompany, listCompanies } from "./services/companies";
-import { getUserProfile, saveUserProfile } from "./services/users";
+import { getUserProfile, saveUserProfile, findUnifiedProfile } from "./services/users";
 import { auth, db } from "./firebase";
 import { signInAnonymously, signInWithPopup, signOut } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
@@ -966,14 +966,28 @@ function Home({ theme, toggleTheme }) {
   }, [navigate]);
 
   const loadPersistedProfile = useCallback(async (profile) => {
-    const candidates = [];
     const resolvedId = resolveProfileId(profile, { persistGeneratedId: false });
     const rawId = (profile?.id || "").toString().trim();
     const email = normalizeEmail(profile?.email);
+    const cpf = (profile?.cpf || "").toString().replace(/\D/g, "");
 
+    // Busca unificada: tenta ID direto, depois email, depois CPF
+    try {
+      const unified = await findUnifiedProfile({
+        id: resolvedId || rawId || undefined,
+        email: email || undefined,
+        cpf: cpf || undefined,
+      });
+      if (unified) return unified;
+    } catch {
+      // fallback para busca por candidatos
+    }
+
+    // Fallback: tenta IDs alternativos
+    const candidates = [];
     if (resolvedId) candidates.push(resolvedId);
     if (rawId && !candidates.includes(rawId)) candidates.push(rawId);
-    if (email && !candidates.includes(email)) candidates.push(email);
+    if (email && !candidates.includes(`email:${email}`)) candidates.push(`email:${email}`);
 
     for (const candidate of candidates) {
       try {
@@ -1031,13 +1045,22 @@ function Home({ theme, toggleTheme }) {
           picture: incomingPicture || existingProfile?.picture || existingProfile?.avatar || "",
         };
 
-        const profileId = resolveProfileId(mergedProfile);
+        let profileId = resolveProfileId(mergedProfile);
         try {
           const persisted = await loadPersistedProfile({ ...mergedProfile, profileId });
           if (persisted) {
+            // Usa o ID do perfil existente para unificar contas
+            profileId = persisted.id || persisted.profileId || profileId;
+            const existingLinked = Array.isArray(persisted.linkedAccounts) ? persisted.linkedAccounts : [];
+            const alreadyHasLinkedin = existingLinked.some((a) => a.provider === "linkedin");
+            const linkedAccounts = alreadyHasLinkedin
+              ? existingLinked
+              : [...existingLinked, { provider: "linkedin", linkedAt: new Date().toISOString() }];
+
             mergedProfile = {
               ...persisted,
               ...mergedProfile,
+              linkedAccounts,
               resumeData: {
                 ...(persisted.resumeData || {}),
                 ...(mergedProfile.resumeData || {}),
@@ -1141,13 +1164,22 @@ function Home({ theme, toggleTheme }) {
         picture: googleData.picture || existingProfile.picture || existingProfile.avatar || "",
       };
 
-      const profileId = resolveProfileId(mergedProfile);
+      let profileId = resolveProfileId(mergedProfile);
       try {
         const persisted = await loadPersistedProfile({ ...mergedProfile, profileId });
         if (persisted) {
+          // Usa o ID do perfil existente para unificar contas
+          profileId = persisted.id || persisted.profileId || profileId;
+          const existingLinked = Array.isArray(persisted.linkedAccounts) ? persisted.linkedAccounts : [];
+          const alreadyHasGoogle = existingLinked.some((a) => a.provider === "google");
+          const linkedAccounts = alreadyHasGoogle
+            ? existingLinked
+            : [...existingLinked, { provider: "google", linkedAt: new Date().toISOString() }];
+
           mergedProfile = {
             ...persisted,
             ...mergedProfile,
+            linkedAccounts,
             resumeData: {
               ...(persisted.resumeData || {}),
               ...(mergedProfile.resumeData || {}),

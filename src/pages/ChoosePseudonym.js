@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { getUserProfile, getUserProfileByCpf, saveUserProfile } from "../services/users";
+import { getUserProfile, getUserProfileByCpf, saveUserProfile, findUnifiedProfile } from "../services/users";
 import { normalizeEmail, resolveProfileId } from "../utils/profileIdentity";
 import { extractResumeText, parseResumeText } from "../utils/resumeParser";
 import { getLinkedInRedirectUri } from "../utils/linkedinAuth";
@@ -71,14 +71,28 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   const avatarUploadInputRef = useRef(null);
 
   const loadPersistedProfile = useCallback(async (profile) => {
-    const candidates = [];
     const resolvedId = resolveProfileId(profile, { persistGeneratedId: false });
     const rawId = (profile?.id || "").toString().trim();
     const profileEmail = normalizeEmail(profile?.email);
+    const profileCpf = (profile?.cpf || "").toString().replace(/\D/g, "");
 
+    // Busca unificada: tenta ID, email, CPF
+    try {
+      const unified = await findUnifiedProfile({
+        id: resolvedId || rawId || undefined,
+        email: profileEmail || undefined,
+        cpf: profileCpf || undefined,
+      });
+      if (unified) return unified;
+    } catch {
+      // fallback
+    }
+
+    // Fallback: tenta IDs alternativos
+    const candidates = [];
     if (resolvedId) candidates.push(resolvedId);
     if (rawId && !candidates.includes(rawId)) candidates.push(rawId);
-    if (profileEmail && !candidates.includes(profileEmail)) candidates.push(profileEmail);
+    if (profileEmail && !candidates.includes(`email:${profileEmail}`)) candidates.push(`email:${profileEmail}`);
 
     for (const candidate of candidates) {
       try {
@@ -448,9 +462,24 @@ function ChoosePseudonym({ theme, toggleTheme }) {
 
       localStorage.setItem("userPseudonym", trimmed);
 
+      // Tenta encontrar perfil unificado para manter o mesmo ID
+      let unifiedId = resolveProfileId(existingProfile);
+      try {
+        const unified = await findUnifiedProfile({
+          id: unifiedId || undefined,
+          email: email.trim().toLowerCase() || undefined,
+          cpf: cpfNumbers || undefined,
+        });
+        if (unified?.id) {
+          unifiedId = unified.id;
+        }
+      } catch {
+        // usa o ID gerado normalmente
+      }
+
       const nextProfile = {
         ...existingProfile,
-        profileId: resolveProfileId(existingProfile),
+        profileId: unifiedId,
         name: trimmed,
         pseudonimo: trimmed,
         fullName: fullName.trim() || undefined,

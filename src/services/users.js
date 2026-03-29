@@ -39,6 +39,45 @@ export async function getUserProfileByCpf(cpf) {
   return { id: first.id, ...first.data() };
 }
 
+export async function getUserProfileByEmail(email) {
+  const normalized = (email || "").toString().trim().toLowerCase();
+  if (!normalized) return null;
+
+  const usersRef = collection(db, "users");
+  const q = query(usersRef, where("email", "==", normalized), limit(1));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+
+  const first = snap.docs[0];
+  return { id: first.id, ...first.data() };
+}
+
+/**
+ * Tenta encontrar um perfil unificado por qualquer identificador disponível.
+ * Ordem: ID direto → email → CPF. Retorna o primeiro encontrado.
+ */
+export async function findUnifiedProfile({ id, email, cpf } = {}) {
+  // 1. Tenta pelo ID direto
+  if (id) {
+    const byId = await getUserProfile(id);
+    if (byId) return byId;
+  }
+
+  // 2. Tenta pelo email (pode estar salvo com outro ID de provider)
+  if (email) {
+    const byEmail = await getUserProfileByEmail(email);
+    if (byEmail) return byEmail;
+  }
+
+  // 3. Tenta pelo CPF
+  if (cpf) {
+    const byCpf = await getUserProfileByCpf(cpf);
+    if (byCpf) return byCpf;
+  }
+
+  return null;
+}
+
 export async function deleteUserProfile(id) {
   if (!id) return false;
   const ref = doc(db, "users", id.toString());
