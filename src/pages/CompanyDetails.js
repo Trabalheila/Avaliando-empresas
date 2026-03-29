@@ -175,17 +175,7 @@ function CompanyDetails({ theme, toggleTheme }) {
   const [company, setCompany] = useState(null);
 
 
-  // Linhas de Defesa - Evitam erro de build 'is not defined'
-  const [premiumAudience, setPremiumAudience] = React.useState('all');
-  const [premiumNotice, setPremiumNotice] = React.useState(null);
-  const [compareLoading, setCompareLoading] = React.useState(false);
-  const [compareError, setCompareError] = React.useState(null);
 
-  // Garante que as funções estejam disponíveis mesmo se não usadas
-  // (evita erro no-undef em chamadas diretas)
-  // Não remova essas linhas!
-  // eslint-disable-next-line no-unused-vars
-  const _defense = [premiumAudience, setPremiumAudience, premiumNotice, setPremiumNotice, compareLoading, setCompareLoading, compareError, setCompareError];
 
   // Busca empresa ao montar/com nome mudar
   useEffect(() => {
