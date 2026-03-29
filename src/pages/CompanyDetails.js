@@ -318,12 +318,7 @@ function CompanyDetails({ theme, toggleTheme }) {
   const [itemCommentCounts, setItemCommentCounts] = React.useState({});
   const [companyReviewCount, setCompanyReviewCount] = React.useState(0);
   const [companyAverages, setCompanyAverages] = React.useState({});
-  const [companySourceStats, setCompanySourceStats] = React.useState({
-    indicacao: 0,
-    siteVagas: 0,
-    gruposWhatsapp: 0,
-    redesSociais: 0,
-  });
+
 
   const average = companyReviewCount > 0
     ? calculateAverage({ ...company, ...companyAverages })
@@ -1385,23 +1380,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     };
   }, [userIsPremium, compareTargetSlug, compareOptions, scoreFields]);
 
-  const comparisonRows = useMemo(() => {
-    if (!compareSnapshot?.averages) return [];
-    return scoreFields
-      .map((field) => {
-        const currentValue = Number(currentMetrics?.[field.key]) || 0;
-        const targetValue = Number(compareSnapshot.averages?.[field.key]) || 0;
-        return {
-          key: field.key,
-          label: field.label,
-          currentValue,
-          targetValue,
-          delta: Number((currentValue - targetValue).toFixed(2)),
-        };
-      })
-      .filter((row) => row.currentValue > 0 || row.targetValue > 0)
-      .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
-  }, [scoreFields, currentMetrics, compareSnapshot]);
+
 
   const premiumRadar = useMemo(() => {
     const entries = scoreFields
@@ -1426,41 +1405,9 @@ function CompanyDetails({ theme, toggleTheme }) {
 
   // Removido: handleDownloadPremiumReport pois não é mais usado
 
-  const sourceConfig = [
-    { key: "indicacao", label: "Indicação", color: "#2563eb" },
-    { key: "siteVagas", label: "Site de vagas", color: "#16a34a" },
-    { key: "gruposWhatsapp", label: "Grupos WhatsApp", color: "#d97706" },
-    { key: "redesSociais", label: "Redes sociais", color: "#9333ea" },
-  ];
 
-  const buildPieData = (stats, config) => {
-    const total = config.reduce((sum, item) => sum + (stats?.[item.key] || 0), 0);
-    if (!total) {
-      return {
-        chart: "#e5e7eb 0deg 360deg",
-        items: config.map((item) => ({ ...item, percent: 0 })),
-      };
-    }
 
-    let cursor = 0;
-    const items = config.map((item) => {
-      const value = stats?.[item.key] || 0;
-      const percent = (value / total) * 100;
-      const deg = (percent / 100) * 360;
-      const start = cursor;
-      cursor += deg;
-      return {
-        ...item,
-        percent,
-        slice: `${item.color} ${start.toFixed(2)}deg ${cursor.toFixed(2)}deg`,
-      };
-    });
 
-    return {
-      chart: items.filter((item) => item.percent > 0).map((item) => item.slice).join(", "),
-      items,
-    };
-  };
 
   // Removido: companySourcePieData pois não é mais usado
 
