@@ -1330,7 +1330,7 @@ function CompanyDetails({ theme, toggleTheme }) {
         if (!alive) return;
 
         const totals = Object.fromEntries(scoreFields.map((field) => [field.key, 0]));
-        const count = (reviews || []).length;
+
         for (const review of reviews || []) {
           for (const field of scoreFields) {
             totals[field.key] += Number(review?.[field.key]) || 0;
