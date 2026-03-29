@@ -300,7 +300,7 @@ function TrabalheiLaDesktop({
           </div>
         </header>
 
-        <div className="h-[23rem]" />
+        <div className="h-8" />
 
         {/* CONTEÚDO - 2 COLUNAS */}
         <div className="flex gap-6 mb-8">

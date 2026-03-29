@@ -203,6 +203,15 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     }
   }, [navigate, applyProfileToState, loadPersistedProfile]);
 
+  // Fix 3: auto-trigger LinkedIn import after redirect back
+  const linkedInAutoImportDone = useRef(false);
+  useEffect(() => {
+    if (isLinkedInLogin && !linkedInAutoImportDone.current && initialLoadDone.current) {
+      linkedInAutoImportDone.current = true;
+      handleFillFromLinkedIn();
+    }
+  }, [isLinkedInLogin, handleFillFromLinkedIn]);
+
   const convertFileToDataUrl = (file) =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -654,13 +663,14 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 </p>
               </div>
 
-              {/* 0. Upload de Currículo */}
+              {/* 0. Importar via currículo do LinkedIn (PDF) */}
               <div className="bg-white dark:bg-slate-900 rounded-xl border border-blue-200 dark:border-slate-600 p-4">
                 <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">
-                  Carregar currículo (PDF, DOCX, TXT)
+                  Importar via currículo do LinkedIn
                 </p>
                 <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
-                  O sistema extrai automaticamente empresa e cargo de cada experiência.
+                  Acesse <strong>linkedin.com/in/seu-perfil → Mais → Salvar como PDF</strong> e faça upload do arquivo aqui.
+                  O parsing desse PDF é mais estruturado e confiável.
                 </p>
                 <input
                   type="file"
@@ -695,102 +705,23 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 )}
               </div>
 
-              {/* 2. Solides — colagem de texto */}
+              {/* Adicionar manualmente */}
               <div className="bg-white dark:bg-slate-900 rounded-xl border border-blue-200 dark:border-slate-600 p-4">
-                <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">
-                  Solides (colagem de texto)
-                </p>
-                <p className="text-xs text-slate-600 dark:text-slate-300 mb-2">
-                  Cole o texto da seção de experiências do seu perfil Solides.
-                </p>
-                <textarea
-                  value={solidesText}
-                  onChange={(e) => setSolidesText(e.target.value)}
-                  rows={4}
-                  placeholder="Cole aqui o texto do seu perfil Solides..."
-                  className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
-                />
-                <button
-                  type="button"
-                  onClick={handleImportSolidesText}
-                  className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700"
-                >
-                  Importar do Solides
-                </button>
-              </div>
-
-              {/* 3. Glassdoor — colagem de texto */}
-              <div className="bg-white dark:bg-slate-900 rounded-xl border border-blue-200 dark:border-slate-600 p-4">
-                <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">
-                  Glassdoor (colagem de texto)
-                </p>
-                <p className="text-xs text-slate-600 dark:text-slate-300 mb-2">
-                  Cole o texto da seção de experiências do seu perfil Glassdoor.
-                </p>
-                <textarea
-                  value={glassdoorText}
-                  onChange={(e) => setGlassdoorText(e.target.value)}
-                  rows={4}
-                  placeholder="Cole aqui o texto do seu perfil Glassdoor..."
-                  className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
-                />
-                <button
-                  type="button"
-                  onClick={handleImportGlassdoorText}
-                  className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700"
-                >
-                  Importar do Glassdoor
-                </button>
-              </div>
-
-              {/* Não tem conta? Criar conta */}
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-600 p-4">
-                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">
-                  Não tem conta em nenhuma plataforma?
-                </p>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <a
-                    href="https://www.linkedin.com/signup"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition"
-                  >
-                    Criar conta no LinkedIn
-                  </a>
-                  <a
-                    href="https://www.solides.com.br"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition"
-                  >
-                    Criar conta no Solides
-                  </a>
-                  <a
-                    href="https://www.glassdoor.com.br/member/join.htm"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition"
-                  >
-                    Criar conta no Glassdoor
-                  </a>
-                </div>
-
-                {/* Adicionar manualmente */}
-                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-                  Ou adicione manualmente
+                <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                  Adicionar manualmente
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <input
                     value={manualCompany}
                     onChange={(e) => setManualCompany(e.target.value)}
-                    placeholder="Empresa"
-                    className="w-full p-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+                    placeholder="Nome da empresa"
+                    className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
                   />
                   <input
                     value={manualRole}
                     onChange={(e) => setManualRole(e.target.value)}
-                    placeholder="Cargo / Função"
-                    className="w-full p-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+                    placeholder="Cargo / Função exercida"
+                    className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
                   />
                 </div>
                 <button
@@ -816,10 +747,10 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                       >
                         <div className="min-w-0">
                           <div className="font-semibold text-sm text-slate-800 dark:text-slate-100 truncate">
-                            {exp.role || "Cargo não informado"}
-                          </div>
-                          <div className="text-xs text-slate-500 truncate">
-                            {exp.company || "Empresa não informada"}
+                            {exp.company
+                              ? exp.company
+                              : <span className="text-red-600">Empresa não identificada</span>}
+                            {exp.role ? ` — ${exp.role}` : ""}
                           </div>
                           <div className="flex items-center gap-2 mt-1">
                             <span

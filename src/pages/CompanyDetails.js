@@ -285,6 +285,13 @@ function CompanyDetails({ theme, toggleTheme }) {
     // RBAC
     const userRole = React.useMemo(() => getUserRole(), []);
     const userIsPremium = React.useMemo(() => isPremium(), []);
+    const userIsLoggedIn = React.useMemo(() => {
+      try {
+        const p = JSON.parse(localStorage.getItem("userProfile") || "{}");
+        const provider = (p?.loginProvider || "").toString().toLowerCase();
+        return provider && provider !== "anonymous" && !p?.fallback;
+      } catch { return false; }
+    }, []);
 
     // Dashboard premium: dados de tendência por período
     const [trendData, setTrendData] = React.useState([]);
@@ -298,6 +305,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     // Removidos: premiumNotice, setPremiumNotice, premiumAudience, setPremiumAudience pois não são mais usados
   // Removido premiumPaymentMethod e setPremiumPaymentMethod pois não são mais usados
   const [compareOptions, setCompareOptions] = React.useState([]);
+    const [showEmpresaBreveModal, setShowEmpresaBreveModal] = React.useState(false);
   const [compareTargetSlug, setCompareTargetSlug] = React.useState("");
 
   // Removidos: compareLoading, setCompareLoading, compareError, setCompareError pois não são mais usados
@@ -1687,19 +1695,19 @@ function CompanyDetails({ theme, toggleTheme }) {
           </div>
         )}
 
-        <aside className="mt-6 lg:float-right lg:w-80 lg:ml-6">
-          {/* BLOCO ÚNICO ESTRATÉGICO DO PREMIUM */}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Card 1 — Premium Trabalhador */}
           <section className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 flex flex-col items-center text-center">
-            <h2 className="text-2xl font-extrabold text-blue-700 mb-2 uppercase">Plano Premium</h2>
-            <p className="text-base font-semibold text-slate-900 mb-3">Acesso exclusivo a relatórios, comparativos e tendências para tomar decisões melhores.</p>
+            <h2 className="text-lg font-extrabold text-blue-700 mb-1 uppercase">Premium Trabalhador</h2>
+            <p className="text-2xl font-bold text-slate-900 mb-3">R$ 29,90<span className="text-sm font-medium text-slate-600">/mês</span></p>
             <ul className="text-sm text-slate-800 mb-4 pl-4 list-disc text-left max-w-xs mx-auto">
               <li>Compare empresas antes de aceitar propostas</li>
-              <li>Veja tendências reais de avaliação e evite ciladas</li>
-              <li>Receba relatórios executivos com pontos fortes e riscos</li>
-              <li>Dashboard detalhado para análise de desempenho</li>
+              <li>Veja avaliações reais e tendências</li>
+              <li>Relatórios executivos com pontos fortes e riscos</li>
+              <li>Dashboard de análise de ambiente e cultura</li>
             </ul>
             <div className="bg-blue-100 rounded-xl p-3 mb-3 text-blue-900 text-sm font-medium shadow-inner">
-              <span className="font-bold">Destaque:</span> Usuários Premium relatam até <span className="font-bold">3x mais segurança</span> na escolha de empresas.
+              <span className="font-bold">Destaque:</span> Quem é Premium sente até <span className="font-bold">3x mais segurança</span> na escolha do emprego.
             </div>
             <button
               type="button"
@@ -1713,8 +1721,32 @@ function CompanyDetails({ theme, toggleTheme }) {
               Pagamento via Mercado Pago. Escolha PIX, cartão ou boleto no checkout.
             </div>
           </section>
-        {/* Fim do bloco aside Premium */}
-        </aside>
+
+          {/* Card 2 — Premium Empresa */}
+          <section className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl p-6 flex flex-col items-center text-center">
+            <h2 className="text-lg font-extrabold text-indigo-700 mb-1 uppercase">Premium Empresa</h2>
+            <p className="text-2xl font-bold text-slate-900 mb-3">R$ 2.999,99<span className="text-sm font-medium text-slate-600">/ano</span></p>
+            <ul className="text-sm text-slate-800 mb-4 pl-4 list-disc text-left max-w-xs mx-auto">
+              <li>Compare sua empresa com concorrentes em tempo real</li>
+              <li>Identifique tendências e riscos do setor</li>
+              <li>Relatórios executivos com oportunidades e ameaças</li>
+              <li>Benchmarks exclusivos e reputação de mercado</li>
+            </ul>
+            <div className="bg-indigo-100 rounded-xl p-3 mb-3 text-indigo-900 text-sm font-medium shadow-inner">
+              <span className="font-bold">Destaque:</span> Empresas Premium aumentam em até <span className="font-bold">3x a assertividade</span> nas decisões.
+            </div>
+            <button
+              type="button"
+              className="w-full max-w-xs py-3 rounded-lg bg-indigo-600 text-white text-lg font-bold hover:bg-indigo-700 transition mb-2"
+              onClick={() => setShowEmpresaBreveModal(true)}
+            >
+              Quero Premium Empresa
+            </button>
+            <div className="text-xs text-slate-700 text-center mt-1">
+              Plano anual para gestores e RH.
+            </div>
+          </section>
+        </div>
 
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
           {scoreFields.map((field) => {
@@ -1895,8 +1927,9 @@ function CompanyDetails({ theme, toggleTheme }) {
             <div>
               <p className="font-bold text-indigo-800 text-sm">Dashboard Detalhado — Premium</p>
               <p className="text-xs text-indigo-600 mt-0.5">
-                Veja a tendência de cada quesito mês a mês e filtre por período.
-                Disponível para gestores cadastrados como <strong>Admin Empresa</strong>.
+                {userIsLoggedIn
+                  ? "Assine o Premium Trabalhador para desbloquear o Dashboard Detalhado."
+                  : "Faça login para ver mais."}
               </p>
             </div>
           </div>
@@ -1911,11 +1944,13 @@ function CompanyDetails({ theme, toggleTheme }) {
             {!userIsPremium && (
               <button
                 type="button"
-                onClick={handlePremiumUnlock}
-                disabled={checkoutLoading}
+                onClick={userIsLoggedIn ? handlePremiumUnlock : () => navigate("/")}
+                disabled={userIsLoggedIn && checkoutLoading}
                 className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-70"
               >
-                {checkoutLoading ? "Abrindo checkout..." : "Desbloquear Premium"}
+                {userIsLoggedIn
+                  ? (checkoutLoading ? "Abrindo checkout..." : "Assine Premium Trabalhador")
+                  : "Faça login para ver mais"}
               </button>
             )}
           </div>
@@ -1952,49 +1987,49 @@ function CompanyDetails({ theme, toggleTheme }) {
         </div>
 
         <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
-          <h2 className="text-lg font-bold text-blue-800 font-azonix tracking-[0.08em] mb-4">Sobre a empresa</h2>
-          <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 space-y-3">
+          <h2 className="text-lg font-bold text-[#1a237e] dark:text-blue-300 font-azonix tracking-[0.08em] mb-4">Sobre a empresa</h2>
+          <div className="bg-blue-50 dark:bg-slate-800 rounded-xl p-4 border border-blue-100 dark:border-slate-700 space-y-3">
             {insightsLoading && (
-              <p className="text-sm text-blue-700 font-semibold">Buscando dados automaticos da empresa...</p>
+              <p className="text-sm text-[#1a237e] dark:text-blue-300 font-semibold">Buscando dados automaticos da empresa...</p>
             )}
             <div>
-              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Descricao automatica</p>
-              <p className="text-sm text-slate-800 font-medium">{companyInfo?.description}</p>
+              <p className="text-xs font-semibold text-[#1a237e] dark:text-blue-300 uppercase tracking-wide">Descricao automatica</p>
+              <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">{companyInfo?.description}</p>
               {companyInfo?.description?.includes("Não identificado") && (
                 <button className="mt-1 text-xs text-blue-600 underline" onClick={() => alert('Sugestão: envie um email para contato@trabalheila.com.br com as informações da empresa!')}>Sugerir informações desta empresa</button>
               )}
             </div>
             <div>
-              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Ramo</p>
-              <p className="text-sm text-slate-800 font-medium">{companyInfo?.sector}</p>
+              <p className="text-xs font-semibold text-[#1a237e] dark:text-blue-300 uppercase tracking-wide">Ramo</p>
+              <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">{companyInfo?.sector}</p>
               {companyInfo?.sector?.includes("Não identificado") && (
                 <button className="mt-1 text-xs text-blue-600 underline" onClick={() => alert('Sugestão: envie um email para contato@trabalheila.com.br com o ramo da empresa!')}>Sugerir informações desta empresa</button>
               )}
             </div>
             <div>
-              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Localização</p>
-              <p className="text-sm text-slate-800 font-medium">{companyInfo?.location}</p>
+              <p className="text-xs font-semibold text-[#1a237e] dark:text-blue-300 uppercase tracking-wide">Localização</p>
+              <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">{companyInfo?.location}</p>
               {companyInfo?.location?.includes("Não identificado") && (
                 <button className="mt-1 text-xs text-blue-600 underline" onClick={() => alert('Sugestão: envie um email para contato@trabalheila.com.br com a localização da empresa!')}>Sugerir informações desta empresa</button>
               )}
             </div>
             <div>
-              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">CNPJ</p>
-              <p className="text-sm text-slate-800 font-medium">{companyInfo?.cnpj}</p>
+              <p className="text-xs font-semibold text-[#1a237e] dark:text-blue-300 uppercase tracking-wide">CNPJ</p>
+              <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">{companyInfo?.cnpj}</p>
             </div>
             <div>
-              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Site</p>
-              <p className="text-sm text-slate-800 font-medium break-all">{companyInfo?.website}</p>
+              <p className="text-xs font-semibold text-[#1a237e] dark:text-blue-300 uppercase tracking-wide">Site</p>
+              <p className="text-sm text-slate-800 dark:text-slate-200 font-medium break-all">{companyInfo?.website}</p>
               {companyInfo?.website?.includes("Não identificado") && (
                 <button className="mt-1 text-xs text-blue-600 underline" onClick={() => alert('Sugestão: envie um email para contato@trabalheila.com.br com o site da empresa!')}>Sugerir informações desta empresa</button>
               )}
             </div>
             <div>
-              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Redes sociais</p>
+              <p className="text-xs font-semibold text-[#1a237e] dark:text-blue-300 uppercase tracking-wide">Redes sociais</p>
               <div className="mt-1 space-y-1">
                 {(companyInfo?.socialLinks || []).map((item) => (
                   <div key={item.label}>
-                    <p className="text-sm text-slate-800 font-medium">
+                    <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">
                       {item.label}: {item.value}
                     </p>
                     {item.value?.includes("Não identificado") && (
@@ -2246,6 +2281,26 @@ function CompanyDetails({ theme, toggleTheme }) {
           </div>
         </div>
       </div>
+
+      {/* Modal "Em breve" para Premium Empresa */}
+      {showEmpresaBreveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowEmpresaBreveModal(false)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-8 max-w-sm mx-4 text-center" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-indigo-800 dark:text-indigo-300 mb-3">Em breve</h3>
+            <p className="text-sm text-slate-700 dark:text-slate-300 mb-4">
+              O plano Premium Empresa está em desenvolvimento. Entre em contato para saber mais:
+            </p>
+            <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-400 mb-5">contato@trabalheila.com.br</p>
+            <button
+              type="button"
+              onClick={() => setShowEmpresaBreveModal(false)}
+              className="px-6 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
