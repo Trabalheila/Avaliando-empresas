@@ -8,7 +8,7 @@ import { listReviewsByCompanySlug } from "../services/reviews";
 import { listCompanies, enrichCompanyWithBrasilAPI } from "../services/companies";
 import { getUserRole, isPremium } from "../utils/rbac";
 import { handleCheckout } from "../services/billing";
-import PremiumPieCard from "../components/PremiumPieCard";
+// import PremiumPieCard from "../components/PremiumPieCard"; // removido pois não é mais usado
 // ...existing code...
 
 function normalizeKey(value) {
@@ -292,17 +292,12 @@ function CompanyDetails({ theme, toggleTheme }) {
     const [selectedTrendKey, setSelectedTrendKey] = React.useState("rating");
     const [dashboardVisible, setDashboardVisible] = React.useState(false);
     const [checkoutLoading, setCheckoutLoading] = React.useState(false);
-    const [premiumNotice, setPremiumNotice] = React.useState("");
-  const [premiumAudience, setPremiumAudience] = React.useState(() => {
-    const saved = (localStorage.getItem("premium_audience") || "worker").toString();
-    return saved === "employer" ? "employer" : "worker";
-  });
+    // Removidos: premiumNotice, setPremiumNotice, premiumAudience, setPremiumAudience pois não são mais usados
   // Removido premiumPaymentMethod e setPremiumPaymentMethod pois não são mais usados
   const [compareOptions, setCompareOptions] = React.useState([]);
   const [compareTargetSlug, setCompareTargetSlug] = React.useState("");
   const [compareSnapshot, setCompareSnapshot] = React.useState(null);
-  const [compareLoading, setCompareLoading] = React.useState(false);
-  const [compareError, setCompareError] = React.useState("");
+  // Removidos: compareLoading, setCompareLoading, compareError, setCompareError pois não são mais usados
   const logoCandidates = company
     ? getCompanyLogoCandidates(company.company, { size: 128, website: company.website })
     : [];
@@ -1421,62 +1416,9 @@ function CompanyDetails({ theme, toggleTheme }) {
     return { strengths, risks, trendDelta };
   }, [scoreFields, currentMetrics, trendData]);
 
-  const premiumAudienceLabel = premiumAudience === "employer" ? "Empresario" : "Trabalhador";
-  const premiumBenefitsByAudience = premiumAudience === "employer"
-    ? [
-        "Benchmark de reputacao contra outras empresas",
-        "Sinal rapido de risco em lideranca, cultura e rotatividade",
-        "Relatorio executivo para RH e liderancas",
-      ]
-    : [
-        "Comparacao clara entre empresas antes de aceitar proposta",
-        "Tendencia real de avaliacao para evitar cilada",
-        "Relatorio com pontos fortes e riscos para decidir melhor",
-      ];
+  // Removidos: premiumAudienceLabel, premiumBenefitsByAudience pois não são mais usados
 
-  const handleDownloadPremiumReport = React.useCallback(() => {
-    const lines = [];
-    lines.push(`Relatorio Premium - ${company?.company || "Empresa"}`);
-    lines.push(`Gerado em: ${new Date().toLocaleString("pt-BR")}`);
-    lines.push("");
-    lines.push(`Media geral: ${hasAverageScore ? `${averageScore.toFixed(1)} / 5` : "Nao disponivel"}`);
-    lines.push(`Total de avaliacoes: ${evaluationCount}`);
-    lines.push("");
-    lines.push("Top pontos fortes:");
-    for (const item of premiumRadar.strengths) {
-      lines.push(`- ${item.label}: ${item.value.toFixed(1)}`);
-    }
-    lines.push("");
-    lines.push("Pontos de atencao:");
-    for (const item of premiumRadar.risks) {
-      lines.push(`- ${item.label}: ${item.value.toFixed(1)}`);
-    }
-
-    if (trendData.length >= 2) {
-      lines.push("");
-      lines.push(`Tendencia de seguranca e integridade no periodo: ${premiumRadar.trendDelta >= 0 ? "+" : ""}${premiumRadar.trendDelta.toFixed(2)}`);
-    }
-
-    if (compareSnapshot?.name && comparisonRows.length > 0) {
-      lines.push("");
-      lines.push(`Comparacao com ${compareSnapshot.name}:`);
-      for (const row of comparisonRows.slice(0, 6)) {
-        const signal = row.delta >= 0 ? "+" : "";
-        lines.push(`- ${row.label}: ${currentMetrics[row.key].toFixed(1)} vs ${row.targetValue.toFixed(1)} (${signal}${row.delta.toFixed(2)})`);
-      }
-    }
-
-    const content = lines.join("\n");
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `relatorio-premium-${toSlug(company?.company || "empresa")}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  }, [company?.company, hasAverageScore, averageScore, evaluationCount, premiumRadar, trendData, compareSnapshot, comparisonRows, currentMetrics]);
+  // Removido: handleDownloadPremiumReport pois não é mais usado
 
   const sourceConfig = [
     { key: "indicacao", label: "Indicação", color: "#2563eb" },
@@ -1514,7 +1456,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     };
   };
 
-  const companySourcePieData = buildPieData(companySourceStats, sourceConfig);
+  // Removido: companySourcePieData pois não é mais usado
 
   const visibleComments = useMemo(() => {
     const filterReplies = (replies) => {
