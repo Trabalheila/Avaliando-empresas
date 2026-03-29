@@ -173,7 +173,7 @@ function CompanyDetails({ theme, toggleTheme }) {
   const [searchParams] = useSearchParams();
   const name = searchParams.get("name");
   const [company, setCompany] = useState(null);
-  const [companySourceStats, setCompanySourceStats] = useState({});
+
 
   // Linhas de Defesa - Evitam erro de build 'is not defined'
   const [premiumAudience, setPremiumAudience] = React.useState('all');
@@ -309,7 +309,7 @@ function CompanyDetails({ theme, toggleTheme }) {
   // Removido premiumPaymentMethod e setPremiumPaymentMethod pois não são mais usados
   const [compareOptions, setCompareOptions] = React.useState([]);
   const [compareTargetSlug, setCompareTargetSlug] = React.useState("");
-  const [compareSnapshot, setCompareSnapshot] = React.useState(null);
+
   // Removidos: compareLoading, setCompareLoading, compareError, setCompareError pois não são mais usados
   const logoCandidates = company
     ? getCompanyLogoCandidates(company.company, { size: 128, website: company.website })
