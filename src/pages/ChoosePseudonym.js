@@ -155,8 +155,10 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             },
           };
           localStorage.setItem("userProfile", JSON.stringify(mergedProfile));
-          if (mergedProfile?.name) {
-            localStorage.setItem("userPseudonym", mergedProfile.name);
+          const pseudoFromRemote = (mergedProfile?.pseudonimo || "").toString().trim();
+          const existingPseudo = (localStorage.getItem("userPseudonym") || "").toString().trim();
+          if (pseudoFromRemote && !existingPseudo) {
+            localStorage.setItem("userPseudonym", pseudoFromRemote);
           }
           applyProfileToState(mergedProfile, false);
         })
@@ -335,7 +337,6 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       const loadedFields = [];
 
       if (resolvedName) {
-        setPseudonym(resolvedName);
         setFullName(resolvedName);
         loadedFields.push("nome");
       }
@@ -557,14 +558,14 @@ function ChoosePseudonym({ theme, toggleTheme }) {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Pseudônimo */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Pseudônimo <span className="text-xs font-normal text-slate-500">(público — será exibido nas avaliações)</span></label>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Escolha seu pseudônimo <span className="text-xs font-normal text-slate-500">— será sua identidade anônima nas avaliações</span></label>
               <input
                 value={pseudonym}
                 onChange={(e) => {
                   setError(null);
                   setPseudonym(e.target.value);
                 }}
-                placeholder="Ex.: Profissional Anônimo"
+                placeholder="Ex.: Profissional Anônimo, Engenheiro Discreto"
                 className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
               />
             </div>

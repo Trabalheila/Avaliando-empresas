@@ -1061,10 +1061,11 @@ function Home({ theme, toggleTheme }) {
         }
 
         const localPseudonym = (localStorage.getItem("userPseudonym") || "").toString().trim();
-        const effectiveName = (localPseudonym || mergedProfile?.name || "").toString().trim();
+        const persistedPseudo = (mergedProfile?.pseudonimo || "").toString().trim();
+        const effectiveName = (localPseudonym || persistedPseudo || "").toString().trim();
         if (effectiveName) {
           localStorage.setItem("userPseudonym", effectiveName);
-          mergedProfile = { ...mergedProfile, name: effectiveName };
+          mergedProfile = { ...mergedProfile, pseudonimo: effectiveName };
         }
 
         mergedProfile = { ...mergedProfile, profileId };
@@ -1077,7 +1078,10 @@ function Home({ theme, toggleTheme }) {
         try {
           await saveUserProfile({
             id: profileId,
-            name: mergedProfile.name,
+            name: effectiveName || mergedProfile.name,
+            pseudonimo: effectiveName || undefined,
+            nomeReal: mergedProfile.name || undefined,
+            fullName: mergedProfile.name || undefined,
             email: mergedProfile.email,
             picture: mergedProfile.picture || mergedProfile.avatar || "",
             avatar: mergedProfile.avatar || mergedProfile.picture || "",
@@ -1167,10 +1171,11 @@ function Home({ theme, toggleTheme }) {
       }
 
       const localPseudonym = (localStorage.getItem("userPseudonym") || "").toString().trim();
-      const effectiveName = (localPseudonym || mergedProfile?.name || "").toString().trim();
+      const persistedPseudo = (mergedProfile?.pseudonimo || "").toString().trim();
+      const effectiveName = (localPseudonym || persistedPseudo || "").toString().trim();
       if (effectiveName) {
         localStorage.setItem("userPseudonym", effectiveName);
-        mergedProfile = { ...mergedProfile, name: effectiveName };
+        mergedProfile = { ...mergedProfile, pseudonimo: effectiveName };
       }
 
       mergedProfile = { ...mergedProfile, profileId };
@@ -1182,7 +1187,10 @@ function Home({ theme, toggleTheme }) {
       try {
         await saveUserProfile({
           id: profileId,
-          name: mergedProfile.name,
+          name: effectiveName || mergedProfile.name,
+          pseudonimo: effectiveName || undefined,
+          nomeReal: mergedProfile.name || undefined,
+          fullName: mergedProfile.name || undefined,
           email: mergedProfile.email,
           picture: mergedProfile.picture || mergedProfile.avatar || "",
           avatar: mergedProfile.avatar || mergedProfile.picture || "",
