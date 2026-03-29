@@ -60,8 +60,8 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
   const serverBase = getServerBaseUrl(req);
   const externalReference = cnpj ? cnpj : `slug:${companySlug}`;
 
-  const unitPrice = audience === "employer" ? 4559.9 : 29.9;
-  const planLabel = audience === "employer" ? "Empresa" : "Trabalhador";
+  const unitPrice = audience === "employer" ? 1499.9 : 29.9;
+  const planLabel = audience === "employer" ? "Fundador" : "Trabalhador";
 
   const payload = {
     items: [

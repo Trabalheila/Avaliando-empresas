@@ -9,23 +9,26 @@ const PremiumCardEmployer = () => (
         50% { box-shadow: 0 0 20px rgba(99,102,241,0.8), 0 0 40px rgba(99,102,241,0.3); }
       }
     `}</style>
-    <h2 className="text-blue-700 font-extrabold text-2xl text-center mb-1 uppercase">PREMIUM PARA EMPRESAS</h2>
-    <div className="text-slate-900 font-bold text-center mb-2 text-lg">R$ 4.559,90/mês</div>
+    <h2 className="text-blue-700 font-extrabold text-2xl text-center mb-1 uppercase">PLANO FUNDADOR</h2>
+    <div className="text-slate-900 font-bold text-center mb-2 text-lg">R$ 1.499,90/mês</div>
     <p className="font-medium text-center mb-4">
-      Tenha acesso a inteligência de mercado para tomar decisões estratégicas e fortalecer sua reputação.
+      Garanta acesso antecipado e preço exclusivo de fundador para sempre.
     </p>
     <ul className="text-sm text-slate-800 mb-4 pl-4 list-disc text-left max-w-xs mx-auto">
-      <li>Compare sua empresa com concorrentes em tempo real</li>
-      <li>Identifique tendências e riscos do setor</li>
-      <li>Receba relatórios executivos com oportunidades e ameaças</li>
-      <li>Dashboard dinâmico para análise de desempenho e contratos</li>
-      <li>Acesso a benchmarks exclusivos e reputação de mercado</li>
+      <li>Painel completo de avaliações por critério</li>
+      <li>Relatório de reputação da empresa</li>
+      <li>Ferramenta de resposta a avaliações</li>
+      <li>Acesso prioritário a recursos em desenvolvimento (comparação com concorrentes, benchmarks de setor)</li>
+      <li>Conexão com consultores empresariais parceiros para transformar dados em ação</li>
     </ul>
     <div className="bg-blue-100 rounded-xl p-3 mb-3 text-blue-900 text-sm font-medium shadow-inner">
-      <span className="font-bold">Destaque:</span> Empresas Premium aumentam em até <span className="font-bold">3x a assertividade</span> nas decisões e identificam oportunidades antes dos concorrentes.
+      <span className="font-bold">Destaque:</span> Fundadores garantem acesso vitalício ao preço atual, mesmo quando novos recursos forem lançados.
     </div>
+    <p className="text-xs text-blue-800 italic mb-3">
+      Quem entra agora garante o preço Fundador. Quando os recursos avançados forem lançados, você não paga a diferença.
+    </p>
     <button className="w-full py-3 rounded-lg bg-blue-600 text-white text-lg font-bold hover:bg-blue-700 transition mb-2" style={{ animation: 'premiumGlowIndigo 2s ease-in-out infinite' }}>
-      Quero ser Premium
+      Quero ser Fundador
     </button>
     <div className="text-xs text-slate-500 text-center mt-1">
       Pagamento via Mercado Pago. Escolha PIX, cartão ou boleto no checkout.

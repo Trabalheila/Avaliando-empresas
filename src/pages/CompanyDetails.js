@@ -1731,19 +1731,23 @@ function CompanyDetails({ theme, toggleTheme }) {
             </div>
           </section>
 
-          {/* Card 2 — Premium Empresa */}
+          {/* Card 2 — Plano Fundador */}
           <section className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl p-6 flex flex-col items-center text-center">
-            <h2 className="text-lg font-extrabold text-indigo-700 mb-1 uppercase">Premium Empresa</h2>
-            <p className="text-2xl font-bold text-slate-900 mb-3">R$ 4.559,90<span className="text-sm font-medium text-slate-600">/mês</span></p>
+            <h2 className="text-lg font-extrabold text-indigo-700 mb-1 uppercase">Plano Fundador</h2>
+            <p className="text-2xl font-bold text-slate-900 mb-3">R$ 1.499,90<span className="text-sm font-medium text-slate-600">/mês</span></p>
             <ul className="text-sm text-slate-800 mb-4 pl-4 list-disc text-left max-w-xs mx-auto">
-              <li>Compare sua empresa com concorrentes em tempo real</li>
-              <li>Identifique tendências e riscos do setor</li>
-              <li>Relatórios executivos com oportunidades e ameaças</li>
-              <li>Benchmarks exclusivos e reputação de mercado</li>
+              <li>Painel completo de avaliações por critério</li>
+              <li>Relatório de reputação da empresa</li>
+              <li>Ferramenta de resposta a avaliações</li>
+              <li>Acesso prioritário a recursos em desenvolvimento (comparação com concorrentes, benchmarks de setor)</li>
+              <li>Conexão com consultores empresariais parceiros para transformar dados em ação</li>
             </ul>
             <div className="bg-indigo-100 rounded-xl p-3 mb-3 text-indigo-900 text-sm font-medium shadow-inner">
-              <span className="font-bold">Destaque:</span> Empresas Premium aumentam em até <span className="font-bold">3x a assertividade</span> nas decisões.
+              <span className="font-bold">Destaque:</span> Fundadores garantem acesso vitalício ao preço atual, mesmo quando novos recursos forem lançados.
             </div>
+            <p className="text-xs text-indigo-800 italic mb-3">
+              Quem entra agora garante o preço Fundador. Quando os recursos avançados forem lançados, você não paga a diferença.
+            </p>
             <button
               type="button"
               className="w-full max-w-xs py-3 rounded-lg bg-indigo-600 text-white text-lg font-bold hover:bg-indigo-700 transition mb-2"
@@ -1751,7 +1755,7 @@ function CompanyDetails({ theme, toggleTheme }) {
               onClick={() => handlePremiumUnlock("employer")}
               disabled={!!checkoutLoadingAudience}
             >
-              {checkoutLoadingAudience === "employer" ? "Abrindo checkout..." : "Quero Premium Empresa"}
+              {checkoutLoadingAudience === "employer" ? "Abrindo checkout..." : "Quero ser Fundador"}
             </button>
             <div className="text-xs text-slate-700 text-center mt-1">
               Plano mensal para gestores e RH.

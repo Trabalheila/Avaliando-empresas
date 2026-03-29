@@ -2,7 +2,7 @@ import React, { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { handleCheckout } from "../services/billing";
 import {
-  FiBriefcase, FiTrendingUp, FiCheck, FiX, FiArrowLeft,
+  FiCheck, FiX, FiArrowLeft,
 } from "react-icons/fi";
 
 function EscolhaPerfil({ theme, toggleTheme }) {
@@ -64,36 +64,48 @@ function EscolhaPerfil({ theme, toggleTheme }) {
           <button
             type="button"
             onClick={() => scrollTo(workerRef)}
-            className="group relative rounded-3xl border-2 border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-800 p-8 flex flex-col items-center text-center shadow-lg hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 cursor-pointer"
+            className="group relative rounded-3xl border-2 border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-800 overflow-hidden shadow-lg hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 cursor-pointer flex flex-col"
           >
-            <div className="w-24 h-24 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center mb-4 group-hover:bg-blue-200 dark:group-hover:bg-blue-800 transition-colors">
-              <FiBriefcase className="w-12 h-12 text-blue-600 dark:text-blue-400" />
+            <div className="w-full h-52 overflow-hidden">
+              <img
+                src="/Trampo.jpg"
+                alt="Trabalhadores"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
             </div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Sou Trabalhador</h2>
-            <p className="text-slate-600 dark:text-slate-400 text-sm">
-              Compare empresas, veja avaliações reais e tome decisões mais seguras na sua carreira.
-            </p>
-            <span className="mt-4 inline-block text-blue-600 dark:text-blue-400 font-semibold text-sm group-hover:underline">
-              Ver benefícios →
-            </span>
+            <div className="p-6 flex flex-col items-center text-center flex-1">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Sou Trabalhador</h2>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">
+                Compare empresas, veja avaliações reais e tome decisões mais seguras na sua carreira.
+              </p>
+              <span className="mt-4 inline-block text-blue-600 dark:text-blue-400 font-semibold text-sm group-hover:underline">
+                Ver benefícios →
+              </span>
+            </div>
           </button>
 
           {/* Card Empresário */}
           <button
             type="button"
             onClick={() => scrollTo(employerRef)}
-            className="group relative rounded-3xl border-2 border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-800 p-8 flex flex-col items-center text-center shadow-lg hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 cursor-pointer"
+            className="group relative rounded-3xl border-2 border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-800 overflow-hidden shadow-lg hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 cursor-pointer flex flex-col"
           >
-            <div className="w-24 h-24 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center mb-4 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-800 transition-colors">
-              <FiTrendingUp className="w-12 h-12 text-indigo-600 dark:text-indigo-400" />
+            <div className="w-full h-52 overflow-hidden">
+              <img
+                src="/empresário.jpg"
+                alt="Empresários"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
             </div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Sou Empresário</h2>
-            <p className="text-slate-600 dark:text-slate-400 text-sm">
-              Monitore reputação, compare concorrentes e tome decisões estratégicas com dados reais.
-            </p>
-            <span className="mt-4 inline-block text-indigo-600 dark:text-indigo-400 font-semibold text-sm group-hover:underline">
-              Ver benefícios →
-            </span>
+            <div className="p-6 flex flex-col items-center text-center flex-1">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Sou Empresário</h2>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">
+                Monitore reputação, compare concorrentes e tome decisões estratégicas com dados reais.
+              </p>
+              <span className="mt-4 inline-block text-indigo-600 dark:text-indigo-400 font-semibold text-sm group-hover:underline">
+                Ver benefícios →
+              </span>
+            </div>
           </button>
         </div>
       </section>
@@ -191,41 +203,94 @@ function EscolhaPerfil({ theme, toggleTheme }) {
               <ul className="space-y-3 text-sm text-slate-700 dark:text-slate-300">
                 <FeatureRow ok>Ver nota geral da empresa</FeatureRow>
                 <FeatureRow ok>Acompanhar avaliações públicas</FeatureRow>
-                <FeatureRow>Comparar com concorrentes em tempo real</FeatureRow>
-                <FeatureRow>Relatórios executivos com oportunidades e ameaças</FeatureRow>
-                <FeatureRow>Benchmarks exclusivos do setor</FeatureRow>
-                <FeatureRow>Análise de reputação de mercado</FeatureRow>
-                <FeatureRow>Tendências e riscos do setor</FeatureRow>
+                <FeatureRow>Painel completo de avaliações por critério</FeatureRow>
+                <FeatureRow>Relatório de reputação da empresa</FeatureRow>
+                <FeatureRow>Ferramenta de resposta a avaliações</FeatureRow>
+                <FeatureRow>Acesso prioritário a recursos em desenvolvimento</FeatureRow>
+                <FeatureRow>Conexão com consultores empresariais parceiros</FeatureRow>
               </ul>
             </div>
 
-            {/* Premium Empresa */}
+            {/* Plano Fundador */}
             <div className="rounded-2xl border-2 border-indigo-400 dark:border-indigo-600 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 p-6 relative overflow-hidden">
               <div className="absolute top-0 right-0 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
-                ESTRATÉGICO
+                FUNDADOR
               </div>
-              <h3 className="text-lg font-bold text-indigo-700 dark:text-indigo-400 mb-1">Premium Empresa</h3>
+              <h3 className="text-lg font-bold text-indigo-700 dark:text-indigo-400 mb-1">Plano Fundador</h3>
               <p className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
-                R$ 4.559,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
+                R$ 1.499,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
               </p>
               <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200">
-                <FeatureRow ok>Ver nota geral da empresa</FeatureRow>
-                <FeatureRow ok>Acompanhar avaliações públicas</FeatureRow>
-                <FeatureRow ok>Comparar com concorrentes em tempo real</FeatureRow>
-                <FeatureRow ok>Relatórios executivos com oportunidades e ameaças</FeatureRow>
-                <FeatureRow ok>Benchmarks exclusivos do setor</FeatureRow>
-                <FeatureRow ok>Análise de reputação de mercado</FeatureRow>
-                <FeatureRow ok>Tendências e riscos do setor</FeatureRow>
+                <FeatureRow ok>Painel completo de avaliações por critério</FeatureRow>
+                <FeatureRow ok>Relatório de reputação da empresa</FeatureRow>
+                <FeatureRow ok>Ferramenta de resposta a avaliações</FeatureRow>
+                <FeatureRow ok>Acesso prioritário a recursos em desenvolvimento (comparação com concorrentes, benchmarks de setor)</FeatureRow>
+                <FeatureRow ok>Conexão com consultores empresariais parceiros para transformar dados em ação</FeatureRow>
               </ul>
+              <p className="mt-3 text-xs text-indigo-700 dark:text-indigo-300 italic">
+                Quem entra agora garante o preço Fundador. Quando os recursos avançados forem lançados, você não paga a diferença.
+              </p>
             </div>
+          </div>
+
+          {/* Manifesto Fundador */}
+          <div className="max-w-3xl mx-auto mb-12 bg-white dark:bg-slate-800 rounded-2xl border border-indigo-200 dark:border-indigo-800 shadow-lg p-8 md:p-10">
+            <h3 className="text-2xl md:text-3xl font-extrabold text-indigo-700 dark:text-indigo-400 mb-4 leading-tight">
+              Seja um Empresário Fundador do Trabalhei Lá
+            </h3>
+            <p className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-6">
+              Você está chegando antes de todo mundo. E isso tem valor.
+            </p>
+
+            <p className="text-slate-700 dark:text-slate-300 mb-4 leading-relaxed">
+              O Trabalhei Lá é a primeira plataforma brasileira de avaliação de empresas com foco em{" "}
+              <span className="font-bold">autenticidade</span> — cada avaliação é feita por quem de fato trabalhou lá,
+              verificada e publicada sob pseudônimo protegido. Transparência real, sem manipulação.
+            </p>
+
+            <p className="text-slate-700 dark:text-slate-300 mb-3 leading-relaxed">
+              Hoje, empresas que entram como <span className="font-bold text-indigo-700 dark:text-indigo-400">Parceiras Fundadoras</span> têm acesso imediato a:
+            </p>
+
+            <ul className="space-y-3 text-sm text-slate-700 dark:text-slate-300 mb-6 pl-1">
+              <FeatureRow ok>
+                <span><span className="font-semibold">Perfil completo da empresa</span> com painel de avaliações por critério — salário, cultura, liderança, benefícios e muito mais.</span>
+              </FeatureRow>
+              <FeatureRow ok>
+                <span><span className="font-semibold">Relatório de reputação</span> com visão geral do que seus funcionários e ex-funcionários pensam de verdade.</span>
+              </FeatureRow>
+              <FeatureRow ok>
+                <span><span className="font-semibold">Ferramenta de resposta a avaliações</span>, mostrando ao mercado que sua empresa ouve e evolui.</span>
+              </FeatureRow>
+              <FeatureRow ok>
+                <span><span className="font-semibold">Acesso prioritário</span> a todos os novos recursos em desenvolvimento — comparação com concorrentes, benchmarks de setor e análise de tendências — assim que forem lançados, sem custo adicional.</span>
+              </FeatureRow>
+            </ul>
+
+            <p className="text-slate-700 dark:text-slate-300 mb-6 leading-relaxed">
+              E o diferencial que nenhuma plataforma oferece:{" "}
+              <span className="font-bold text-indigo-700 dark:text-indigo-400">conexão com consultores empresariais parceiros</span>{" "}
+              que transformam os dados da sua reputação em plano de ação concreto.
+              Você não vai só ver o problema — vai ter quem te ajude a resolver.
+            </p>
+
+            <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-xl p-4 mb-6 border border-indigo-200 dark:border-indigo-700">
+              <p className="text-slate-800 dark:text-slate-200 leading-relaxed">
+                Quem entra agora paga{" "}
+                <span className="font-bold text-indigo-700 dark:text-indigo-400">R$ 1.499,90/mês</span>{" "}
+                no Plano Fundador. Quando os recursos avançados forem lançados, o valor aumenta.{" "}
+                <span className="font-bold">Quem já estiver dentro, não paga a diferença.</span>
+              </p>
+            </div>
+
+            <p className="text-slate-800 dark:text-slate-200 font-semibold text-center text-lg">
+              São poucas vagas nessa condição.<br />
+              Empresas que entendem que reputação é estratégia não esperam.
+            </p>
           </div>
 
           {/* Destaque + botão */}
           <div className="max-w-md mx-auto text-center">
-            <div className="bg-indigo-100 dark:bg-indigo-900/30 rounded-xl p-4 mb-4 text-indigo-900 dark:text-indigo-200 text-sm font-medium shadow-inner">
-              <span className="font-bold">Destaque:</span> Empresas Premium aumentam em até{" "}
-              <span className="font-bold">3× a assertividade</span> nas decisões.
-            </div>
             <button
               type="button"
               className="w-full max-w-xs mx-auto py-3 rounded-lg bg-indigo-600 text-white text-lg font-bold hover:bg-indigo-700 transition"
@@ -233,7 +298,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
               onClick={() => handlePremiumUnlock("employer")}
               disabled={!!checkoutLoadingAudience}
             >
-              {checkoutLoadingAudience === "employer" ? "Abrindo checkout…" : "Quero Premium Empresa"}
+              {checkoutLoadingAudience === "employer" ? "Abrindo checkout…" : "Quero ser Fundador"}
             </button>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
               Plano mensal para gestores e RH.
