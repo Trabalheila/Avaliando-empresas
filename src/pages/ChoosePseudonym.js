@@ -417,14 +417,28 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
       const accountId = resolveProfileId(existingProfile, { persistGeneratedId: false });
 
+      // Coleta todos os IDs possíveis deste perfil para comparação robusta com o dono do CPF
+      const myIds = new Set(
+        [
+          accountId,
+          resolveProfileId(existingProfile),
+          existingProfile?.id,
+          existingProfile?.uid,
+          existingProfile?.userId,
+          existingProfile?.profileId,
+          existingProfile?.email ? `email:${existingProfile.email.toString().trim().toLowerCase()}` : null,
+        ]
+          .filter(Boolean)
+          .map((v) => v.toString().trim())
+      );
+
       if (cpfNumbers) {
         try {
           const cpfOwner = await getUserProfileByCpf(cpfNumbers);
-          const cpfOwnerId = (cpfOwner?.id || "").toString();
-          const currentAccountId = (accountId || "").toString();
+          const cpfOwnerId = (cpfOwner?.id || "").toString().trim();
 
-          if (cpfOwner && cpfOwnerId !== currentAccountId) {
-            setError("Este CPF já está cadastrado em outra conta.");
+          if (cpfOwner && cpfOwnerId && !myIds.has(cpfOwnerId)) {
+            setError("Este CPF já está cadastrado em outra conta. Limpe o campo CPF se quiser salvar mesmo assim.");
             return;
           }
         } catch (err) {
