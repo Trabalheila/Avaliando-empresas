@@ -297,10 +297,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     const saved = (localStorage.getItem("premium_audience") || "worker").toString();
     return saved === "employer" ? "employer" : "worker";
   });
-  const [premiumPaymentMethod, setPremiumPaymentMethod] = React.useState(() => {
-    const saved = (localStorage.getItem("premium_payment_method") || "card").toString();
-    return saved === "pix" ? "pix" : "card";
-  });
+  // Removido premiumPaymentMethod e setPremiumPaymentMethod pois não são mais usados
   const [compareOptions, setCompareOptions] = React.useState([]);
   const [compareTargetSlug, setCompareTargetSlug] = React.useState("");
   const [compareSnapshot, setCompareSnapshot] = React.useState(null);
