@@ -559,15 +559,24 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             {/* Pseudônimo */}
             <div>
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Escolha seu pseudônimo <span className="text-xs font-normal text-slate-500">— será sua identidade anônima nas avaliações</span></label>
-              <input
-                value={pseudonym}
-                onChange={(e) => {
-                  setError(null);
-                  setPseudonym(e.target.value);
-                }}
-                placeholder="Ex.: Profissional Anônimo, Engenheiro Discreto"
-                className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
-              />
+              <div className="flex gap-2">
+                <input
+                  value={pseudonym}
+                  onChange={(e) => {
+                    setError(null);
+                    setPseudonym(e.target.value);
+                  }}
+                  placeholder="Ex.: Profissional Anônimo, Engenheiro Discreto"
+                  className="flex-1 p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                />
+                <button
+                  type="button"
+                  onClick={() => { setPseudonym(""); setError(null); }}
+                  className="px-4 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition whitespace-nowrap"
+                >
+                  Trocar
+                </button>
+              </div>
             </div>
 
             {/* E-mail */}
