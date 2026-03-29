@@ -1818,139 +1818,33 @@ function CompanyDetails({ theme, toggleTheme }) {
           </div>
         )}
 
-        <aside className="mt-6 lg:float-right lg:w-80 lg:ml-6 space-y-4">
-          <section className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4">
-            <p className="text-xs font-extrabold uppercase tracking-wide text-blue-700">Plano Premium</p>
-            <h3 className="text-sm font-bold text-slate-900 mt-1">Benefícios para {premiumAudienceLabel}</h3>
-
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setPremiumAudience("worker")}
-                className={`px-3 py-2 text-xs font-bold rounded-lg border transition ${
-                  premiumAudience === "worker"
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white text-blue-700 border-blue-200 hover:bg-blue-100"
-                }`}
-              >
-                Trabalhador
-              </button>
-              <button
-                type="button"
-                onClick={() => setPremiumAudience("employer")}
-                className={`px-3 py-2 text-xs font-bold rounded-lg border transition ${
-                  premiumAudience === "employer"
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white text-blue-700 border-blue-200 hover:bg-blue-100"
-                }`}
-              >
-                Empresário
-              </button>
-            </div>
-
-            <ul className="mt-3 space-y-1.5 text-xs text-slate-700">
-              {premiumBenefitsByAudience.map((item) => (
-                <li key={item}>• {item}</li>
-              ))}
+        <aside className="mt-6 lg:float-right lg:w-80 lg:ml-6">
+          {/* BLOCO ÚNICO ESTRATÉGICO DO PREMIUM */}
+          <section className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 flex flex-col items-center text-center">
+            <h2 className="text-2xl font-extrabold text-blue-700 mb-2 uppercase">Plano Premium</h2>
+            <p className="text-base font-semibold text-slate-900 mb-3">Acesso exclusivo a relatórios, comparativos e tendências para tomar decisões melhores.</p>
+            <ul className="text-sm text-slate-800 mb-4 pl-4 list-disc text-left max-w-xs mx-auto">
+              <li>Compare empresas antes de aceitar propostas</li>
+              <li>Veja tendências reais de avaliação e evite ciladas</li>
+              <li>Receba relatórios executivos com pontos fortes e riscos</li>
+              <li>Dashboard detalhado para análise de desempenho</li>
             </ul>
-
-            <div className="mt-4 flex flex-col items-center">
-              <button
-                type="button"
-                className="w-full py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
-                onClick={handlePremiumUnlock}
-                disabled={checkoutLoading}
-              >
-                TORNAR-SE PREMIUM
-              </button>
-              <div className="text-xs text-slate-700 text-center mt-2">
-                O pagamento será realizado via Mercado Pago. Você poderá escolher a forma de pagamento (PIX, cartão, etc) dentro do checkout.
-              </div>
+            <div className="bg-blue-100 rounded-xl p-3 mb-3 text-blue-900 text-sm font-medium shadow-inner">
+              <span className="font-bold">Destaque:</span> Usuários Premium relatam até <span className="font-bold">3x mais segurança</span> na escolha de empresas.
             </div>
-          </section>
-
-          <PremiumPieCard
-            isPremium={userIsPremium}
-            title="Como entrou na empresa"
-            onUnlock={handlePremiumUnlock}
-            isUnlocking={checkoutLoading}
-          >
-            <p className="text-xs text-blue-600 mb-3">Origem das candidaturas nas avaliacoes desta empresa.</p>
-            <div className="flex items-center gap-4">
-              <div
-                className="w-24 h-24 rounded-full border border-gray-200"
-                style={{ background: `conic-gradient(${companySourcePieData.chart})` }}
-              />
-              <div className="space-y-1 text-xs">
-                {companySourcePieData.items.map((item) => (
-                  <p key={`source_${item.key}`} className="flex items-center gap-2 text-slate-700">
-                    <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                    {item.label}: {item.percent.toFixed(0)}%
-                  </p>
-                ))}
-              </div>
-            </div>
-            {checkoutLoading && (
-              <p className="mt-2 text-xs text-blue-700">Redirecionando para o checkout premium...</p>
-            )}
-          </PremiumPieCard>
-
-          {!userIsPremium && premiumNotice && (
-            <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
-              {premiumNotice}
-            </p>
-          )}
-
-          <PremiumPieCard
-            isPremium={userIsPremium}
-            title="Comparador de empresas"
-            onUnlock={handlePremiumUnlock}
-            isUnlocking={checkoutLoading}
-          >
-            <p className="text-xs text-blue-600 mb-2">Compare esta empresa com outra e veja onde ela ganha ou perde.</p>
-            <select
-              value={compareTargetSlug}
-              onChange={(e) => setCompareTargetSlug(e.target.value)}
-              className="w-full p-2 rounded-lg border border-slate-200 text-sm"
-            >
-              {compareOptions.length === 0 && <option value="">Sem opcoes de comparacao</option>}
-              {compareOptions.map((item) => (
-                <option key={item.slug} value={item.slug}>{item.name}</option>
-              ))}
-            </select>
-
-            {compareLoading && <p className="mt-2 text-xs text-slate-500">Carregando comparacao...</p>}
-            {compareError && <p className="mt-2 text-xs text-red-600">{compareError}</p>}
-
-            {!compareLoading && !compareError && comparisonRows.length > 0 && (
-              <div className="mt-3 space-y-1.5">
-                {comparisonRows.slice(0, 5).map((row) => (
-                  <div key={row.key} className="flex items-center justify-between text-xs bg-slate-50 rounded-md px-2 py-1">
-                    <span className="text-slate-700">{row.label}</span>
-                    <span className={`font-semibold ${row.delta >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                      {row.delta >= 0 ? "+" : ""}{row.delta.toFixed(1)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </PremiumPieCard>
-
-          <PremiumPieCard
-            isPremium={userIsPremium}
-            title="Relatorio executivo"
-            onUnlock={handlePremiumUnlock}
-            isUnlocking={checkoutLoading}
-          >
-            <p className="text-xs text-blue-600 mb-3">Gere um resumo com pontos fortes, riscos e comparativo para decidir com clareza.</p>
             <button
               type="button"
-              onClick={handleDownloadPremiumReport}
-              className="w-full px-3 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition"
+              className="w-full max-w-xs py-3 rounded-lg bg-blue-600 text-white text-lg font-bold hover:bg-blue-700 transition mb-2"
+              onClick={handlePremiumUnlock}
+              disabled={checkoutLoading}
             >
-              Baixar relatorio em .txt
+              {checkoutLoading ? "Abrindo checkout..." : "Quero ser Premium"}
             </button>
-          </PremiumPieCard>
+            <div className="text-xs text-slate-700 text-center mt-1">
+              Pagamento via Mercado Pago. Escolha PIX, cartão ou boleto no checkout.
+            </div>
+          </section>
+        {/* Fim do bloco aside Premium */}
         </aside>
 
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
