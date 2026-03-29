@@ -105,9 +105,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     setVerificationSource((profile?.verification?.source || "").toString());
 
     if (isInitialLoad) {
-      if (profile?.name) setPseudonym(profile.name);
+      if (profile?.pseudonimo || profile?.name) setPseudonym(profile.pseudonimo || profile.name);
       if (profile?.cpf) setCpf(profile.cpf);
-      if (profile?.resumeData?.name || profile?.fullName) setFullName(profile.resumeData?.name || profile.fullName);
+      if (profile?.nomeReal || profile?.resumeData?.name || profile?.fullName) setFullName(profile.nomeReal || profile.resumeData?.name || profile.fullName);
       if (profile?.email) setEmail(profile.email);
       if (profile?.phone) setPhone(profile.phone);
       if (profile?.educationLevel) setEducationLevel(profile.educationLevel);
@@ -437,7 +437,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         ...existingProfile,
         profileId: resolveProfileId(existingProfile),
         name: trimmed,
+        pseudonimo: trimmed,
         fullName: fullName.trim() || undefined,
+        nomeReal: fullName.trim() || undefined,
         cpf: cpfNumbers || undefined,
         email: email.trim() || undefined,
         phone: phone.trim() || undefined,
@@ -548,10 +550,14 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             serão compartilhados.
           </p>
 
+          <div className="mb-4 rounded-xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 px-4 py-3 text-emerald-800 dark:text-emerald-200 text-sm">
+            🔒 Seu nome real e CPF são criptografados e nunca serão exibidos. Escolha um <strong>Pseudônimo</strong> para suas avaliações.
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Pseudônimo */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Pseudônimo</label>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Pseudônimo <span className="text-xs font-normal text-slate-500">(público — será exibido nas avaliações)</span></label>
               <input
                 value={pseudonym}
                 onChange={(e) => {
@@ -577,10 +583,26 @@ function ChoosePseudonym({ theme, toggleTheme }) {
               />
             </div>
 
+            {/* Nome real (privado) */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                Nome completo <span className="text-xs font-normal text-slate-500">(privado — nunca será exibido)</span>
+              </label>
+              <input
+                value={fullName}
+                onChange={(e) => {
+                  setError(null);
+                  setFullName(e.target.value);
+                }}
+                placeholder="Seu nome real (opcional)"
+                className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+              />
+            </div>
+
             {/* CPF */}
             <div>
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                CPF (apenas números)
+                CPF <span className="text-xs font-normal text-slate-500">(privado — apenas validação interna)</span>
               </label>
               <input
                 value={cpf}
