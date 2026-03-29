@@ -10,7 +10,7 @@ const PremiumCardEmployer = () => (
       }
     `}</style>
     <h2 className="text-blue-700 font-extrabold text-2xl text-center mb-1 uppercase">PREMIUM PARA EMPRESAS</h2>
-    <div className="text-slate-900 font-bold text-center mb-2 text-lg">R$ 2.999,99/ano</div>
+    <div className="text-slate-900 font-bold text-center mb-2 text-lg">R$ 4.559,90/mês</div>
     <p className="font-medium text-center mb-4">
       Tenha acesso a inteligência de mercado para tomar decisões estratégicas e fortalecer sua reputação.
     </p>
