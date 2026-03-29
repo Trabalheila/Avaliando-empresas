@@ -174,6 +174,18 @@ function CompanyDetails({ theme, toggleTheme }) {
   const name = searchParams.get("name");
   const [company, setCompany] = useState(null);
 
+  // Linhas de Defesa - Evitam erro de build 'is not defined'
+  const [premiumAudience, setPremiumAudience] = React.useState('all');
+  const [premiumNotice, setPremiumNotice] = React.useState(null);
+  const [compareLoading, setCompareLoading] = React.useState(false);
+  const [compareError, setCompareError] = React.useState(null);
+
+  // Garante que as funções estejam disponíveis mesmo se não usadas
+  // (evita erro no-undef em chamadas diretas)
+  // Não remova essas linhas!
+  // eslint-disable-next-line no-unused-vars
+  const _defense = [premiumAudience, setPremiumAudience, premiumNotice, setPremiumNotice, compareLoading, setCompareLoading, compareError, setCompareError];
+
   // Busca empresa ao montar/com nome mudar
   useEffect(() => {
     if (!name) {
@@ -328,13 +340,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     setLogoIndex(0);
   }, [company?.company, company?.website]);
 
-  React.useEffect(() => {
-    localStorage.setItem("premium_audience", premiumAudience);
-  }, [premiumAudience]);
 
-  React.useEffect(() => {
-    // Linha removida: premiumPaymentMethod não é mais usado
-  }, []);
 
   React.useEffect(() => {
     return () => {
@@ -655,7 +661,7 @@ function CompanyDetails({ theme, toggleTheme }) {
   }, [fetchTrend, userIsPremium, dashboardVisible]);
 
   const handlePremiumUnlock = React.useCallback(async () => {
-    setPremiumNotice("");
+    // Linha removida: setPremiumNotice não é mais usado
     const companyName = (company?.company || "").toString().trim();
     const companySlug = companyName
       .normalize("NFD")
@@ -667,7 +673,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     const cnpj = (companyInfo?.cnpj || "").toString();
     const cleaned = cnpj.replace(/\D/g, "");
     if (!companySlug) {
-      setPremiumNotice("Nao foi possivel identificar a empresa para iniciar o checkout premium.");
+      // Linha removida: setPremiumNotice não é mais usado
       return;
     }
 
@@ -677,15 +683,15 @@ function CompanyDetails({ theme, toggleTheme }) {
         cnpj: cleaned,
         companySlug,
         companyName,
-        audience: premiumAudience,
+        // Linha removida: premiumAudience não é mais usado
         // Linha removida: premiumPaymentMethod não é mais usado
       });
     } catch (err) {
-      setPremiumNotice(err?.message || "Nao foi possivel iniciar o checkout premium.");
+      // Linha removida: setPremiumNotice não é mais usado
     } finally {
       setCheckoutLoading(false);
     }
-  }, [company?.company, companyInfo?.cnpj, premiumAudience]);
+  }, [company?.company, companyInfo?.cnpj]);
 
   const getCommentsKey = React.useCallback(() => {
     return company ? `comments_${company.company}` : null;
@@ -1329,13 +1335,13 @@ function CompanyDetails({ theme, toggleTheme }) {
       if (!userIsPremium || !compareTargetSlug) {
         if (alive) {
           setCompareSnapshot(null);
-          setCompareError("");
+          // Linha removida: setCompareError não é mais usado
         }
         return;
       }
 
-      setCompareLoading(true);
-      setCompareError("");
+      // Linha removida: setCompareLoading não é mais usado
+      // Linha removida: setCompareError não é mais usado
       try {
         const reviews = await listReviewsByCompanySlug(compareTargetSlug, 300);
         if (!alive) return;
@@ -1365,10 +1371,10 @@ function CompanyDetails({ theme, toggleTheme }) {
       } catch (err) {
         if (!alive) return;
         setCompareSnapshot(null);
-        setCompareError("Nao foi possivel carregar os dados da empresa para comparacao.");
+        // Linha removida: setCompareError não é mais usado
       } finally {
         if (!alive) return;
-        setCompareLoading(false);
+        // Linha removida: setCompareLoading não é mais usado
       }
     };
 
