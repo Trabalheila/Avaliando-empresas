@@ -173,6 +173,7 @@ function CompanyDetails({ theme, toggleTheme }) {
   const [searchParams] = useSearchParams();
   const name = searchParams.get("name");
   const [company, setCompany] = useState(null);
+  const [companySourceStats, setCompanySourceStats] = useState({});
 
   // Linhas de Defesa - Evitam erro de build 'is not defined'
   const [premiumAudience, setPremiumAudience] = React.useState('all');
