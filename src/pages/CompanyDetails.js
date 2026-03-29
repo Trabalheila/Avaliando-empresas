@@ -1347,14 +1347,7 @@ function CompanyDetails({ theme, toggleTheme }) {
           }
         }
 
-        const averages = Object.fromEntries(
-          scoreFields.map((field) => [
-            field.key,
-            count > 0 ? Number((totals[field.key] / count).toFixed(2)) : 0,
-          ])
-        );
 
-        const target = compareOptions.find((item) => item.slug === compareTargetSlug);
       } catch (err) {
         if (!alive) return;
         // Linha removida: setCompareError não é mais usado
