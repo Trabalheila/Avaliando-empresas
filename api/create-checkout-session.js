@@ -166,11 +166,14 @@ export default async function handler(req, res) {
     apiVersion: "2024-06-20",
   });
 
-  const subscriptionPriceId = process.env.STRIPE_PRICE_ID_PREMIUM;
+  const subscriptionPriceId = normalizedAudience === "employer"
+    ? process.env.STRIPE_PRICE_COMPANY
+    : process.env.STRIPE_PRICE_WORKER;
   const pixPriceId = process.env.STRIPE_PRICE_ID_PREMIUM_PIX;
 
   if (normalizedPaymentMethod === "card" && !subscriptionPriceId) {
-    return res.status(500).json({ error: "STRIPE_PRICE_ID_PREMIUM nao configurado." });
+    const envName = normalizedAudience === "employer" ? "STRIPE_PRICE_COMPANY" : "STRIPE_PRICE_WORKER";
+    return res.status(500).json({ error: `${envName} nao configurado.` });
   }
 
   if (normalizedPaymentMethod === "pix" && !pixPriceId) {

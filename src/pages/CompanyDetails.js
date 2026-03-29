@@ -305,7 +305,6 @@ function CompanyDetails({ theme, toggleTheme }) {
     // Removidos: premiumNotice, setPremiumNotice, premiumAudience, setPremiumAudience pois não são mais usados
   // Removido premiumPaymentMethod e setPremiumPaymentMethod pois não são mais usados
   const [compareOptions, setCompareOptions] = React.useState([]);
-    const [showEmpresaBreveModal, setShowEmpresaBreveModal] = React.useState(false);
   const [compareTargetSlug, setCompareTargetSlug] = React.useState("");
 
   // Removidos: compareLoading, setCompareLoading, compareError, setCompareError pois não são mais usados
@@ -652,7 +651,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     if (userIsPremium && dashboardVisible) fetchTrend();
   }, [fetchTrend, userIsPremium, dashboardVisible]);
 
-  const handlePremiumUnlock = React.useCallback(async () => {
+  const handlePremiumUnlock = React.useCallback(async (audience = "worker") => {
     // Linha removida: setPremiumNotice não é mais usado
     const companyName = (company?.company || "").toString().trim();
     const companySlug = companyName
@@ -675,8 +674,7 @@ function CompanyDetails({ theme, toggleTheme }) {
         cnpj: cleaned,
         companySlug,
         companyName,
-        // Linha removida: premiumAudience não é mais usado
-        // Linha removida: premiumPaymentMethod não é mais usado
+        audience,
       });
     } catch (err) {
       // Linha removida: setPremiumNotice não é mais usado
@@ -1723,7 +1721,7 @@ function CompanyDetails({ theme, toggleTheme }) {
               type="button"
               className="w-full max-w-xs py-3 rounded-lg bg-blue-600 text-white text-lg font-bold hover:bg-blue-700 transition mb-2"
               style={{ animation: 'premiumGlow 2s ease-in-out infinite' }}
-              onClick={handlePremiumUnlock}
+              onClick={() => handlePremiumUnlock("worker")}
               disabled={checkoutLoading}
             >
               {checkoutLoading ? "Abrindo checkout..." : "Quero ser Premium"}
@@ -1736,7 +1734,7 @@ function CompanyDetails({ theme, toggleTheme }) {
           {/* Card 2 — Premium Empresa */}
           <section className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl p-6 flex flex-col items-center text-center">
             <h2 className="text-lg font-extrabold text-indigo-700 mb-1 uppercase">Premium Empresa</h2>
-            <p className="text-2xl font-bold text-slate-900 mb-3">R$ 2.999,99<span className="text-sm font-medium text-slate-600">/ano</span></p>
+            <p className="text-2xl font-bold text-slate-900 mb-3">R$ 4.559,90<span className="text-sm font-medium text-slate-600">/mês</span></p>
             <ul className="text-sm text-slate-800 mb-4 pl-4 list-disc text-left max-w-xs mx-auto">
               <li>Compare sua empresa com concorrentes em tempo real</li>
               <li>Identifique tendências e riscos do setor</li>
@@ -1750,9 +1748,10 @@ function CompanyDetails({ theme, toggleTheme }) {
               type="button"
               className="w-full max-w-xs py-3 rounded-lg bg-indigo-600 text-white text-lg font-bold hover:bg-indigo-700 transition mb-2"
               style={{ animation: 'premiumGlowIndigo 2s ease-in-out infinite' }}
-              onClick={() => setShowEmpresaBreveModal(true)}
+              onClick={() => handlePremiumUnlock("employer")}
+              disabled={checkoutLoading}
             >
-              Quero Premium Empresa
+              {checkoutLoading ? "Abrindo checkout..." : "Quero Premium Empresa"}
             </button>
             <div className="text-xs text-slate-700 text-center mt-1">
               Plano anual para gestores e RH.
@@ -1955,7 +1954,7 @@ function CompanyDetails({ theme, toggleTheme }) {
             {!userIsPremium && (
               <button
                 type="button"
-                onClick={userIsLoggedIn ? handlePremiumUnlock : () => navigate("/")}
+                onClick={userIsLoggedIn ? () => handlePremiumUnlock("worker") : () => navigate("/")}
                 disabled={userIsLoggedIn && checkoutLoading}
                 className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-70"
               >
@@ -2293,25 +2292,6 @@ function CompanyDetails({ theme, toggleTheme }) {
         </div>
       </div>
 
-      {/* Modal "Em breve" para Premium Empresa */}
-      {showEmpresaBreveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowEmpresaBreveModal(false)}>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-8 max-w-sm mx-4 text-center" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-xl font-bold text-indigo-800 dark:text-indigo-300 mb-3">Em breve</h3>
-            <p className="text-sm text-slate-700 dark:text-slate-300 mb-4">
-              O plano Premium Empresa está em desenvolvimento. Entre em contato para saber mais:
-            </p>
-            <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-400 mb-5">contato@trabalheila.com.br</p>
-            <button
-              type="button"
-              onClick={() => setShowEmpresaBreveModal(false)}
-              className="px-6 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition"
-            >
-              Fechar
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
