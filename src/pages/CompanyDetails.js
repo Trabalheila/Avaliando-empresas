@@ -338,8 +338,8 @@ function CompanyDetails({ theme, toggleTheme }) {
   }, [premiumAudience]);
 
   React.useEffect(() => {
-    localStorage.setItem("premium_payment_method", premiumPaymentMethod);
-  }, [premiumPaymentMethod]);
+    // Linha removida: premiumPaymentMethod não é mais usado
+  }, []);
 
   React.useEffect(() => {
     return () => {
@@ -683,14 +683,14 @@ function CompanyDetails({ theme, toggleTheme }) {
         companySlug,
         companyName,
         audience: premiumAudience,
-        paymentMethod: premiumPaymentMethod,
+        // Linha removida: premiumPaymentMethod não é mais usado
       });
     } catch (err) {
       setPremiumNotice(err?.message || "Nao foi possivel iniciar o checkout premium.");
     } finally {
       setCheckoutLoading(false);
     }
-  }, [company?.company, companyInfo?.cnpj, premiumAudience, premiumPaymentMethod]);
+  }, [company?.company, companyInfo?.cnpj, premiumAudience]);
 
   const getCommentsKey = React.useCallback(() => {
     return company ? `comments_${company.company}` : null;
