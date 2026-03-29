@@ -341,7 +341,7 @@ function TrabalheiLaMobile({
           : "bg-gradient-to-b from-blue-50 via-sky-50 to-blue-100"
       }`}
     >
-      <header ref={headerRef} className="fixed top-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm px-3 py-2 z-50 border-b border-blue-100 dark:border-slate-700">
+      <header ref={headerRef} className="fixed top-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm px-2 py-1 z-50 border-b border-blue-100 dark:border-slate-700">
         <div className="text-center">
           <h1 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border border-blue-200 dark:border-blue-500 bg-gradient-to-r from-blue-100 via-white to-blue-100 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 shadow-[0_4px_16px_rgba(37,99,235,0.18)]">
             <FaStar className="text-[0.72rem] text-amber-500" />
@@ -464,7 +464,7 @@ function TrabalheiLaMobile({
 
       <div style={{ height: headerSpacerHeight }} />
 
-      <main className="px-4 space-y-6">
+      <main className="px-4 space-y-3">
         {/* LOGIN */}
         <section
           className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700"
