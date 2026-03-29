@@ -301,7 +301,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     const [periodEnd, setPeriodEnd] = React.useState("");
     const [selectedTrendKey, setSelectedTrendKey] = React.useState("rating");
     const [dashboardVisible, setDashboardVisible] = React.useState(false);
-    const [checkoutLoading, setCheckoutLoading] = React.useState(false);
+    const [checkoutLoadingAudience, setCheckoutLoadingAudience] = React.useState(null);
     // Removidos: premiumNotice, setPremiumNotice, premiumAudience, setPremiumAudience pois não são mais usados
   // Removido premiumPaymentMethod e setPremiumPaymentMethod pois não são mais usados
   const [compareOptions, setCompareOptions] = React.useState([]);
@@ -668,7 +668,7 @@ function CompanyDetails({ theme, toggleTheme }) {
       return;
     }
 
-    setCheckoutLoading(true);
+    setCheckoutLoadingAudience(audience);
     try {
       await handleCheckout({
         cnpj: cleaned,
@@ -679,7 +679,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     } catch (err) {
       // Linha removida: setPremiumNotice não é mais usado
     } finally {
-      setCheckoutLoading(false);
+      setCheckoutLoadingAudience(null);
     }
   }, [company?.company, companyInfo?.cnpj]);
 
@@ -1722,9 +1722,9 @@ function CompanyDetails({ theme, toggleTheme }) {
               className="w-full max-w-xs py-3 rounded-lg bg-blue-600 text-white text-lg font-bold hover:bg-blue-700 transition mb-2"
               style={{ animation: 'premiumGlow 2s ease-in-out infinite' }}
               onClick={() => handlePremiumUnlock("worker")}
-              disabled={checkoutLoading}
+              disabled={!!checkoutLoadingAudience}
             >
-              {checkoutLoading ? "Abrindo checkout..." : "Quero ser Premium"}
+              {checkoutLoadingAudience === "worker" ? "Abrindo checkout..." : "Quero ser Premium"}
             </button>
             <div className="text-xs text-slate-700 text-center mt-1">
               Pagamento via Mercado Pago. Escolha PIX, cartão ou boleto no checkout.
@@ -1749,12 +1749,12 @@ function CompanyDetails({ theme, toggleTheme }) {
               className="w-full max-w-xs py-3 rounded-lg bg-indigo-600 text-white text-lg font-bold hover:bg-indigo-700 transition mb-2"
               style={{ animation: 'premiumGlowIndigo 2s ease-in-out infinite' }}
               onClick={() => handlePremiumUnlock("employer")}
-              disabled={checkoutLoading}
+              disabled={!!checkoutLoadingAudience}
             >
-              {checkoutLoading ? "Abrindo checkout..." : "Quero Premium Empresa"}
+              {checkoutLoadingAudience === "employer" ? "Abrindo checkout..." : "Quero Premium Empresa"}
             </button>
             <div className="text-xs text-slate-700 text-center mt-1">
-              Plano anual para gestores e RH.
+              Plano mensal para gestores e RH.
             </div>
           </section>
         </div>
@@ -1955,11 +1955,11 @@ function CompanyDetails({ theme, toggleTheme }) {
               <button
                 type="button"
                 onClick={userIsLoggedIn ? () => handlePremiumUnlock("worker") : () => navigate("/")}
-                disabled={userIsLoggedIn && checkoutLoading}
+                disabled={userIsLoggedIn && !!checkoutLoadingAudience}
                 className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-70"
               >
                 {userIsLoggedIn
-                  ? (checkoutLoading ? "Abrindo checkout..." : "Assine Premium Trabalhador")
+                  ? (checkoutLoadingAudience === "worker" ? "Abrindo checkout..." : "Assine Premium Trabalhador")
                   : "Faça login para ver mais"}
               </button>
             )}

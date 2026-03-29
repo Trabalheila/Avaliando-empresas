@@ -60,13 +60,16 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
   const serverBase = getServerBaseUrl(req);
   const externalReference = cnpj ? cnpj : `slug:${companySlug}`;
 
+  const unitPrice = audience === "employer" ? 4559.9 : 29.9;
+  const planLabel = audience === "employer" ? "Empresa" : "Trabalhador";
+
   const payload = {
     items: [
       {
-        title: `Premium Trabalhei La - ${companyName || companySlug || "empresa"}`,
+        title: `Premium ${planLabel} Trabalhei La - ${companyName || companySlug || "empresa"}`,
         quantity: 1,
         currency_id: "BRL",
-        unit_price: 29.9,
+        unit_price: unitPrice,
       },
     ],
     back_urls: {
