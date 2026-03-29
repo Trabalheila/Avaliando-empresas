@@ -168,7 +168,7 @@ function TrabalheiLaDesktop({
   }, [companyNameForLogo, selectedCompanyData?.website]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-6 pt-[280px]">
       <div className="w-full max-w-6xl">
         {/* Banner Premium */}
         <div className="mb-4 mt-1 flex items-center justify-center">

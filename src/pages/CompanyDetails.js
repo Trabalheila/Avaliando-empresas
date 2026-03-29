@@ -1622,7 +1622,7 @@ function CompanyDetails({ theme, toggleTheme }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 py-10 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 pt-20 pb-10 px-4">
       <div className="max-w-4xl mx-auto flex items-center justify-between mb-3 gap-2">
         <button
           type="button"
@@ -1695,6 +1695,16 @@ function CompanyDetails({ theme, toggleTheme }) {
           </div>
         )}
 
+        <style>{`
+          @keyframes premiumGlow {
+            0%, 100% { box-shadow: 0 0 8px rgba(59,130,246,0.4); }
+            50% { box-shadow: 0 0 20px rgba(59,130,246,0.8), 0 0 40px rgba(59,130,246,0.3); }
+          }
+          @keyframes premiumGlowIndigo {
+            0%, 100% { box-shadow: 0 0 8px rgba(99,102,241,0.4); }
+            50% { box-shadow: 0 0 20px rgba(99,102,241,0.8), 0 0 40px rgba(99,102,241,0.3); }
+          }
+        `}</style>
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Card 1 — Premium Trabalhador */}
           <section className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 flex flex-col items-center text-center">
@@ -1712,6 +1722,7 @@ function CompanyDetails({ theme, toggleTheme }) {
             <button
               type="button"
               className="w-full max-w-xs py-3 rounded-lg bg-blue-600 text-white text-lg font-bold hover:bg-blue-700 transition mb-2"
+              style={{ animation: 'premiumGlow 2s ease-in-out infinite' }}
               onClick={handlePremiumUnlock}
               disabled={checkoutLoading}
             >
@@ -1738,6 +1749,7 @@ function CompanyDetails({ theme, toggleTheme }) {
             <button
               type="button"
               className="w-full max-w-xs py-3 rounded-lg bg-indigo-600 text-white text-lg font-bold hover:bg-indigo-700 transition mb-2"
+              style={{ animation: 'premiumGlowIndigo 2s ease-in-out infinite' }}
               onClick={() => setShowEmpresaBreveModal(true)}
             >
               Quero Premium Empresa
@@ -1771,8 +1783,7 @@ function CompanyDetails({ theme, toggleTheme }) {
                 <button
                   type="button"
                   onClick={() => navigate(`/empresa/comentarios-item?name=${encodeURIComponent(company.company)}&item=${field.key}`)}
-                  className="mt-3 text-xs font-medium text-cyan-300 hover:text-white hover:underline focus:text-white focus:underline transition-colors"
-                  style={{ textShadow: '0 1px 6px #222, 0 0 2px #00eaff' }}
+                  className="mt-3 text-xs font-medium text-[#1a237e] dark:text-blue-300 hover:text-blue-900 dark:hover:text-white hover:underline focus:underline transition-colors"
                 >
                   Ver comentários deste item ({itemCommentCounts[field.key] || 0})
                 </button>

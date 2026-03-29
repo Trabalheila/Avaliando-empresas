@@ -66,7 +66,7 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
         title: `Premium Trabalhei La - ${companyName || companySlug || "empresa"}`,
         quantity: 1,
         currency_id: "BRL",
-        unit_price: 89.9,
+        unit_price: 29.9,
       },
     ],
     back_urls: {

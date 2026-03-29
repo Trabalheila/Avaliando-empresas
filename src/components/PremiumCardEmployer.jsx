@@ -3,6 +3,12 @@ import React from "react";
 
 const PremiumCardEmployer = () => (
   <div className="bg-slate-50 rounded-2xl shadow-lg p-7 max-w-xs mx-auto mb-6 border border-slate-200">
+    <style>{`
+      @keyframes premiumGlowIndigo {
+        0%, 100% { box-shadow: 0 0 8px rgba(99,102,241,0.4); }
+        50% { box-shadow: 0 0 20px rgba(99,102,241,0.8), 0 0 40px rgba(99,102,241,0.3); }
+      }
+    `}</style>
     <h2 className="text-blue-700 font-extrabold text-2xl text-center mb-1 uppercase">PREMIUM PARA EMPRESAS</h2>
     <div className="text-slate-900 font-bold text-center mb-2 text-lg">R$ 2.999,99/ano</div>
     <p className="font-medium text-center mb-4">
@@ -18,7 +24,7 @@ const PremiumCardEmployer = () => (
     <div className="bg-blue-100 rounded-xl p-3 mb-3 text-blue-900 text-sm font-medium shadow-inner">
       <span className="font-bold">Destaque:</span> Empresas Premium aumentam em até <span className="font-bold">3x a assertividade</span> nas decisões e identificam oportunidades antes dos concorrentes.
     </div>
-    <button className="w-full py-3 rounded-lg bg-blue-600 text-white text-lg font-bold hover:bg-blue-700 transition mb-2">
+    <button className="w-full py-3 rounded-lg bg-blue-600 text-white text-lg font-bold hover:bg-blue-700 transition mb-2" style={{ animation: 'premiumGlowIndigo 2s ease-in-out infinite' }}>
       Quero ser Premium
     </button>
     <div className="text-xs text-slate-500 text-center mt-1">
