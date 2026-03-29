@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from 'react-i18next';
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Select from "react-select";
 import { getCompanyLogoCandidates } from "./utils/getCompanyLogo";
 import { FaBuilding, FaPlus, FaStar, FaRegStar, FaUserEdit, FaGoogle } from "react-icons/fa";
@@ -38,6 +38,7 @@ function TrabalheiLaDesktop({
 }) {
 
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const selectStyles = {
     control: (base) => ({ ...base, borderRadius: "0.75rem", padding: "0.25rem", borderColor: "#d1d5db", boxShadow: "none", "&:hover": { borderColor: "#3b82f6" } }),
     option: (base, state) => ({ ...base, backgroundColor: state.isFocused ? "#eff6ff" : "white", color: "#1e293b", cursor: "pointer" }),
@@ -176,7 +177,7 @@ function TrabalheiLaDesktop({
             <span className="text-white text-lg md:text-xl font-bold drop-shadow">Conheça o <span className="underline">Premium</span> e tenha acesso a relatórios exclusivos!</span>
             <button
               className="mt-2 md:mt-0 px-5 py-2 rounded-lg bg-white text-blue-700 font-bold shadow hover:bg-blue-50 transition"
-              onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
+              onClick={() => navigate('/escolha-perfil')}
             >
               Ver benefícios
             </button>

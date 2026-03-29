@@ -10,6 +10,7 @@ import CompanyDetails from './pages/CompanyDetails';
 import CompanyItemComments from './pages/CompanyItemComments';
 import Purpose from './pages/Purpose';
 import DeleteData from './pages/DeleteData';
+import EscolhaPerfil from './pages/EscolhaPerfil';
 
 // Função para aplicar o tema (dark/light)
 function applyTheme(theme) {
@@ -156,6 +157,7 @@ function App() {
       <Route path="/empresa" element={<CompanyDetails theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/empresa/comentarios-item" element={<CompanyItemComments theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/purpose" element={<Purpose theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/escolha-perfil" element={<EscolhaPerfil theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/excluir-dados" element={<DeleteData theme={theme} toggleTheme={toggleTheme} />} />
     </Routes>
   );
