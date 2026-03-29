@@ -35,39 +35,6 @@ function extractLinkedInExperiences(profile) {
   return Array.from(dedupe.values());
 }
 
-function parsePastedText(rawText, source) {
-  const text = (rawText || "").toString().replace(/\r/g, "").trim();
-  if (!text) return [];
-  const results = [];
-  const blocks = text.split(/\n\s*\n+/).filter(Boolean);
-
-  for (const block of blocks) {
-    const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
-    if (lines.length < 2) continue;
-    const role = lines[0].replace(/[·•\-–—]/g, "").trim();
-    const company = (lines[1] || "")
-      .replace(/^(at|em|na|no|@)\s+/i, "")
-      .split(/[·•\-–—]/)[0]
-      .trim();
-
-    if (
-      role &&
-      company &&
-      !/^\d{4}/.test(role) &&
-      !/^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)/i.test(role)
-    ) {
-      results.push({ company, role, source, verified: false });
-    }
-  }
-
-  const dedupe = new Map();
-  results.forEach((item) => {
-    const key = [item.company, item.role].join("__").toLowerCase();
-    if (!dedupe.has(key)) dedupe.set(key, item);
-  });
-  return Array.from(dedupe.values());
-}
-
 function dedupeExperiences(list) {
   const dedupe = new Map();
   (list || []).forEach((item) => {
@@ -94,8 +61,6 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   const [info, setInfo] = useState("");
   const [error, setError] = useState(null);
   const [isLinkedInLogin, setIsLinkedInLogin] = useState(false);
-  const [solidesText, setSolidesText] = useState("");
-  const [glassdoorText, setGlassdoorText] = useState("");
   const [manualCompany, setManualCompany] = useState("");
   const [manualRole, setManualRole] = useState("");
   const [isParsingResume, setIsParsingResume] = useState(false);
@@ -202,15 +167,6 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       // ignore
     }
   }, [navigate, applyProfileToState, loadPersistedProfile]);
-
-  // Fix 3: auto-trigger LinkedIn import after redirect back
-  const linkedInAutoImportDone = useRef(false);
-  useEffect(() => {
-    if (isLinkedInLogin && !linkedInAutoImportDone.current && initialLoadDone.current) {
-      linkedInAutoImportDone.current = true;
-      handleFillFromLinkedIn();
-    }
-  }, [isLinkedInLogin, handleFillFromLinkedIn]);
 
   const convertFileToDataUrl = (file) =>
     new Promise((resolve, reject) => {
@@ -407,29 +363,14 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     }
   }, [loadPersistedProfile]);
 
-  const handleImportSolidesText = useCallback(() => {
-    setError(null);
-    setInfo("");
-    const imported = parsePastedText(solidesText, "solides");
-    if (!imported.length) {
-      setInfo("Não foi possível identificar experiências no texto colado do Solides.");
-      return;
+  // Auto-trigger LinkedIn import after redirect back
+  const linkedInAutoImportDone = useRef(false);
+  useEffect(() => {
+    if (isLinkedInLogin && !linkedInAutoImportDone.current && initialLoadDone.current) {
+      linkedInAutoImportDone.current = true;
+      handleFillFromLinkedIn();
     }
-    setStructuredExperiences((prev) => dedupeExperiences([...prev, ...imported]));
-    setInfo(`Importamos ${imported.length} experiência(s) do Solides.`);
-  }, [solidesText]);
-
-  const handleImportGlassdoorText = useCallback(() => {
-    setError(null);
-    setInfo("");
-    const imported = parsePastedText(glassdoorText, "glassdoor");
-    if (!imported.length) {
-      setInfo("Não foi possível identificar experiências no texto colado do Glassdoor.");
-      return;
-    }
-    setStructuredExperiences((prev) => dedupeExperiences([...prev, ...imported]));
-    setInfo(`Importamos ${imported.length} experiência(s) do Glassdoor.`);
-  }, [glassdoorText]);
+  }, [isLinkedInLogin, handleFillFromLinkedIn]);
 
   const handleAddManualExperience = useCallback(() => {
     setError(null);
