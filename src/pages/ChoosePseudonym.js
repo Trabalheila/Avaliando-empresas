@@ -124,7 +124,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     return null;
   }, []);
 
-  const applyProfileToState = useCallback((profile) => {
+  const initialLoadDone = useRef(false);
+
+  const applyProfileToState = useCallback((profile, isInitialLoad = false) => {
     if (!profile) return;
 
     const provider = (profile?.loginProvider || "").toString().toLowerCase();
@@ -134,12 +136,15 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     setVerifiedCompany((profile?.verification?.company || "").toString());
     setVerificationSource((profile?.verification?.source || "").toString());
 
-    if (profile?.name) setPseudonym(profile.name);
-    if (profile?.cpf) setCpf(profile.cpf);
-    if (profile?.resumeData?.name || profile?.fullName) setFullName(profile.resumeData?.name || profile.fullName);
-    if (profile?.email) setEmail(profile.email);
-    if (profile?.phone) setPhone(profile.phone);
-    if (profile?.educationLevel) setEducationLevel(profile.educationLevel);
+    if (isInitialLoad) {
+      if (profile?.name) setPseudonym(profile.name);
+      if (profile?.cpf) setCpf(profile.cpf);
+      if (profile?.resumeData?.name || profile?.fullName) setFullName(profile.resumeData?.name || profile.fullName);
+      if (profile?.email) setEmail(profile.email);
+      if (profile?.phone) setPhone(profile.phone);
+      if (profile?.educationLevel) setEducationLevel(profile.educationLevel);
+    }
+
     if (Array.isArray(profile?.resumeData?.experiencesStructured)) {
       setStructuredExperiences(profile.resumeData.experiencesStructured);
     }
@@ -162,7 +167,12 @@ function ChoosePseudonym({ theme, toggleTheme }) {
 
     try {
       const parsed = JSON.parse(profile);
-      applyProfileToState(parsed);
+      if (!initialLoadDone.current) {
+        applyProfileToState(parsed, true);
+        initialLoadDone.current = true;
+      } else {
+        applyProfileToState(parsed, false);
+      }
 
       loadPersistedProfile(parsed)
         .then((remoteProfile) => {
@@ -180,7 +190,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
           if (mergedProfile?.name) {
             localStorage.setItem("userPseudonym", mergedProfile.name);
           }
-          applyProfileToState(mergedProfile);
+          applyProfileToState(mergedProfile, false);
         })
         .catch((err) => {
           console.warn("Falha ao sincronizar perfil remoto:", err);
