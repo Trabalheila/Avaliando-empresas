@@ -585,7 +585,7 @@ function CompanyDetails({ theme, toggleTheme }) {
       company.url ||
       "Não identificado automaticamente";
 
-    const cnpj = company.cnpj || "Nao informado";
+    const cnpj = company.cnpj || "Não informado";
 
     const socialLinks = insights?.socialLinks || [
       { label: "LinkedIn", value: company.linkedin || "Não identificado automaticamente" },
@@ -593,7 +593,7 @@ function CompanyDetails({ theme, toggleTheme }) {
       { label: "Facebook", value: company.facebook || "Não identificado automaticamente" },
     ];
 
-    const description = insights?.description || "Informacao automatica ainda nao identificada para esta empresa.";
+    const description = insights?.description || "Informação automática ainda não identificada para esta empresa.";
 
     return {
       sector,
@@ -1627,7 +1627,7 @@ function CompanyDetails({ theme, toggleTheme }) {
           onClick={() => navigate("/")}
           className="px-4 py-2 rounded-xl border border-blue-200 text-blue-700 font-semibold hover:bg-blue-50 transition dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800"
         >
-          Voltar para a pagina principal
+          Voltar para a página principal
         </button>
 
         <button
@@ -1688,79 +1688,22 @@ function CompanyDetails({ theme, toggleTheme }) {
         {userHasResumeProof && (
           <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
             <p className="text-emerald-800 font-bold">
-              Experiencia comprovada: esta empresa aparece no curriculo carregado pelo profissional.
+              Experiência comprovada: esta empresa aparece no currículo carregado pelo profissional.
             </p>
           </div>
         )}
 
-        <style>{`
-          @keyframes premiumGlow {
-            0%, 100% { box-shadow: 0 0 8px rgba(59,130,246,0.4); }
-            50% { box-shadow: 0 0 20px rgba(59,130,246,0.8), 0 0 40px rgba(59,130,246,0.3); }
-          }
-          @keyframes premiumGlowIndigo {
-            0%, 100% { box-shadow: 0 0 8px rgba(99,102,241,0.4); }
-            50% { box-shadow: 0 0 20px rgba(99,102,241,0.8), 0 0 40px rgba(99,102,241,0.3); }
-          }
-        `}</style>
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Card 1 — Premium Trabalhador */}
-          <section className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 flex flex-col items-center text-center">
-            <h2 className="text-lg font-extrabold text-blue-700 mb-1 uppercase">Premium Trabalhador</h2>
-            <p className="text-2xl font-bold text-slate-900 mb-3">R$ 29,90<span className="text-sm font-medium text-slate-600">/mês</span></p>
-            <ul className="text-sm text-slate-800 mb-4 pl-4 list-disc text-left max-w-xs mx-auto">
-              <li>Compare empresas antes de aceitar propostas</li>
-              <li>Veja avaliações reais e tendências</li>
-              <li>Relatórios executivos com pontos fortes e riscos</li>
-              <li>Dashboard de análise de ambiente e cultura</li>
-            </ul>
-            <div className="bg-blue-100 rounded-xl p-3 mb-3 text-blue-900 text-sm font-medium shadow-inner">
-              <span className="font-bold">Destaque:</span> Quem é Premium sente até <span className="font-bold">3x mais segurança</span> na escolha do emprego.
-            </div>
-            <button
-              type="button"
-              className="w-full max-w-xs py-3 rounded-lg bg-blue-600 text-white text-lg font-bold hover:bg-blue-700 transition mb-2"
-              style={{ animation: 'premiumGlow 2s ease-in-out infinite' }}
-              onClick={() => handlePremiumUnlock("worker")}
-              disabled={!!checkoutLoadingAudience}
-            >
-              {checkoutLoadingAudience === "worker" ? "Abrindo checkout..." : "Quero ser Premium"}
-            </button>
-            <div className="text-xs text-slate-700 text-center mt-1">
-              Pagamento via Mercado Pago. Escolha PIX, cartão ou boleto no checkout.
-            </div>
-          </section>
-
-          {/* Card 2 — Plano Fundador */}
-          <section className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl p-6 flex flex-col items-center text-center">
-            <h2 className="text-lg font-extrabold text-indigo-700 mb-1 uppercase">Plano Fundador</h2>
-            <p className="text-2xl font-bold text-slate-900 mb-3">R$ 1.499,90<span className="text-sm font-medium text-slate-600">/mês</span></p>
-            <ul className="text-sm text-slate-800 mb-4 pl-4 list-disc text-left max-w-xs mx-auto">
-              <li>Painel completo de avaliações por critério</li>
-              <li>Relatório de reputação da empresa</li>
-              <li>Ferramenta de resposta a avaliações</li>
-              <li>Acesso prioritário a recursos em desenvolvimento (comparação com concorrentes, benchmarks de setor)</li>
-              <li>Conexão com consultores empresariais parceiros para transformar dados em ação</li>
-            </ul>
-            <div className="bg-indigo-100 rounded-xl p-3 mb-3 text-indigo-900 text-sm font-medium shadow-inner">
-              <span className="font-bold">Destaque:</span> Fundadores garantem acesso vitalício ao preço atual, mesmo quando novos recursos forem lançados.
-            </div>
-            <p className="text-xs text-indigo-800 italic mb-3">
-              Quem entra agora garante o preço Fundador. Quando os recursos avançados forem lançados, você não paga a diferença.
-            </p>
-            <button
-              type="button"
-              className="w-full max-w-xs py-3 rounded-lg bg-indigo-600 text-white text-lg font-bold hover:bg-indigo-700 transition mb-2"
-              style={{ animation: 'premiumGlowIndigo 2s ease-in-out infinite' }}
-              onClick={() => handlePremiumUnlock("employer")}
-              disabled={!!checkoutLoadingAudience}
-            >
-              {checkoutLoadingAudience === "employer" ? "Abrindo checkout..." : "Quero ser Fundador"}
-            </button>
-            <div className="text-xs text-slate-700 text-center mt-1">
-              Plano mensal para gestores e RH.
-            </div>
-          </section>
+        <div className="mt-6 w-full bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 rounded-xl px-4 py-3 flex items-center justify-between gap-3" style={{ maxHeight: '60px' }}>
+          <p className="text-sm text-slate-700 dark:text-slate-200">
+            Quer análises mais profundas desta empresa? Conheça o <span className="font-semibold text-blue-700 dark:text-blue-300">Premium</span>
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate("/escolha-perfil")}
+            className="shrink-0 px-4 py-1.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition"
+          >
+            Ver planos
+          </button>
         </div>
 
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2004,10 +1947,10 @@ function CompanyDetails({ theme, toggleTheme }) {
           <h2 className="text-lg font-bold text-[#1a237e] dark:text-blue-300 font-azonix tracking-[0.08em] mb-4">Sobre a empresa</h2>
           <div className="bg-blue-50 dark:bg-slate-800 rounded-xl p-4 border border-blue-100 dark:border-slate-700 space-y-3">
             {insightsLoading && (
-              <p className="text-sm text-[#1a237e] dark:text-blue-300 font-semibold">Buscando dados automaticos da empresa...</p>
+              <p className="text-sm text-[#1a237e] dark:text-blue-300 font-semibold">Buscando dados automáticos da empresa...</p>
             )}
             <div>
-              <p className="text-xs font-semibold text-[#1a237e] dark:text-blue-300 uppercase tracking-wide">Descricao automatica</p>
+              <p className="text-xs font-semibold text-[#1a237e] dark:text-blue-300 uppercase tracking-wide">Descrição Automática</p>
               <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">{companyInfo?.description}</p>
               {companyInfo?.description?.includes("Não identificado") && (
                 <button className="mt-1 text-xs text-blue-600 underline" onClick={() => alert('Sugestão: envie um email para contato@trabalheila.com.br com as informações da empresa!')}>Sugerir informações desta empresa</button>
