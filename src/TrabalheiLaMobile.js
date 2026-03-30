@@ -268,6 +268,30 @@ function TrabalheiLaMobile({
     { label: "Planos de cargos e salários", icon: <FiTrendingUp className="text-fuchsia-700" />, iconBg: "from-fuchsia-50 to-pink-100 border-fuchsia-200", value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento },
   ];
 
+  // Progress bar: IntersectionObserver para critérios
+  const criterionRefs = React.useRef([]);
+  const [visibleCriterionIdx, setVisibleCriterionIdx] = React.useState(-1);
+
+  React.useEffect(() => {
+    const refs = criterionRefs.current;
+    if (!refs.length) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let maxIdx = -1;
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const idx = Number(entry.target.dataset.criterionIdx);
+            if (idx > maxIdx) maxIdx = idx;
+          }
+        }
+        if (maxIdx >= 0) setVisibleCriterionIdx(maxIdx);
+      },
+      { threshold: 0.5 }
+    );
+    for (const el of refs) { if (el) observer.observe(el); }
+    return () => observer.disconnect();
+  }, [campos.length]);
+
   const sourceConfig = [
     { key: "indicacao", label: "Indicação", color: "#2563eb" },
     { key: "siteVagas", label: "Site de vagas", color: "#16a34a" },
@@ -359,7 +383,7 @@ function TrabalheiLaMobile({
           <div className="mt-2 w-full rounded-2xl border border-blue-100 dark:border-slate-700 bg-blue-50/60 dark:bg-slate-800/70 p-2.5">
             <div className="flex items-start justify-between gap-3">
               <div className="w-[6.4rem] flex flex-col items-center">
-                <div className="w-11 h-11 bg-blue-50 dark:bg-slate-800 rounded-xl flex items-center justify-center border border-blue-100 dark:border-slate-600 overflow-hidden">
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center border overflow-hidden ${companyLogoUrl ? 'bg-blue-50 dark:bg-slate-800 border-blue-100 dark:border-slate-600' : 'bg-blue-900 border-blue-700'}`}>
                   {companyLogoUrl ? (
                     <img
                       src={companyLogoUrl}
@@ -372,7 +396,7 @@ function TrabalheiLaMobile({
                       }}
                     />
                   ) : (
-                    <FaBuilding className="text-blue-700 text-xl" />
+                    <span className="text-white font-black text-lg tracking-tight">TL</span>
                   )}
                 </div>
                 <div className="mt-1.5 text-center">
@@ -459,7 +483,7 @@ function TrabalheiLaMobile({
           </button>
         </div>
 
-        <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 text-center">{firebaseStatus}</p>
+        {firebaseStatus && <p className="text-[11px] text-red-500 dark:text-red-400 mt-1 text-center">{firebaseStatus}</p>}
       </header>
 
       <div style={{ height: headerSpacerHeight }} />
@@ -752,8 +776,21 @@ function TrabalheiLaMobile({
             </div>
 
             <div className="space-y-4">
+              {/* Barra de progresso dos critérios */}
+              {visibleCriterionIdx >= 0 && (
+                <div className="sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-xl border border-blue-100 dark:border-slate-700 p-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-blue-800 dark:text-blue-200">Critério {visibleCriterionIdx + 1} de {campos.length}</span>
+                    <span className="text-xs text-slate-500">{Math.round(((visibleCriterionIdx + 1) / campos.length) * 100)}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-blue-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-blue-500 to-blue-700 rounded-full transition-all duration-300" style={{ width: `${((visibleCriterionIdx + 1) / campos.length) * 100}%` }} />
+                  </div>
+                </div>
+              )}
+
               {campos.map((campo, idx) => (
-                <div key={idx} className="bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border border-gray-200 dark:border-slate-700">
+                <div key={idx} ref={el => criterionRefs.current[idx] = el} data-criterion-idx={idx} className="bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border border-gray-200 dark:border-slate-700">
                   <label className="text-slate-700 dark:text-blue-200 font-semibold flex items-center gap-2 text-sm">
                     <span className={`w-9 h-9 rounded-xl border bg-gradient-to-br ${campo.iconBg} flex items-center justify-center shadow-sm`}>
                       {campo.icon}
@@ -781,8 +818,15 @@ function TrabalheiLaMobile({
 
             {error && <p className="text-red-600 text-center text-xs font-medium">{error}</p>}
 
+            <style>{`
+              @keyframes ctaGlow {
+                0%, 100% { box-shadow: 0 0 8px rgba(59,130,246,0.4); }
+                50% { box-shadow: 0 0 20px rgba(59,130,246,0.8), 0 0 40px rgba(59,130,246,0.3); }
+              }
+            `}</style>
             <button type="submit"
-              className={`w-full py-3 rounded-xl font-bold text-white transition-all ${isAuthenticated ? "bg-blue-600 hover:bg-blue-700" : "bg-slate-400"}`}
+              className={`w-full py-3 rounded-xl font-bold text-white transition-all ${isAuthenticated ? "bg-blue-600 hover:bg-blue-700" : "bg-blue-600"}`}
+              style={!isAuthenticated ? { animation: 'ctaGlow 2s ease-in-out infinite' } : undefined}
               disabled={!isAuthenticated || isLoading}>
               {isLoading ? "Enviando..." : isAuthenticated ? "Enviar Avaliação" : "Faça login para avaliar"}
             </button>

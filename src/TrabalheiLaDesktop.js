@@ -93,6 +93,30 @@ function TrabalheiLaDesktop({
   const companyNoteValue = Number.parseFloat(companyNote);
   const isCompanyRecommended = !isCompanyUnrated && Number.isFinite(companyNoteValue) && companyNoteValue >= 3;
 
+  // Progress bar: IntersectionObserver para critérios
+  const criterionRefs = React.useRef([]);
+  const [visibleCriterionIdx, setVisibleCriterionIdx] = React.useState(-1);
+
+  React.useEffect(() => {
+    const refs = criterionRefs.current;
+    if (!refs.length) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let maxIdx = -1;
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const idx = Number(entry.target.dataset.criterionIdx);
+            if (idx > maxIdx) maxIdx = idx;
+          }
+        }
+        if (maxIdx >= 0) setVisibleCriterionIdx(maxIdx);
+      },
+      { threshold: 0.5 }
+    );
+    for (const el of refs) { if (el) observer.observe(el); }
+    return () => observer.disconnect();
+  }, [campos.length]);
+
   const sourceConfig = [
     { key: "indicacao", label: "Indicação", color: "#2563eb" },
     { key: "siteVagas", label: "Site de vagas", color: "#16a34a" },
@@ -156,7 +180,7 @@ function TrabalheiLaDesktop({
   };
 
   // Lógica para gerar a Logo baseada no nome da empresa
-  const companyNameForLogo = selectedCompanyData ? selectedCompanyData.company : "Logo da Empresa";
+  const companyNameForLogo = selectedCompanyData ? selectedCompanyData.company : "TL";
   const logoCandidates = getCompanyLogoCandidates(companyNameForLogo, {
     size: 128,
     website: selectedCompanyData?.website,
@@ -198,7 +222,7 @@ function TrabalheiLaDesktop({
             <div className="flex flex-col items-center">
 
               {/* ÁREA DA LOGO ATUALIZADA */}
-              <div className="w-20 h-20 bg-blue-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center border-2 border-blue-200 dark:border-slate-600 overflow-hidden">
+              <div className={`w-20 h-20 rounded-2xl flex items-center justify-center border-2 overflow-hidden ${logoUrl ? 'bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-slate-600' : 'bg-blue-900 border-blue-700'}`}>
                 {logoUrl ? (
                   <img
                     src={logoUrl}
@@ -211,7 +235,7 @@ function TrabalheiLaDesktop({
                     }}
                   />
                 ) : (
-                  <FaBuilding className="text-blue-700 text-4xl" />
+                  <span className="text-white font-black text-3xl tracking-tight">TL</span>
                 )}
               </div>
               <span className="text-xs mt-2 text-blue-500 dark:text-slate-300 text-center max-w-[100px] truncate" title={companyNameForLogo}>
@@ -280,7 +304,7 @@ function TrabalheiLaDesktop({
 
                 </div>
               )}
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">{firebaseStatus}</p>
+              {firebaseStatus && <p className="text-xs text-red-500 dark:text-red-400 mb-4">{firebaseStatus}</p>}
               <button
                 type="button"
                 onClick={handleSaibaMais}
@@ -505,8 +529,21 @@ function TrabalheiLaDesktop({
                 </div>
                 </div>
 
+                {/* Barra de progresso dos critérios */}
+                {visibleCriterionIdx >= 0 && (
+                  <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm rounded-xl border border-blue-100 p-2 mb-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-bold text-blue-800">Critério {visibleCriterionIdx + 1} de {campos.length}</span>
+                      <span className="text-xs text-slate-500">{Math.round(((visibleCriterionIdx + 1) / campos.length) * 100)}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-blue-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-blue-500 to-blue-700 rounded-full transition-all duration-300" style={{ width: `${((visibleCriterionIdx + 1) / campos.length) * 100}%` }} />
+                    </div>
+                  </div>
+                )}
+
                 {campos.map((campo, idx) => (
-                  <div key={idx} className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                  <div key={idx} ref={el => criterionRefs.current[idx] = el} data-criterion-idx={idx} className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
                     <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center gap-2 mb-2 md:mb-0">
                       <span className={`w-9 h-9 rounded-xl border bg-gradient-to-br ${campo.iconBg} flex items-center justify-center shadow-sm`}>
                         {campo.icon}
@@ -534,8 +571,15 @@ function TrabalheiLaDesktop({
                 {error && <p className="text-red-600 text-center text-sm font-medium">{error}</p>}
 
                 <div className="text-center pt-2">
+                  <style>{`
+                    @keyframes ctaGlow {
+                      0%, 100% { box-shadow: 0 0 8px rgba(59,130,246,0.4); }
+                      50% { box-shadow: 0 0 20px rgba(59,130,246,0.8), 0 0 40px rgba(59,130,246,0.3); }
+                    }
+                  `}</style>
                   <button type="submit"
-                    className={`px-8 py-3 rounded-full font-extrabold text-white transition-all ${isAuthenticated ? "bg-gradient-to-r from-blue-600 to-blue-800 hover:shadow-xl hover:scale-105" : "bg-slate-400 cursor-not-allowed opacity-60"}`}
+                    className={`px-8 py-3 rounded-full font-extrabold text-white transition-all ${isAuthenticated ? "bg-gradient-to-r from-blue-600 to-blue-800 hover:shadow-xl hover:scale-105" : "bg-blue-600"}`}
+                    style={!isAuthenticated ? { animation: 'ctaGlow 2s ease-in-out infinite' } : undefined}
                     disabled={!isAuthenticated || isLoading}>
                     {isLoading ? "Enviando..." : isAuthenticated ? "Enviar Avaliação" : "Faça login para avaliar"}
                   </button>
@@ -703,12 +747,12 @@ function TrabalheiLaDesktop({
               <div className="mt-4 bg-emerald-50 rounded-2xl p-4 border border-emerald-200">
                 <h3 className="text-base font-bold text-emerald-900 mb-2">Como funciona a plataforma</h3>
                 <p className="text-sm text-emerald-900 leading-relaxed mb-3">
-                  O objetivo do Trabalhei La e ajudar profissionais a decidir melhor onde trabalhar por meio de avaliacoes anonimas e verificadas.
+                  O objetivo do Trabalhei Lá é ajudar profissionais a decidir melhor onde trabalhar por meio de avaliações anônimas e verificadas.
                 </p>
                 <ul className="space-y-2 text-sm text-emerald-900">
-                  <li><span className="font-semibold">1.</span> Entre com LinkedIn e ajuste seu perfil anonimo.</li>
-                  <li><span className="font-semibold">2.</span> Escolha uma empresa e avalie os criterios da sua experiencia.</li>
-                  <li><span className="font-semibold">3.</span> Veja notas, comentarios e ranking para comparar empresas.</li>
+                  <li><span className="font-semibold">1.</span> Entre com LinkedIn e ajuste seu perfil anônimo.</li>
+                  <li><span className="font-semibold">2.</span> Escolha uma empresa e avalie os critérios da sua experiência.</li>
+                  <li><span className="font-semibold">3.</span> Veja notas, comentários e ranking para comparar empresas.</li>
                 </ul>
               </div>
             </div>

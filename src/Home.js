@@ -115,7 +115,7 @@ function Home({ theme, toggleTheme }) {
         const ref = doc(db, "app_test", "ping");
         await setDoc(ref, { ts: serverTimestamp() }, { merge: true });
         if (!alive) return;
-        setFirebaseStatus("Firebase conectado com sucesso 🤖");
+        setFirebaseStatus("");
       } catch (err) {
         if (!alive) return;
         console.error("Erro de conexão com Firebase:", err);
