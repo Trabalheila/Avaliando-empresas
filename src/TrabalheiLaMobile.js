@@ -511,9 +511,14 @@ function TrabalheiLaMobile({
               className="w-full flex flex-col items-center justify-center gap-1"
               style={{ animation: "homeCalloutIn 900ms ease-out both" }}
             >
-              <p className="text-black font-extrabold text-lg leading-tight text-center">
-                clique para criar um perfil anônimo
+              <p className="text-black dark:text-white font-extrabold text-lg leading-tight text-center">
+                CRIE SEU PERFIL E AVALIE ANONIMAMENTE!
               </p>
+            </div>
+            <div className="flex items-center justify-center gap-2 flex-wrap" style={{ animation: "homeCalloutIn 1100ms ease-out both" }}>
+              <span className="flex items-center gap-1 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold">✓ Anônimo</span>
+              <span className="flex items-center gap-1 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold">✓ Verificado</span>
+              <span className="flex items-center gap-1 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold">✓ Confiável</span>
             </div>
             {isAuthenticated && (
               <div className="w-full flex justify-end">

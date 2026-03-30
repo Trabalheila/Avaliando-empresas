@@ -293,7 +293,7 @@ function TrabalheiLaDesktop({
               </button>
             </div>
 
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col items-center gap-3 pt-12">
               <span className="flex items-center gap-2 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-4 py-2 rounded-full font-semibold">✓ Anônimo</span>
               <span className="flex items-center gap-2 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-4 py-2 rounded-full font-semibold">✓ Verificado</span>
               <span className="flex items-center gap-2 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-4 py-2 rounded-full font-semibold">✓ Confiável</span>
@@ -357,7 +357,7 @@ function TrabalheiLaDesktop({
                   style={{ animation: "homeCalloutIn 950ms ease-out both" }}
                 >
                   <p className="text-black font-extrabold text-[2.2rem] leading-[1.06] tracking-tight text-center">
-                    clique para criar<br />um perfil anônimo
+                    CRIE SEU PERFIL E AVALIE ANONIMAMENTE!
                   </p>
                 </div>
                 {isAuthenticated && (

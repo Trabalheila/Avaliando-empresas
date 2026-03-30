@@ -191,6 +191,9 @@ function EscolhaPerfil({ theme, toggleTheme }) {
           <h2 className="text-2xl md:text-3xl font-extrabold text-center text-indigo-700 dark:text-indigo-400 mb-2">
             Benefícios para Empresários
           </h2>
+          <p className="text-center text-sm font-semibold text-amber-600 dark:text-amber-400 mb-1">
+            (em desenvolvimento)
+          </p>
           <p className="text-center text-slate-600 dark:text-slate-400 mb-10">
             Dados estratégicos para decisões assertivas.
           </p>

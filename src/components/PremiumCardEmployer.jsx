@@ -10,6 +10,7 @@ const PremiumCardEmployer = () => (
       }
     `}</style>
     <h2 className="text-blue-700 font-extrabold text-2xl text-center mb-1 uppercase">PLANO FUNDADOR</h2>
+    <p className="text-center text-sm font-semibold text-amber-600 mb-1">(em desenvolvimento)</p>
     <div className="text-slate-900 font-bold text-center mb-2 text-lg">R$ 1.499,90/mês</div>
     <p className="font-medium text-center mb-4">
       Garanta acesso antecipado e preço exclusivo de fundador para sempre.
