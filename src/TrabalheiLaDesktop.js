@@ -306,16 +306,15 @@ function TrabalheiLaDesktop({
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={handleSaibaMais}
-                disabled={!company}
-                className={`bg-blue-700 text-white font-extrabold py-3 px-12 min-w-[21rem] rounded-2xl shadow-lg transition-all transform hover:scale-105 text-lg font-azonix ${
-                  company ? "hover:bg-blue-800" : "opacity-60 cursor-not-allowed"
-                }`}
-              >
-                {t('CLIQUE E SAIBA MAIS')}
-              </button>
+              {company && (
+                <button
+                  type="button"
+                  onClick={handleSaibaMais}
+                  className="bg-blue-700 text-white font-extrabold py-3 px-12 min-w-[21rem] rounded-2xl shadow-lg transition-all transform hover:scale-105 hover:bg-blue-800 text-lg font-azonix"
+                >
+                  {`Ver avaliações da ${company.value.length > 25 ? company.value.slice(0, 25) + "…" : company.value}`}
+                </button>
+              )}
             </div>
 
             <div className="flex flex-col items-center gap-3 pt-12">

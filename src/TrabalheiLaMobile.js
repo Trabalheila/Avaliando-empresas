@@ -431,9 +431,9 @@ function TrabalheiLaMobile({
                 <button
                   type="button"
                   onClick={handleSaibaMais}
-                  className="w-36 py-2 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition"
+                  className="w-auto py-2 px-3 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition"
                 >
-                  Saiba mais
+                  {`Ver avaliações da ${company.value.length > 25 ? company.value.slice(0, 25) + "…" : company.value}`}
                 </button>
               </div>
             </div>
