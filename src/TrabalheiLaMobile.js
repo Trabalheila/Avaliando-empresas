@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   FaStar, FaUserEdit, FaGoogle, FaBuilding,
 } from "react-icons/fa";
@@ -118,6 +118,7 @@ function TrabalheiLaMobile({
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
 }) {
   // const { t } = useTranslation();
+  const navigate = useNavigate();
   const legacyMetricsBridge = {
     beneficios, setBeneficios,
     oportunidades, setOportunidades,
@@ -489,6 +490,48 @@ function TrabalheiLaMobile({
       <div style={{ height: headerSpacerHeight }} />
 
       <main className="px-4 space-y-3">
+        {/* Banner Premium Mobile */}
+        <div
+          className="mobilePremiumBanner"
+          style={{
+            display: 'none',
+            maxHeight: 48,
+            background: 'linear-gradient(90deg, #1e3a5f 0%, #2563eb 100%)',
+            borderRadius: 12,
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 12px',
+            gap: 8,
+          }}
+        >
+          <span style={{ fontSize: '1rem', lineHeight: 1 }}>⭐</span>
+          <span style={{ color: '#fff', fontSize: '0.8rem', fontWeight: 600, flex: 1, textAlign: 'center' }}>
+            Premium — relatórios exclusivos e comparações
+          </span>
+          <button
+            type="button"
+            onClick={() => navigate('/escolha-perfil')}
+            style={{
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              color: '#1e293b',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              border: 'none',
+              borderRadius: 8,
+              padding: '4px 10px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Ver
+          </button>
+        </div>
+        <style>{`
+          @media (max-width: 768px) {
+            .mobilePremiumBanner { display: flex !important; }
+          }
+        `}</style>
+
         {/* LOGIN */}
         <section
           className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700"

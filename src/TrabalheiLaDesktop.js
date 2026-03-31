@@ -193,21 +193,8 @@ function TrabalheiLaDesktop({
   }, [companyNameForLogo, selectedCompanyData?.website]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-6 pt-[280px]">
+    <div className={`min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-6 ${isAuthenticated ? 'pt-[350px]' : 'pt-[280px]'}`}>
       <div className="w-full max-w-6xl">
-        {/* Banner Premium */}
-        <div className="mb-4 mt-1 flex items-center justify-center">
-          <div className="flex flex-col md:flex-row items-center gap-4 bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-400 rounded-2xl shadow-lg px-6 py-4 border-2 border-blue-200 dark:border-slate-700">
-            <span className="text-white text-lg md:text-xl font-bold drop-shadow">Conheça o <span className="underline">Premium</span> e tenha acesso a relatórios exclusivos!</span>
-            <button
-              className="mt-2 md:mt-0 px-5 py-2 rounded-lg bg-white text-blue-700 font-bold shadow hover:bg-blue-50 transition"
-              onClick={() => navigate('/escolha-perfil')}
-            >
-              Ver benefícios
-            </button>
-          </div>
-        </div>
-
         {/* HEADER */}
         <header className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-b-3xl shadow-2xl p-4 border-2 border-blue-200 dark:border-slate-700">
           <button
@@ -305,6 +292,20 @@ function TrabalheiLaDesktop({
                 </div>
               )}
               {firebaseStatus && <p className="text-xs text-red-500 dark:text-red-400 mb-4">{firebaseStatus}</p>}
+
+              {/* Banner Premium — sempre visível abaixo do card do usuário */}
+              <div className="mb-3 flex items-center justify-center">
+                <div className="flex flex-col md:flex-row items-center gap-4 bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-400 rounded-2xl shadow-lg px-6 py-3 border-2 border-blue-200 dark:border-slate-700">
+                  <span className="text-white text-lg md:text-xl font-bold drop-shadow">Conheça o <span className="underline">Premium</span> e tenha acesso a relatórios exclusivos!</span>
+                  <button
+                    className="mt-2 md:mt-0 px-5 py-2 rounded-lg bg-white text-blue-700 font-bold shadow hover:bg-blue-50 transition"
+                    onClick={() => navigate('/escolha-perfil')}
+                  >
+                    Ver benefícios
+                  </button>
+                </div>
+              </div>
+
               <button
                 type="button"
                 onClick={handleSaibaMais}
