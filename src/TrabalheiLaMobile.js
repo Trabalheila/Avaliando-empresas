@@ -370,7 +370,7 @@ function TrabalheiLaMobile({
         <div className="text-center">
           <h1 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border border-blue-200 dark:border-blue-500 bg-gradient-to-r from-blue-100 via-white to-blue-100 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 shadow-[0_4px_16px_rgba(37,99,235,0.18)]">
             <FaStar className="text-[0.72rem] text-amber-500" />
-            <span className="text-[1.18rem] font-black text-blue-900 dark:text-blue-100 font-azonix tracking-[0.09em] leading-none whitespace-nowrap">
+            <span className="text-[1.18rem] font-black text-blue-900 dark:text-blue-100 logo-syne tracking-[0.05em] leading-none whitespace-nowrap">
               TRABALHEI LÁ
             </span>
           </h1>
