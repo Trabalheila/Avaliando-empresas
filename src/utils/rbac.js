@@ -28,11 +28,20 @@ export function getUserRole() {
   return raw === "admin_empresa" ? "admin_empresa" : "user";
 }
 
+/** Retorna true se o usuário autenticado é o administrador da página. */
+export function isAdmin() {
+  const adminUid = (process.env.REACT_APP_ADMIN_UID || "").trim();
+  if (!adminUid) return false;
+  const profile = getStoredProfile();
+  const uid = (profile?.uid || profile?.id || profile?.profileId || "").toString().trim();
+  return Boolean(uid) && uid === adminUid;
+}
+
 /** Retorna true se o usuário tem acesso premium ao Dashboard detalhado. */
 export function isPremium() {
   const profile = getStoredProfile();
   // is_premium pode ser definido manualmente no perfil do Firestore.
-  return Boolean(profile?.is_premium) || getUserRole() === "admin_empresa";
+  return Boolean(profile?.is_premium) || getUserRole() === "admin_empresa" || isAdmin();
 }
 
 /**

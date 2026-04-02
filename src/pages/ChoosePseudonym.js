@@ -4,6 +4,7 @@ import { getUserProfile, getUserProfileByCpf, saveUserProfile, findUnifiedProfil
 import { normalizeEmail, resolveProfileId } from "../utils/profileIdentity";
 import { extractResumeText, parseResumeText } from "../utils/resumeParser";
 import { getLinkedInRedirectUri } from "../utils/linkedinAuth";
+import { buildApiUrl } from "../utils/apiBase";
 
 const predefinedAvatars = [
   "🧑", "🧑‍💼", "🧑‍🔧", "🧑‍💻", "🧑‍🔬", "👩‍🏫", "👨‍🍳", "👩‍⚕️", "👨‍🚀", "👩‍🎨",
@@ -70,6 +71,60 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   const [verificationSource, setVerificationSource] = useState("");
   const avatarUploadInputRef = useRef(null);
 
+  // ─── Barra de progresso flutuante ───
+  const formRef = useRef(null);
+  const sectionRefs = useRef([]);
+  const [formVisible, setFormVisible] = useState(false);
+  const [currentSection, setCurrentSection] = useState(0);
+  const SECTION_LABELS = [
+    "Pseudônimo",
+    "E-mail",
+    "Nome completo",
+    "CPF",
+    "Experiências",
+    "Avatar",
+    "Confirmação",
+  ];
+  const totalSections = SECTION_LABELS.length;
+
+  const assignSectionRef = useCallback((el, idx) => {
+    if (el) sectionRefs.current[idx] = el;
+  }, []);
+
+  useEffect(() => {
+    const formEl = formRef.current;
+    if (!formEl) return;
+
+    // Observer para visibilidade do formulário inteiro
+    const formObs = new IntersectionObserver(
+      ([entry]) => setFormVisible(entry.isIntersecting),
+      { threshold: 0 }
+    );
+    formObs.observe(formEl);
+
+    // Observer para cada seção
+    const sectionObs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const idx = sectionRefs.current.indexOf(entry.target);
+            if (idx !== -1) setCurrentSection(idx);
+          }
+        });
+      },
+      { rootMargin: "-40% 0px -55% 0px", threshold: 0 }
+    );
+
+    sectionRefs.current.forEach((el) => {
+      if (el) sectionObs.observe(el);
+    });
+
+    return () => {
+      formObs.disconnect();
+      sectionObs.disconnect();
+    };
+  }, []);
+
   const loadPersistedProfile = useCallback(async (profile) => {
     const resolvedId = resolveProfileId(profile, { persistGeneratedId: false });
     const rawId = (profile?.id || "").toString().trim();
@@ -121,7 +176,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     if (isInitialLoad) {
       if (profile?.pseudonimo || profile?.name) setPseudonym(profile.pseudonimo || profile.name);
       if (profile?.cpf) setCpf(profile.cpf);
-      if (profile?.nomeReal || profile?.resumeData?.name || profile?.fullName) setFullName(profile.nomeReal || profile.resumeData?.name || profile.fullName);
+      if (profile?.nomeReal || profile?.fullName) setFullName(profile.nomeReal || profile.fullName);
       if (profile?.email) setEmail(profile.email);
       if (profile?.phone) setPhone(profile.phone);
       if (profile?.educationLevel) setEducationLevel(profile.educationLevel);
@@ -336,7 +391,8 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         .join(" ")
         .trim();
       const resolvedName =
-        (mergedProfile?.name || "").toString().trim() ||
+        (mergedProfile?.fullName || "").toString().trim() ||
+        (mergedProfile?.nomeReal || "").toString().trim() ||
         fallbackName ||
         [mergedProfile?.firstName, mergedProfile?.lastName].filter(Boolean).join(" ").trim();
       const resolvedEmail =
@@ -346,12 +402,85 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         (mergedProfile?.phone || "").toString().trim() ||
         (mergedProfile?.phoneNumber || "").toString().trim() ||
         (mergedProfile?.formattedPhoneNumber || "").toString().trim();
-      const linkedInExperiences = extractLinkedInExperiences(mergedProfile);
+      let linkedInExperiences = extractLinkedInExperiences(mergedProfile);
+
+      // Se não encontrou experiências no perfil local, tenta buscar via API usando o código OAuth
+      if (linkedInExperiences.length === 0) {
+        const storedCode = mergedProfile?.code || "";
+        const storedToken = (() => { try { return localStorage.getItem("linkedinAccessToken") || ""; } catch { return ""; } })();
+
+        if (storedCode) {
+          try {
+            const redirectUri = getLinkedInRedirectUri();
+            const response = await fetch(buildApiUrl("/api/linkedin-auth"), {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ code: storedCode, redirectUri }),
+            });
+
+            if (response.ok) {
+              const apiData = await response.json();
+              if (apiData && !apiData.error) {
+                const updatedProfile = { ...mergedProfile, ...apiData, loginProvider: "linkedin" };
+                localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
+                mergedProfile = updatedProfile;
+                linkedInExperiences = extractLinkedInExperiences(updatedProfile);
+
+                if (apiData?.fullName || apiData?.nomeReal) {
+                  /* nome vindo da API tem prioridade */
+                } else {
+                  const apiName = [apiData?.localizedFirstName || apiData?.firstName, apiData?.localizedLastName || apiData?.lastName]
+                    .filter(Boolean)
+                    .join(" ")
+                    .trim();
+                  if (apiName) {
+                    mergedProfile = { ...mergedProfile, fullName: apiName, nomeReal: apiName };
+                    localStorage.setItem("userProfile", JSON.stringify(mergedProfile));
+                  }
+                }
+              }
+            }
+          } catch (apiErr) {
+            console.warn("Falha ao buscar dados LinkedIn via API:", apiErr);
+          }
+        } else if (!storedToken) {
+          // Sem código e sem token — redireciona para novo fluxo OAuth
+          const clientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID || "";
+          const redirectUri = getLinkedInRedirectUri();
+
+          if (clientId && clientId.trim().length >= 5) {
+            const state = Math.random().toString(36).slice(2);
+            try { sessionStorage.setItem("linkedin_oauth_state", state); } catch { /* ignore */ }
+
+            const params = new URLSearchParams({
+              response_type: "code",
+              client_id: clientId,
+              redirect_uri: redirectUri,
+              scope: "openid profile email",
+              state,
+            });
+
+            window.location.assign(`https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`);
+            return;
+          }
+        }
+      }
+
+      // Recalcular nome resolvido com perfil possivelmente atualizado
+      const updatedFallback = [mergedProfile?.localizedFirstName, mergedProfile?.localizedLastName]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+      const finalResolvedName =
+        (mergedProfile?.fullName || "").toString().trim() ||
+        (mergedProfile?.nomeReal || "").toString().trim() ||
+        updatedFallback ||
+        [mergedProfile?.firstName, mergedProfile?.lastName].filter(Boolean).join(" ").trim();
 
       const loadedFields = [];
 
-      if (resolvedName) {
-        setFullName(resolvedName);
+      if (finalResolvedName) {
+        setFullName(finalResolvedName);
         loadedFields.push("nome");
       }
       if (resolvedEmail) {
@@ -540,6 +669,24 @@ function ChoosePseudonym({ theme, toggleTheme }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-6 pt-20">
+      {/* Barra de progresso flutuante */}
+      {formVisible && (
+        <div
+          style={{ position: "fixed", top: 0, left: 0, width: "100%", zIndex: 1000 }}
+          className="bg-slate-900/85 backdrop-blur-sm text-white"
+        >
+          <div className="flex items-center justify-between px-4 py-2 text-sm font-semibold max-w-2xl mx-auto">
+            <span>Campo {currentSection + 1} de {totalSections}</span>
+            <span>{Math.round(((currentSection + 1) / totalSections) * 100)}%</span>
+          </div>
+          <div className="h-1 bg-slate-700">
+            <div
+              className="h-full bg-blue-500 transition-all duration-300"
+              style={{ width: `${((currentSection + 1) / totalSections) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
       {(info || error) && (
         <div className="fixed top-3 left-1/2 -translate-x-1/2 z-50 w-[min(94vw,56rem)]">
           {error ? (
@@ -598,9 +745,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             🔒 Seu nome real e CPF são criptografados e nunca serão exibidos. Escolha um <strong>Pseudônimo</strong> para suas avaliações.
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
             {/* Pseudônimo */}
-            <div>
+            <div ref={(el) => assignSectionRef(el, 0)}>
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Escolha seu pseudônimo <span className="text-xs font-normal text-slate-500">— será sua identidade anônima nas avaliações</span></label>
               <input
                 value={pseudonym}
@@ -614,7 +761,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             </div>
 
             {/* E-mail */}
-            <div>
+            <div ref={(el) => assignSectionRef(el, 1)}>
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">E-mail</label>
               <input
                 value={email}
@@ -628,7 +775,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             </div>
 
             {/* Nome real (privado) */}
-            <div>
+            <div ref={(el) => assignSectionRef(el, 2)}>
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
                 Nome completo <span className="text-xs font-normal text-slate-500">(privado — nunca será exibido)</span>
               </label>
@@ -644,7 +791,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             </div>
 
             {/* CPF */}
-            <div>
+            <div ref={(el) => assignSectionRef(el, 3)}>
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
                 CPF <span className="text-xs font-normal text-slate-500">(privado — apenas validação interna)</span>
               </label>
@@ -660,7 +807,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             </div>
 
             {/* ===== IMPORTAÇÃO DE EXPERIÊNCIAS ===== */}
-            <div className="bg-blue-50 dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-2xl p-5 space-y-5">
+            <div ref={(el) => assignSectionRef(el, 4)} className="bg-blue-50 dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-2xl p-5 space-y-5">
               <div>
                 <h3 className="text-lg font-bold text-blue-800 dark:text-blue-200 mb-1">
                   Experiências profissionais
@@ -787,7 +934,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             </div>
 
             {/* Avatar */}
-            <div>
+            <div ref={(el) => assignSectionRef(el, 5)}>
               <label className="block text-sm font-semibold text-slate-700 mb-2">Avatar</label>
               <div className="mb-3 flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50 p-3">
                 <div className="h-16 w-16 rounded-full overflow-hidden border border-blue-200 bg-white flex items-center justify-center text-2xl">
@@ -858,7 +1005,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             </div>
 
             {/* Confirmação humano */}
-            <div className="flex items-center gap-3">
+            <div ref={(el) => assignSectionRef(el, 6)} className="flex items-center gap-3">
               <input
                 type="checkbox"
                 id="confirm-human"
