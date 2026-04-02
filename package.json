@@ -24,6 +24,7 @@
     "react-linkedin-login-oauth2": "^2.0.1",
     "react-router-dom": "^7.13.0",
     "react-select": "^5.10.2",
+    "recharts": "^3.8.1",
     "stripe": "^16.9.0"
   },
   "devDependencies": {

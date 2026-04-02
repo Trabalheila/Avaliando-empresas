@@ -468,6 +468,23 @@ function TrabalheiLaMobile({
                   <FaUserEdit className="mr-1 text-[10px]" />
                   {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
                 </a>
+                {(() => {
+                  try {
+                    const { getUserRole, isPremium, isAdmin } = require("./utils/rbac");
+                    const role = getUserRole();
+                    if (role === "admin_empresa" || isPremium() || isAdmin()) {
+                      return (
+                        <a
+                          href="/empresa/dashboard"
+                          className="inline-flex items-center mt-0.5 px-2.5 py-1 rounded-full bg-amber-400 text-amber-900 text-[11px] font-bold hover:bg-amber-500 shadow-sm transition"
+                        >
+                          Painel Empresa
+                        </a>
+                      );
+                    }
+                  } catch { /* silencioso */ }
+                  return null;
+                })()}
               </div>
             </div>
           ) : (
