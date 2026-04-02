@@ -1620,42 +1620,145 @@ function CompanyDetails({ theme, toggleTheme }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 pt-20 pb-10 px-4">
-      <div className="max-w-4xl mx-auto flex items-center justify-between mb-3 gap-2">
-        <button
-          type="button"
-          onClick={() => navigate("/")}
-          className="px-4 py-2 rounded-xl border border-blue-200 text-blue-700 font-semibold hover:bg-blue-50 transition dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800"
-        >
-          Voltar para a página principal
-        </button>
-
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="px-3 py-2 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-          aria-label="Alternar tema"
-        >
-          {theme === "dark" ? "🌙 Tema" : "☀️ Tema"}
-        </button>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
+      {/* ═══ LINHA 1 — Logo da plataforma ═══ */}
+      <div className="w-full bg-white dark:bg-slate-900 border-b border-blue-100 dark:border-slate-700 shadow-sm">
+        <div className="max-w-5xl mx-auto flex items-center justify-center px-4 py-3">
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="text-2xl font-extrabold tracking-wide text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
+            style={{ fontFamily: "'Azonix', sans-serif" }}
+          >
+            TRABALHEI LÁ
+          </button>
+        </div>
       </div>
+
+      {/* ═══ LINHA 2 — Logo empresa + nome + usuário ═══ */}
+      <div className="w-full bg-white/80 dark:bg-slate-800/70 border-b border-blue-100 dark:border-slate-700">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 px-4 py-4">
+          {/* Esquerda: logo + nome + setor + localização */}
+          <div className="flex items-center gap-4 min-w-0">
+            {companyLogo && (
+              <div className="w-14 h-14 rounded-2xl overflow-hidden border border-blue-200 dark:border-slate-600 bg-white flex-shrink-0">
+                <img
+                  src={companyLogo}
+                  alt={`Logo ${company.company}`}
+                  className="w-full h-full object-contain p-1"
+                  onError={() => {
+                    if (logoIndex < logoCandidates.length - 1) {
+                      setLogoIndex((prev) => prev + 1);
+                    }
+                  }}
+                />
+              </div>
+            )}
+            <div className="min-w-0">
+              <h1 className="text-lg font-extrabold text-blue-800 dark:text-slate-100 leading-tight truncate">{company.company}</h1>
+              {companyInfo?.sector && companyInfo.sector !== "Não identificado automaticamente" && (
+                <p className="text-sm text-slate-600 dark:text-slate-300 truncate">{companyInfo.sector}</p>
+              )}
+              {companyInfo?.location && companyInfo.location !== "Não identificado automaticamente" && (
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{companyInfo.location}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Direita: avatar + pseudônimo + tema */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="px-2 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 text-sm"
+              aria-label="Alternar tema"
+            >
+              {theme === "dark" ? "🌙" : "☀️"}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/pseudonym")}
+              className="flex items-center gap-2 hover:opacity-80 transition"
+              title="Meu perfil"
+            >
+              {(() => {
+                try {
+                  const p = JSON.parse(localStorage.getItem("userProfile") || "{}");
+                  const av = p?.avatar || p?.picture || "";
+                  if (av && typeof av === "string" && av.startsWith("data:")) {
+                    return <img src={av} alt="avatar" className="h-8 w-8 rounded-full object-cover border border-blue-200" />;
+                  }
+                  if (av) return <span className="text-xl">{av}</span>;
+                } catch { /* fallback */ }
+                return <span className="text-xl">👤</span>;
+              })()}
+              <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 hidden sm:inline max-w-[100px] truncate">
+                {getCurrentPseudonym()}
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ LINHA 3 — Banner Premium (só p/ não-premium) ═══ */}
+      {!userIsPremium && (
+        <div className="w-full bg-gradient-to-r from-amber-600 to-yellow-500 dark:from-amber-800 dark:to-yellow-700">
+          <div className="max-w-5xl mx-auto flex items-center justify-between px-4 py-3">
+            <p className="text-sm font-semibold text-white">
+              Desbloqueie análises completas com o <span className="font-bold">Plano Premium</span>
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate("/escolha-perfil")}
+              className="shrink-0 px-4 py-1.5 text-sm font-bold text-amber-800 bg-white rounded-lg hover:bg-amber-50 transition"
+            >
+              Saiba mais
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ LINHA 4 — Botão Ver Avaliações centralizado ═══ */}
+      <div className="w-full bg-blue-50/50 dark:bg-slate-900/50 border-b border-blue-100 dark:border-slate-700">
+        <div className="max-w-5xl mx-auto flex justify-center px-4 py-4">
+          {(() => {
+            const userCommented = comments.some((c) => normalizeKey(c?.author) === normalizeKey(getCurrentPseudonym()));
+            if (userCommented) {
+              return (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById("secao-comentarios");
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className="px-6 py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition text-sm"
+                >
+                  Ver minha avaliação
+                </button>
+              );
+            }
+            return (
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById("secao-comentarios");
+                  if (el) el.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition text-sm"
+              >
+                Avaliar esta empresa
+              </button>
+            );
+          })()}
+        </div>
+      </div>
+
+      {/* ═══ Conteúdo principal ═══ */}
+      <div className="flex-1 px-4 pt-6 pb-10">
       <div className="max-w-4xl mx-auto bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-blue-100 dark:border-slate-700 p-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-2xl overflow-hidden border border-blue-200">
-              <img
-                src={companyLogo}
-                alt={`Logo ${company.company}`}
-                className="w-full h-full object-contain p-1"
-                onError={() => {
-                  if (logoIndex < logoCandidates.length - 1) {
-                    setLogoIndex((prev) => prev + 1);
-                  }
-                }}
-              />
-            </div>
             <div>
-              <h1 className="text-2xl font-extrabold text-blue-800 dark:text-slate-100">{company.company}</h1>
               <p className={`text-lg font-bold ${getScoreColor(average)}`}>
                 {average === "--" ? "--" : `${average} / 5`}
               </p>
@@ -1692,19 +1795,6 @@ function CompanyDetails({ theme, toggleTheme }) {
             </p>
           </div>
         )}
-
-        <div className="mt-6 w-full bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 rounded-xl px-4 py-3 flex items-center justify-between gap-3" style={{ maxHeight: '60px' }}>
-          <p className="text-sm text-slate-700 dark:text-slate-200">
-            Quer análises mais profundas desta empresa? Conheça o <span className="font-semibold text-blue-700 dark:text-blue-300">Premium</span>
-          </p>
-          <button
-            type="button"
-            onClick={() => navigate("/escolha-perfil")}
-            className="shrink-0 px-4 py-1.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition"
-          >
-            Ver planos
-          </button>
-        </div>
 
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
           {scoreFields.map((field) => {
@@ -1999,7 +2089,7 @@ function CompanyDetails({ theme, toggleTheme }) {
           </div>
         </div>
 
-        <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
+        <div id="secao-comentarios" className="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
           <h2 className="text-lg font-bold text-blue-800 font-azonix tracking-[0.08em] mb-4">Comentários</h2>
           <div className="space-y-4">
             <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
@@ -2238,6 +2328,7 @@ function CompanyDetails({ theme, toggleTheme }) {
           </div>
         </div>
       </div>
+      </div>{/* /px-4 pt-6 */}
 
     </div>
   );
