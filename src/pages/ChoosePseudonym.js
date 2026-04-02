@@ -443,27 +443,10 @@ function ChoosePseudonym({ theme, toggleTheme }) {
           } catch (apiErr) {
             console.warn("Falha ao buscar dados LinkedIn via API:", apiErr);
           }
-        } else if (!storedToken) {
-          // Sem código e sem token — redireciona para novo fluxo OAuth
-          const clientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID || "";
-          const redirectUri = getLinkedInRedirectUri();
-
-          if (clientId && clientId.trim().length >= 5) {
-            const state = Math.random().toString(36).slice(2);
-            try { sessionStorage.setItem("linkedin_oauth_state", state); } catch { /* ignore */ }
-
-            const params = new URLSearchParams({
-              response_type: "code",
-              client_id: clientId,
-              redirect_uri: redirectUri,
-              scope: "openid profile email",
-              state,
-            });
-
-            window.location.assign(`https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`);
-            return;
-          }
         }
+        // Se não tem código nem token, não redireciona automaticamente.
+        // O redirecionamento OAuth só ocorre quando o usuário clica "Entrar com LinkedIn"
+        // na seção onde hasLinkedInData === false (tratado acima).
       }
 
       // Recalcular nome resolvido com perfil possivelmente atualizado
@@ -507,13 +490,17 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     }
   }, [loadPersistedProfile]);
 
-  // Auto-trigger LinkedIn import after redirect back
+  // Auto-trigger LinkedIn import ONLY after a fresh OAuth redirect (code present in profile)
   const linkedInAutoImportDone = useRef(false);
   useEffect(() => {
-    if (isLinkedInLogin && !linkedInAutoImportDone.current && initialLoadDone.current) {
-      linkedInAutoImportDone.current = true;
-      handleFillFromLinkedIn();
-    }
+    if (!isLinkedInLogin || linkedInAutoImportDone.current || !initialLoadDone.current) return;
+    try {
+      const p = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      // Só dispara auto-import se tiver um code OAuth fresco (acabou de voltar do LinkedIn)
+      if (!p?.code) return;
+    } catch { return; }
+    linkedInAutoImportDone.current = true;
+    handleFillFromLinkedIn();
   }, [isLinkedInLogin, handleFillFromLinkedIn]);
 
   const handleAddManualExperience = useCallback(() => {
