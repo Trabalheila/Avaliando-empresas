@@ -1685,8 +1685,8 @@ function CompanyDetails({ theme, toggleTheme }) {
                 try {
                   const p = JSON.parse(localStorage.getItem("userProfile") || "{}");
                   const av = p?.avatar || p?.picture || "";
-                  if (av && typeof av === "string" && av.startsWith("data:")) {
-                    return <img src={av} alt="avatar" className="h-8 w-8 rounded-full object-cover border border-blue-200" />;
+                  if (av && typeof av === "string" && (av.startsWith("data:") || av.startsWith("http")) ) {
+                    return <img src={av} alt="avatar" className="h-8 w-8 rounded-full object-cover border border-blue-200" referrerPolicy="no-referrer" />;
                   }
                   if (av) return <span className="text-xl">{av}</span>;
                 } catch { /* fallback */ }
@@ -1700,8 +1700,8 @@ function CompanyDetails({ theme, toggleTheme }) {
         </div>
       </div>
 
-      {/* ═══ LINHA 3 — Banner Premium (só p/ não-premium) ═══ */}
-      {!userIsPremium && (
+      {/* ═══ LINHA 3 — Banner Premium (só p/ não-premium e não-admin) ═══ */}
+      {!userIsPremium && (() => { try { const _uid = (JSON.parse(localStorage.getItem("userProfile") || "{}")?.uid || "").toString().trim(); const _admin = (process.env.REACT_APP_ADMIN_UID || "").trim(); return !_admin || _uid !== _admin; } catch { return true; } })() && (
         <div className="w-full bg-gradient-to-r from-amber-600 to-yellow-500 dark:from-amber-800 dark:to-yellow-700">
           <div className="max-w-5xl mx-auto flex items-center justify-between px-4 py-3">
             <p className="text-sm font-semibold text-white">
