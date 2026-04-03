@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { handleCheckout } from "../services/billing";
 import { db } from "../firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
-import { isPremium } from "../utils/rbac";
+import { isPremium, getUserRole } from "../utils/rbac";
 import {
   FiCheck, FiX, FiArrowLeft,
 } from "react-icons/fi";
@@ -14,15 +14,20 @@ function EscolhaPerfil({ theme, toggleTheme }) {
   const employerRef = useRef(null);
   const [checkoutLoadingAudience, setCheckoutLoadingAudience] = useState(null);
   const [consultores, setConsultores] = useState([]);
+  const [prestadores, setPrestadores] = useState([]);
   const userIsPremium = React.useMemo(() => isPremium(), []);
+  const userRole = React.useMemo(() => getUserRole(), []);
+  const isEmpresaPremium = userIsPremium && (userRole === "admin_empresa" || userRole === "empresa");
 
   useEffect(() => {
     (async () => {
       try {
-        const snap = await getDocs(
-          query(collection(db, "consultores"), where("status", "==", "ativo"))
-        );
-        setConsultores(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        const [consSnap, prestSnap] = await Promise.all([
+          getDocs(query(collection(db, "consultores"), where("status", "==", "ativo"))),
+          getDocs(query(collection(db, "prestadores"), where("status", "==", "ativo"))),
+        ]);
+        setConsultores(consSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setPrestadores(prestSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
       } catch {
         /* silencioso */
       }
@@ -381,6 +386,76 @@ function EscolhaPerfil({ theme, toggleTheme }) {
               className="text-sm text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
             >
               Cadastre-se como consultor parceiro →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════ SEÇÃO 5 — Prestadores de Serviços Corporativos ═══════════════ */}
+      <section className="w-full bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 py-16 scroll-mt-8">
+        <div className="max-w-5xl mx-auto px-4">
+          <h2 className="text-2xl md:text-3xl font-extrabold text-center text-slate-800 dark:text-white mb-2">
+            Prestadores de Serviços Corporativos
+          </h2>
+          <p className="text-center text-slate-600 dark:text-slate-400 mb-10">
+            Empresas verificadas que oferecem serviços especializados para o seu negócio.
+          </p>
+
+          {prestadores.length === 0 ? (
+            <p className="text-center text-sm text-slate-500 italic mb-8">
+              Em breve — prestadores de serviços corporativos verificados serão listados aqui.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
+              {prestadores.map((p) => (
+                <div key={p.id} className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 flex flex-col">
+                  <div className="mb-3">
+                    <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm">{p.razaoSocial || p.nome || "Empresa"}</h3>
+                    {p.segmentos && p.segmentos.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {p.segmentos.map((s) => (
+                          <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium">{s}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {p.descricao && (
+                    <p className="text-sm text-slate-600 dark:text-slate-300 mb-4 flex-1">{p.descricao}</p>
+                  )}
+                  {isEmpresaPremium ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (p.telefone) {
+                          window.open(`https://wa.me/${p.telefone.replace(/\D/g, "")}?text=Olá! Vi o perfil da empresa no Trabalhei Lá e gostaria de solicitar uma proposta.`, "_blank");
+                        } else if (p.email) {
+                          window.location.href = `mailto:${p.email}?subject=Solicitação de proposta via Trabalhei Lá`;
+                        }
+                      }}
+                      className="w-full py-2 rounded-lg bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition"
+                    >
+                      Solicitar proposta com 15% de desconto Premium
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-sm font-semibold cursor-not-allowed"
+                    >
+                      Disponível no Plano Premium Empresa
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="text-center">
+            <Link
+              to="/prestadores/cadastro"
+              className="text-sm text-slate-600 dark:text-slate-400 font-semibold hover:underline"
+            >
+              Cadastre sua empresa como prestadora de serviços →
             </Link>
           </div>
         </div>

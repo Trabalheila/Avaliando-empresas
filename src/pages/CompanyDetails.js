@@ -1625,7 +1625,7 @@ function CompanyDetails({ theme, toggleTheme }) {
       <AppHeader theme={theme} toggleTheme={toggleTheme} />
 
       {/* ═══ LINHA 2 — Logo empresa + nome ═══ */}
-      <div className="w-full bg-white/80 dark:bg-slate-800/70 border-b border-blue-100 dark:border-slate-700 mb-4">
+      <div className="w-full bg-white/80 dark:bg-slate-800/70 border-b border-blue-100 dark:border-slate-700">
         <div className="max-w-5xl mx-auto flex items-center gap-4 px-4 py-4">
           {/* Esquerda: logo + nome + setor + localização */}
           <div className="flex items-center gap-4 min-w-0">
@@ -1656,30 +1656,27 @@ function CompanyDetails({ theme, toggleTheme }) {
         </div>
       </div>
 
-      {/* ═══ Container Banner + Botão — fluxo normal sem sobreposição ═══ */}
-      <div className="relative flex flex-col w-full">
-
-        {/* ═══ LINHA 3 — Banner Premium (só p/ não-premium e não-admin) ═══ */}
-        {!userIsPremium && !isAdmin() && (
-          <div className="w-full bg-gradient-to-r from-amber-600 to-yellow-500 dark:from-amber-800 dark:to-yellow-700 mb-4">
-            <div className="max-w-5xl mx-auto flex items-center justify-between px-4 py-3">
-              <p className="text-sm font-semibold text-white">
-                Desbloqueie análises completas com o <span className="font-bold">Plano Premium</span>
-              </p>
-              <button
-                type="button"
-                onClick={() => navigate("/escolha-perfil")}
-                className="shrink-0 px-4 py-1.5 text-sm font-bold text-amber-800 bg-white rounded-lg hover:bg-amber-50 transition"
-              >
-                Saiba mais
-              </button>
-            </div>
+      {/* ═══ LINHA 3 — Banner Premium (só p/ não-premium e não-admin) ═══ */}
+      {!userIsPremium && !isAdmin() && (
+        <div className="w-full bg-gradient-to-r from-amber-600 to-yellow-500 dark:from-amber-800 dark:to-yellow-700">
+          <div className="max-w-5xl mx-auto flex items-center justify-between px-4 py-3">
+            <p className="text-sm font-semibold text-white">
+              Desbloqueie análises completas com o <span className="font-bold">Plano Premium</span>
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate("/escolha-perfil")}
+              className="shrink-0 px-4 py-1.5 text-sm font-bold text-amber-800 bg-white rounded-lg hover:bg-amber-50 transition"
+            >
+              Saiba mais
+            </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ═══ LINHA 4 — Botão Ver Avaliações centralizado ═══ */}
-        <div className="w-full bg-blue-50/50 dark:bg-slate-900/50 border-b border-blue-100 dark:border-slate-700 mb-4">
-          <div className="max-w-5xl mx-auto flex justify-center px-4 py-4">
+      {/* ═══ LINHA 4 — Botão Ver Avaliações centralizado ═══ */}
+      <div className="w-full bg-blue-50/50 dark:bg-slate-900/50 border-b border-blue-100 dark:border-slate-700">
+        <div className="max-w-5xl mx-auto flex justify-center px-4 py-4">
           {(() => {
             const userCommented = comments.some((c) => normalizeKey(c?.author) === normalizeKey(getCurrentPseudonym()));
             if (userCommented) {
@@ -1709,10 +1706,8 @@ function CompanyDetails({ theme, toggleTheme }) {
               </button>
             );
           })()}
-          </div>
         </div>
-
-      </div>{/* fim container Banner + Botão */}
+      </div>
 
       {/* ═══ Conteúdo principal ═══ */}
       <div className="flex-1 px-4 pt-6 pb-10">

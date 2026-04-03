@@ -6,6 +6,7 @@ import {
   getDocs,
   doc,
   updateDoc,
+  deleteDoc,
   query,
   orderBy,
   limit,
@@ -78,7 +79,7 @@ function AdminPanel({ theme, toggleTheme }) {
   }, [admin, navigate]);
 
   /* ── Abas ── */
-  const TABS = ["Comentários", "Avaliações", "Consultores"];
+  const TABS = ["Comentários", "Avaliações", "Consultores", "Prestadores"];
   const [activeTab, setActiveTab] = useState("Comentários");
 
   /* ── Estado ── */
@@ -93,6 +94,10 @@ function AdminPanel({ theme, toggleTheme }) {
   /* ── Estado consultores ── */
   const [consultores, setConsultores] = useState([]);
   const [consultoresLoading, setConsultoresLoading] = useState(true);
+
+  /* ── Estado prestadores ── */
+  const [prestadores, setPrestadores] = useState([]);
+  const [prestadoresLoading, setPrestadoresLoading] = useState(true);
 
   /* ── Carregar dados ── */
   useEffect(() => {
@@ -136,19 +141,53 @@ function AdminPanel({ theme, toggleTheme }) {
     })();
   }, [admin]);
 
+  /* ── Carregar prestadores ── */
+  useEffect(() => {
+    if (!admin) return;
+    (async () => {
+      setPrestadoresLoading(true);
+      try {
+        const snap = await getDocs(collection(db, "prestadores"));
+        setPrestadores(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } catch (err) {
+        console.error("Erro ao carregar prestadores:", err);
+      }
+      setPrestadoresLoading(false);
+    })();
+  }, [admin]);
+
   /* ── Exclusão via API server-side (Firebase Admin SDK) ── */
   const adminDeleteDoc = useCallback(async (collectionName, docId) => {
     const uid = getAdminUid();
-    const res = await fetch(buildApiUrl("/api/admin-delete"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ uid, collectionName, docId }),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data?.error || `Erro ${res.status} ao excluir documento.`);
+    console.log("[AdminPanel] adminDeleteDoc chamado:", { collectionName, docId, uid: uid ? uid.slice(0, 8) + "..." : "VAZIO" });
+    try {
+      const res = await fetch(buildApiUrl("/api/admin-delete"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid, collectionName, docId }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        console.warn("[AdminPanel] API admin-delete falhou:", res.status, data);
+        // Fallback: tentar excluir diretamente pelo client SDK
+        console.log("[AdminPanel] Tentando fallback com deleteDoc client-side...");
+        await deleteDoc(doc(db, collectionName, docId));
+        console.log("[AdminPanel] Fallback deleteDoc client-side OK:", docId);
+        return { success: true, deleted: docId, fallback: true };
+      }
+      return res.json();
+    } catch (err) {
+      console.error("[AdminPanel] Erro adminDeleteDoc:", err);
+      // Último fallback: client-side
+      try {
+        await deleteDoc(doc(db, collectionName, docId));
+        console.log("[AdminPanel] Fallback final deleteDoc OK:", docId);
+        return { success: true, deleted: docId, fallback: true };
+      } catch (fallbackErr) {
+        console.error("[AdminPanel] Fallback deleteDoc também falhou:", fallbackErr);
+        throw fallbackErr;
+      }
     }
-    return res.json();
   }, []);
 
   /* ── Recalcular médias da empresa após exclusão de avaliação ── */
@@ -184,11 +223,11 @@ function AdminPanel({ theme, toggleTheme }) {
     setDeleting(true);
     console.log("[AdminPanel] Iniciando exclusão do comentário:", commentId);
     try {
-      // Guardar referência do comentário antes de remover do estado
       const targetComment = comments.find((c) => c.id === commentId);
+      console.log("[AdminPanel] Caminho Firestore: comments/" + commentId);
 
       await adminDeleteDoc("comments", commentId);
-      console.log("[AdminPanel] Comentário excluído do Firestore com sucesso:", commentId);
+      console.log("[AdminPanel] Comentário excluído com sucesso:", commentId);
 
       // Limpar localStorage: chave comments_NOME_DA_EMPRESA
       if (targetComment?.companyName) {
@@ -201,7 +240,6 @@ function AdminPanel({ theme, toggleTheme }) {
           } else {
             localStorage.removeItem(lsKey);
           }
-          console.log("[AdminPanel] localStorage atualizado para chave:", lsKey);
         } catch { /* silencioso */ }
       }
       clearLocalStorageKeysWith(commentId);
@@ -209,7 +247,8 @@ function AdminPanel({ theme, toggleTheme }) {
       // Atualizar estado local imediatamente
       setComments((prev) => prev.filter((c) => c.id !== commentId));
     } catch (err) {
-      console.error("[AdminPanel] Erro ao apagar comentário:", commentId, err?.message || err);
+      console.error("[AdminPanel] Erro ao apagar comentário:", commentId, err);
+      alert("Erro ao apagar comentário: " + (err?.message || "Erro desconhecido"));
     }
     setDeleting(false);
     setModal(null);
@@ -246,6 +285,18 @@ function AdminPanel({ theme, toggleTheme }) {
     }
   }, []);
 
+  /* ── Aprovar / Rejeitar prestador ── */
+  const updatePrestadorStatus = useCallback(async (prestadorId, newStatus) => {
+    try {
+      await updateDoc(doc(db, "prestadores", prestadorId), { status: newStatus });
+      setPrestadores((prev) =>
+        prev.map((p) => (p.id === prestadorId ? { ...p, status: newStatus } : p))
+      );
+    } catch (err) {
+      console.error("Erro ao atualizar prestador:", err);
+    }
+  }, []);
+
   /* ── Confirmar ação no modal ── */
   const confirmModal = useCallback(() => {
     if (!modal) return;
@@ -267,6 +318,11 @@ function AdminPanel({ theme, toggleTheme }) {
   const consultoresPendentes = useMemo(
     () => consultores.filter((c) => !c.status || c.status === "pendente"),
     [consultores]
+  );
+
+  const prestadoresPendentes = useMemo(
+    () => prestadores.filter((p) => !p.status || p.status === "pendente"),
+    [prestadores]
   );
 
   if (!admin) return null;
@@ -294,6 +350,11 @@ function AdminPanel({ theme, toggleTheme }) {
               {tab === "Consultores" && consultoresPendentes.length > 0 && (
                 <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 rounded-full">
                   {consultoresPendentes.length}
+                </span>
+              )}
+              {tab === "Prestadores" && prestadoresPendentes.length > 0 && (
+                <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 rounded-full">
+                  {prestadoresPendentes.length}
                 </span>
               )}
             </button>
@@ -335,6 +396,11 @@ function AdminPanel({ theme, toggleTheme }) {
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                         {c.companySlug || "—"} · {c.author || "Anônimo"}
+                        {c.author && /[A-ZÀ-Ü][a-zà-ü]+\s[A-ZÀ-Ü]/.test(c.author) && (
+                          <span className="ml-2 px-1.5 py-0.5 text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 rounded-full">
+                            NOME REAL EXPOSTO
+                          </span>
+                        )}
                       </p>
                       <p className="text-sm text-slate-700 dark:text-slate-200 mt-1 break-words">{c.text}</p>
                     </div>
@@ -437,6 +503,72 @@ function AdminPanel({ theme, toggleTheme }) {
                         <button
                           type="button"
                           onClick={() => updateConsultorStatus(c.id, "rejeitado")}
+                          className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition"
+                        >
+                          Rejeitar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* ═══ ABA Prestadores ═══ */}
+        {activeTab === "Prestadores" && (
+          <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
+            <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200 mb-4">
+              Prestadores pendentes ({prestadoresPendentes.length})
+            </h2>
+
+            {prestadoresLoading ? (
+              <p className="text-sm text-slate-500">Carregando prestadores…</p>
+            ) : prestadoresPendentes.length === 0 ? (
+              <p className="text-sm text-slate-500">Nenhum prestador pendente de aprovação.</p>
+            ) : (
+              <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                {prestadoresPendentes.map((p) => (
+                  <div key={p.id} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">{p.razaoSocial || p.nome || "Sem nome"}</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{p.cnpj || "—"} · {p.email || "—"}</p>
+                        {p.segmentos && p.segmentos.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {p.segmentos.map((s) => (
+                              <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium">{s}</span>
+                            ))}
+                          </div>
+                        )}
+                        {p.descricao && <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{p.descricao}</p>}
+                        {p.site && (
+                          <a href={p.site} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline mt-1 inline-block">Site</a>
+                        )}
+                        {p.valorMedio && <p className="text-xs text-slate-500 mt-1">Valor médio: R$ {p.valorMedio}</p>}
+                        {p.telefone && <p className="text-xs text-slate-500 mt-1">Tel: {p.telefone}</p>}
+                        {p.documentos && p.documentos.length > 0 && (
+                          <div className="mt-2 flex gap-2 flex-wrap">
+                            {p.documentos.map((d, i) => (
+                              <a key={i} href={d.url || d} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline">
+                                Documento {i + 1}
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => updatePrestadorStatus(p.id, "ativo")}
+                          className="px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition"
+                        >
+                          Aprovar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updatePrestadorStatus(p.id, "rejeitado")}
                           className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition"
                         >
                           Rejeitar
