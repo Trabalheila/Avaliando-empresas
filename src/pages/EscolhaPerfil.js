@@ -8,10 +8,12 @@ import {
   FiCheck, FiX, FiArrowLeft,
 } from "react-icons/fi";
 import AppHeader from "../components/AppHeader";
+import PlanosApoiador from "../components/PlanosApoiador";
 
 function EscolhaPerfil({ theme, toggleTheme }) {
   const workerRef = useRef(null);
   const employerRef = useRef(null);
+  const supporterRef = useRef(null);
   const [checkoutLoadingAudience, setCheckoutLoadingAudience] = useState(null);
   const [consultores, setConsultores] = useState([]);
   const [prestadores, setPrestadores] = useState([]);
@@ -67,7 +69,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
           Descubra os benefícios exclusivos para cada perfil.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {/* Card Trabalhador */}
           <button
             type="button"
@@ -111,6 +113,30 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 Monitore reputação, compare concorrentes e tome decisões estratégicas com dados reais.
               </p>
               <span className="mt-4 inline-block text-indigo-600 dark:text-indigo-400 font-semibold text-sm group-hover:underline">
+                Ver benefícios →
+              </span>
+            </div>
+          </button>
+
+          {/* Card Apoiador */}
+          <button
+            type="button"
+            onClick={() => scrollTo(supporterRef)}
+            className="group relative rounded-3xl border-2 border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-800 overflow-hidden shadow-lg hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 cursor-pointer flex flex-col"
+          >
+            <div className="w-full h-52 overflow-hidden">
+              <img
+                src="/plans-banner.jpg"
+                alt="Apoiadores"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+            </div>
+            <div className="p-6 flex flex-col items-center text-center flex-1">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Sou Apoiador</h2>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">
+                Crie seu perfil de consultor ou advogado. Receba contatos gratuitos de potenciais clientes e destaque suas habilidades.
+              </p>
+              <span className="mt-4 inline-block text-blue-600 dark:text-blue-400 font-semibold text-sm group-hover:underline">
                 Ver benefícios →
               </span>
             </div>
@@ -318,7 +344,12 @@ function EscolhaPerfil({ theme, toggleTheme }) {
         </div>
       </section>
 
-      {/* ═══════════════ SEÇÃO 4 — Consultores Parceiros ═══════════════ */}
+      {/* ═══════════════ SEÇÃO 4 — Benefícios Apoiador ═══════════════ */}
+      <div ref={supporterRef} className="scroll-mt-8">
+        <PlanosApoiador />
+      </div>
+
+      {/* ═══════════════ SEÇÃO 5 — Consultores Parceiros ═══════════════ */}
       <section className="w-full bg-white dark:bg-slate-900 py-16 scroll-mt-8">
         <div className="max-w-5xl mx-auto px-4">
           <h2 className="text-2xl md:text-3xl font-extrabold text-center text-slate-800 dark:text-white mb-2">
