@@ -15,6 +15,9 @@ import BusinessDashboard from './pages/BusinessDashboard';
 import AdminPanel from './pages/AdminPanel';
 import ConsultorCadastro from './pages/ConsultorCadastro';
 import PrestadorCadastro from './pages/PrestadorCadastro';
+import ApoiadorCadastro from './pages/ApoiadorCadastro';
+import ApoiadoresList from './pages/ApoiadoresList';
+import ApoiadorPerfil from './pages/ApoiadorPerfil';
 
 // Função para aplicar o tema (dark/light)
 function applyTheme(theme) {
@@ -163,6 +166,9 @@ function App() {
       <Route path="/admin" element={<AdminPanel theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/consultores/cadastro" element={<ConsultorCadastro theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/prestadores/cadastro" element={<PrestadorCadastro theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/apoiadores" element={<ApoiadoresList theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/apoiadores/cadastro" element={<ApoiadorCadastro theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/apoiadores/perfil/:id" element={<ApoiadorPerfil theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/empresa/comentarios-item" element={<CompanyItemComments theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/purpose" element={<Purpose theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/escolha-perfil" element={<EscolhaPerfil theme={theme} toggleTheme={toggleTheme} />} />

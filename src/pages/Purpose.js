@@ -51,6 +51,18 @@ const PREMIUM_COMPANY_BENEFITS = [
   "Respostas públicas às avaliações dos trabalhadores",
 ];
 
+const PREMIUM_SUPPORTER_BENEFITS = [
+  "Seleção de até 3 nichos de atuação",
+  "Perfil completo com descrição estendida de até 600 caracteres",
+  "Portfólio com até 5 casos ou projetos",
+  "Documentos e certificações visíveis no perfil",
+  "Destaque nas páginas de benefícios e empresas",
+  "Receber avaliações e estrelas de clientes",
+  "Selo \"Apoiador Premium Verificado\"",
+  "Posicionamento prioritário por média de avaliações",
+  "Relatório mensal de visualizações e cliques",
+];
+
 export default function Purpose({ theme, toggleTheme }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900">
@@ -172,6 +184,46 @@ export default function Purpose({ theme, toggleTheme }) {
               Contratar Plano Empresa
             </Link>
           </div>
+        </div>
+
+        {/* ── Card Apoiador Premium ── */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-lg">
+          <img
+            src="/plans-banner.jpg"
+            alt="Sou Apoiador"
+            className="w-full h-[160px] object-cover rounded-xl mb-4"
+          />
+          <div className="flex items-center gap-3 mb-1">
+            <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-100">Apoiador Premium</h2>
+            <span className="px-2.5 py-0.5 text-xs font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400 rounded-full">
+              APOIADORES
+            </span>
+          </div>
+          <p className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 mb-0.5">
+            A partir de R$ 199,90<span className="text-sm font-semibold text-slate-500 dark:text-slate-400">/mês</span>
+          </p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">Valor varia conforme o nicho e o nível de destaque escolhido.</p>
+
+          <ul className="space-y-2.5 mb-6">
+            {PREMIUM_SUPPORTER_BENEFITS.map((b) => (
+              <li key={b} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-200">
+                {CHECK} <span>{b}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-3 mb-6 text-center">
+            <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+              Apoiadores Premium recebem até 3x mais contatos de potenciais clientes.
+            </p>
+          </div>
+
+          <Link
+            to="/apoiadores/cadastro"
+            className="block w-full text-center py-3 rounded-xl font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition"
+          >
+            Seja um Apoiador
+          </Link>
         </div>
 
         {/* ── Rodapé ── */}

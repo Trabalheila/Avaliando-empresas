@@ -178,6 +178,13 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
                   >
                     Minha conta
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => { setDropdownOpen(false); navigate("/apoiadores"); }}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+                  >
+                    Apoiadores
+                  </button>
                   {admin && (
                     <button
                       type="button"

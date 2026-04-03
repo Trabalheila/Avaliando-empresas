@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   }
 
   // Apenas coleções permitidas
-  const ALLOWED_COLLECTIONS = ["reviews", "comments", "consultores", "prestadores"];
+  const ALLOWED_COLLECTIONS = ["reviews", "comments", "consultores", "prestadores", "apoiadores"];
   if (!ALLOWED_COLLECTIONS.includes(collectionName)) {
     return res.status(400).json({ error: "Coleção não permitida." });
   }

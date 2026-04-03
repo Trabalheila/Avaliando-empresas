@@ -79,7 +79,7 @@ function AdminPanel({ theme, toggleTheme }) {
   }, [admin, navigate]);
 
   /* ── Abas ── */
-  const TABS = ["Comentários", "Avaliações", "Consultores", "Prestadores"];
+  const TABS = ["Comentários", "Avaliações", "Apoiadores"];
   const [activeTab, setActiveTab] = useState("Comentários");
 
   /* ── Estado ── */
@@ -101,13 +101,9 @@ function AdminPanel({ theme, toggleTheme }) {
     setSelectedReviews(new Set());
   }, [activeTab, filterCompany]);
 
-  /* ── Estado consultores ── */
-  const [consultores, setConsultores] = useState([]);
-  const [consultoresLoading, setConsultoresLoading] = useState(true);
-
-  /* ── Estado prestadores ── */
-  const [prestadores, setPrestadores] = useState([]);
-  const [prestadoresLoading, setPrestadoresLoading] = useState(true);
+  /* ── Estado apoiadores (unificado) ── */
+  const [apoiadores, setApoiadores] = useState([]);
+  const [apoiadoresLoading, setApoiadoresLoading] = useState(true);
 
   /* ── Carregar dados ── */
   useEffect(() => {
@@ -136,33 +132,18 @@ function AdminPanel({ theme, toggleTheme }) {
     })();
   }, [admin]);
 
-  /* ── Carregar consultores ── */
+  /* ── Carregar apoiadores (coleção unificada) ── */
   useEffect(() => {
     if (!admin) return;
     (async () => {
-      setConsultoresLoading(true);
+      setApoiadoresLoading(true);
       try {
-        const snap = await getDocs(collection(db, "consultores"));
-        setConsultores(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        const snap = await getDocs(collection(db, "apoiadores"));
+        setApoiadores(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       } catch (err) {
-        console.error("Erro ao carregar consultores:", err);
+        console.error("Erro ao carregar apoiadores:", err);
       }
-      setConsultoresLoading(false);
-    })();
-  }, [admin]);
-
-  /* ── Carregar prestadores ── */
-  useEffect(() => {
-    if (!admin) return;
-    (async () => {
-      setPrestadoresLoading(true);
-      try {
-        const snap = await getDocs(collection(db, "prestadores"));
-        setPrestadores(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      } catch (err) {
-        console.error("Erro ao carregar prestadores:", err);
-      }
-      setPrestadoresLoading(false);
+      setApoiadoresLoading(false);
     })();
   }, [admin]);
 
@@ -283,27 +264,15 @@ function AdminPanel({ theme, toggleTheme }) {
     setModal(null);
   }, [adminDeleteDoc, recalcCompanyAverages]);
 
-  /* ── Aprovar / Rejeitar consultor ── */
-  const updateConsultorStatus = useCallback(async (consultorId, newStatus) => {
+  /* ── Aprovar / Rejeitar apoiador ── */
+  const updateApoiadorStatus = useCallback(async (apoiadorId, newStatus) => {
     try {
-      await updateDoc(doc(db, "consultores", consultorId), { status: newStatus });
-      setConsultores((prev) =>
-        prev.map((c) => (c.id === consultorId ? { ...c, status: newStatus } : c))
+      await updateDoc(doc(db, "apoiadores", apoiadorId), { status: newStatus });
+      setApoiadores((prev) =>
+        prev.map((a) => (a.id === apoiadorId ? { ...a, status: newStatus } : a))
       );
     } catch (err) {
-      console.error("Erro ao atualizar consultor:", err);
-    }
-  }, []);
-
-  /* ── Aprovar / Rejeitar prestador ── */
-  const updatePrestadorStatus = useCallback(async (prestadorId, newStatus) => {
-    try {
-      await updateDoc(doc(db, "prestadores", prestadorId), { status: newStatus });
-      setPrestadores((prev) =>
-        prev.map((p) => (p.id === prestadorId ? { ...p, status: newStatus } : p))
-      );
-    } catch (err) {
-      console.error("Erro ao atualizar prestador:", err);
+      console.error("Erro ao atualizar apoiador:", err);
     }
   }, []);
 
@@ -386,15 +355,17 @@ function AdminPanel({ theme, toggleTheme }) {
     return comments.filter((c) => c.companySlug === filterCompany);
   }, [comments, filterCompany]);
 
-  const consultoresPendentes = useMemo(
-    () => consultores.filter((c) => !c.status || c.status === "pendente"),
-    [consultores]
+  const apoiadoresPendentes = useMemo(
+    () => apoiadores.filter((a) => !a.status || a.status === "pendente"),
+    [apoiadores]
   );
 
-  const prestadoresPendentes = useMemo(
-    () => prestadores.filter((p) => !p.status || p.status === "pendente"),
-    [prestadores]
-  );
+  const TIPO_BADGE = {
+    consultor: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
+    advogado: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400",
+    prestador: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
+  };
+  const TIPO_LABEL = { consultor: "Consultor", advogado: "Advogado", prestador: "Prestador" };
 
   if (!admin) return null;
 
@@ -418,14 +389,9 @@ function AdminPanel({ theme, toggleTheme }) {
               }`}
             >
               {tab}
-              {tab === "Consultores" && consultoresPendentes.length > 0 && (
+              {tab === "Apoiadores" && apoiadoresPendentes.length > 0 && (
                 <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 rounded-full">
-                  {consultoresPendentes.length}
-                </span>
-              )}
-              {tab === "Prestadores" && prestadoresPendentes.length > 0 && (
-                <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 rounded-full">
-                  {prestadoresPendentes.length}
+                  {apoiadoresPendentes.length}
                 </span>
               )}
             </button>
@@ -600,102 +566,48 @@ function AdminPanel({ theme, toggleTheme }) {
           </section>
         )}
 
-        {/* ═══ ABA Consultores ═══ */}
-        {activeTab === "Consultores" && (
+        {/* ═══ ABA Apoiadores (unificada) ═══ */}
+        {activeTab === "Apoiadores" && (
           <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
             <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200 mb-4">
-              Consultores pendentes ({consultoresPendentes.length})
+              Apoiadores pendentes ({apoiadoresPendentes.length})
             </h2>
 
-            {consultoresLoading ? (
-              <p className="text-sm text-slate-500">Carregando consultores…</p>
-            ) : consultoresPendentes.length === 0 ? (
-              <p className="text-sm text-slate-500">Nenhum consultor pendente de aprovação.</p>
+            {apoiadoresLoading ? (
+              <p className="text-sm text-slate-500">Carregando apoiadores…</p>
+            ) : apoiadoresPendentes.length === 0 ? (
+              <p className="text-sm text-slate-500">Nenhum apoiador pendente de aprovação.</p>
             ) : (
               <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                {consultoresPendentes.map((c) => (
-                  <div key={c.id} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
+                {apoiadoresPendentes.map((a) => (
+                  <div key={a.id} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">{c.nome || c.name || "Sem nome"}</h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">{c.especialidade || "—"} · {c.email || "—"}</p>
-                        {c.descricao && <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{c.descricao}</p>}
-                        {c.linkedin && (
-                          <a href={c.linkedin} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline mt-1 inline-block">LinkedIn</a>
-                        )}
-                        {c.valorMedio && <p className="text-xs text-slate-500 mt-1">Valor médio: R$ {c.valorMedio}</p>}
-                        {c.areas && c.areas.length > 0 && (
-                          <p className="text-xs text-slate-500 mt-1">Áreas: {c.areas.join(", ")}</p>
-                        )}
-                        {c.documentos && c.documentos.length > 0 && (
-                          <div className="mt-2 flex gap-2 flex-wrap">
-                            {c.documentos.map((d, i) => (
-                              <a key={i} href={d.url || d} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline">
-                                Documento {i + 1}
-                              </a>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex flex-col gap-2 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => updateConsultorStatus(c.id, "ativo")}
-                          className="px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition"
-                        >
-                          Aprovar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => updateConsultorStatus(c.id, "rejeitado")}
-                          className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition"
-                        >
-                          Rejeitar
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* ═══ ABA Prestadores ═══ */}
-        {activeTab === "Prestadores" && (
-          <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
-            <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200 mb-4">
-              Prestadores pendentes ({prestadoresPendentes.length})
-            </h2>
-
-            {prestadoresLoading ? (
-              <p className="text-sm text-slate-500">Carregando prestadores…</p>
-            ) : prestadoresPendentes.length === 0 ? (
-              <p className="text-sm text-slate-500">Nenhum prestador pendente de aprovação.</p>
-            ) : (
-              <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                {prestadoresPendentes.map((p) => (
-                  <div key={p.id} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">{p.razaoSocial || p.nome || "Sem nome"}</h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">{p.cnpj || "—"} · {p.email || "—"}</p>
-                        {p.segmentos && p.segmentos.length > 0 && (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">{a.nome || a.razaoSocial || "Sem nome"}</h3>
+                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${TIPO_BADGE[a.tipo] || "bg-slate-100 text-slate-600"}`}>
+                            {TIPO_LABEL[a.tipo] || a.tipo || "?"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          {a.email || "—"}
+                          {a.especialidade && ` · ${a.especialidade}`}
+                          {a.oab && ` · OAB ${a.oab}/${a.seccional || "?"}`}
+                          {a.cnpj && ` · CNPJ ${a.cnpj}`}
+                        </p>
+                        {a.descricao && <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{a.descricao}</p>}
+                        {(a.areas || a.segmentos || []).length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
-                            {p.segmentos.map((s) => (
+                            {(a.areas || a.segmentos || []).map((s) => (
                               <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium">{s}</span>
                             ))}
                           </div>
                         )}
-                        {p.descricao && <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{p.descricao}</p>}
-                        {p.site && (
-                          <a href={p.site} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline mt-1 inline-block">Site</a>
-                        )}
-                        {p.valorMedio && <p className="text-xs text-slate-500 mt-1">Valor médio: R$ {p.valorMedio}</p>}
-                        {p.telefone && <p className="text-xs text-slate-500 mt-1">Tel: {p.telefone}</p>}
-                        {p.documentos && p.documentos.length > 0 && (
+                        {a.linkedin && <a href={a.linkedin} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline mt-1 inline-block">LinkedIn</a>}
+                        {a.site && <a href={a.site} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline mt-1 inline-block ml-2">Site</a>}
+                        {a.documentos && a.documentos.length > 0 && (
                           <div className="mt-2 flex gap-2 flex-wrap">
-                            {p.documentos.map((d, i) => (
+                            {a.documentos.map((d, i) => (
                               <a key={i} href={d.url || d} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline">
                                 Documento {i + 1}
                               </a>
@@ -706,14 +618,14 @@ function AdminPanel({ theme, toggleTheme }) {
                       <div className="flex flex-col gap-2 shrink-0">
                         <button
                           type="button"
-                          onClick={() => updatePrestadorStatus(p.id, "ativo")}
+                          onClick={() => updateApoiadorStatus(a.id, "ativo")}
                           className="px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition"
                         >
                           Aprovar
                         </button>
                         <button
                           type="button"
-                          onClick={() => updatePrestadorStatus(p.id, "rejeitado")}
+                          onClick={() => updateApoiadorStatus(a.id, "rejeitado")}
                           className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition"
                         >
                           Rejeitar
