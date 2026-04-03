@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { FiCheck, FiX } from "react-icons/fi";
+import { handleCheckout } from "../services/billing";
 
 function FeatureRow({ ok, children }) {
   return (
@@ -16,6 +17,24 @@ function FeatureRow({ ok, children }) {
 }
 
 export default function PlanosApoiador() {
+  const [loading, setLoading] = useState(false);
+
+  const handleSupporterCheckout = async () => {
+    setLoading(true);
+    try {
+      await handleCheckout({
+        cnpj: "",
+        companySlug: "trabalhei-la",
+        companyName: "Trabalheila",
+        audience: "supporter",
+      });
+    } catch {
+      // handled by billing service
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <section className="w-full bg-white dark:bg-slate-900 py-16 scroll-mt-8">
       <div className="max-w-5xl mx-auto px-4">
@@ -81,12 +100,14 @@ export default function PlanosApoiador() {
             <span className="font-bold">Destaque:</span> Apoiadores Premium recebem até{" "}
             <span className="font-bold">3× mais contatos</span> de potenciais clientes.
           </div>
-          <Link
-            to="/apoiadores/cadastro"
-            className="inline-block w-full max-w-xs mx-auto py-3 rounded-lg bg-blue-600 text-white text-lg font-bold hover:bg-blue-700 transition"
+          <button
+            type="button"
+            onClick={handleSupporterCheckout}
+            disabled={loading}
+            className="w-full max-w-xs mx-auto py-3 rounded-lg bg-blue-600 text-white text-lg font-bold hover:bg-blue-700 transition"
           >
-            Quero ser Apoiador Premium
-          </Link>
+            {loading ? "Abrindo checkout…" : "Quero ser Apoiador Premium"}
+          </button>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
             Pagamento via Mercado Pago. Escolha PIX, cartão ou boleto no checkout.
           </p>

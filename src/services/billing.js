@@ -41,7 +41,7 @@ export async function handleCheckout({ cnpj, companySlug, companyName, audience,
       cnpj: cleanedCnpj || null,
       companySlug: normalizedCompanySlug || null,
       companyName: (companyName || "").toString().trim() || null,
-      audience: ["worker", "employer"].includes(audience) ? audience : "worker",
+      audience: ["worker", "employer", "supporter"].includes(audience) ? audience : "worker",
       paymentMethod: paymentMethod === "pix" ? "pix" : "card",
     }),
   });

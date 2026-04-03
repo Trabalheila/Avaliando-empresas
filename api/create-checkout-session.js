@@ -60,8 +60,8 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
   const serverBase = getServerBaseUrl(req);
   const externalReference = cnpj ? cnpj : `slug:${companySlug}`;
 
-  const unitPrice = audience === "employer" ? 1499.9 : 29.9;
-  const planLabel = audience === "employer" ? "Fundador" : "Trabalhador";
+  const unitPrice = audience === "employer" ? 1499.9 : audience === "supporter" ? 199.9 : 29.9;
+  const planLabel = audience === "employer" ? "Fundador" : audience === "supporter" ? "Apoiador" : "Trabalhador";
 
   const payload = {
     items: [
@@ -135,7 +135,7 @@ export default async function handler(req, res) {
   const hasValidCnpj = cleanedCnpj.length === 14;
   const normalizedCompanySlug = normalizeCompanySlug(companySlug);
   const normalizedCompanyName = (companyName || "").toString().trim();
-  const normalizedAudience = ["worker", "employer"].includes(audience) ? audience : "worker";
+  const normalizedAudience = ["worker", "employer", "supporter"].includes(audience) ? audience : "worker";
   const normalizedPaymentMethod = paymentMethod === "pix" ? "pix" : "card";
 
   if (!hasValidCnpj && !normalizedCompanySlug) {
@@ -171,11 +171,13 @@ export default async function handler(req, res) {
 
   const subscriptionPriceId = normalizedAudience === "employer"
     ? process.env.STRIPE_PRICE_COMPANY
-    : process.env.STRIPE_PRICE_WORKER;
+    : normalizedAudience === "supporter"
+      ? process.env.STRIPE_PRICE_SUPPORT
+      : process.env.STRIPE_PRICE_WORKER;
   const pixPriceId = process.env.STRIPE_PRICE_ID_PREMIUM_PIX;
 
   if (normalizedPaymentMethod === "card" && !subscriptionPriceId) {
-    const envName = normalizedAudience === "employer" ? "STRIPE_PRICE_COMPANY" : "STRIPE_PRICE_WORKER";
+    const envName = normalizedAudience === "employer" ? "STRIPE_PRICE_COMPANY" : normalizedAudience === "supporter" ? "STRIPE_PRICE_SUPPORT" : "STRIPE_PRICE_WORKER";
     return res.status(500).json({ error: `${envName} nao configurado.` });
   }
 
