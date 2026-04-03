@@ -91,6 +91,16 @@ function AdminPanel({ theme, toggleTheme }) {
   const [modal, setModal] = useState(null); // { type, id, label, companySlug? }
   const [deleting, setDeleting] = useState(false);
 
+  /* ── Seleção em massa ── */
+  const [selectedComments, setSelectedComments] = useState(new Set());
+  const [selectedReviews, setSelectedReviews] = useState(new Set());
+
+  // Limpar seleção ao trocar de aba ou filtro
+  useEffect(() => {
+    setSelectedComments(new Set());
+    setSelectedReviews(new Set());
+  }, [activeTab, filterCompany]);
+
   /* ── Estado consultores ── */
   const [consultores, setConsultores] = useState([]);
   const [consultoresLoading, setConsultoresLoading] = useState(true);
@@ -297,12 +307,73 @@ function AdminPanel({ theme, toggleTheme }) {
     }
   }, []);
 
+  /* ── Apagar comentários em massa ── */
+  const deleteBulkComments = useCallback(async (ids) => {
+    setDeleting(true);
+    const failed = [];
+    for (const commentId of ids) {
+      try {
+        const targetComment = comments.find((c) => c.id === commentId);
+        await adminDeleteDoc("comments", commentId);
+        if (targetComment?.companyName) {
+          try {
+            const lsKey = `comments_${targetComment.companyName}`;
+            const stored = JSON.parse(localStorage.getItem(lsKey) || "[]");
+            const filtered = stored.filter((c) => c.id !== commentId);
+            if (filtered.length > 0) localStorage.setItem(lsKey, JSON.stringify(filtered));
+            else localStorage.removeItem(lsKey);
+          } catch { /* silencioso */ }
+        }
+        clearLocalStorageKeysWith(commentId);
+      } catch (err) {
+        console.error("[AdminPanel] Erro ao apagar comentário em massa:", commentId, err);
+        failed.push(commentId);
+      }
+    }
+    setComments((prev) => prev.filter((c) => !ids.has(c.id) || failed.includes(c.id)));
+    setSelectedComments(new Set());
+    if (failed.length > 0) alert(`${failed.length} comentário(s) não puderam ser apagados.`);
+    setDeleting(false);
+    setModal(null);
+  }, [adminDeleteDoc, comments]);
+
+  /* ── Apagar avaliações em massa ── */
+  const deleteBulkReviews = useCallback(async (ids) => {
+    setDeleting(true);
+    const failed = [];
+    const slugsToRecalc = new Set();
+    for (const reviewId of ids) {
+      try {
+        const targetReview = reviews.find((r) => r.id === reviewId);
+        await adminDeleteDoc("reviews", reviewId);
+        clearLocalStorageKeysWith(reviewId);
+        if (targetReview?.companySlug) {
+          clearLocalStorageKeysWith("evaluations_");
+          slugsToRecalc.add(targetReview.companySlug);
+        }
+      } catch (err) {
+        console.error("[AdminPanel] Erro ao apagar avaliação em massa:", reviewId, err);
+        failed.push(reviewId);
+      }
+    }
+    setReviews((prev) => prev.filter((r) => !ids.has(r.id) || failed.includes(r.id)));
+    setSelectedReviews(new Set());
+    for (const slug of slugsToRecalc) {
+      await recalcCompanyAverages(slug);
+    }
+    if (failed.length > 0) alert(`${failed.length} avaliação(ões) não puderam ser apagadas.`);
+    setDeleting(false);
+    setModal(null);
+  }, [adminDeleteDoc, reviews, recalcCompanyAverages]);
+
   /* ── Confirmar ação no modal ── */
   const confirmModal = useCallback(() => {
     if (!modal) return;
     if (modal.type === "comment") deleteComment(modal.id);
     if (modal.type === "review") deleteReview(modal.id, modal.companySlug);
-  }, [modal, deleteComment, deleteReview]);
+    if (modal.type === "bulk-comments") deleteBulkComments(modal.ids);
+    if (modal.type === "bulk-reviews") deleteBulkReviews(modal.ids);
+  }, [modal, deleteComment, deleteReview, deleteBulkComments, deleteBulkReviews]);
 
   /* ── Filtragem ── */
   const filteredReviews = useMemo(() => {
@@ -383,16 +454,53 @@ function AdminPanel({ theme, toggleTheme }) {
         {/* ═══ ABA Comentários ═══ */}
         {activeTab === "Comentários" && (
           <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
-            <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200 mb-4">
-              Comentários ({filteredComments.length})
-            </h2>
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200">
+                Comentários ({filteredComments.length})
+              </h2>
+              {filteredComments.length > 0 && (
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={selectedComments.size === filteredComments.length && filteredComments.length > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedComments(new Set(filteredComments.map((c) => c.id)));
+                        else setSelectedComments(new Set());
+                      }}
+                      className="accent-blue-600 w-4 h-4"
+                    />
+                    Selecionar todos
+                  </label>
+                  {selectedComments.size > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setModal({ type: "bulk-comments", ids: new Set(selectedComments), label: `${selectedComments.size} comentário(s)` })}
+                      className="px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition"
+                    >
+                      Apagar selecionados ({selectedComments.size})
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
 
             {filteredComments.length === 0 ? (
               <p className="text-sm text-slate-500">Nenhum comentário encontrado.</p>
             ) : (
               <div className="space-y-3 max-h-[600px] overflow-y-auto">
                 {filteredComments.map((c) => (
-                  <div key={c.id} className="flex items-start justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
+                  <div key={c.id} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={selectedComments.has(c.id)}
+                      onChange={() => setSelectedComments((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(c.id)) next.delete(c.id); else next.add(c.id);
+                        return next;
+                      })}
+                      className="accent-blue-600 w-4 h-4 mt-1 shrink-0 cursor-pointer"
+                    />
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                         {c.companySlug || "—"} · {c.author || "Anônimo"}
@@ -421,9 +529,36 @@ function AdminPanel({ theme, toggleTheme }) {
         {/* ═══ ABA Avaliações ═══ */}
         {activeTab === "Avaliações" && (
           <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
-            <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200 mb-4">
-              Avaliações ({filteredReviews.length})
-            </h2>
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200">
+                Avaliações ({filteredReviews.length})
+              </h2>
+              {filteredReviews.length > 0 && (
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={selectedReviews.size === filteredReviews.length && filteredReviews.length > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedReviews(new Set(filteredReviews.map((r) => r.id)));
+                        else setSelectedReviews(new Set());
+                      }}
+                      className="accent-blue-600 w-4 h-4"
+                    />
+                    Selecionar todos
+                  </label>
+                  {selectedReviews.size > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setModal({ type: "bulk-reviews", ids: new Set(selectedReviews), label: `${selectedReviews.size} avaliação(ões)` })}
+                      className="px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition"
+                    >
+                      Apagar selecionados ({selectedReviews.size})
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
 
             {filteredReviews.length === 0 ? (
               <p className="text-sm text-slate-500">Nenhuma avaliação encontrada.</p>
@@ -433,7 +568,17 @@ function AdminPanel({ theme, toggleTheme }) {
                   const vals = SCORE_FIELDS.map((f) => parseFloat(r?.[f.key])).filter((v) => Number.isFinite(v) && v > 0);
                   const avg = vals.length > 0 ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : "--";
                   return (
-                    <div key={r.id} className="flex items-start justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
+                    <div key={r.id} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={selectedReviews.has(r.id)}
+                        onChange={() => setSelectedReviews((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(r.id)) next.delete(r.id); else next.add(r.id);
+                          return next;
+                        })}
+                        className="accent-blue-600 w-4 h-4 mt-1 shrink-0 cursor-pointer"
+                      />
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                           {r.companySlug || "—"} · {r.pseudonym || r.company || "?"} · Média: {avg}
