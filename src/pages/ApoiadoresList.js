@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { db } from "../firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import AppHeader from "../components/AppHeader";
+import PlanosApoiador from "../components/PlanosApoiador";
 
 const TIPO_LABELS = { consultor: "Consultor de RH", advogado: "Advogado Trabalhista", prestador: "Prestador de Serviços" };
 const TIPO_COLORS = {
@@ -167,6 +168,9 @@ function ApoiadoresList({ theme, toggleTheme }) {
           </div>
         )}
       </main>
+
+      {/* ── Seção de Planos ── */}
+      <PlanosApoiador />
     </div>
   );
 }
