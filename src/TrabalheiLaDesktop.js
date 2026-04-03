@@ -303,6 +303,22 @@ function TrabalheiLaDesktop({
                         } catch { /* silencioso */ }
                         return null;
                       })()}
+                      {(() => {
+                        try {
+                          const { isAdmin } = require("./utils/rbac");
+                          if (isAdmin()) {
+                            return (
+                              <a
+                                href="/admin"
+                                className="mt-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition"
+                              >
+                                Admin
+                              </a>
+                            );
+                          }
+                        } catch { /* silencioso */ }
+                        return null;
+                      })()}
                     </div>
                   </div>
 

@@ -296,11 +296,12 @@ function BusinessDashboard({ theme, toggleTheme }) {
                 {SCORE_FIELDS.map((f) => {
                   const val = avgField(reviews, f.key);
                   const pct = val !== null ? ((val / 5) * 100).toFixed(0) : "--";
+                  const sampleCount = reviews.filter((r) => { const v = parseFloat(r?.[f.key]); return Number.isFinite(v) && v > 0; }).length;
                   return (
                     <div key={f.key} className="bg-blue-50 dark:bg-slate-900 rounded-xl p-3 border border-blue-100 dark:border-slate-700">
                       <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">{f.label}</p>
                       <p className="text-lg font-extrabold text-blue-700 dark:text-blue-300">{pct}%</p>
-                      <p className="text-[10px] text-slate-400">aprovação</p>
+                      <p className="text-[10px] text-slate-400">aprovação · amostra: {sampleCount}</p>
                     </div>
                   );
                 })}

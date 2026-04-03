@@ -6,7 +6,7 @@ import { collection, doc, getDocs, limit, orderBy, query, setDoc, where, updateD
 import { hasCompanyInResumeExperiences } from "../utils/resumeParser";
 import { listReviewsByCompanySlug } from "../services/reviews";
 import { listCompanies, enrichCompanyWithBrasilAPI } from "../services/companies";
-import { getUserRole, isPremium } from "../utils/rbac";
+import { getUserRole, isPremium, isAdmin } from "../utils/rbac";
 import { handleCheckout } from "../services/billing";
 // import PremiumPieCard from "../components/PremiumPieCard"; // removido pois não é mais usado
 // ...existing code...
@@ -1701,7 +1701,7 @@ function CompanyDetails({ theme, toggleTheme }) {
       </div>
 
       {/* ═══ LINHA 3 — Banner Premium (só p/ não-premium e não-admin) ═══ */}
-      {!userIsPremium && (() => { try { const _uid = (JSON.parse(localStorage.getItem("userProfile") || "{}")?.uid || "").toString().trim(); const _admin = (process.env.REACT_APP_ADMIN_UID || "").trim(); return !_admin || _uid !== _admin; } catch { return true; } })() && (
+      {!userIsPremium && !isAdmin() && (
         <div className="w-full bg-gradient-to-r from-amber-600 to-yellow-500 dark:from-amber-800 dark:to-yellow-700">
           <div className="max-w-5xl mx-auto flex items-center justify-between px-4 py-3">
             <p className="text-sm font-semibold text-white">

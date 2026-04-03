@@ -485,6 +485,22 @@ function TrabalheiLaMobile({
                   } catch { /* silencioso */ }
                   return null;
                 })()}
+                {(() => {
+                  try {
+                    const { isAdmin } = require("./utils/rbac");
+                    if (isAdmin()) {
+                      return (
+                        <a
+                          href="/admin"
+                          className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition"
+                        >
+                          Admin
+                        </a>
+                      );
+                    }
+                  } catch { /* silencioso */ }
+                  return null;
+                })()}
               </div>
             </div>
           ) : (
