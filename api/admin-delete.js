@@ -14,8 +14,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "uid, collectionName e docId são obrigatórios." });
   }
 
-  // Apenas "reviews" e "comments" são permitidos
-  const ALLOWED_COLLECTIONS = ["reviews", "comments"];
+  // Apenas coleções permitidas
+  const ALLOWED_COLLECTIONS = ["reviews", "comments", "consultores", "prestadores"];
   if (!ALLOWED_COLLECTIONS.includes(collectionName)) {
     return res.status(400).json({ error: "Coleção não permitida." });
   }
