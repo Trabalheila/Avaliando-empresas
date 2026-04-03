@@ -5,13 +5,16 @@ import {
   collection,
   getDocs,
   doc,
-  deleteDoc,
+  updateDoc,
   query,
   orderBy,
   limit,
+  where,
 } from "firebase/firestore";
 import { isAdmin } from "../utils/rbac";
 import { slugifyCompany, listReviewsByCompanySlug } from "../services/reviews";
+import { buildApiUrl } from "../utils/apiBase";
+import AppHeader from "../components/AppHeader";
 
 /* ────────────────────────────────────────────────
    Critérios — mesmos do BusinessDashboard
@@ -54,6 +57,15 @@ function clearLocalStorageKeysWith(fragment) {
   }
 }
 
+function getAdminUid() {
+  try {
+    const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+    return (profile?.uid || profile?.id || profile?.profileId || "").toString().trim();
+  } catch {
+    return "";
+  }
+}
+
 /* ════════════════════════════════════════════════
    AdminPanel
    ════════════════════════════════════════════════ */
@@ -65,13 +77,22 @@ function AdminPanel({ theme, toggleTheme }) {
     if (!admin) navigate("/", { replace: true });
   }, [admin, navigate]);
 
+  /* ── Abas ── */
+  const TABS = ["Comentários", "Avaliações", "Consultores"];
+  const [activeTab, setActiveTab] = useState("Comentários");
+
   /* ── Estado ── */
   const [comments, setComments] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [filterCompany, setFilterCompany] = useState("");
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null); // { type, id, label }
+  const [modal, setModal] = useState(null); // { type, id, label, companySlug? }
+  const [deleting, setDeleting] = useState(false);
+
+  /* ── Estado consultores ── */
+  const [consultores, setConsultores] = useState([]);
+  const [consultoresLoading, setConsultoresLoading] = useState(true);
 
   /* ── Carregar dados ── */
   useEffect(() => {
@@ -94,11 +115,41 @@ function AdminPanel({ theme, toggleTheme }) {
         commList.forEach((c) => { if (c.companySlug) slugSet.add(c.companySlug); });
         setCompanies([...slugSet].sort((a, b) => a.localeCompare(b, "pt-BR")));
       } catch (err) {
-        console.warn("Erro ao carregar dados admin:", err);
+        console.error("Erro ao carregar dados admin:", err);
       }
       setLoading(false);
     })();
   }, [admin]);
+
+  /* ── Carregar consultores ── */
+  useEffect(() => {
+    if (!admin) return;
+    (async () => {
+      setConsultoresLoading(true);
+      try {
+        const snap = await getDocs(collection(db, "consultores"));
+        setConsultores(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } catch (err) {
+        console.error("Erro ao carregar consultores:", err);
+      }
+      setConsultoresLoading(false);
+    })();
+  }, [admin]);
+
+  /* ── Exclusão via API server-side (Firebase Admin SDK) ── */
+  const adminDeleteDoc = useCallback(async (collectionName, docId) => {
+    const uid = getAdminUid();
+    const res = await fetch(buildApiUrl("/api/admin-delete"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ uid, collectionName, docId }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data?.error || `Erro ${res.status} ao excluir documento.`);
+    }
+    return res.json();
+  }, []);
 
   /* ── Recalcular médias da empresa após exclusão de avaliação ── */
   const recalcCompanyAverages = useCallback(async (companySlug) => {
@@ -109,7 +160,6 @@ function AdminPanel({ theme, toggleTheme }) {
         averages[f.key] = avgField(remaining, f.key);
       });
 
-      // Atualiza localStorage "empresasData"
       try {
         const stored = JSON.parse(localStorage.getItem("empresasData") || "[]");
         const idx = stored.findIndex(
@@ -131,28 +181,48 @@ function AdminPanel({ theme, toggleTheme }) {
 
   /* ── Apagar comentário ── */
   const deleteComment = useCallback(async (commentId) => {
+    setDeleting(true);
     try {
-      await deleteDoc(doc(db, "comments", commentId));
+      await adminDeleteDoc("comments", commentId);
       clearLocalStorageKeysWith(commentId);
       setComments((prev) => prev.filter((c) => c.id !== commentId));
     } catch (err) {
-      console.warn("Erro ao apagar comentário:", err);
+      console.error("Erro ao apagar comentário:", err);
     }
+    setDeleting(false);
     setModal(null);
-  }, []);
+  }, [adminDeleteDoc]);
 
   /* ── Apagar avaliação ── */
   const deleteReview = useCallback(async (reviewId, companySlug) => {
+    setDeleting(true);
     try {
-      await deleteDoc(doc(db, "reviews", reviewId));
+      await adminDeleteDoc("reviews", reviewId);
       clearLocalStorageKeysWith(reviewId);
+      // Limpa localStorage de avaliações da empresa
+      if (companySlug) {
+        clearLocalStorageKeysWith(`evaluations_`);
+      }
       setReviews((prev) => prev.filter((r) => r.id !== reviewId));
       if (companySlug) await recalcCompanyAverages(companySlug);
     } catch (err) {
-      console.warn("Erro ao apagar avaliação:", err);
+      console.error("Erro ao apagar avaliação:", err);
     }
+    setDeleting(false);
     setModal(null);
-  }, [recalcCompanyAverages]);
+  }, [adminDeleteDoc, recalcCompanyAverages]);
+
+  /* ── Aprovar / Rejeitar consultor ── */
+  const updateConsultorStatus = useCallback(async (consultorId, newStatus) => {
+    try {
+      await updateDoc(doc(db, "consultores", consultorId), { status: newStatus });
+      setConsultores((prev) =>
+        prev.map((c) => (c.id === consultorId ? { ...c, status: newStatus } : c))
+      );
+    } catch (err) {
+      console.error("Erro ao atualizar consultor:", err);
+    }
+  }, []);
 
   /* ── Confirmar ação no modal ── */
   const confirmModal = useCallback(() => {
@@ -172,112 +242,191 @@ function AdminPanel({ theme, toggleTheme }) {
     return comments.filter((c) => c.companySlug === filterCompany);
   }, [comments, filterCompany]);
 
+  const consultoresPendentes = useMemo(
+    () => consultores.filter((c) => !c.status || c.status === "pendente"),
+    [consultores]
+  );
+
   if (!admin) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shadow-sm">
-        <div className="max-w-6xl mx-auto flex items-center justify-between px-4 py-3">
-          <button type="button" onClick={() => navigate("/")} className="text-xl font-extrabold tracking-wide text-blue-700 dark:text-blue-300 hover:opacity-80 transition" style={{ fontFamily: "'Azonix', sans-serif" }}>
-            TRABALHEI LÁ
-          </button>
-          <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200 hidden sm:block">Painel Administrativo</h2>
-          <div className="flex items-center gap-3">
-            <button type="button" onClick={toggleTheme} className="px-2 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 text-sm" aria-label="Alternar tema">
-              {theme === "dark" ? "🌙" : "☀️"}
-            </button>
-            <button type="button" onClick={() => navigate("/")} className="px-3 py-1.5 text-sm font-semibold rounded-lg border border-slate-200 text-slate-700 dark:border-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-              Voltar
-            </button>
-          </div>
-        </div>
-      </nav>
+      <AppHeader theme={theme} toggleTheme={toggleTheme} title="Painel Administrativo" />
 
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-10">
 
-        {/* Filtro por empresa */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Filtrar por empresa:</label>
-          <select
-            value={filterCompany}
-            onChange={(e) => setFilterCompany(e.target.value)}
-            className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200"
-          >
-            <option value="">Todas</option>
-            {companies.map((slug) => (
-              <option key={slug} value={slug}>{slug}</option>
-            ))}
-          </select>
+        {/* Abas */}
+        <div className="flex gap-1 border-b border-slate-200 dark:border-slate-700">
+          {TABS.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition ${
+                activeTab === tab
+                  ? "bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 border border-b-0 border-slate-200 dark:border-slate-700"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+              }`}
+            >
+              {tab}
+              {tab === "Consultores" && consultoresPendentes.length > 0 && (
+                <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 rounded-full">
+                  {consultoresPendentes.length}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
+
+        {/* Filtro por empresa (apenas para Comentários e Avaliações) */}
+        {(activeTab === "Comentários" || activeTab === "Avaliações") && (
+          <div className="flex items-center gap-3 flex-wrap">
+            <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Filtrar por empresa:</label>
+            <select
+              value={filterCompany}
+              onChange={(e) => setFilterCompany(e.target.value)}
+              className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200"
+            >
+              <option value="">Todas</option>
+              {companies.map((slug) => (
+                <option key={slug} value={slug}>{slug}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {loading && <p className="text-sm text-slate-500">Carregando dados…</p>}
 
-        {/* ═══ SEÇÃO 1 — Comentários ═══ */}
-        <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200 mb-4">
-            Comentários ({filteredComments.length})
-          </h2>
+        {/* ═══ ABA Comentários ═══ */}
+        {activeTab === "Comentários" && (
+          <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
+            <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200 mb-4">
+              Comentários ({filteredComments.length})
+            </h2>
 
-          {filteredComments.length === 0 ? (
-            <p className="text-sm text-slate-500">Nenhum comentário encontrado.</p>
-          ) : (
-            <div className="space-y-3 max-h-[600px] overflow-y-auto">
-              {filteredComments.map((c) => (
-                <div key={c.id} className="flex items-start justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                      {c.companySlug || "—"} · {c.author || "Anônimo"}
-                    </p>
-                    <p className="text-sm text-slate-700 dark:text-slate-200 mt-1 break-words">{c.text}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setModal({ type: "comment", id: c.id, label: `Comentário de "${c.author || "Anônimo"}" em ${c.companySlug || "?"}` })}
-                    className="shrink-0 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition"
-                  >
-                    Apagar
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* ═══ SEÇÃO 2 — Avaliações ═══ */}
-        <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200 mb-4">
-            Avaliações ({filteredReviews.length})
-          </h2>
-
-          {filteredReviews.length === 0 ? (
-            <p className="text-sm text-slate-500">Nenhuma avaliação encontrada.</p>
-          ) : (
-            <div className="space-y-3 max-h-[600px] overflow-y-auto">
-              {filteredReviews.map((r) => {
-                const vals = SCORE_FIELDS.map((f) => parseFloat(r?.[f.key])).filter((v) => Number.isFinite(v) && v > 0);
-                const avg = vals.length > 0 ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : "--";
-                return (
-                  <div key={r.id} className="flex items-start justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
+            {filteredComments.length === 0 ? (
+              <p className="text-sm text-slate-500">Nenhum comentário encontrado.</p>
+            ) : (
+              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                {filteredComments.map((c) => (
+                  <div key={c.id} className="flex items-start justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                        {r.companySlug || "—"} · {r.pseudonym || r.company || "?"} · Média: {avg}
+                        {c.companySlug || "—"} · {c.author || "Anônimo"}
                       </p>
-                      {r.comment && <p className="text-sm text-slate-700 dark:text-slate-200 mt-1 break-words">{r.comment}</p>}
+                      <p className="text-sm text-slate-700 dark:text-slate-200 mt-1 break-words">{c.text}</p>
                     </div>
                     <button
                       type="button"
-                      onClick={() => setModal({ type: "review", id: r.id, companySlug: r.companySlug, label: `Avaliação de "${r.pseudonym || "?"}" em ${r.companySlug || "?"}` })}
+                      onClick={() => setModal({ type: "comment", id: c.id, label: `Comentário de "${c.author || "Anônimo"}" em ${c.companySlug || "?"}` })}
                       className="shrink-0 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition"
                     >
-                      Apagar avaliação
+                      Apagar
                     </button>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* ═══ ABA Avaliações ═══ */}
+        {activeTab === "Avaliações" && (
+          <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
+            <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200 mb-4">
+              Avaliações ({filteredReviews.length})
+            </h2>
+
+            {filteredReviews.length === 0 ? (
+              <p className="text-sm text-slate-500">Nenhuma avaliação encontrada.</p>
+            ) : (
+              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                {filteredReviews.map((r) => {
+                  const vals = SCORE_FIELDS.map((f) => parseFloat(r?.[f.key])).filter((v) => Number.isFinite(v) && v > 0);
+                  const avg = vals.length > 0 ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : "--";
+                  return (
+                    <div key={r.id} className="flex items-start justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                          {r.companySlug || "—"} · {r.pseudonym || r.company || "?"} · Média: {avg}
+                        </p>
+                        {r.comment && <p className="text-sm text-slate-700 dark:text-slate-200 mt-1 break-words">{r.comment}</p>}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setModal({ type: "review", id: r.id, companySlug: r.companySlug, label: `Avaliação de "${r.pseudonym || "?"}" em ${r.companySlug || "?"}` })}
+                        className="shrink-0 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition"
+                      >
+                        Apagar avaliação
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* ═══ ABA Consultores ═══ */}
+        {activeTab === "Consultores" && (
+          <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
+            <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200 mb-4">
+              Consultores pendentes ({consultoresPendentes.length})
+            </h2>
+
+            {consultoresLoading ? (
+              <p className="text-sm text-slate-500">Carregando consultores…</p>
+            ) : consultoresPendentes.length === 0 ? (
+              <p className="text-sm text-slate-500">Nenhum consultor pendente de aprovação.</p>
+            ) : (
+              <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                {consultoresPendentes.map((c) => (
+                  <div key={c.id} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">{c.nome || c.name || "Sem nome"}</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{c.especialidade || "—"} · {c.email || "—"}</p>
+                        {c.descricao && <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{c.descricao}</p>}
+                        {c.linkedin && (
+                          <a href={c.linkedin} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline mt-1 inline-block">LinkedIn</a>
+                        )}
+                        {c.valorMedio && <p className="text-xs text-slate-500 mt-1">Valor médio: R$ {c.valorMedio}</p>}
+                        {c.areas && c.areas.length > 0 && (
+                          <p className="text-xs text-slate-500 mt-1">Áreas: {c.areas.join(", ")}</p>
+                        )}
+                        {c.documentos && c.documentos.length > 0 && (
+                          <div className="mt-2 flex gap-2 flex-wrap">
+                            {c.documentos.map((d, i) => (
+                              <a key={i} href={d.url || d} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline">
+                                Documento {i + 1}
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => updateConsultorStatus(c.id, "ativo")}
+                          className="px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition"
+                        >
+                          Aprovar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateConsultorStatus(c.id, "rejeitado")}
+                          className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition"
+                        >
+                          Rejeitar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
       </main>
 
       {/* ═══ Modal de confirmação ═══ */}
@@ -291,16 +440,18 @@ function AdminPanel({ theme, toggleTheme }) {
               <button
                 type="button"
                 onClick={() => setModal(null)}
-                className="flex-1 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+                disabled={deleting}
+                className="flex-1 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={confirmModal}
-                className="flex-1 py-2 rounded-lg bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition"
+                disabled={deleting}
+                className="flex-1 py-2 rounded-lg bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition disabled:opacity-50"
               >
-                Apagar
+                {deleting ? "Apagando…" : "Apagar"}
               </button>
             </div>
           </div>

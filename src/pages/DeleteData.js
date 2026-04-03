@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { deleteUserProfile } from "../services/users";
+import AppHeader from "../components/AppHeader";
 
 function extractProfileIds(profile) {
   const candidates = [profile?.id, profile?.uid, profile?.userId, profile?.email]
@@ -76,18 +77,9 @@ export default function DeleteData({ theme, toggleTheme }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 py-10 px-4">
-      <div className="max-w-3xl mx-auto flex justify-end mb-3">
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="px-3 py-2 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-          aria-label="Alternar tema"
-        >
-          {theme === "dark" ? "🌙 Tema" : "☀️ Tema"}
-        </button>
-      </div>
-      <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-xl border border-blue-100 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900">
+      <AppHeader theme={theme} toggleTheme={toggleTheme} />
+      <div className="max-w-3xl mx-auto bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-blue-100 dark:border-slate-700 p-8 mt-6 mx-4">
         <h1 className="text-3xl font-extrabold text-blue-800 mb-4">Exclusão de dados</h1>
         <p className="text-slate-700 mb-4">
           Esta página permite excluir seus dados pessoais relacionados ao app Trabalhei Lá.

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import { collection, getDocs, query, where, limit, orderBy } from "firebase/firestore";
 import { getUserRole, isPremium, isAdmin } from "../utils/rbac";
+import AppHeader from "../components/AppHeader";
 import { slugifyCompany, listReviewsByCompanySlug } from "../services/reviews";
 import { listCompanies } from "../services/companies";
 import {
@@ -247,23 +248,7 @@ function BusinessDashboard({ theme, toggleTheme }) {
      ════════════════════════════════════════════════ */
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900">
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-blue-100 dark:border-slate-700 shadow-sm">
-        <div className="max-w-6xl mx-auto flex items-center justify-between px-4 py-3">
-          <button type="button" onClick={() => navigate("/")} className="text-xl font-extrabold tracking-wide text-blue-700 dark:text-blue-300 hover:opacity-80 transition" style={{ fontFamily: "'Azonix', sans-serif" }}>
-            TRABALHEI LÁ
-          </button>
-          <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200 hidden sm:block">Painel Empresa</h2>
-          <div className="flex items-center gap-3">
-            <button type="button" onClick={toggleTheme} className="px-2 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 text-sm" aria-label="Alternar tema">
-              {theme === "dark" ? "🌙" : "☀️"}
-            </button>
-            <button type="button" onClick={() => navigate("/")} className="px-3 py-1.5 text-sm font-semibold rounded-lg border border-blue-200 text-blue-700 dark:border-slate-600 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-800 transition">
-              Voltar
-            </button>
-          </div>
-        </div>
-      </nav>
+      <AppHeader theme={theme} toggleTheme={toggleTheme} title="Painel Empresa" />
 
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-10">
 

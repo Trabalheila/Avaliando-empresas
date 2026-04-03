@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { FaMoon, FaSun } from "react-icons/fa";
+import AppHeader from "../components/AppHeader";
 import { deleteOwnReview, isReviewOwnedByCurrentUser, listReviewsByCompanySlug, slugifyCompany, updateOwnReview } from "../services/reviews";
 import { db } from "../firebase";
 import { collection, deleteDoc, doc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
@@ -840,29 +840,10 @@ function CompanyItemComments({ theme, toggleTheme }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 py-10 px-4">
-      <div className="max-w-4xl mx-auto flex items-center justify-between mb-3 gap-2">
-        <Link
-          to="/"
-          className="px-4 py-2 rounded-xl border border-blue-200 text-blue-700 font-semibold hover:bg-blue-50 transition dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800"
-        >
-          Voltar para a pagina principal
-        </Link>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900">
+      <AppHeader theme={theme} toggleTheme={toggleTheme} />
 
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="px-3 py-2 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-          aria-label="Alternar tema"
-        >
-          <span className="inline-flex items-center gap-2">
-            {theme === "dark" ? <FaMoon /> : <FaSun />}
-            {theme === "dark" ? "Lua" : "Sol"}
-          </span>
-        </button>
-      </div>
-
-      <div className="max-w-4xl mx-auto bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-blue-100 dark:border-slate-700 p-8">
+      <div className="max-w-4xl mx-auto bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-blue-100 dark:border-slate-700 p-8 mt-6 mx-4">
         <Link
           to={`/empresa?name=${encodeURIComponent(companyName)}`}
           className="text-sm font-bold text-blue-700 hover:underline"

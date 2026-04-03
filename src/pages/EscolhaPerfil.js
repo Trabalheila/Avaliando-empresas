@@ -1,14 +1,33 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { handleCheckout } from "../services/billing";
+import { db } from "../firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { isPremium } from "../utils/rbac";
 import {
   FiCheck, FiX, FiArrowLeft,
 } from "react-icons/fi";
+import AppHeader from "../components/AppHeader";
 
 function EscolhaPerfil({ theme, toggleTheme }) {
   const workerRef = useRef(null);
   const employerRef = useRef(null);
   const [checkoutLoadingAudience, setCheckoutLoadingAudience] = useState(null);
+  const [consultores, setConsultores] = useState([]);
+  const userIsPremium = React.useMemo(() => isPremium(), []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDocs(
+          query(collection(db, "consultores"), where("status", "==", "ativo"))
+        );
+        setConsultores(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } catch {
+        /* silencioso */
+      }
+    })();
+  }, []);
 
   const scrollTo = (ref) => {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -32,23 +51,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center">
-      {/* Top bar */}
-      <div className="w-full max-w-5xl px-4 pt-6 flex items-center justify-between">
-        <Link
-          to="/"
-          className="flex items-center gap-2 text-blue-700 dark:text-blue-300 font-semibold hover:underline"
-        >
-          <FiArrowLeft /> Voltar
-        </Link>
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="px-3 py-2 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-          aria-label="Alternar tema"
-        >
-          {theme === "dark" ? "🌙 Tema" : "☀️ Tema"}
-        </button>
-      </div>
+      <AppHeader theme={theme} toggleTheme={toggleTheme} />
 
       {/* ═══════════════ SEÇÃO 1 — Escolha seu perfil ═══════════════ */}
       <section className="w-full max-w-5xl px-4 pt-10 pb-16">
@@ -306,6 +309,79 @@ function EscolhaPerfil({ theme, toggleTheme }) {
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
               Plano mensal para gestores e RH.
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════ SEÇÃO 4 — Consultores Parceiros ═══════════════ */}
+      <section className="w-full bg-white dark:bg-slate-900 py-16 scroll-mt-8">
+        <div className="max-w-5xl mx-auto px-4">
+          <h2 className="text-2xl md:text-3xl font-extrabold text-center text-slate-800 dark:text-white mb-2">
+            Consultores Parceiros
+          </h2>
+          <p className="text-center text-slate-600 dark:text-slate-400 mb-10">
+            Profissionais verificados prontos para transformar dados em ação na sua empresa.
+          </p>
+
+          {consultores.length === 0 ? (
+            <p className="text-center text-sm text-slate-500 italic mb-8">
+              Em breve — consultores parceiros verificados serão listados aqui.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
+              {consultores.map((c) => (
+                <div key={c.id} className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-5 flex flex-col">
+                  <div className="flex items-center gap-3 mb-3">
+                    {c.foto ? (
+                      <img src={c.foto} alt={c.nome} className="w-12 h-12 rounded-full object-cover border-2 border-blue-200" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold text-lg">
+                        {(c.nome || "?")[0].toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm">{c.nome}</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{c.especialidade}</p>
+                    </div>
+                  </div>
+                  {c.descricao && (
+                    <p className="text-sm text-slate-600 dark:text-slate-300 mb-4 flex-1">{c.descricao}</p>
+                  )}
+                  {userIsPremium ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (c.whatsapp) {
+                          window.open(`https://wa.me/${c.whatsapp.replace(/\D/g, "")}?text=Olá! Vi seu perfil no Trabalhei Lá e gostaria de saber mais sobre seus serviços.`, "_blank");
+                        } else if (c.email) {
+                          window.location.href = `mailto:${c.email}?subject=Contato via Trabalhei Lá`;
+                        }
+                      }}
+                      className="w-full py-2 rounded-lg bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition"
+                    >
+                      Contratar com 20% de desconto
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-sm font-semibold cursor-not-allowed"
+                    >
+                      Disponível no Plano Premium Empresa
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="text-center">
+            <Link
+              to="/consultores/cadastro"
+              className="text-sm text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+            >
+              Cadastre-se como consultor parceiro →
+            </Link>
           </div>
         </div>
       </section>

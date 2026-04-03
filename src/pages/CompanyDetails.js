@@ -8,6 +8,7 @@ import { listReviewsByCompanySlug } from "../services/reviews";
 import { listCompanies, enrichCompanyWithBrasilAPI } from "../services/companies";
 import { getUserRole, isPremium, isAdmin } from "../utils/rbac";
 import { handleCheckout } from "../services/billing";
+import AppHeader from "../components/AppHeader";
 // import PremiumPieCard from "../components/PremiumPieCard"; // removido pois não é mais usado
 // ...existing code...
 
@@ -1621,23 +1622,11 @@ function CompanyDetails({ theme, toggleTheme }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
-      {/* ═══ LINHA 1 — Logo da plataforma ═══ */}
-      <div className="w-full bg-white dark:bg-slate-900 border-b border-blue-100 dark:border-slate-700 shadow-sm">
-        <div className="max-w-5xl mx-auto flex items-center justify-center px-4 py-3">
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className="text-2xl font-extrabold tracking-wide text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
-            style={{ fontFamily: "'Azonix', sans-serif" }}
-          >
-            TRABALHEI LÁ
-          </button>
-        </div>
-      </div>
+      <AppHeader theme={theme} toggleTheme={toggleTheme} />
 
-      {/* ═══ LINHA 2 — Logo empresa + nome + usuário ═══ */}
+      {/* ═══ LINHA 2 — Logo empresa + nome ═══ */}
       <div className="w-full bg-white/80 dark:bg-slate-800/70 border-b border-blue-100 dark:border-slate-700">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 px-4 py-4">
+        <div className="max-w-5xl mx-auto flex items-center gap-4 px-4 py-4">
           {/* Esquerda: logo + nome + setor + localização */}
           <div className="flex items-center gap-4 min-w-0">
             {companyLogo && (
@@ -1665,37 +1654,7 @@ function CompanyDetails({ theme, toggleTheme }) {
             </div>
           </div>
 
-          {/* Direita: avatar + pseudônimo + tema */}
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="px-2 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 text-sm"
-              aria-label="Alternar tema"
-            >
-              {theme === "dark" ? "🌙" : "☀️"}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("/pseudonym")}
-              className="flex items-center gap-2 hover:opacity-80 transition"
-              title="Meu perfil"
-            >
-              {(() => {
-                try {
-                  const p = JSON.parse(localStorage.getItem("userProfile") || "{}");
-                  const av = p?.avatar || p?.picture || "";
-                  if (av && typeof av === "string" && (av.startsWith("data:") || av.startsWith("http")) ) {
-                    return <img src={av} alt="avatar" className="h-8 w-8 rounded-full object-cover border border-blue-200" referrerPolicy="no-referrer" />;
-                  }
-                  if (av) return <span className="text-xl">{av}</span>;
-                } catch { /* fallback */ }
-                return <span className="text-xl">👤</span>;
-              })()}
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 hidden sm:inline max-w-[100px] truncate">
-                {getCurrentPseudonym()}
-              </span>
-            </button>
+            </div>
           </div>
         </div>
       </div>

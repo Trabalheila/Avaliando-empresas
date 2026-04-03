@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { getUserProfile, getUserProfileByCpf, saveUserProfile, findUnifiedProfile } from "../services/users";
 import { normalizeEmail, resolveProfileId } from "../utils/profileIdentity";
 import { extractResumeText, parseResumeText } from "../utils/resumeParser";
+import AppHeader from "../components/AppHeader";
 import { getLinkedInRedirectUri } from "../utils/linkedinAuth";
 import { buildApiUrl } from "../utils/apiBase";
 
@@ -655,7 +656,10 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-6 pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center pt-0">
+      <div className="w-full">
+        <AppHeader theme={theme} toggleTheme={toggleTheme} hideAvatar />
+      </div>
       {/* Barra de progresso flutuante */}
       {formVisible && (
         <div
@@ -687,26 +691,8 @@ function ChoosePseudonym({ theme, toggleTheme }) {
           )}
         </div>
       )}
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-2xl px-6 py-8">
         <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-8 border border-blue-100 dark:border-slate-700">
-          <div className="flex justify-end items-center gap-2 mb-3">
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="px-3 py-2 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-              aria-label="Alternar tema"
-            >
-              {theme === "dark" ? "🌙 Tema" : "☀️ Tema"}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("/")}
-              className="px-4 py-2 rounded-xl border border-blue-200 text-blue-700 font-semibold hover:bg-blue-50 transition"
-            >
-              Voltar para a página principal
-            </button>
-          </div>
-
           <h1 className="text-2xl font-extrabold font-azonix tracking-wide text-blue-800 dark:text-blue-200 mb-4 text-center">
             Seu perfil anônimo
           </h1>
