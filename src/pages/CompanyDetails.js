@@ -1653,9 +1653,6 @@ function CompanyDetails({ theme, toggleTheme }) {
               )}
             </div>
           </div>
-
-            </div>
-          </div>
         </div>
       </div>
 
