@@ -182,16 +182,38 @@ function AdminPanel({ theme, toggleTheme }) {
   /* ── Apagar comentário ── */
   const deleteComment = useCallback(async (commentId) => {
     setDeleting(true);
+    console.log("[AdminPanel] Iniciando exclusão do comentário:", commentId);
     try {
+      // Guardar referência do comentário antes de remover do estado
+      const targetComment = comments.find((c) => c.id === commentId);
+
       await adminDeleteDoc("comments", commentId);
+      console.log("[AdminPanel] Comentário excluído do Firestore com sucesso:", commentId);
+
+      // Limpar localStorage: chave comments_NOME_DA_EMPRESA
+      if (targetComment?.companyName) {
+        try {
+          const lsKey = `comments_${targetComment.companyName}`;
+          const stored = JSON.parse(localStorage.getItem(lsKey) || "[]");
+          const filtered = stored.filter((c) => c.id !== commentId);
+          if (filtered.length > 0) {
+            localStorage.setItem(lsKey, JSON.stringify(filtered));
+          } else {
+            localStorage.removeItem(lsKey);
+          }
+          console.log("[AdminPanel] localStorage atualizado para chave:", lsKey);
+        } catch { /* silencioso */ }
+      }
       clearLocalStorageKeysWith(commentId);
+
+      // Atualizar estado local imediatamente
       setComments((prev) => prev.filter((c) => c.id !== commentId));
     } catch (err) {
-      console.error("Erro ao apagar comentário:", err);
+      console.error("[AdminPanel] Erro ao apagar comentário:", commentId, err?.message || err);
     }
     setDeleting(false);
     setModal(null);
-  }, [adminDeleteDoc]);
+  }, [adminDeleteDoc, comments]);
 
   /* ── Apagar avaliação ── */
   const deleteReview = useCallback(async (reviewId, companySlug) => {
