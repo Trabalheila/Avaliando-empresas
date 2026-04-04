@@ -193,10 +193,10 @@ function TrabalheiLaDesktop({
   }, [companyNameForLogo, selectedCompanyData?.website]);
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-6 ${isAuthenticated ? 'pt-[260px]' : 'pt-[220px]'}`}>
+    <div className={`min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-6 ${isAuthenticated ? 'pt-[310px]' : 'pt-[250px]'}`}>
       <div className="w-full max-w-6xl">
         {/* HEADER */}
-        <header className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-b-3xl shadow-2xl p-4 border-2 border-blue-200 dark:border-slate-700">
+        <header className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-b-3xl shadow-2xl px-3 py-3 border-2 border-blue-200 dark:border-slate-700">
           <button
             type="button"
             onClick={toggleTheme}
@@ -205,8 +205,8 @@ function TrabalheiLaDesktop({
           >
             {theme === "dark" ? "🌙 Tema" : "☀️ Tema"}
           </button>
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col items-center">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex w-[110px] flex-col items-center">
 
               {/* ÁREA DA LOGO ATUALIZADA */}
               <div className={`w-20 h-20 rounded-2xl flex items-center justify-center border-2 overflow-hidden ${logoUrl ? 'bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-slate-600' : 'bg-blue-900 border-blue-700'}`}>
@@ -246,11 +246,11 @@ function TrabalheiLaDesktop({
               )}
             </div>
 
-            <div className="flex-1 text-center px-8 overflow-visible">
+            <div className="flex-1 text-center px-4 overflow-visible">
               <h1
                 className="font-extrabold text-blue-800 dark:text-blue-300 drop-shadow-[0_3px_0_rgba(30,64,175,0.25)] dark:drop-shadow-[0_3px_0_rgba(15,23,42,0.6)] tracking-[0.05em] mb-1 logo-syne"
                 style={{
-                  fontSize: '1.5rem',
+                  fontSize: '3rem',
                   fontWeight: 800,
                   whiteSpace: 'nowrap',
                   overflow: 'visible',
@@ -270,7 +270,7 @@ function TrabalheiLaDesktop({
               </p>
 
               {isAuthenticated && (
-                <div className="flex items-center justify-between gap-3 mb-2 bg-blue-50/70 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-600 rounded-2xl px-3 py-2">
+                <div className="mb-2 mx-auto flex max-w-3xl items-center justify-center gap-3 bg-blue-50/70 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-600 rounded-2xl px-3 py-2">
                   <div className="flex items-center justify-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-slate-700 flex items-center justify-center text-xl">
                       {userProfile?.avatar ? (
@@ -339,10 +339,10 @@ function TrabalheiLaDesktop({
 
               {/* Banner Premium — sempre visível abaixo do card do usuário */}
               <div className="mb-3 flex items-center justify-center">
-                <div className="flex flex-col md:flex-row items-center gap-4 bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-400 rounded-2xl shadow-lg px-6 py-3 border-2 border-blue-200 dark:border-slate-700">
-                  <span className="text-white text-lg md:text-xl font-bold drop-shadow">Premium para trabalhadores, empresas e apoiadores — <span className="underline">conheça os planos</span></span>
+                <div className="flex max-w-4xl flex-col md:flex-row items-center gap-3 bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-400 rounded-2xl shadow-lg px-5 py-2 border-2 border-blue-200 dark:border-slate-700">
+                  <span className="text-white text-base md:text-lg font-bold drop-shadow text-center">Premium para trabalhadores, empresas Advogados e consultores — <span className="underline">conheça os planos</span></span>
                   <button
-                    className="mt-2 md:mt-0 px-5 py-2 rounded-lg bg-white text-blue-700 font-bold shadow hover:bg-blue-50 transition"
+                    className="mt-1 md:mt-0 px-5 py-2 rounded-lg bg-white text-blue-700 font-bold shadow hover:bg-blue-50 transition"
                     onClick={() => navigate('/escolha-perfil')}
                   >
                     Ver benefícios
@@ -361,7 +361,7 @@ function TrabalheiLaDesktop({
               )}
             </div>
 
-            <div className="flex flex-col items-center gap-3 pt-12">
+            <div className="flex w-[110px] flex-col items-center gap-3 pt-8">
               <span className="flex items-center gap-2 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-4 py-2 rounded-full font-semibold">✓ Anônimo</span>
               <span className="flex items-center gap-2 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-4 py-2 rounded-full font-semibold">✓ Verificado</span>
               <span className="flex items-center gap-2 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-4 py-2 rounded-full font-semibold">✓ Confiável</span>
