@@ -181,6 +181,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 <FeatureRow>Relatórios executivos completos</FeatureRow>
                 <FeatureRow>Dashboard de cultura e ambiente</FeatureRow>
                 <FeatureRow>Tendências e análises exclusivas</FeatureRow>
+                <FeatureRow>Assessoria jurídica trabalhista gratuita</FeatureRow>
               </ul>
             </div>
 
@@ -201,6 +202,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 <FeatureRow ok>Relatórios executivos completos</FeatureRow>
                 <FeatureRow ok>Dashboard de cultura e ambiente</FeatureRow>
                 <FeatureRow ok>Tendências e análises exclusivas</FeatureRow>
+                <FeatureRow ok>Assessoria jurídica trabalhista — primeira consulta gratuita com advogados parceiros</FeatureRow>
               </ul>
             </div>
           </div>

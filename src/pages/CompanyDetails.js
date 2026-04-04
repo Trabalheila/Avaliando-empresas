@@ -177,6 +177,7 @@ function CompanyDetails({ theme, toggleTheme }) {
 
   /* ── Apoiadores recomendados ── */
   const [apoiadoresRecomendados, setApoiadoresRecomendados] = useState([]);
+  const [advogadosTrabalhistas, setAdvogadosTrabalhistas] = useState([]);
   useEffect(() => {
     (async () => {
       try {
@@ -185,6 +186,14 @@ function CompanyDetails({ theme, toggleTheme }) {
         );
         const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         setApoiadoresRecomendados(list);
+      } catch { /* silencioso */ }
+    })();
+    (async () => {
+      try {
+        const snap = await getDocs(
+          query(collection(db, "apoiadores"), where("status", "==", "ativo"), where("tipo", "==", "advogado"), orderBy("rating", "desc"), limit(6))
+        );
+        setAdvogadosTrabalhistas(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       } catch { /* silencioso */ }
     })();
   }, []);
@@ -2299,6 +2308,78 @@ function CompanyDetails({ theme, toggleTheme }) {
         </div>
       </div>
       </div>{/* /px-4 pt-6 */}
+
+      {/* ── Assessoria Jurídica Trabalhista (Premium Trabalhador) ── */}
+      {advogadosTrabalhistas.length > 0 && (
+        <section className="max-w-5xl mx-auto px-4 py-10">
+          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 rounded-2xl border border-purple-200 dark:border-purple-800 p-6 md:p-8">
+            <div className="flex items-center gap-3 mb-1">
+              <span className="text-2xl">⚖️</span>
+              <h2 className="text-xl font-extrabold text-purple-800 dark:text-purple-200">Assessoria Jurídica Trabalhista</h2>
+            </div>
+            <p className="text-sm text-purple-600 dark:text-purple-400 mb-6">
+              Sentiu que algo não foi justo? Advogados trabalhistas parceiros oferecem primeira consulta gratuita para assinantes Premium.
+            </p>
+
+            {userIsPremium ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {advogadosTrabalhistas.map((a) => (
+                  <div key={a.id} className="bg-white dark:bg-slate-800 rounded-xl border border-purple-100 dark:border-slate-700 p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      {a.foto ? (
+                        <img src={a.foto} alt={a.nome} className="h-11 w-11 rounded-full object-cover border border-purple-200 dark:border-slate-600 shrink-0" />
+                      ) : (
+                        <span className="h-11 w-11 rounded-full bg-purple-100 dark:bg-slate-700 flex items-center justify-center text-lg shrink-0">⚖️</span>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{a.nome}</h3>
+                        {a.oab && <p className="text-[10px] text-slate-500 dark:text-slate-400">OAB {a.oab}/{a.seccional}</p>}
+                        {a.plano === "premium" && (
+                          <span className="inline-block mt-0.5 px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 rounded-full">✓ Verificado</span>
+                        )}
+                      </div>
+                    </div>
+                    {a.descricao && <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 mb-2">{a.descricao}</p>}
+                    {a.rating > 0 && (
+                      <div className="flex items-center gap-1 mb-2">
+                        <svg className="w-3.5 h-3.5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.175 0l-3.37 2.448c-.784.57-1.838-.197-1.54-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z" />
+                        </svg>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">{a.rating.toFixed(1)} ({a.totalAvaliacoes || 0})</span>
+                      </div>
+                    )}
+                    <Link to={`/apoiadores/perfil/${a.id}`} className="block w-full text-center px-3 py-2 rounded-lg bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700 transition">
+                      Consultar advogado
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center gap-4 bg-white dark:bg-slate-800 rounded-xl border border-purple-200 dark:border-slate-700 p-5">
+                <div className="text-3xl">🔒</div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-purple-800 dark:text-purple-200 text-sm">Exclusivo para assinantes Premium</p>
+                  <p className="text-xs text-purple-600 dark:text-purple-400 mt-0.5">
+                    Assine o Premium Trabalhador e tenha acesso a {advogadosTrabalhistas.length} advogado{advogadosTrabalhistas.length > 1 ? "s" : ""} trabalhista{advogadosTrabalhistas.length > 1 ? "s" : ""} com primeira consulta gratuita.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={userIsLoggedIn ? () => handlePremiumUnlock("worker") : () => navigate("/")}
+                  disabled={!!checkoutLoadingAudience}
+                  className="shrink-0 px-4 py-2 rounded-lg bg-purple-600 text-white text-xs font-bold hover:bg-purple-700 transition disabled:opacity-70"
+                >
+                  {checkoutLoadingAudience === "worker" ? "Abrindo…" : "Assinar Premium"}
+                </button>
+              </div>
+            )}
+
+            <p className="text-[10px] text-purple-500 dark:text-purple-400 mt-4 text-center">
+              A plataforma conecta você ao profissional — ela não presta serviço jurídico. Cada advogado é responsável pela conduta e atendimento conforme a OAB.
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* ── Apoiadores Recomendados ── */}
       {apoiadoresRecomendados.length > 0 && (
