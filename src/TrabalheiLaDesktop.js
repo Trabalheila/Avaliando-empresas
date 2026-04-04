@@ -246,8 +246,19 @@ function TrabalheiLaDesktop({
               )}
             </div>
 
-            <div className="flex-1 text-center px-8">
-              <h1 className="text-6xl xl:text-7xl font-extrabold text-blue-800 dark:text-blue-300 drop-shadow-[0_3px_0_rgba(30,64,175,0.25)] dark:drop-shadow-[0_3px_0_rgba(15,23,42,0.6)] tracking-[0.05em] mb-1 logo-syne">
+            <div className="flex-1 text-center px-8 overflow-visible">
+              <h1
+                className="font-extrabold text-blue-800 dark:text-blue-300 drop-shadow-[0_3px_0_rgba(30,64,175,0.25)] dark:drop-shadow-[0_3px_0_rgba(15,23,42,0.6)] tracking-[0.05em] mb-1 logo-syne"
+                style={{
+                  fontSize: '1.5rem',
+                  fontWeight: 800,
+                  whiteSpace: 'nowrap',
+                  overflow: 'visible',
+                  flexShrink: 0,
+                  lineHeight: 1.2,
+                  color: '#FFFFFF'
+                }}
+              >
                 TRABALHEI LÁ
               </h1>
               <div className="w-44 h-1.5 mx-auto rounded-full bg-gradient-to-r from-blue-300 via-blue-700 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500 mb-3" />
