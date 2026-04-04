@@ -15,6 +15,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
   const employerRef = useRef(null);
   const supporterRef = useRef(null);
   const [checkoutLoadingAudience, setCheckoutLoadingAudience] = useState(null);
+  const [checkoutError, setCheckoutError] = useState("");
   const [consultores, setConsultores] = useState([]);
   const [prestadores, setPrestadores] = useState([]);
   const userIsPremium = React.useMemo(() => isPremium(), []);
@@ -42,6 +43,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
 
   const handlePremiumUnlock = async (audience = "worker") => {
     setCheckoutLoadingAudience(audience);
+    setCheckoutError("");
     try {
       await handleCheckout({
         cnpj: "",
@@ -49,8 +51,8 @@ function EscolhaPerfil({ theme, toggleTheme }) {
         companyName: "Trabalheila",
         audience,
       });
-    } catch {
-      // checkout error handled by billing service
+    } catch (err) {
+      setCheckoutError(err?.message || "Erro ao iniciar checkout. Tente novamente.");
     } finally {
       setCheckoutLoadingAudience(null);
     }
@@ -59,6 +61,15 @@ function EscolhaPerfil({ theme, toggleTheme }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center">
       <AppHeader theme={theme} toggleTheme={toggleTheme} />
+
+      {/* Erro de checkout */}
+      {checkoutError && (
+        <div className="w-full max-w-5xl mx-auto px-4 pt-4">
+          <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300 text-center">
+            {checkoutError}
+          </div>
+        </div>
+      )}
 
       {/* ═══════════════ SEÇÃO 1 — Escolha seu perfil ═══════════════ */}
       <section className="w-full max-w-5xl px-4 pt-10 pb-16">

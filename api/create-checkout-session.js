@@ -234,7 +234,8 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       provider: "stripe",
-      redirectMode: "stripe_session",
+      redirectMode: "url",
+      checkoutUrl: session.url,
       sessionId: session.id,
     });
   } catch (err) {

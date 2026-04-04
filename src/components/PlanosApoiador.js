@@ -18,9 +18,11 @@ function FeatureRow({ ok, children }) {
 
 export default function PlanosApoiador() {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSupporterCheckout = async () => {
     setLoading(true);
+    setError("");
     try {
       await handleCheckout({
         cnpj: "",
@@ -28,8 +30,8 @@ export default function PlanosApoiador() {
         companyName: "Trabalheila",
         audience: "supporter",
       });
-    } catch {
-      // handled by billing service
+    } catch (err) {
+      setError(err?.message || "Erro ao iniciar checkout. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -111,6 +113,9 @@ export default function PlanosApoiador() {
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
             Pagamento via Mercado Pago. Escolha PIX, cartão ou boleto no checkout.
           </p>
+          {error && (
+            <p className="text-xs text-red-600 dark:text-red-400 mt-2">{error}</p>
+          )}
         </div>
       </div>
     </section>

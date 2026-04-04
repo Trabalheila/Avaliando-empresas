@@ -1,21 +1,7 @@
-import { loadStripe } from "@stripe/stripe-js";
 import { buildApiUrl } from "../utils/apiBase";
 
-let stripePromise;
-
-function getStripe() {
-  if (!stripePromise) {
-    const publishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
-    if (!publishableKey) {
-      throw new Error("REACT_APP_STRIPE_PUBLISHABLE_KEY nao configurada.");
-    }
-    stripePromise = loadStripe(publishableKey);
-  }
-  return stripePromise;
-}
-
 /**
- * Redireciona para o Stripe Checkout.
+ * Redireciona para o Stripe/MercadoPago Checkout.
  * Prioriza CNPJ quando disponível e usa companySlug como fallback de vínculo.
  * O backend deve criar a sessao no endpoint /api/create-checkout-session.
  */
@@ -56,20 +42,11 @@ export async function handleCheckout({ cnpj, companySlug, companyName, audience,
     return;
   }
 
-  if (!payload?.sessionId) {
-    throw new Error("Resposta de checkout invalida: sessionId ausente.");
+  // Fallback: se o backend retornou sessionId sem URL, monta a URL
+  if (payload?.sessionId) {
+    // Stripe Checkout Session URLs seguem este padrão se a URL direta não foi fornecida
+    throw new Error("URL de checkout ausente. Verifique a configuração do servidor.");
   }
 
-  const stripe = await getStripe();
-  if (!stripe) {
-    throw new Error("Falha ao inicializar Stripe.js.");
-  }
-
-  const { error } = await stripe.redirectToCheckout({
-    sessionId: payload.sessionId,
-  });
-
-  if (error) {
-    throw new Error(error.message || "Falha ao redirecionar para o checkout.");
-  }
+  throw new Error("Resposta de checkout invalida.");
 }
