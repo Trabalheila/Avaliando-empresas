@@ -387,15 +387,6 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         return;
       }
 
-      const fallbackName = [mergedProfile?.localizedFirstName, mergedProfile?.localizedLastName]
-        .filter(Boolean)
-        .join(" ")
-        .trim();
-      const resolvedName =
-        (mergedProfile?.fullName || "").toString().trim() ||
-        (mergedProfile?.nomeReal || "").toString().trim() ||
-        fallbackName ||
-        [mergedProfile?.firstName, mergedProfile?.lastName].filter(Boolean).join(" ").trim();
       const resolvedEmail =
         (mergedProfile?.email || "").toString().trim() ||
         (mergedProfile?.emailAddress || "").toString().trim();
@@ -408,7 +399,6 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       // Se não encontrou experiências no perfil local, tenta buscar via API usando o código OAuth
       if (linkedInExperiences.length === 0) {
         const storedCode = mergedProfile?.code || "";
-        const storedToken = (() => { try { return localStorage.getItem("linkedinAccessToken") || ""; } catch { return ""; } })();
 
         if (storedCode) {
           try {

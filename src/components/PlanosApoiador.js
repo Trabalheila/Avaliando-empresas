@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
 import { FiCheck, FiX } from "react-icons/fi";
 import { handleCheckout } from "../services/billing";
 import { db, auth } from "../firebase";

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from "react-router-dom";
 import Select from "react-select";
 import { getCompanyLogoCandidates } from "./utils/getCompanyLogo";
-import { FaBuilding, FaPlus, FaStar, FaRegStar, FaUserEdit, FaGoogle } from "react-icons/fa";
+import { FaPlus, FaStar, FaRegStar, FaUserEdit, FaGoogle } from "react-icons/fa";
 import {
   FiMessageCircle, FiDollarSign, FiCompass, FiCalendar, FiUsers,
   FiBriefcase, FiShield, FiHeart, FiRepeat, FiAward, FiTrendingUp, FiAlertCircle,

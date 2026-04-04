@@ -10,7 +10,6 @@ import {
   query,
   orderBy,
   limit,
-  where,
 } from "firebase/firestore";
 import { isAdmin } from "../utils/rbac";
 import { slugifyCompany, listReviewsByCompanySlug } from "../services/reviews";

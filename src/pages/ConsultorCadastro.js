@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { db, auth } from "../firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { signInAnonymously } from "firebase/auth";

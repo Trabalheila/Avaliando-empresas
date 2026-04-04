@@ -2,7 +2,7 @@ import React from "react";
 
 import { Link, useNavigate } from "react-router-dom";
 import {
-  FaStar, FaUserEdit, FaGoogle, FaBuilding,
+  FaStar, FaUserEdit, FaGoogle,
 } from "react-icons/fa";
 import {
   FiMessageCircle, FiDollarSign, FiCompass, FiCalendar, FiUsers,

@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
-import { collection, getDocs, query, where, limit, orderBy } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { getUserRole, isPremium, isAdmin } from "../utils/rbac";
 import AppHeader from "../components/AppHeader";
 import { slugifyCompany, listReviewsByCompanySlug } from "../services/reviews";
 import { listCompanies } from "../services/companies";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  BarChart, Bar, CartesianGrid, Legend, Cell,
+  BarChart, Bar, CartesianGrid, Cell,
 } from "recharts";
 
 /* ────────────────────────────────────────────────

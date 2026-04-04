@@ -5,7 +5,7 @@ import { db } from "../firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { isPremium, getUserRole } from "../utils/rbac";
 import {
-  FiCheck, FiX, FiArrowLeft,
+  FiCheck, FiX,
 } from "react-icons/fi";
 import AppHeader from "../components/AppHeader";
 import PlanosApoiador from "../components/PlanosApoiador";
