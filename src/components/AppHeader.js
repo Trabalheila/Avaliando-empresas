@@ -94,8 +94,8 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
   const admin = isAdmin();
 
   return (
-    <nav className="sticky top-0 z-50 h-16 bg-white dark:bg-slate-900 border-b border-blue-100 dark:border-slate-700 shadow-sm">
-      <div className="max-w-6xl mx-auto h-full flex items-center justify-between px-4">
+    <nav className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-blue-100 dark:border-slate-700 shadow-sm" style={{ height: 'auto' }}>
+      <div className="max-w-6xl mx-auto flex items-center justify-between px-4 py-2 sm:py-0 sm:h-16">
         {/* ── Zona esquerda: Voltar ── */}
         <div className="flex items-center gap-3 min-w-0" style={{ flex: "1 1 0%" }}>
           {showBack && (
@@ -136,8 +136,13 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
             aria-label="Alternar tema"
           >
             {theme === "dark" ? "🌙" : "☀️"}
-            <span className="hidden sm:inline">Tema</span>
+            <span className="appHeaderThemeLabel hidden sm:inline">Tema</span>
           </button>
+          <style>{`
+            @media (max-width: 480px) {
+              .appHeaderThemeLabel { display: none !important; }
+            }
+          `}</style>
 
           {!hideAvatar && (
             <div className="relative" ref={dropdownRef}>

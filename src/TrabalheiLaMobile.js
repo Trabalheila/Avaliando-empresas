@@ -366,14 +366,34 @@ function TrabalheiLaMobile({
           : "bg-gradient-to-b from-blue-50 via-sky-50 to-blue-100"
       }`}
     >
-      <header ref={headerRef} className="fixed top-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm px-2 py-1 z-50 border-b border-blue-100 dark:border-slate-700">
-        <div className="text-center">
+      <header ref={headerRef} className="fixed top-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm px-2 py-2 z-50 border-b border-blue-100 dark:border-slate-700">
+        {/* ── Linha do título + botão tema ── */}
+        <div className="flex items-center justify-between">
+          <div style={{ flex: "1 1 0%" }} />
           <h1 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border border-blue-200 dark:border-blue-500 bg-gradient-to-r from-blue-100 via-white to-blue-100 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 shadow-[0_4px_16px_rgba(37,99,235,0.18)]">
-            <FaStar className="text-[0.72rem] text-amber-500" />
-            <span className="text-[1.18rem] font-black text-blue-900 dark:text-blue-300 logo-syne tracking-[0.05em] leading-none whitespace-nowrap">
+            <FaStar className="text-amber-500" style={{ maxWidth: 18, width: 18, height: 18 }} />
+            <span className="text-[1.1rem] font-black text-blue-900 dark:text-blue-300 logo-syne tracking-[0.05em] leading-none whitespace-nowrap">
               TRABALHEI LÁ
             </span>
           </h1>
+          <div className="flex justify-end" style={{ flex: "1 1 0%" }}>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="shrink-0 px-2 py-1.5 bg-slate-200 dark:bg-slate-700 rounded-full text-sm font-semibold text-slate-700 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-600 transition"
+              aria-label="Alternar tema claro/escuro"
+            >
+              {theme === "dark" ? "🌙" : "☀️"}
+              <span className="mobileThemeLabel"> Tema</span>
+            </button>
+          </div>
+        </div>
+        <style>{`
+          @media (max-width: 480px) {
+            .mobileThemeLabel { display: none; }
+          }
+        `}</style>
+        <div className="text-center">
           <div className="w-20 h-1 mx-auto mt-1 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
           <p className="mt-1 text-[0.72rem] leading-tight font-bold text-blue-700 dark:text-blue-200">
             Sua opinião anônima evolui o mercado de trabalho
@@ -381,10 +401,11 @@ function TrabalheiLaMobile({
         </div>
 
         {company && (
-          <div className="mt-2 w-full rounded-2xl border border-blue-100 dark:border-slate-700 bg-blue-50/60 dark:bg-slate-800/70 p-2.5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="w-[6.4rem] flex flex-col items-center">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center border overflow-hidden ${companyLogoUrl ? 'bg-blue-50 dark:bg-slate-800 border-blue-100 dark:border-slate-600' : 'bg-blue-900 border-blue-700'}`}>
+          <div className="mt-2 w-full rounded-2xl border border-blue-100 dark:border-slate-700 bg-blue-50/60 dark:bg-slate-800/70" style={{ padding: 10 }}>
+            <div className="flex items-center gap-3">
+              {/* Logo + Nota à esquerda */}
+              <div className="shrink-0 flex flex-col items-center">
+                <div className={`rounded-xl flex items-center justify-center border overflow-hidden ${companyLogoUrl ? 'bg-blue-50 dark:bg-slate-800 border-blue-100 dark:border-slate-600' : 'bg-blue-900 border-blue-700'}`} style={{ width: 48, height: 48 }}>
                   {companyLogoUrl ? (
                     <img
                       src={companyLogoUrl}
@@ -400,9 +421,8 @@ function TrabalheiLaMobile({
                     <span className="text-white font-black text-lg tracking-tight">TL</span>
                   )}
                 </div>
-                <div className="mt-1.5 text-center">
-                  <p className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">Nota</p>
-                  <div className="mt-1 flex items-center justify-center gap-1">
+                <div className="mt-1 text-center">
+                  <div className="flex items-center justify-center gap-1">
                     <span className={`px-2 py-0.5 rounded-lg text-base leading-none font-extrabold text-white ${getBadgeColor(companyAverage)}`}>
                       {companyAverage}
                     </span>
@@ -424,18 +444,22 @@ function TrabalheiLaMobile({
                 </div>
               </div>
 
-              <div className="flex-1 min-w-0 flex flex-col items-end gap-2">
-                <p className="w-full text-right text-[1.05rem] font-bold text-blue-800 dark:text-blue-100 leading-tight break-words">
+              {/* Nome da empresa (centro) */}
+              <div className="flex-1 min-w-0">
+                <p className="text-[0.95rem] font-bold text-blue-800 dark:text-blue-100 leading-tight break-words">
                   {company.value}
                 </p>
-                <button
-                  type="button"
-                  onClick={handleSaibaMais}
-                  className="w-auto py-2 px-3 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition"
-                >
-                  {`Ver avaliações da ${company.value.length > 25 ? company.value.slice(0, 25) + "…" : company.value}`}
-                </button>
               </div>
+
+              {/* Botão à direita */}
+              <button
+                type="button"
+                onClick={handleSaibaMais}
+                className="shrink-0 py-2 px-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition"
+                style={{ fontSize: '0.85rem', whiteSpace: 'nowrap' }}
+              >
+                Ver avaliações
+              </button>
             </div>
           </div>
         )}
@@ -506,15 +530,6 @@ function TrabalheiLaMobile({
           ) : (
             <div />
           )}
-
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="shrink-0 px-3 py-2 bg-slate-200 dark:bg-slate-700 rounded-full text-sm font-semibold text-slate-700 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-600 transition"
-            aria-label="Alternar tema claro/escuro"
-          >
-            {theme === "dark" ? "🌙 Tema" : "☀️ Tema"}
-          </button>
         </div>
 
         {firebaseStatus && <p className="text-[11px] text-red-500 dark:text-red-400 mt-1 text-center">{firebaseStatus}</p>}
@@ -528,7 +543,6 @@ function TrabalheiLaMobile({
           className="mobilePremiumBanner"
           style={{
             display: 'none',
-            maxHeight: 48,
             background: 'linear-gradient(90deg, #1e3a5f 0%, #2563eb 100%)',
             borderRadius: 12,
             alignItems: 'center',
@@ -538,8 +552,8 @@ function TrabalheiLaMobile({
           }}
         >
           <span style={{ fontSize: '1rem', lineHeight: 1 }}>⭐</span>
-          <span style={{ color: '#fff', fontSize: '0.8rem', fontWeight: 600, flex: 1, textAlign: 'center' }}>
-            Premium — relatórios exclusivos e comparações
+          <span style={{ color: '#fff', fontSize: '0.8rem', fontWeight: 600, flex: 1, textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.3 }}>
+            Premium para trabalhadores, empresas e apoiadores — conheça os planos
           </span>
           <button
             type="button"
