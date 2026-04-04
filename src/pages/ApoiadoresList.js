@@ -60,10 +60,16 @@ function ApoiadoresList({ theme, toggleTheme }) {
     }
     if (filterMinRating > 0) list = list.filter((a) => (a.rating || 0) >= filterMinRating);
 
-    /* Premium primeiro (por rating desc), depois gratuitos (alfa) */
-    const premium = list.filter((a) => a.plano === "premium").sort((a, b) => (b.rating || 0) - (a.rating || 0));
-    const free = list.filter((a) => a.plano !== "premium").sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
-    return [...premium, ...free];
+    /* Premium primeiro: com avaliação (rating desc), sem avaliação; depois gratuitos: com avaliação (rating desc), sem avaliação (alfa) */
+    const premium = list.filter((a) => a.plano === "premium");
+    const premiumRated = premium.filter((a) => (a.totalAvaliacoes || 0) > 0).sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    const premiumUnrated = premium.filter((a) => !(a.totalAvaliacoes > 0)).sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
+
+    const free = list.filter((a) => a.plano !== "premium");
+    const freeRated = free.filter((a) => (a.totalAvaliacoes || 0) > 0).sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    const freeUnrated = free.filter((a) => !(a.totalAvaliacoes > 0)).sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
+
+    return [...premiumRated, ...premiumUnrated, ...freeRated, ...freeUnrated];
   }, [apoiadores, filterTipo, filterNicho, filterMinRating]);
 
   return (
@@ -130,8 +136,8 @@ function ApoiadoresList({ theme, toggleTheme }) {
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{a.nome}</h3>
                         {isPremium && (
-                          <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 rounded-full whitespace-nowrap">
-                            ✓ Premium Verificado
+                          <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 rounded-full whitespace-nowrap">
+                            ✓ Apoiador Premium Verificado
                           </span>
                         )}
                       </div>

@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { db, auth } from "../firebase";
-import { doc, getDoc, collection, getDocs, addDoc, updateDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, addDoc, updateDoc, serverTimestamp, query, orderBy, where, increment } from "firebase/firestore";
 import { signInAnonymously } from "firebase/auth";
+import { isPremium as checkUserIsPremium } from "../utils/rbac";
 import AppHeader from "../components/AppHeader";
 
 const TIPO_LABELS = { consultor: "Consultor de RH", advogado: "Advogado Trabalhista", prestador: "Prestador de Serviços" };
@@ -53,6 +54,9 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
   const [newComment, setNewComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+  const [alreadyReviewed, setAlreadyReviewed] = useState(false);
+  const userIsPremium = checkUserIsPremium();
 
   useEffect(() => {
     if (!id) return;
@@ -62,9 +66,20 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
         const snap = await getDoc(doc(db, "apoiadores", id));
         if (snap.exists()) {
           setApoiador({ id: snap.id, ...snap.data() });
+
+          /* Incrementar visualizações */
+          updateDoc(doc(db, "apoiadores", id), { visualizacoes: increment(1) }).catch(() => {});
+
           /* Carregar avaliações */
-          const avSnap = await getDocs(query(collection(db, "apoiadores", id, "avaliacoes"), orderBy("createdAt", "desc")));
+          const avSnap = await getDocs(query(collection(db, "apoiadores", id, "avaliacoes"), orderBy("dataCriacao", "desc")));
           setAvaliacoes(avSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+
+          /* Verificar se o usuário já avaliou */
+          const uid = auth.currentUser?.uid;
+          if (uid) {
+            const dupSnap = await getDocs(query(collection(db, "apoiadores", id, "avaliacoes"), where("autorId", "==", uid)));
+            if (!dupSnap.empty) setAlreadyReviewed(true);
+          }
         }
       } catch (err) {
         console.error("Erro ao carregar apoiador:", err);
@@ -76,23 +91,43 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
   const handleSubmitReview = useCallback(async (e) => {
     e.preventDefault();
     if (newRating === 0) return;
+    setReviewError("");
     setSubmittingReview(true);
     try {
       if (!auth.currentUser) await signInAnonymously(auth);
 
+      /* Verificar se é Premium */
+      if (!userIsPremium) {
+        setReviewError("Apenas usuários Premium podem avaliar Apoiadores.");
+        setSubmittingReview(false);
+        return;
+      }
+
+      /* Verificar duplicidade */
+      const uid = auth.currentUser?.uid;
+      if (uid) {
+        const dupSnap = await getDocs(query(collection(db, "apoiadores", id, "avaliacoes"), where("autorId", "==", uid)));
+        if (!dupSnap.empty) {
+          setAlreadyReviewed(true);
+          setReviewError("Você já avaliou este Apoiador.");
+          setSubmittingReview(false);
+          return;
+        }
+      }
+
       const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
       const reviewData = {
-        rating: newRating,
-        comment: newComment.trim().slice(0, 200),
-        authorName: profile?.pseudonym || profile?.name || "Anônimo",
-        uid: auth.currentUser?.uid || null,
-        createdAt: serverTimestamp(),
+        autorId: uid || null,
+        autorPseudonimo: profile?.pseudonym || profile?.name || "Anônimo",
+        nota: newRating,
+        comentario: newComment.trim().slice(0, 200),
+        dataCriacao: serverTimestamp(),
       };
 
       await addDoc(collection(db, "apoiadores", id, "avaliacoes"), reviewData);
 
       /* Recalcular rating no documento do apoiador */
-      const allRatings = [...avaliacoes.map((a) => a.rating), newRating];
+      const allRatings = [...avaliacoes.map((a) => a.nota || a.rating), newRating];
       const avgRating = allRatings.reduce((a, b) => a + b, 0) / allRatings.length;
       await updateDoc(doc(db, "apoiadores", id), {
         rating: parseFloat(avgRating.toFixed(2)),
@@ -100,16 +135,18 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
       });
 
       setApoiador((prev) => prev ? { ...prev, rating: parseFloat(avgRating.toFixed(2)), totalAvaliacoes: allRatings.length } : prev);
-      setAvaliacoes((prev) => [{ ...reviewData, id: Date.now().toString(), createdAt: { toDate: () => new Date() } }, ...prev]);
+      setAvaliacoes((prev) => [{ ...reviewData, id: Date.now().toString(), dataCriacao: { toDate: () => new Date() } }, ...prev]);
       setNewRating(0);
       setNewComment("");
+      setAlreadyReviewed(true);
       setReviewSuccess(true);
       setTimeout(() => setReviewSuccess(false), 3000);
     } catch (err) {
       console.error("Erro ao enviar avaliação:", err);
+      setReviewError("Erro ao enviar avaliação. Tente novamente.");
     }
     setSubmittingReview(false);
-  }, [id, newRating, newComment, avaliacoes]);
+  }, [id, newRating, newComment, avaliacoes, userIsPremium]);
 
   if (loading) {
     return (
@@ -149,7 +186,7 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl font-extrabold text-slate-800 dark:text-slate-100">{apoiador.nome}</h1>
                 {isPremium && (
-                  <span className="px-2.5 py-0.5 text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 rounded-full">
+                  <span className="px-2.5 py-0.5 text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 rounded-full">
                     ✓ Apoiador Premium Verificado
                   </span>
                 )}
@@ -199,12 +236,14 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
           <div className="flex flex-wrap gap-3 mt-5">
             {apoiador.email && (
               <a href={`mailto:${apoiador.email}`}
+                onClick={() => updateDoc(doc(db, "apoiadores", id), { cliquesContato: increment(1) }).catch(() => {})}
                 className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition">
                 Enviar e-mail
               </a>
             )}
             {(apoiador.whatsapp || apoiador.telefone) && (
               <a href={`https://wa.me/55${(apoiador.whatsapp || apoiador.telefone).replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
+                onClick={() => updateDoc(doc(db, "apoiadores", id), { cliquesContato: increment(1) }).catch(() => {})}
                 className="px-4 py-2 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition">
                 WhatsApp
               </a>
@@ -226,12 +265,42 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
           )}
         </div>
 
+        {/* ── Portfólio (só Premium) ── */}
+        {isPremium && apoiador.portfolio && apoiador.portfolio.length > 0 && (
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 border border-slate-200 dark:border-slate-700">
+            <h2 className="text-lg font-extrabold text-slate-800 dark:text-slate-100 mb-4">Portfólio</h2>
+            <div className="space-y-3">
+              {apoiador.portfolio.map((p, i) => (
+                <div key={i} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">{p.titulo}</h3>
+                  {p.descricao && <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{p.descricao}</p>}
+                  {p.link && (
+                    <a href={p.link} target="_blank" rel="noopener noreferrer"
+                      className="inline-block mt-2 text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline">
+                      Ver projeto →
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* ── Avaliações (só Premium) ── */}
         {isPremium && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 border border-slate-200 dark:border-slate-700">
             <h2 className="text-lg font-extrabold text-slate-800 dark:text-slate-100 mb-4">Avaliações</h2>
 
             {/* Formulário */}
+            {!userIsPremium ? (
+              <div className="mb-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
+                <p className="text-sm text-slate-500 dark:text-slate-400">Apenas usuários Premium podem deixar avaliações.</p>
+              </div>
+            ) : alreadyReviewed ? (
+              <div className="mb-6 p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800">
+                <p className="text-sm text-green-700 dark:text-green-400">Você já avaliou este Apoiador.</p>
+              </div>
+            ) : (
             <form onSubmit={handleSubmitReview} className="mb-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
               <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Deixe sua avaliação</p>
               <StarInput value={newRating} onChange={setNewRating} />
@@ -251,7 +320,9 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
                 </button>
               </div>
               {reviewSuccess && <p className="text-xs text-green-600 dark:text-green-400 mt-1">Avaliação enviada!</p>}
+              {reviewError && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{reviewError}</p>}
             </form>
+            )}
 
             {/* Lista */}
             {avaliacoes.length === 0 ? (
@@ -261,10 +332,10 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
                 {avaliacoes.map((av) => (
                   <div key={av.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
                     <div className="flex items-center gap-2">
-                      <StarDisplay rating={av.rating} size="w-4 h-4" />
-                      <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{av.authorName || "Anônimo"}</span>
+                      <StarDisplay rating={av.nota || av.rating} size="w-4 h-4" />
+                      <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{av.autorPseudonimo || av.authorName || "Anônimo"}</span>
                     </div>
-                    {av.comment && <p className="text-sm text-slate-700 dark:text-slate-200 mt-1">{av.comment}</p>}
+                    {(av.comentario || av.comment) && <p className="text-sm text-slate-700 dark:text-slate-200 mt-1">{av.comentario || av.comment}</p>}
                   </div>
                 ))}
               </div>

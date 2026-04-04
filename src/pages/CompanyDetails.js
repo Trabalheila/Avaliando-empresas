@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { getCompanyLogoCandidates } from "../utils/getCompanyLogo";
 import { db } from "../firebase";
 import { collection, doc, getDocs, limit, orderBy, query, setDoc, where, updateDoc } from "firebase/firestore";
@@ -174,6 +174,20 @@ function CompanyDetails({ theme, toggleTheme }) {
   const [searchParams] = useSearchParams();
   const name = searchParams.get("name");
   const [company, setCompany] = useState(null);
+
+  /* ── Apoiadores recomendados ── */
+  const [apoiadoresRecomendados, setApoiadoresRecomendados] = useState([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDocs(
+          query(collection(db, "apoiadores"), where("status", "==", "ativo"), where("plano", "==", "premium"), orderBy("rating", "desc"), limit(3))
+        );
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setApoiadoresRecomendados(list);
+      } catch { /* silencioso */ }
+    })();
+  }, []);
 
 
 
@@ -2285,6 +2299,40 @@ function CompanyDetails({ theme, toggleTheme }) {
         </div>
       </div>
       </div>{/* /px-4 pt-6 */}
+
+      {/* ── Apoiadores Recomendados ── */}
+      {apoiadoresRecomendados.length > 0 && (
+        <section className="max-w-5xl mx-auto px-4 py-10">
+          <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 mb-1 text-center">Apoiadores Recomendados</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 text-center">Profissionais verificados prontos para ajudar.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {apoiadoresRecomendados.map((a) => (
+              <div key={a.id} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex items-center gap-3">
+                {a.foto ? (
+                  <img src={a.foto} alt={a.nome} className="h-12 w-12 rounded-full object-cover border border-slate-200 dark:border-slate-600 shrink-0" />
+                ) : (
+                  <span className="h-12 w-12 rounded-full bg-blue-100 dark:bg-slate-700 flex items-center justify-center text-xl shrink-0">👤</span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{a.nome}</h3>
+                  {a.especialidade && <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{a.especialidade}</p>}
+                  {a.rating > 0 && (
+                    <span className="inline-flex items-center gap-1 mt-0.5">
+                      <svg className="w-3.5 h-3.5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.175 0l-3.37 2.448c-.784.57-1.838-.197-1.54-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z" />
+                      </svg>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">{a.rating.toFixed(1)}</span>
+                    </span>
+                  )}
+                </div>
+                <Link to={`/apoiadores/perfil/${a.id}`} className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition shrink-0">
+                  Ver perfil
+                </Link>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
     </div>
   );

@@ -86,6 +86,26 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
+  /* ── Portfólio (Premium) ── */
+  const [portfolio, setPortfolio] = useState([]);
+  const [showPortfolioForm, setShowPortfolioForm] = useState(false);
+  const [pfTitulo, setPfTitulo] = useState("");
+  const [pfDescricao, setPfDescricao] = useState("");
+  const [pfLink, setPfLink] = useState("");
+
+  const addPortfolioItem = useCallback(() => {
+    if (!pfTitulo.trim() || portfolio.length >= 5) return;
+    setPortfolio((prev) => [...prev, { titulo: pfTitulo.trim().slice(0, 80), descricao: pfDescricao.trim().slice(0, 400), link: pfLink.trim() || "" }]);
+    setPfTitulo("");
+    setPfDescricao("");
+    setPfLink("");
+    setShowPortfolioForm(false);
+  }, [pfTitulo, pfDescricao, pfLink, portfolio]);
+
+  const removePortfolioItem = useCallback((idx) => {
+    setPortfolio((prev) => prev.filter((_, i) => i !== idx));
+  }, []);
+
   const allTermosAceitos = termosAceitos.every(Boolean);
 
   const toggleTermo = useCallback((idx) => {
@@ -168,6 +188,9 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
         plano: "gratuito",
         rating: 0,
         totalAvaliacoes: 0,
+        visualizacoes: 0,
+        cliquesContato: 0,
+        portfolio: portfolio.slice(0, 5),
         uid: auth.currentUser?.uid || null,
         createdAt: serverTimestamp(),
       };
@@ -196,7 +219,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
       setError("Ocorreu um erro ao enviar o cadastro. Tente novamente.");
     }
     setSubmitting(false);
-  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, arquivos, allTermosAceitos, especialidade, areas, linkedin, valorMedio, oab, seccional, cnpj, segmentos, site]);
+  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, arquivos, allTermosAceitos, especialidade, areas, linkedin, valorMedio, oab, seccional, cnpj, segmentos, site, portfolio]);
 
   /* ═══ Tela de sucesso ═══ */
   if (success) {
@@ -393,6 +416,45 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                       </li>
                     ))}
                   </ul>
+                )}
+              </div>
+
+              {/* ── Portfólio (até 5 casos) ── */}
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
+                  Portfólio — casos ou projetos ({portfolio.length}/5)
+                </label>
+                {portfolio.map((p, i) => (
+                  <div key={i} className="mb-2 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{p.titulo}</p>
+                      {p.descricao && <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2">{p.descricao}</p>}
+                      {p.link && <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 underline">{p.link}</a>}
+                    </div>
+                    <button type="button" onClick={() => removePortfolioItem(i)} className="text-red-500 hover:text-red-700 font-bold text-sm shrink-0">✕</button>
+                  </div>
+                ))}
+
+                {showPortfolioForm ? (
+                  <div className="p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 space-y-2">
+                    <input type="text" value={pfTitulo} onChange={(e) => setPfTitulo(e.target.value.slice(0, 80))} maxLength={80} placeholder="Título do caso ou projeto *"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200" />
+                    <textarea value={pfDescricao} onChange={(e) => setPfDescricao(e.target.value.slice(0, 400))} maxLength={400} rows={3} placeholder="Descrição (até 400 caracteres)"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 resize-none" />
+                    <input type="url" value={pfLink} onChange={(e) => setPfLink(e.target.value)} placeholder="Link (opcional)"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200" />
+                    <div className="flex gap-2">
+                      <button type="button" onClick={addPortfolioItem} disabled={!pfTitulo.trim()}
+                        className="px-4 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50">Adicionar</button>
+                      <button type="button" onClick={() => setShowPortfolioForm(false)}
+                        className="px-4 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-semibold">Cancelar</button>
+                    </div>
+                  </div>
+                ) : portfolio.length < 5 && (
+                  <button type="button" onClick={() => setShowPortfolioForm(true)}
+                    className="mt-1 px-4 py-2 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:border-blue-400 hover:text-blue-600 transition w-full">
+                    + Adicionar caso ou projeto
+                  </button>
                 )}
               </div>
 

@@ -595,6 +595,11 @@ function AdminPanel({ theme, toggleTheme }) {
                           {a.oab && ` · OAB ${a.oab}/${a.seccional || "?"}`}
                           {a.cnpj && ` · CNPJ ${a.cnpj}`}
                         </p>
+                        {a.status === "ativo" && (
+                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5 font-medium">
+                            {a.visualizacoes || 0} visualizações — {a.cliquesContato || 0} cliques
+                          </p>
+                        )}
                         {a.descricao && <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{a.descricao}</p>}
                         {(a.areas || a.segmentos || []).length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
