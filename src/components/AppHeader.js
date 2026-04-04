@@ -94,8 +94,8 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
   const admin = isAdmin();
 
   return (
-    <nav className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-blue-100 dark:border-slate-700 shadow-sm">
-      <div className="max-w-6xl mx-auto flex items-center justify-between px-4 py-3">
+    <nav className="sticky top-0 z-50 h-16 bg-white dark:bg-slate-900 border-b border-blue-100 dark:border-slate-700 shadow-sm">
+      <div className="max-w-6xl mx-auto h-full flex items-center justify-between px-4">
         {/* ── Zona esquerda: Voltar ── */}
         <div className="flex items-center gap-3 min-w-0" style={{ flex: "1 1 0%" }}>
           {showBack && (
@@ -117,7 +117,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
           <button
             type="button"
             onClick={() => navigate("/")}
-            className="text-xl font-extrabold tracking-wide text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
+            className="text-[1.1rem] sm:text-[1.25rem] md:text-[1.5rem] lg:text-[1.8rem] font-extrabold tracking-wide whitespace-nowrap text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
             style={{ fontFamily: "'Azonix', sans-serif" }}
           >
             TRABALHEI LÁ
