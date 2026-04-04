@@ -33,7 +33,7 @@ function getWebhookProvider(req) {
 }
 
 function normalizeAudience(value) {
-  return ["worker", "employer"].includes(value) ? value : "worker";
+  return ["worker", "employer", "supporter"].includes(value) ? value : "worker";
 }
 
 function toDigits(value) {
@@ -196,7 +196,9 @@ async function handleStripeWebhook(req, res) {
     const paymentMethod = metadata.paymentMethod === "pix" ? "pix" : "card";
     const billingMode = metadata.billingMode === "payment_pix" ? "payment_pix" : "subscription_card";
 
-    if (!cnpj && !companySlug) {
+    const apoiadorId = (metadata.apoiadorId || "").toString().trim();
+
+    if (!cnpj && !companySlug && !apoiadorId) {
       return res.status(200).json({ received: true, ignored: true });
     }
 
@@ -226,6 +228,19 @@ async function handleStripeWebhook(req, res) {
 
     const writes = [];
 
+    if (audience === "supporter" && apoiadorId) {
+      writes.push(
+        db.collection("apoiadores").doc(apoiadorId).set(
+          {
+            plano: "premium",
+            dataExpiracao,
+            stripe: stripeData,
+          },
+          { merge: true }
+        )
+      );
+    }
+
     if (cnpj) {
       writes.push(
         db.collection("empresas").doc(cnpj).set(
@@ -239,7 +254,7 @@ async function handleStripeWebhook(req, res) {
       );
     }
 
-    if (companySlug) {
+    if (companySlug && audience !== "supporter") {
       const companyPayload = {
         slug: companySlug,
         isPremium: true,
@@ -342,10 +357,11 @@ async function handleMercadoPagoWebhook(req, res) {
     const companySlug = normalizeCompanySlug(metadata.companySlug || fromReference.companySlug);
     const companyName = (metadata.companyName || "").toString().trim();
     const audience = normalizeAudience((metadata.audience || "").toString());
+    const apoiadorId = (metadata.apoiador_id || metadata.apoiadorId || "").toString().trim();
     const paymentMethod = mapMercadoPagoMethod(payment?.payment_method_id || "");
     const billingMode = paymentMethod === "pix" ? "payment_pix" : "payment_single";
 
-    if (!cnpj && !companySlug) {
+    if (!cnpj && !companySlug && !apoiadorId) {
       return res.status(200).json({ received: true, ignored: true, reason: "missing_company_reference" });
     }
 
@@ -372,6 +388,20 @@ async function handleMercadoPagoWebhook(req, res) {
 
     const writes = [];
 
+    if (audience === "supporter" && apoiadorId) {
+      writes.push(
+        db.collection("apoiadores").doc(apoiadorId).set(
+          {
+            plano: "premium",
+            dataExpiracao,
+            billing: mercadoPagoData,
+            mercadopago: mercadoPagoData,
+          },
+          { merge: true }
+        )
+      );
+    }
+
     if (cnpj) {
       writes.push(
         db.collection("empresas").doc(cnpj).set(
@@ -386,7 +416,7 @@ async function handleMercadoPagoWebhook(req, res) {
       );
     }
 
-    if (companySlug) {
+    if (companySlug && audience !== "supporter") {
       const companyPayload = {
         slug: companySlug,
         isPremium: true,

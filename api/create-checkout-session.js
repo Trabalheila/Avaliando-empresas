@@ -50,7 +50,7 @@ function isMercadoPagoProvider(provider) {
   return normalized === "mercadopago" || normalized === "mp";
 }
 
-async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, audience, paymentMethod }) {
+async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, audience, paymentMethod, apoiadorId }) {
   const accessToken = (process.env.MERCADO_PAGO_ACCESS_TOKEN || "").toString().trim();
   if (!accessToken) {
     throw new Error("MERCADO_PAGO_ACCESS_TOKEN nao configurado.");
@@ -86,6 +86,7 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
       audience,
       paymentMethod,
       billingMode: paymentMethod === "pix" ? "payment_pix" : "payment_single",
+      apoiadorId: apoiadorId || "",
     },
     notification_url: `${serverBase}/api/webhook?provider=mercadopago`,
   };
@@ -130,16 +131,17 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { cnpj, companySlug, companyName, audience, paymentMethod } = req.body || {};
+  const { cnpj, companySlug, companyName, audience, paymentMethod, apoiadorId } = req.body || {};
   const cleanedCnpj = (cnpj || "").toString().replace(/\D/g, "");
   const hasValidCnpj = cleanedCnpj.length === 14;
   const normalizedCompanySlug = normalizeCompanySlug(companySlug);
   const normalizedCompanyName = (companyName || "").toString().trim();
   const normalizedAudience = ["worker", "employer", "supporter"].includes(audience) ? audience : "worker";
   const normalizedPaymentMethod = paymentMethod === "pix" ? "pix" : "card";
+  const cleanedApoiadorId = (apoiadorId || "").toString().trim();
 
-  if (!hasValidCnpj && !normalizedCompanySlug) {
-    return res.status(400).json({ error: "Informe CNPJ valido ou companySlug para vincular o checkout." });
+  if (!hasValidCnpj && !normalizedCompanySlug && !cleanedApoiadorId) {
+    return res.status(400).json({ error: "Informe CNPJ valido, companySlug ou apoiadorId para vincular o checkout." });
   }
 
   const provider = getCheckoutProvider();
@@ -152,6 +154,7 @@ export default async function handler(req, res) {
         companyName: normalizedCompanyName,
         audience: normalizedAudience,
         paymentMethod: normalizedPaymentMethod,
+        apoiadorId: cleanedApoiadorId,
       });
       return res.status(200).json(payload);
     } catch (err) {
@@ -201,6 +204,7 @@ export default async function handler(req, res) {
       audience: normalizedAudience,
       paymentMethod: normalizedPaymentMethod,
       billingMode: normalizedPaymentMethod === "pix" ? "payment_pix" : "subscription_card",
+      apoiadorId: cleanedApoiadorId || "",
     };
 
     const sessionPayload = {

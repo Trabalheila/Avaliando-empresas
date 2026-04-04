@@ -65,6 +65,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
   const [arquivos, setArquivos] = useState([]);
   const [foto, setFoto] = useState(null);
   const [termosAceitos, setTermosAceitos] = useState(TERMOS.map(() => false));
+  const [nichos, setNichos] = useState([]);
 
   /* ── Estado consultor ── */
   const [especialidade, setEspecialidade] = useState("");
@@ -110,6 +111,10 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
 
   const toggleTermo = useCallback((idx) => {
     setTermosAceitos((prev) => prev.map((v, i) => (i === idx ? !v : v)));
+  }, []);
+
+  const toggleNicho = useCallback((nicho) => {
+    setNichos((prev) => prev.includes(nicho) ? prev.filter((n) => n !== nicho) : prev.length >= 3 ? prev : [...prev, nicho]);
   }, []);
 
   const toggleArea = useCallback((area) => {
@@ -191,6 +196,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
         visualizacoes: 0,
         cliquesContato: 0,
         portfolio: portfolio.slice(0, 5),
+        nichos: nichos.slice(0, 3),
         uid: auth.currentUser?.uid || null,
         createdAt: serverTimestamp(),
       };
@@ -219,7 +225,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
       setError("Ocorreu um erro ao enviar o cadastro. Tente novamente.");
     }
     setSubmitting(false);
-  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, arquivos, allTermosAceitos, especialidade, areas, linkedin, valorMedio, oab, seccional, cnpj, segmentos, site, portfolio]);
+  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, arquivos, allTermosAceitos, especialidade, areas, linkedin, valorMedio, oab, seccional, cnpj, segmentos, site, portfolio, nichos]);
 
   /* ═══ Tela de sucesso ═══ */
   if (success) {
@@ -380,6 +386,25 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                   </div>
                 </div>
               )}
+
+              {/* ── Nichos de atuação (todos os tipos, máx 3) ── */}
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
+                  Nichos de atuação ({nichos.length}/3)
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {NICHOS_OPTIONS.map((n) => (
+                    <button key={n} type="button" onClick={() => toggleNicho(n)}
+                      disabled={!nichos.includes(n) && nichos.length >= 3}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${nichos.includes(n) ? "bg-blue-600 text-white border-blue-600" : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-blue-400 disabled:opacity-40 disabled:cursor-not-allowed"}`}>
+                      {n}
+                    </button>
+                  ))}
+                </div>
+                {nichos.length >= 3 && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">Máximo de 3 nichos selecionados.</p>
+                )}
+              </div>
 
               {/* ── Foto ── */}
               <div className="mb-6">

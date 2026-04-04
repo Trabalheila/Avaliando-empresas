@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { FiCheck, FiX } from "react-icons/fi";
 import { handleCheckout } from "../services/billing";
+import { db, auth } from "../firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { signInAnonymously } from "firebase/auth";
 
 function FeatureRow({ ok, children }) {
   return (
@@ -24,11 +27,25 @@ export default function PlanosApoiador() {
     setLoading(true);
     setError("");
     try {
+      if (!auth.currentUser) await signInAnonymously(auth);
+      const uid = auth.currentUser?.uid;
+      if (!uid) { setError("Faça login para continuar."); setLoading(false); return; }
+
+      /* Buscar apoiador vinculado ao UID */
+      const snap = await getDocs(query(collection(db, "apoiadores"), where("uid", "==", uid)));
+      if (snap.empty) {
+        setError("Você precisa ter um cadastro de apoiador antes de assinar Premium. Cadastre-se primeiro.");
+        setLoading(false);
+        return;
+      }
+      const apoiadorId = snap.docs[0].id;
+
       await handleCheckout({
         cnpj: "",
         companySlug: "trabalhei-la",
         companyName: "Trabalheila",
         audience: "supporter",
+        apoiadorId,
       });
     } catch (err) {
       setError(err?.message || "Erro ao iniciar checkout. Tente novamente.");
@@ -90,8 +107,8 @@ export default function PlanosApoiador() {
               <FeatureRow ok>Selo visual "Apoiador Premium Verificado" no perfil</FeatureRow>
               <FeatureRow ok>Portfólio com até 5 casos ou projetos</FeatureRow>
               <FeatureRow ok>Avaliações e estrelas de clientes Premium</FeatureRow>
-              <FeatureRow ok>Relatório mensal de visualizações e cliques no perfil</FeatureRow>
-              <FeatureRow ok>Acesso a leads qualificados de empresas e trabalhadores Premium com 10% de comissão sobre contratos fechados via plataforma</FeatureRow>
+              <FeatureRow ok>Relatório mensal de visualizações e cliques no perfil <span className="text-amber-600 dark:text-amber-400 font-semibold">(em breve)</span></FeatureRow>
+              <FeatureRow ok>Acesso a leads qualificados de empresas e trabalhadores Premium com 10% de comissão sobre contratos fechados via plataforma <span className="text-amber-600 dark:text-amber-400 font-semibold">(em breve)</span></FeatureRow>
             </ul>
           </div>
         </div>
