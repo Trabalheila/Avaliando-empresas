@@ -329,7 +329,7 @@ function TrabalheiLaDesktop({
               {/* Banner Premium — sempre visível abaixo do card do usuário */}
               <div className="mb-3 flex items-center justify-center">
                 <div className="flex flex-col md:flex-row items-center gap-4 bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-400 rounded-2xl shadow-lg px-6 py-3 border-2 border-blue-200 dark:border-slate-700">
-                  <span className="text-white text-lg md:text-xl font-bold drop-shadow">Conheça o <span className="underline">Premium</span> e tenha acesso a relatórios exclusivos!</span>
+                  <span className="text-white text-lg md:text-xl font-bold drop-shadow">Premium para trabalhadores, empresas e apoiadores — <span className="underline">conheça os planos</span></span>
                   <button
                     className="mt-2 md:mt-0 px-5 py-2 rounded-lg bg-white text-blue-700 font-bold shadow hover:bg-blue-50 transition"
                     onClick={() => navigate('/escolha-perfil')}

@@ -80,7 +80,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
           Descubra os benefícios exclusivos para cada perfil.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-5xl mx-auto">
           {/* Card Trabalhador */}
           <button
             type="button"
@@ -92,6 +92,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 src="/Trampo.jpg"
                 alt="Trabalhadores"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                style={{ objectPosition: 'top' }}
               />
             </div>
             <div className="p-6 flex flex-col items-center text-center flex-1">
@@ -116,6 +117,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 src="/empresário.jpg"
                 alt="Empresários"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                style={{ objectPosition: 'top' }}
               />
             </div>
             <div className="p-6 flex flex-col items-center text-center flex-1">
@@ -140,6 +142,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 src="/plans-banner.jpg"
                 alt="Apoiadores"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                style={{ objectPosition: 'top' }}
               />
             </div>
             <div className="p-6 flex flex-col items-center text-center flex-1">
@@ -203,6 +206,10 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 <FeatureRow ok>Dashboard de cultura e ambiente</FeatureRow>
                 <FeatureRow ok>Tendências e análises exclusivas</FeatureRow>
                 <FeatureRow ok>Assessoria jurídica trabalhista — primeira consulta gratuita com advogados parceiros</FeatureRow>
+                <FeatureRow ok>Primeira consulta gratuita com advogado trabalhista parceiro verificado</FeatureRow>
+                <FeatureRow ok>Orientação sobre rescisão indevida, assédio moral e discriminação</FeatureRow>
+                <FeatureRow ok>Acesso ao marketplace de advogados com OAB verificada</FeatureRow>
+                <FeatureRow ok>Avaliações de outros usuários Premium sobre advogados parceiros</FeatureRow>
               </ul>
             </div>
           </div>

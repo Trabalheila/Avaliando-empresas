@@ -373,7 +373,7 @@ function TrabalheiLaMobile({
           <span
             className="logo-syne leading-none whitespace-nowrap"
             style={{
-              fontSize: '1.4rem',
+              fontSize: 'clamp(1rem, 2vw, 1.6rem)',
               fontWeight: 800,
               letterSpacing: 'normal',
               color: '#FFFFFF',
@@ -382,6 +382,7 @@ function TrabalheiLaMobile({
               textAlign: 'center',
               flexShrink: 0,
               width: '100%',
+              overflow: 'visible',
             }}
           >
             TRABALHEI LÁ
@@ -403,8 +404,15 @@ function TrabalheiLaMobile({
           </p>
         </div>
 
+        {firebaseStatus && <p className="text-[11px] text-red-500 dark:text-red-400 mt-1 text-center">{firebaseStatus}</p>}
+      </header>
+
+      <div style={{ height: headerSpacerHeight }} />
+
+      <main className="px-4 space-y-3">
+        {/* Card empresa pesquisada — movido para fora do header */}
         {company && (
-          <div className="mt-2 w-full rounded-2xl border border-blue-100 dark:border-slate-700 bg-blue-50/60 dark:bg-slate-800/70" style={{ padding: 10 }}>
+          <div className="w-full rounded-2xl border border-blue-100 dark:border-slate-700 bg-blue-50/60 dark:bg-slate-800/70" style={{ padding: 10 }}>
             <div className="flex items-center gap-3">
               {/* Logo + Nota à esquerda */}
               <div className="shrink-0 flex flex-col items-center">
@@ -467,7 +475,8 @@ function TrabalheiLaMobile({
           </div>
         )}
 
-        <div className="mt-2 w-full flex items-center justify-between gap-2">
+        {/* Perfil do usuário */}
+        <div className="w-full flex items-center justify-between gap-2">
           {isAuthenticated ? (
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-slate-700 flex items-center justify-center text-lg overflow-hidden">
@@ -535,12 +544,6 @@ function TrabalheiLaMobile({
           )}
         </div>
 
-        {firebaseStatus && <p className="text-[11px] text-red-500 dark:text-red-400 mt-1 text-center">{firebaseStatus}</p>}
-      </header>
-
-      <div style={{ height: headerSpacerHeight }} />
-
-      <main className="px-4 space-y-3">
         {/* Banner Premium Mobile */}
         <div
           className="mobilePremiumBanner"
