@@ -367,32 +367,35 @@ function TrabalheiLaMobile({
       }`}
     >
       <header ref={headerRef} className="fixed top-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm px-2 py-2 z-50 border-b border-blue-100 dark:border-slate-700">
-        {/* ── Linha do título + botão tema ── */}
-        <div className="flex items-center justify-between">
-          <div style={{ flex: "1 1 0%" }} />
-          <h1 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border border-blue-200 dark:border-blue-500 bg-gradient-to-r from-blue-100 via-white to-blue-100 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 shadow-[0_4px_16px_rgba(37,99,235,0.18)]">
-            <FaStar className="text-amber-500" style={{ maxWidth: 18, width: 18, height: 18 }} />
-            <span className="text-[1.1rem] font-black text-blue-900 dark:text-blue-300 logo-syne tracking-[0.05em] leading-none whitespace-nowrap">
-              TRABALHEI LÁ
-            </span>
-          </h1>
-          <div className="flex justify-end" style={{ flex: "1 1 0%" }}>
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="shrink-0 px-2 py-1.5 bg-slate-200 dark:bg-slate-700 rounded-full text-sm font-semibold text-slate-700 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-600 transition"
-              aria-label="Alternar tema claro/escuro"
-            >
-              {theme === "dark" ? "🌙" : "☀️"}
-              <span className="mobileThemeLabel"> Tema</span>
-            </button>
-          </div>
+        {/* ── Linha do título + ícones ── */}
+        <div className="flex items-center w-full" style={{ gap: 8 }}>
+          <FaStar className="text-amber-500" style={{ width: 24, height: 24, flexShrink: 0 }} />
+          <span
+            className="logo-syne leading-none whitespace-nowrap"
+            style={{
+              fontSize: '1.4rem',
+              fontWeight: 800,
+              letterSpacing: 'normal',
+              color: '#FFFFFF',
+              textShadow: '0px 1px 3px rgba(0,0,0,0.5)',
+              flex: 1,
+              textAlign: 'center',
+              flexShrink: 0,
+              width: '100%',
+            }}
+          >
+            TRABALHEI LÁ
+          </span>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="bg-slate-200 dark:bg-slate-700 rounded-full font-semibold text-slate-700 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-600 transition"
+            style={{ width: 24, height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, fontSize: '1rem', lineHeight: 1 }}
+            aria-label="Alternar tema claro/escuro"
+          >
+            {theme === "dark" ? "🌙" : "☀️"}
+          </button>
         </div>
-        <style>{`
-          @media (max-width: 480px) {
-            .mobileThemeLabel { display: none; }
-          }
-        `}</style>
         <div className="text-center">
           <div className="w-20 h-1 mx-auto mt-1 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
           <p className="mt-1 text-[0.72rem] leading-tight font-bold text-blue-700 dark:text-blue-200">
@@ -615,20 +618,21 @@ function TrabalheiLaMobile({
             </button>
             <Link
               to="/pseudonym"
-              className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-lime-400 text-emerald-950 shadow-[0_0_12px_rgba(20,83,45,0.85),0_0_24px_rgba(132,204,22,0.65)] animate-pulse hover:bg-lime-300 hover:shadow-[0_0_14px_rgba(20,83,45,0.9),0_0_26px_rgba(132,204,22,0.75)] transition"
+              className="inline-flex items-center justify-center bg-lime-400 text-white hover:bg-lime-500 transition shadow-md"
+              style={{
+                width: '80%',
+                borderRadius: 25,
+                fontSize: '1rem',
+                fontWeight: 700,
+                padding: '12px 0',
+                textDecoration: 'none',
+                textAlign: 'center',
+              }}
               aria-label="Ir para editar perfil"
               title="Editar perfil"
             >
-              <FaUserEdit className="text-base" />
+              CADASTRO ANÔNIMO
             </Link>
-            <div
-              className="w-full flex flex-col items-center justify-center gap-1"
-              style={{ animation: "homeCalloutIn 900ms ease-out both" }}
-            >
-              <p className="text-black dark:text-white font-extrabold text-lg leading-tight text-center">
-                CRIE SEU PERFIL E AVALIE ANONIMAMENTE!
-              </p>
-            </div>
             <div className="flex items-center justify-center gap-2 flex-wrap" style={{ animation: "homeCalloutIn 1100ms ease-out both" }}>
               <span className="flex items-center gap-1 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold">✓ Anônimo</span>
               <span className="flex items-center gap-1 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold">✓ Verificado</span>
