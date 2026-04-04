@@ -160,12 +160,11 @@ code {
 .route-transition-stage {
   position: relative;
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 .route-layer {
   width: 100%;
-  will-change: transform, opacity;
 }
 
 .route-layer-steady {
@@ -176,6 +175,7 @@ code {
 .route-layer-enter {
   position: absolute;
   inset: 0;
+  will-change: transform, opacity;
 }
 
 .route-enter-forward {
