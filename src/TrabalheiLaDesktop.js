@@ -193,7 +193,7 @@ function TrabalheiLaDesktop({
   }, [companyNameForLogo, selectedCompanyData?.website]);
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-6 ${isAuthenticated ? 'pt-[350px]' : 'pt-[280px]'}`}>
+    <div className={`min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-6 ${isAuthenticated ? 'pt-[260px]' : 'pt-[220px]'}`}>
       <div className="w-full max-w-6xl">
         {/* HEADER */}
         <header className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-b-3xl shadow-2xl p-4 border-2 border-blue-200 dark:border-slate-700">

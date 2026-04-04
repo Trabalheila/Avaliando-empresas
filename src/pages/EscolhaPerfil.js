@@ -72,7 +72,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
       )}
 
       {/* ═══════════════ SEÇÃO 1 — Escolha seu perfil ═══════════════ */}
-      <section className="w-full max-w-5xl px-4 pt-10 pb-16">
+      <section className="w-full max-w-5xl px-4 pt-6 pb-16">
         <h1 className="text-3xl md:text-4xl font-extrabold text-center text-slate-900 dark:text-white mb-2">
           Escolha seu perfil
         </h1>
@@ -80,19 +80,19 @@ function EscolhaPerfil({ theme, toggleTheme }) {
           Descubra os benefícios exclusivos para cada perfil.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-5xl mx-auto" style={{ justifyItems: 'center' }}>
           {/* Card Trabalhador */}
           <button
             type="button"
             onClick={() => scrollTo(workerRef)}
             className="group relative rounded-3xl border-2 border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-800 overflow-hidden shadow-lg hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 cursor-pointer flex flex-col"
           >
-            <div className="w-full h-52 overflow-hidden">
+            <div className="w-full overflow-hidden" style={{ height: 280 }}>
               <img
                 src="/Trampo.jpg"
                 alt="Trabalhadores"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                style={{ objectPosition: 'top' }}
+                style={{ objectPosition: 'center 20%' }}
               />
             </div>
             <div className="p-6 flex flex-col items-center text-center flex-1">
@@ -112,12 +112,11 @@ function EscolhaPerfil({ theme, toggleTheme }) {
             onClick={() => scrollTo(employerRef)}
             className="group relative rounded-3xl border-2 border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-800 overflow-hidden shadow-lg hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 cursor-pointer flex flex-col"
           >
-            <div className="w-full h-52 overflow-hidden">
+            <div className="w-full overflow-hidden" style={{ height: 280 }}>
               <img
                 src="/empresário.jpg"
                 alt="Empresários"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                style={{ objectPosition: 'top' }}
               />
             </div>
             <div className="p-6 flex flex-col items-center text-center flex-1">
@@ -137,12 +136,12 @@ function EscolhaPerfil({ theme, toggleTheme }) {
             onClick={() => scrollTo(supporterRef)}
             className="group relative rounded-3xl border-2 border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-800 overflow-hidden shadow-lg hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 cursor-pointer flex flex-col"
           >
-            <div className="w-full h-52 overflow-hidden">
+            <div className="w-full overflow-hidden" style={{ height: 280 }}>
               <img
                 src="/plans-banner.jpg"
                 alt="Apoiadores"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                style={{ objectPosition: 'top' }}
+                style={{ objectPosition: 'center 15%' }}
               />
             </div>
             <div className="p-6 flex flex-col items-center text-center flex-1">
@@ -161,7 +160,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
       {/* ═══════════════ SEÇÃO 2 — Benefícios Trabalhador ═══════════════ */}
       <section
         ref={workerRef}
-        className="w-full bg-white dark:bg-slate-900 py-16 scroll-mt-8"
+        className="w-full bg-white dark:bg-slate-900 py-6 scroll-mt-8"
       >
         <div className="max-w-5xl mx-auto px-4">
           <h2 className="text-2xl md:text-3xl font-extrabold text-center text-blue-700 dark:text-blue-400 mb-2">
