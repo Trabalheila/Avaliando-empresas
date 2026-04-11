@@ -39,6 +39,17 @@ function TrabalheiLaDesktop({
 
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const headerRef = React.useRef(null);
+  const [headerSpacerHeight, setHeaderSpacerHeight] = React.useState(0);
+
+  React.useEffect(() => {
+    const updateHeaderSpacer = () => {
+      setHeaderSpacerHeight(headerRef.current?.offsetHeight || 0);
+    };
+    updateHeaderSpacer();
+    window.addEventListener("resize", updateHeaderSpacer);
+    return () => window.removeEventListener("resize", updateHeaderSpacer);
+  }, [company, firebaseStatus, hasCompletedProfile, isAuthenticated, theme, userProfile?.avatar, userProfile?.name, userProfile?.verification?.certified, userPseudonym]);
   const selectStyles = {
     control: (base) => ({ ...base, borderRadius: "0.75rem", padding: "0.25rem", borderColor: "#d1d5db", boxShadow: "none", "&:hover": { borderColor: "#3b82f6" } }),
     option: (base, state) => ({ ...base, backgroundColor: state.isFocused ? "#eff6ff" : "white", color: "#1e293b", cursor: "pointer" }),
@@ -193,10 +204,10 @@ function TrabalheiLaDesktop({
   }, [companyNameForLogo, selectedCompanyData?.website]);
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-6 ${isAuthenticated ? 'pt-[310px]' : 'pt-[250px]'}`}>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-6">
       <div className="w-full max-w-6xl">
         {/* HEADER */}
-        <header className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-b-3xl shadow-2xl px-3 py-3 border-2 border-blue-200 dark:border-slate-700">
+        <header ref={headerRef} className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-b-3xl shadow-2xl px-3 py-3 border-2 border-blue-200 dark:border-slate-700">
           <button
             type="button"
             onClick={toggleTheme}
@@ -369,7 +380,7 @@ function TrabalheiLaDesktop({
           </div>
         </header>
 
-        <div className="h-8" />
+        <div style={{ height: headerSpacerHeight + 32 }} />
 
         {/* CONTEÚDO - 2 COLUNAS */}
         <div className="flex gap-6 mb-8">
