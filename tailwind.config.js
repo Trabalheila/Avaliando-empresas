@@ -9,9 +9,9 @@ module.exports = {
     extend: {
       fontFamily: {
         // Texto geral (limpo, moderno)
-        sans: ["Inter", "ui-sans-serif", "system-ui", "Segoe UI", "Roboto", "Arial", "sans-serif"],
-        // Títulos / marca (mais “premium”)
-        display: ["Plus Jakarta Sans", "Inter", "ui-sans-serif", "system-ui"],
+        sans: ["Inter", "sans-serif"],
+        // Títulos / marca — padronizado com Inter
+        display: ["Inter", "sans-serif"],
       },
       colors: {
         brand: {

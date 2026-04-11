@@ -23,7 +23,7 @@ function AuthLinkedIn() {
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#eff6ff' }}>
-      <h2 style={{ color: '#1e40af', fontFamily: 'sans-serif' }}>Autenticando com LinkedIn, aguarde...</h2>
+      <h2 style={{ color: '#1e40af', fontFamily: "'Inter', sans-serif" }}>Autenticando com LinkedIn, aguarde...</h2>
     </div>
   );
 }
