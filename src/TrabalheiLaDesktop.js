@@ -41,6 +41,7 @@ function TrabalheiLaDesktop({
   const navigate = useNavigate();
   const headerRef = React.useRef(null);
   const [headerSpacerHeight, setHeaderSpacerHeight] = React.useState(0);
+  const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
 
   React.useEffect(() => {
     const updateHeaderSpacer = () => {
@@ -180,7 +181,6 @@ function TrabalheiLaDesktop({
   const globalContractPieData = buildPieData(globalContractStats, contractConfig);
   const workModelPieData = buildPieData(selectedCompanyData?.workModelStats, workModelConfig);
   const globalWorkModelPieData = buildPieData(globalWorkModelStats, workModelConfig);
-  const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
 
   const getTopSliceLabel = (pieData) => {
     const topItem = pieData.items.reduce((best, current) => (current.percent > best.percent ? current : best), pieData.items[0]);
