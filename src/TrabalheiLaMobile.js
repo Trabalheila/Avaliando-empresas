@@ -373,11 +373,10 @@ function TrabalheiLaMobile({
           <span
             className="logo-syne leading-none whitespace-nowrap"
             style={{
-              fontSize: 'clamp(1rem, 2vw, 1.6rem)',
-              fontWeight: 800,
+              fontSize: 'clamp(22px, 5vw, 28px)',
+              fontWeight: 900,
               letterSpacing: 'normal',
-              color: '#FFFFFF',
-              textShadow: '0px 1px 3px rgba(0,0,0,0.5)',
+              color: theme === 'dark' ? '#90caf9' : '#1a237e',
               flex: 1,
               textAlign: 'center',
               flexShrink: 0,
@@ -399,7 +398,7 @@ function TrabalheiLaMobile({
         </div>
         <div className="text-center">
           <div className="w-20 h-1 mx-auto mt-1 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
-          <p className="mt-1 text-[0.72rem] leading-tight font-bold text-blue-700 dark:text-blue-200">
+          <p className="mt-1 text-[0.68rem] leading-tight font-medium text-blue-500 dark:text-blue-300">
             Sua opinião anônima evolui o mercado de trabalho
           </p>
         </div>
