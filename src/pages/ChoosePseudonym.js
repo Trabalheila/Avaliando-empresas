@@ -687,6 +687,31 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             Seu perfil anônimo
           </h1>
 
+          {/* Botão Ver meu perfil — exibido quando já tem um profileId salvo */}
+          {(() => {
+            try {
+              const p = JSON.parse(localStorage.getItem("userProfile") || "{}");
+              const pid = p?.profileId || resolveProfileId(p, { persistGeneratedId: false });
+              if (pid) {
+                return (
+                  <div className="mb-4 text-center">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/perfil/${encodeURIComponent(pid)}`)}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      Ver meu perfil
+                    </button>
+                  </div>
+                );
+              }
+            } catch { /* silencioso */ }
+            return null;
+          })()}
+
           {isCertifiedProfile && (
             <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-emerald-800 text-sm font-semibold text-center">
               Selo certificado ativo{verifiedCompany ? ` para ${verifiedCompany}` : ""}.

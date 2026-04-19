@@ -18,6 +18,7 @@ import PrestadorCadastro from './pages/PrestadorCadastro';
 import ApoiadorCadastro from './pages/ApoiadorCadastro';
 import ApoiadoresList from './pages/ApoiadoresList';
 import ApoiadorPerfil from './pages/ApoiadorPerfil';
+import WorkerProfile from './pages/WorkerProfile';
 
 // Função para aplicar o tema (dark/light)
 function applyTheme(theme) {
@@ -62,6 +63,10 @@ function getRouteTransitionProfile(pathname) {
   }
 
   if (path.startsWith('/pseudonym')) {
+    return ROUTE_TRANSITION_PRESETS.profile;
+  }
+
+  if (path.startsWith('/perfil')) {
     return ROUTE_TRANSITION_PRESETS.profile;
   }
 
@@ -173,6 +178,7 @@ function App() {
       <Route path="/purpose" element={<Purpose theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/escolha-perfil" element={<EscolhaPerfil theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/excluir-dados" element={<DeleteData theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/perfil/:profileId" element={<WorkerProfile theme={theme} toggleTheme={toggleTheme} />} />
     </Routes>
   );
 
