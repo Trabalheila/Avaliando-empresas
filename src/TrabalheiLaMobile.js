@@ -496,13 +496,21 @@ function TrabalheiLaMobile({
                     ✓ Certificado
                   </p>
                 )}
-                <a
-                  href="/pseudonym"
-                  className="inline-flex items-center mt-0.5 px-2.5 py-1 rounded-full bg-emerald-300 text-emerald-900 text-[11px] font-medium hover:bg-emerald-400 shadow-sm transition"
-                >
-                  <FaUserEdit className="mr-1 text-[10px]" />
-                  {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
-                </a>
+                <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                  <a
+                    href="/pseudonym"
+                    className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-300 text-emerald-900 text-[11px] font-medium hover:bg-emerald-400 shadow-sm transition"
+                  >
+                    <FaUserEdit className="mr-1 text-[10px]" />
+                    {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
+                  </a>
+                  <a
+                    href="/minha-conta"
+                    className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-200 text-blue-900 text-[11px] font-medium hover:bg-blue-300 shadow-sm transition"
+                  >
+                    Minha conta
+                  </a>
+                </div>
                 {(() => {
                   try {
                     const { getUserRole, isPremium, isAdmin } = require("./utils/rbac");
