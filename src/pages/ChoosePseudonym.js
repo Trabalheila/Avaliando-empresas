@@ -66,6 +66,8 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   const [manualCompany, setManualCompany] = useState("");
   const [manualRole, setManualRole] = useState("");
   const [isParsingResume, setIsParsingResume] = useState(false);
+  const [resumeFile, setResumeFile] = useState(null);
+  const [resumePreviewUrl, setResumePreviewUrl] = useState(null);
   const [isCertifiedProfile, setIsCertifiedProfile] = useState(false);
   const [isVerificationPending, setIsVerificationPending] = useState(false);
   const [verifiedCompany, setVerifiedCompany] = useState("");
@@ -307,6 +309,12 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     setInfo("");
     setIsParsingResume(true);
 
+    // Guardar referência do arquivo para preview
+    setResumeFile({ name: file.name, size: file.size, type: file.type });
+    if (resumePreviewUrl) URL.revokeObjectURL(resumePreviewUrl);
+    const objUrl = URL.createObjectURL(file);
+    setResumePreviewUrl(objUrl);
+
     try {
       const text = await extractResumeText(file);
       const parsed = parseResumeText(text, []);
@@ -329,7 +337,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       setIsParsingResume(false);
       e.target.value = "";
     }
-  }, []);
+  }, [resumePreviewUrl]);
 
   const handleFillFromLinkedIn = useCallback(async () => {
     try {
@@ -822,6 +830,60 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 />
                 {isParsingResume && (
                   <p className="text-xs text-blue-700 mt-2">Lendo e interpretando currículo...</p>
+                )}
+
+                {/* Preview em miniatura do currículo carregado */}
+                {resumeFile && !isParsingResume && (
+                  <div className="mt-3 rounded-xl border border-blue-100 dark:border-slate-700 bg-blue-50/50 dark:bg-slate-800 overflow-hidden">
+                    <div className="flex items-start gap-3 p-3">
+                      {/* Miniatura */}
+                      <div className="shrink-0 w-20 h-24 rounded-lg border border-slate-200 dark:border-slate-600 overflow-hidden bg-white dark:bg-slate-900 flex items-center justify-center">
+                        {resumeFile.type === "application/pdf" && resumePreviewUrl ? (
+                          <iframe
+                            src={`${resumePreviewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                            title="Preview do currículo"
+                            className="w-full h-full pointer-events-none"
+                            style={{ border: "none", transform: "scale(1)", transformOrigin: "top left" }}
+                            tabIndex={-1}
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center text-center p-1">
+                            <span className="text-2xl">📄</span>
+                            <span className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5 uppercase font-bold">
+                              {resumeFile.name.split(".").pop()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      {/* Info do arquivo */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate" title={resumeFile.name}>
+                          {resumeFile.name}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          {(resumeFile.size / 1024).toFixed(0)} KB
+                        </p>
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-semibold">
+                          ✓ Currículo carregado com sucesso
+                        </p>
+                      </div>
+                      {/* Botão remover */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (resumePreviewUrl) URL.revokeObjectURL(resumePreviewUrl);
+                          setResumeFile(null);
+                          setResumePreviewUrl(null);
+                        }}
+                        className="shrink-0 p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+                        title="Remover currículo"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
 

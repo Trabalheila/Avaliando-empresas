@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { handleCheckout } from "../services/billing";
 import { db } from "../firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, getDoc, setDoc } from "firebase/firestore";
 import { isPremium, getUserRole } from "../utils/rbac";
+import { resolveProfileId } from "../utils/profileIdentity";
 import {
   FiCheck, FiX,
 } from "react-icons/fi";
@@ -11,6 +12,7 @@ import AppHeader from "../components/AppHeader";
 import PlanosApoiador from "../components/PlanosApoiador";
 
 function EscolhaPerfil({ theme, toggleTheme }) {
+  const navigate = useNavigate();
   const workerRef = useRef(null);
   const employerRef = useRef(null);
   const supporterRef = useRef(null);
@@ -18,9 +20,44 @@ function EscolhaPerfil({ theme, toggleTheme }) {
   const [checkoutError, setCheckoutError] = useState("");
   const [consultores, setConsultores] = useState([]);
   const [prestadores, setPrestadores] = useState([]);
+  const [guardChecked, setGuardChecked] = useState(false);
   const userIsPremium = React.useMemo(() => isPremium(), []);
   const userRole = React.useMemo(() => getUserRole(), []);
   const isEmpresaPremium = userIsPremium && (userRole === "admin_empresa" || userRole === "empresa");
+
+  // Guard: se o usuário já escolheu o tipo de perfil, redirecionar para /minha-conta
+  useEffect(() => {
+    let cancelled = false;
+    async function checkProfileType() {
+      try {
+        const stored = JSON.parse(localStorage.getItem("userProfile") || "{}");
+        // Checar no localStorage primeiro
+        if (stored?.profileTypeChosen) {
+          if (!cancelled) navigate("/minha-conta", { replace: true });
+          return;
+        }
+        // Checar no Firestore
+        const pid = stored?.profileId || resolveProfileId(stored, { persistGeneratedId: false });
+        if (pid) {
+          const userRef = doc(db, "users", pid);
+          const snap = await getDoc(userRef);
+          if (snap.exists()) {
+            const data = snap.data();
+            if (data?.profileTypeChosen || data?.userType || data?.profileType) {
+              // Salvar localmente para evitar futuras consultas
+              const updated = { ...stored, profileTypeChosen: data.profileTypeChosen || data.userType || data.profileType };
+              localStorage.setItem("userProfile", JSON.stringify(updated));
+              if (!cancelled) navigate("/minha-conta", { replace: true });
+              return;
+            }
+          }
+        }
+      } catch { /* silencioso */ }
+      if (!cancelled) setGuardChecked(true);
+    }
+    checkProfileType();
+    return () => { cancelled = true; };
+  }, [navigate]);
 
   useEffect(() => {
     (async () => {
@@ -45,6 +82,19 @@ function EscolhaPerfil({ theme, toggleTheme }) {
     setCheckoutLoadingAudience(audience);
     setCheckoutError("");
     try {
+      // Marcar que o usuário já fez a escolha de perfil
+      try {
+        const stored = JSON.parse(localStorage.getItem("userProfile") || "{}");
+        stored.profileTypeChosen = audience;
+        localStorage.setItem("userProfile", JSON.stringify(stored));
+        // Salvar no Firestore
+        const pid = stored?.profileId || resolveProfileId(stored, { persistGeneratedId: false });
+        if (pid) {
+          const userRef = doc(db, "users", pid);
+          await setDoc(userRef, { profileTypeChosen: audience }, { merge: true });
+        }
+      } catch { /* silencioso */ }
+
       await handleCheckout({
         cnpj: "",
         companySlug: "trabalhei-la",
@@ -57,6 +107,18 @@ function EscolhaPerfil({ theme, toggleTheme }) {
       setCheckoutLoadingAudience(null);
     }
   };
+
+  // Aguardar verificação do guard
+  if (!guardChecked) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
+        <AppHeader theme={theme} toggleTheme={toggleTheme} />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-slate-500 dark:text-slate-400 text-lg animate-pulse">Carregando…</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center">
@@ -280,6 +342,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 <FeatureRow ok>Painel completo de avaliações por critério</FeatureRow>
                 <FeatureRow ok>Relatório de reputação da empresa</FeatureRow>
                 <FeatureRow ok>Ferramenta de resposta a avaliações</FeatureRow>
+                <FeatureRow ok>Direito de resposta pública às avaliações — responda comentários dos funcionários diretamente na página da empresa, com identificação de "Resposta oficial da empresa"</FeatureRow>
                 <FeatureRow ok>Acesso prioritário a recursos em desenvolvimento (comparação com concorrentes, benchmarks de setor)</FeatureRow>
                 <FeatureRow ok>Conexão com consultores empresariais parceiros para transformar dados em ação</FeatureRow>
               </ul>

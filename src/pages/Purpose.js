@@ -49,6 +49,7 @@ const PREMIUM_COMPANY_BENEFITS = [
   "Acesso ao marketplace de prestadores de serviços corporativos com 15% de desconto",
   "Benchmarks exclusivos e reputação de mercado",
   "Respostas públicas às avaliações dos trabalhadores",
+  "Direito de resposta pública às avaliações — responda comentários dos funcionários diretamente na página da empresa",
 ];
 
 const PREMIUM_SUPPORTER_BENEFITS = [
