@@ -346,7 +346,7 @@ function TrabalheiLaDesktop({
                   <span className="text-white text-base md:text-lg font-bold drop-shadow text-center">Premium para trabalhadores, empresas e apoiadores — <span className="underline">conheça os planos</span></span>
                   <button
                     className="mt-1 md:mt-0 px-5 py-2 rounded-lg bg-white text-blue-700 font-bold shadow hover:bg-blue-50 transition"
-                    onClick={() => navigate('/escolha-perfil')}
+                    onClick={() => navigate('/escolha-perfil?planos=1')}
                   >
                     Ver benefícios
                   </button>

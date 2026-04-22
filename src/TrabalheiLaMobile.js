@@ -570,7 +570,7 @@ function TrabalheiLaMobile({
           </span>
           <button
             type="button"
-            onClick={() => navigate('/escolha-perfil')}
+            onClick={() => navigate('/escolha-perfil?planos=1')}
             style={{
               background: 'linear-gradient(135deg, #f59e0b, #d97706)',
               color: '#1e293b',

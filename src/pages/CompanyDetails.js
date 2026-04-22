@@ -1737,7 +1737,7 @@ function CompanyDetails({ theme, toggleTheme }) {
             </p>
             <button
               type="button"
-              onClick={() => navigate("/escolha-perfil")}
+              onClick={() => navigate("/escolha-perfil?planos=1")}
               className="shrink-0 px-4 py-1.5 text-sm font-bold text-amber-800 bg-white rounded-lg hover:bg-amber-50 transition"
             >
               Saiba mais

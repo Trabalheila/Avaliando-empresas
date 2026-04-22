@@ -24,9 +24,15 @@ function EscolhaPerfil({ theme, toggleTheme }) {
   const userIsPremium = React.useMemo(() => isPremium(), []);
   const userRole = React.useMemo(() => getUserRole(), []);
   const isEmpresaPremium = userIsPremium && (userRole === "admin_empresa" || userRole === "empresa");
+  const viewingPlans = new URLSearchParams(window.location.search).get("planos") === "1";
 
   // Guard: se o usuário já escolheu o tipo de perfil, redirecionar para /minha-conta
+  // Exceto quando o usuário está acessando via ?planos=1 (ver benefícios premium)
   useEffect(() => {
+    if (viewingPlans) {
+      setGuardChecked(true);
+      return;
+    }
     let cancelled = false;
     async function checkProfileType() {
       try {
