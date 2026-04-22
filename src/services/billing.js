@@ -1,7 +1,7 @@
 import { buildApiUrl } from "../utils/apiBase";
 
 /**
- * Redireciona para o Stripe/MercadoPago Checkout.
+ * Redireciona para o Mercado Pago Checkout (Assinaturas).
  * Prioriza CNPJ quando disponível e usa companySlug como fallback de vínculo.
  * O backend deve criar a sessao no endpoint /api/create-checkout-session.
  */
@@ -46,8 +46,7 @@ export async function handleCheckout({ cnpj, companySlug, companyName, audience,
 
   // Fallback: se o backend retornou sessionId sem URL, monta a URL
   if (payload?.sessionId) {
-    // Stripe Checkout Session URLs seguem este padrão se a URL direta não foi fornecida
-    throw new Error("URL de checkout ausente. Verifique a configuração do servidor.");
+    throw new Error("URL de checkout ausente. Verifique a configuracao do servidor.");
   }
 
   throw new Error("Resposta de checkout invalida.");

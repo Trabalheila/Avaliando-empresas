@@ -10,7 +10,6 @@
     "@capacitor/cli": "^8.2.0",
     "@capacitor/core": "^8.2.0",
     "@react-oauth/google": "^0.12.1",
-    "@stripe/stripe-js": "^4.10.0",
     "firebase": "^12.9.0",
     "firebase-admin": "^13.7.0",
     "i18next": "^21.6.16",
@@ -24,8 +23,7 @@
     "react-linkedin-login-oauth2": "^2.0.1",
     "react-router-dom": "^7.13.0",
     "react-select": "^5.10.2",
-    "recharts": "^3.8.1",
-    "stripe": "^16.9.0"
+    "recharts": "^3.8.1"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

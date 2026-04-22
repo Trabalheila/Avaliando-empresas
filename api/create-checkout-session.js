@@ -31,24 +31,6 @@ function normalizeCompanySlug(value) {
     .replace(/^-+|-+$/g, "");
 }
 
-function normalizeProviderValue(value) {
-  return (value || "")
-    .toString()
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z]/g, "");
-}
-
-function getCheckoutProvider() {
-  const raw = (process.env.CHECKOUT_PROVIDER || "stripe").toString();
-  const normalized = normalizeProviderValue(raw);
-  return normalized || "stripe";
-}
-
-function isMercadoPagoProvider(provider) {
-  const normalized = normalizeProviderValue(provider);
-  return normalized === "mercadopago" || normalized === "mp";
-}
 
 async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, audience, paymentMethod, apoiadorId }) {
   const accessToken = (process.env.MERCADO_PAGO_ACCESS_TOKEN || "").toString().trim();
@@ -60,38 +42,34 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
   const serverBase = getServerBaseUrl(req);
   const externalReference = cnpj ? cnpj : `slug:${companySlug}`;
 
-  const unitPrice = audience === "employer" ? 1499.9 : audience === "supporter" ? 199.9 : 29.9;
-  const planLabel = audience === "employer" ? "Fundador" : audience === "supporter" ? "Apoiador" : "Trabalhador";
+  const isEmployer = audience === "employer";
+  const planLabel = isEmployer ? "Empresa" : "Trabalhador";
+  const transactionAmount = isEmployer ? 2999.99 : 29.9;
+  const frequency = isEmployer ? 12 : 1;
+  const frequencyType = "months";
+
+  const notificationParams = new URLSearchParams({
+    provider: "mercadopago",
+    cnpj: cnpj || "",
+    companySlug: companySlug || "",
+    audience,
+    apoiadorId: apoiadorId || "",
+  });
 
   const payload = {
-    items: [
-      {
-        title: `Premium ${planLabel} Trabalhei La - ${companyName || companySlug || "empresa"}`,
-        quantity: 1,
-        currency_id: "BRL",
-        unit_price: unitPrice,
-      },
-    ],
-    back_urls: {
-      success: `${appOrigin}/?billing=success`,
-      pending: `${appOrigin}/?billing=pending`,
-      failure: `${appOrigin}/?billing=cancelled`,
+    reason: `Plano ${planLabel} Premium - Trabalhei La`,
+    auto_recurring: {
+      frequency,
+      frequency_type: frequencyType,
+      transaction_amount: transactionAmount,
+      currency_id: "BRL",
     },
-    auto_return: "approved",
+    back_url: `${appOrigin}/?billing=success`,
     external_reference: externalReference,
-    metadata: {
-      cnpj: cnpj || "",
-      companySlug: companySlug || "",
-      companyName: companyName || "",
-      audience,
-      paymentMethod,
-      billingMode: paymentMethod === "pix" ? "payment_pix" : "payment_single",
-      apoiadorId: apoiadorId || "",
-    },
-    notification_url: `${serverBase}/api/webhook?provider=mercadopago`,
+    notification_url: `${serverBase}/api/webhook?${notificationParams.toString()}`,
   };
 
-  const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
+  const response = await fetch("https://api.mercadopago.com/preapproval_plan", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -109,11 +87,11 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
   }
 
   if (!response.ok) {
-    const message = json?.message || json?.cause?.[0]?.description || "Falha ao criar preferencia no Mercado Pago.";
+    const message = json?.message || json?.cause?.[0]?.description || "Falha ao criar plano de assinatura no Mercado Pago.";
     throw new Error(message);
   }
 
-  const checkoutUrl = json?.init_point || json?.sandbox_init_point;
+  const checkoutUrl = json?.init_point;
   if (!checkoutUrl) {
     throw new Error("Resposta do Mercado Pago invalida: init_point ausente.");
   }
@@ -122,7 +100,7 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
     provider: "mercadopago",
     redirectMode: "url",
     checkoutUrl,
-    preferenceId: json?.id || null,
+    planId: json?.id || null,
   };
 }
 
@@ -144,107 +122,18 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Informe CNPJ valido, companySlug ou apoiadorId para vincular o checkout." });
   }
 
-  const provider = getCheckoutProvider();
-  if (isMercadoPagoProvider(provider)) {
-    try {
-      const payload = await createMercadoPagoCheckout({
-        req,
-        cnpj: hasValidCnpj ? cleanedCnpj : "",
-        companySlug: normalizedCompanySlug,
-        companyName: normalizedCompanyName,
-        audience: normalizedAudience,
-        paymentMethod: normalizedPaymentMethod,
-        apoiadorId: cleanedApoiadorId,
-      });
-      return res.status(200).json(payload);
-    } catch (err) {
-      return res.status(500).json({ error: err?.message || "Falha ao iniciar checkout Mercado Pago." });
-    }
-  }
-
-  // Fluxo Stripe: valida apenas quando provider for Stripe.
-  if (!process.env.STRIPE_SECRET_KEY) {
-    return res.status(500).json({ error: "STRIPE_SECRET_KEY nao configurado." });
-  }
-
-  const { default: Stripe } = await import("stripe");
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: "2024-06-20",
-  });
-
-  const subscriptionPriceId = normalizedAudience === "employer"
-    ? process.env.STRIPE_PRICE_COMPANY
-    : normalizedAudience === "supporter"
-      ? process.env.STRIPE_PRICE_SUPPORT
-      : process.env.STRIPE_PRICE_WORKER;
-  const pixPriceId = process.env.STRIPE_PRICE_ID_PREMIUM_PIX;
-
-  if (normalizedPaymentMethod === "card" && !subscriptionPriceId) {
-    const envName = normalizedAudience === "employer" ? "STRIPE_PRICE_COMPANY" : normalizedAudience === "supporter" ? "STRIPE_PRICE_SUPPORT" : "STRIPE_PRICE_WORKER";
-    return res.status(500).json({ error: `${envName} nao configurado.` });
-  }
-
-  if (normalizedPaymentMethod === "pix" && !pixPriceId) {
-    return res.status(500).json({
-      error: "Pagamento via PIX ainda nao configurado. Defina STRIPE_PRICE_ID_PREMIUM_PIX no Vercel.",
-    });
-  }
-
-  const origin = getAppOrigin(req);
-
   try {
-    const clientReferenceId = hasValidCnpj
-      ? cleanedCnpj
-      : `slug:${normalizedCompanySlug}`;
-
-    const metadata = {
+    const checkoutPayload = await createMercadoPagoCheckout({
+      req,
       cnpj: hasValidCnpj ? cleanedCnpj : "",
-      companySlug: normalizedCompanySlug || "",
-      companyName: normalizedCompanyName || "",
+      companySlug: normalizedCompanySlug,
+      companyName: normalizedCompanyName,
       audience: normalizedAudience,
       paymentMethod: normalizedPaymentMethod,
-      billingMode: normalizedPaymentMethod === "pix" ? "payment_pix" : "subscription_card",
-      apoiadorId: cleanedApoiadorId || "",
-    };
-
-    const sessionPayload = {
-      success_url: `${origin}/?billing=success`,
-      cancel_url: `${origin}/?billing=cancelled`,
-      client_reference_id: clientReferenceId,
-      metadata,
-    };
-
-    if (normalizedPaymentMethod === "pix") {
-      sessionPayload.mode = "payment";
-      sessionPayload.payment_method_types = ["pix"];
-      sessionPayload.line_items = [
-        {
-          price: pixPriceId,
-          quantity: 1,
-        },
-      ];
-    } else {
-      sessionPayload.mode = "subscription";
-      sessionPayload.payment_method_types = ["card"];
-      sessionPayload.line_items = [
-        {
-          price: subscriptionPriceId,
-          quantity: 1,
-        },
-      ];
-    }
-
-    const session = await stripe.checkout.sessions.create(sessionPayload);
-
-    return res.status(200).json({
-      provider: "stripe",
-      redirectMode: "url",
-      checkoutUrl: session.url,
-      sessionId: session.id,
+      apoiadorId: cleanedApoiadorId,
     });
+    return res.status(200).json(checkoutPayload);
   } catch (err) {
-    console.error("Erro create-checkout-session:", err);
-    const stripeMessage = err?.raw?.message || err?.message || "Falha ao criar sessao de checkout.";
-    return res.status(500).json({ error: `Falha ao criar sessao de checkout: ${stripeMessage}` });
+    return res.status(500).json({ error: err?.message || "Falha ao iniciar checkout Mercado Pago." });
   }
 }

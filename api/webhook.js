@@ -8,30 +8,6 @@ function normalizeCompanySlug(value) {
     .replace(/^-+|-+$/g, "");
 }
 
-function normalizeProviderValue(value) {
-  return (value || "")
-    .toString()
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z]/g, "");
-}
-
-function getWebhookProvider(req) {
-  const queryProvider = normalizeProviderValue(req.query?.provider || "");
-  if (queryProvider === "stripe") return "stripe";
-  if (queryProvider === "mercadopago" || queryProvider === "mp") return "mercadopago";
-
-  if (req.headers["stripe-signature"]) return "stripe";
-
-  const queryType = (req.query?.type || req.query?.topic || "").toString().trim().toLowerCase();
-  if (queryType === "payment" || queryType.startsWith("payment.")) return "mercadopago";
-
-  const bodyType = (req.body?.type || req.body?.action || "").toString().trim().toLowerCase();
-  if (bodyType === "payment" || bodyType.startsWith("payment.")) return "mercadopago";
-
-  return "stripe";
-}
-
 function normalizeAudience(value) {
   return ["worker", "employer", "supporter"].includes(value) ? value : "worker";
 }
@@ -53,40 +29,6 @@ function parseCompanyFromReference(reference) {
   }
 
   return { cnpj: "", companySlug: normalizeCompanySlug(ref) };
-}
-
-async function getRawBody(req) {
-  if (Buffer.isBuffer(req.body)) return req.body;
-  if (typeof req.body === "string") return Buffer.from(req.body);
-
-  const chunks = [];
-  for await (const chunk of req) {
-    chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
-  }
-
-  if (chunks.length > 0) {
-    return Buffer.concat(chunks);
-  }
-
-  if (req.body && typeof req.body === "object") {
-    return Buffer.from(JSON.stringify(req.body));
-  }
-
-  return Buffer.from("");
-}
-
-let stripeClientInstance;
-async function getStripeClient() {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    throw new Error("STRIPE_SECRET_KEY nao configurado.");
-  }
-  if (!stripeClientInstance) {
-    const { default: Stripe } = await import("stripe");
-    stripeClientInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: "2024-06-20",
-    });
-  }
-  return stripeClientInstance;
 }
 
 function getMercadoPagoAccessToken() {
@@ -142,141 +84,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const provider = getWebhookProvider(req);
-  if (provider === "mercadopago") {
-    return handleMercadoPagoWebhook(req, res);
-  }
-
-  return handleStripeWebhook(req, res);
-}
-
-async function handleStripeWebhook(req, res) {
-  const signature = req.headers["stripe-signature"];
-  if (!signature) {
-    return res.status(400).json({ error: "Missing stripe-signature" });
-  }
-
-  if (!process.env.STRIPE_WEBHOOK_SECRET) {
-    return res.status(500).json({ error: "STRIPE_WEBHOOK_SECRET nao configurado." });
-  }
-
-  let event;
-  const stripe = await getStripeClient();
-
-  try {
-    const rawBody = await getRawBody(req);
-    event = stripe.webhooks.constructEvent(rawBody, signature, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
-    console.error("Invalid webhook signature", err);
-    return res.status(400).json({ error: `Webhook Error: ${err?.message || "assinatura invalida"}` });
-  }
-
-  if (event.type !== "checkout.session.completed") {
-    return res.status(200).json({ received: true, ignored: true });
-  }
-
-  try {
-    const { db, FieldValue, Timestamp } = await getAdminResources();
-    const session = event.data.object;
-    const rawClientReference = (session.client_reference_id || "").toString().trim();
-    const metadata = session.metadata || {};
-
-    const cnpjFromReference = rawClientReference.replace(/\D/g, "");
-    const cnpjFromMetadata = (metadata.cnpj || "").toString().replace(/\D/g, "");
-    const cnpj = cnpjFromMetadata.length === 14
-      ? cnpjFromMetadata
-      : (cnpjFromReference.length === 14 ? cnpjFromReference : "");
-
-    const companySlugFromReference = rawClientReference.startsWith("slug:")
-      ? rawClientReference.slice(5)
-      : "";
-    const companySlug = normalizeCompanySlug(metadata.companySlug || companySlugFromReference);
-    const companyName = (metadata.companyName || "").toString().trim();
-    const audience = normalizeAudience(metadata.audience);
-    const paymentMethod = metadata.paymentMethod === "pix" ? "pix" : "card";
-    const billingMode = metadata.billingMode === "payment_pix" ? "payment_pix" : "subscription_card";
-
-    const apoiadorId = (metadata.apoiadorId || "").toString().trim();
-
-    if (!cnpj && !companySlug && !apoiadorId) {
-      return res.status(200).json({ received: true, ignored: true });
-    }
-
-    let dataExpiracao = null;
-
-    if (session.subscription) {
-      const subscription = await stripe.subscriptions.retrieve(session.subscription.toString());
-      if (subscription?.current_period_end) {
-        dataExpiracao = Timestamp.fromDate(new Date(subscription.current_period_end * 1000));
-      }
-    } else if (billingMode === "payment_pix") {
-      const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
-      dataExpiracao = Timestamp.fromDate(new Date(Date.now() + thirtyDaysMs));
-    }
-
-    const stripeData = {
-      checkoutSessionId: session.id,
-      customerId: session.customer || null,
-      subscriptionId: session.subscription || null,
-      cnpj: cnpj || null,
-      companySlug: companySlug || null,
-      audience,
-      paymentMethod,
-      billingMode,
-      updatedAt: FieldValue.serverTimestamp(),
-    };
-
-    const writes = [];
-
-    if (audience === "supporter" && apoiadorId) {
-      writes.push(
-        db.collection("apoiadores").doc(apoiadorId).set(
-          {
-            plano: "premium",
-            dataExpiracao,
-            stripe: stripeData,
-          },
-          { merge: true }
-        )
-      );
-    }
-
-    if (cnpj) {
-      writes.push(
-        db.collection("empresas").doc(cnpj).set(
-          {
-            isPremium: true,
-            dataExpiracao,
-            stripe: stripeData,
-          },
-          { merge: true }
-        )
-      );
-    }
-
-    if (companySlug && audience !== "supporter") {
-      const companyPayload = {
-        slug: companySlug,
-        isPremium: true,
-        dataExpiracao,
-        stripe: stripeData,
-      };
-      if (companyName) {
-        companyPayload.name = companyName;
-      }
-
-      writes.push(
-        db.collection("companies").doc(companySlug).set(companyPayload, { merge: true })
-      );
-    }
-
-    await Promise.all(writes);
-
-    return res.status(200).json({ received: true, updated: true });
-  } catch (err) {
-    console.error("Erro ao processar webhook", err);
-    return res.status(500).json({ error: "Falha ao processar webhook" });
-  }
+  return handleMercadoPagoWebhook(req, res);
 }
 
 function getMercadoPagoPaymentId(req) {
@@ -333,11 +141,100 @@ async function fetchMercadoPagoPayment(paymentId) {
   return json;
 }
 
+async function fetchMercadoPagoPreapproval(preapprovalId) {
+  const token = getMercadoPagoAccessToken();
+  const response = await fetch(`https://api.mercadopago.com/preapproval/${preapprovalId}`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  const responseText = await response.text();
+  let json;
+  try {
+    json = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    json = {};
+  }
+
+  if (!response.ok) {
+    const message = json?.message || "Falha ao consultar assinatura no Mercado Pago.";
+    throw new Error(message);
+  }
+
+  return json;
+}
+
 async function handleMercadoPagoWebhook(req, res) {
   try {
     const notificationType = getMercadoPagoNotificationType(req);
-    if (notificationType && notificationType !== "payment" && !notificationType.startsWith("payment.")) {
+    const isPayment = !notificationType || notificationType === "payment" || notificationType.startsWith("payment.");
+    const isSubscription = notificationType.startsWith("subscription");
+
+    if (!isPayment && !isSubscription) {
       return res.status(200).json({ received: true, ignored: true, reason: "unsupported_notification_type" });
+    }
+
+    // Contexto da notification_url (passado na criacao do plano)
+    const qCnpj = toDigits(req.query?.cnpj || "");
+    const qCompanySlug = normalizeCompanySlug(req.query?.companySlug || "");
+    const qAudience = normalizeAudience((req.query?.audience || "").toString());
+    const qApoiadorId = (req.query?.apoiadorId || "").toString().trim();
+
+    if (isSubscription) {
+      const preapprovalId = (req.query?.["data.id"] || req.body?.data?.id || req.query?.id || req.body?.id || "").toString().trim();
+      if (!preapprovalId) {
+        return res.status(200).json({ received: true, ignored: true, reason: "missing_preapproval_id" });
+      }
+
+      const preapproval = await fetchMercadoPagoPreapproval(preapprovalId);
+      const preapprovalStatus = (preapproval?.status || "").toString().toLowerCase();
+
+      if (preapprovalStatus !== "authorized") {
+        return res.status(200).json({ received: true, ignored: true, reason: "subscription_not_authorized" });
+      }
+
+      const fromReference = parseCompanyFromReference(preapproval?.external_reference || "");
+      const cnpj = qCnpj.length === 14 ? qCnpj : fromReference.cnpj;
+      const companySlug = qCompanySlug || fromReference.companySlug;
+      const audience = qAudience;
+      const apoiadorId = qApoiadorId;
+
+      if (!cnpj && !companySlug && !apoiadorId) {
+        return res.status(200).json({ received: true, ignored: true, reason: "missing_company_reference" });
+      }
+
+      const { db, FieldValue, Timestamp } = await getAdminResources();
+      const isAnnual = audience === "employer";
+      const expirationMs = isAnnual ? 365 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
+      const dataExpiracao = Timestamp.fromDate(new Date(Date.now() + expirationMs));
+
+      const billingData = {
+        provider: "mercadopago",
+        preapprovalId: preapproval.id || null,
+        planId: preapproval.preapproval_plan_id || null,
+        status: preapproval.status || null,
+        payerEmail: preapproval?.payer_email || null,
+        cnpj: cnpj || null,
+        companySlug: companySlug || null,
+        audience,
+        billingMode: "subscription_recurring",
+        updatedAt: FieldValue.serverTimestamp(),
+      };
+
+      const writes = [];
+
+      if (audience === "supporter" && apoiadorId) {
+        writes.push(db.collection("apoiadores").doc(apoiadorId).set({ plano: "premium", dataExpiracao, billing: billingData, mercadopago: billingData }, { merge: true }));
+      }
+      if (cnpj) {
+        writes.push(db.collection("empresas").doc(cnpj).set({ isPremium: true, dataExpiracao, billing: billingData, mercadopago: billingData }, { merge: true }));
+      }
+      if (companySlug && audience !== "supporter") {
+        writes.push(db.collection("companies").doc(companySlug).set({ slug: companySlug, isPremium: true, dataExpiracao, billing: billingData, mercadopago: billingData }, { merge: true }));
+      }
+
+      await Promise.all(writes);
+      return res.status(200).json({ received: true, updated: true });
     }
 
     const paymentId = getMercadoPagoPaymentId(req);
@@ -353,11 +250,11 @@ async function handleMercadoPagoWebhook(req, res) {
     const metadata = payment?.metadata || {};
     const fromReference = parseCompanyFromReference(payment?.external_reference || "");
     const cnpjFromMetadata = toDigits(metadata.cnpj);
-    const cnpj = cnpjFromMetadata.length === 14 ? cnpjFromMetadata : fromReference.cnpj;
-    const companySlug = normalizeCompanySlug(metadata.companySlug || fromReference.companySlug);
+    const cnpj = cnpjFromMetadata.length === 14 ? cnpjFromMetadata : (qCnpj.length === 14 ? qCnpj : fromReference.cnpj);
+    const companySlug = normalizeCompanySlug(metadata.companySlug || qCompanySlug || fromReference.companySlug);
     const companyName = (metadata.companyName || "").toString().trim();
-    const audience = normalizeAudience((metadata.audience || "").toString());
-    const apoiadorId = (metadata.apoiador_id || metadata.apoiadorId || "").toString().trim();
+    const audience = normalizeAudience((metadata.audience || qAudience || "").toString());
+    const apoiadorId = (metadata.apoiador_id || metadata.apoiadorId || qApoiadorId || "").toString().trim();
     const paymentMethod = mapMercadoPagoMethod(payment?.payment_method_id || "");
     const billingMode = paymentMethod === "pix" ? "payment_pix" : "payment_single";
 
