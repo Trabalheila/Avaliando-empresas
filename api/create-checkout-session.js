@@ -44,8 +44,8 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
 
   const isEmployer = audience === "employer";
   const planLabel = isEmployer ? "Empresa" : "Trabalhador";
-  const transactionAmount = isEmployer ? 2999.99 : 29.9;
-  const frequency = isEmployer ? 12 : 1;
+  const transactionAmount = isEmployer ? 1499.90 : 29.90;
+  const frequency = 1;
   const frequencyType = "months";
 
   const notificationParams = new URLSearchParams({

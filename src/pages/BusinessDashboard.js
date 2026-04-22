@@ -107,7 +107,7 @@ function BusinessDashboard({ theme, toggleTheme }) {
   }, []);
 
   useEffect(() => {
-    if (!hasAccess) navigate("/escolha-perfil", { replace: true });
+    if (!hasAccess) navigate("/escolha-perfil?planos=1", { replace: true });
   }, [hasAccess, navigate]);
 
   /* ── Estado da empresa do usuário ── */

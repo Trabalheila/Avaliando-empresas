@@ -128,7 +128,7 @@ function PrestadorCadastro({ theme, toggleTheme }) {
           </p>
           <button
             type="button"
-            onClick={() => navigate("/escolha-perfil")}
+            onClick={() => navigate("/escolha-perfil?planos=1")}
             className="px-6 py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition"
           >
             Voltar

@@ -16,7 +16,7 @@
 
 Card 1 — "Premium Trabalhador — R$ 29,90/mês" com os benefícios: Compare empresas antes de aceitar propostas, Veja avaliações reais e tendências, Relatórios executivos com pontos fortes e riscos, Dashboard de análise de ambiente e cultura. Destaque: "Quem é Premium sente até 3x mais segurança na escolha do emprego."
 
-Card 2 — "Premium Empresa — R$ 2.999,99/ano" com os benefícios: Compare sua empresa com concorrentes em tempo real, Identifique tendências e riscos do setor, Relatórios executivos com oportunidades e ameaças, Benchmarks exclusivos e reputação de mercado. Destaque: "Empresas Premium aumentam em até 3x a assertividade nas decisões."
+Card 2 — "Premium Empresa — R$ 1.499,90/mês" com os benefícios: Compare sua empresa com concorrentes em tempo real, Identifique tendências e riscos do setor, Relatórios executivos com oportunidades e ameaças, Benchmarks exclusivos e reputação de mercado. Destaque: "Empresas Premium aumentam em até 3x a assertividade nas decisões."
 
 Cada card deve ter seu próprio botão de conversão. No card de trabalhador, o botão chama o fluxo de assinatura atual. No card de empresa, o botão pode por ora exibir um modal simples com "Em breve — entre em contato: [e-mail do projeto]".
 

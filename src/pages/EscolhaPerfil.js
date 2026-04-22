@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { handleCheckout } from "../services/billing";
 import { db } from "../firebase";
 import { collection, getDocs, query, where, doc, getDoc, setDoc } from "firebase/firestore";
@@ -13,6 +13,7 @@ import PlanosApoiador from "../components/PlanosApoiador";
 
 function EscolhaPerfil({ theme, toggleTheme }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const workerRef = useRef(null);
   const employerRef = useRef(null);
   const supporterRef = useRef(null);
@@ -24,7 +25,10 @@ function EscolhaPerfil({ theme, toggleTheme }) {
   const userIsPremium = React.useMemo(() => isPremium(), []);
   const userRole = React.useMemo(() => getUserRole(), []);
   const isEmpresaPremium = userIsPremium && (userRole === "admin_empresa" || userRole === "empresa");
-  const viewingPlans = new URLSearchParams(window.location.search).get("planos") === "1";
+  const viewingPlans = React.useMemo(
+    () => new URLSearchParams(location.search).get("planos") === "1",
+    [location.search]
+  );
 
   // Guard: se o usuário já escolheu o tipo de perfil, redirecionar para /minha-conta
   // Exceto quando o usuário está acessando via ?planos=1 (ver benefícios premium)
@@ -63,7 +67,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
     }
     checkProfileType();
     return () => { cancelled = true; };
-  }, [navigate]);
+  }, [navigate, viewingPlans]);
 
   useEffect(() => {
     (async () => {

@@ -109,7 +109,7 @@ export default function Purpose({ theme, toggleTheme }) {
             </div>
 
             <Link
-              to="/escolha-perfil"
+              to="/escolha-perfil?planos=1"
               className="block w-full text-center py-3 rounded-xl font-semibold border-2 border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition"
             >
               Criar conta gratuita
@@ -144,7 +144,7 @@ export default function Purpose({ theme, toggleTheme }) {
             </div>
 
             <Link
-              to="/escolha-perfil"
+              to="/escolha-perfil?planos=1"
               className="block w-full text-center py-3 rounded-xl font-semibold bg-blue-600 text-white hover:bg-blue-700 transition"
             >
               Assinar Premium
@@ -179,7 +179,7 @@ export default function Purpose({ theme, toggleTheme }) {
             </div>
 
             <Link
-              to="/escolha-perfil"
+              to="/escolha-perfil?planos=1"
               className="block w-full text-center py-3 rounded-xl font-semibold bg-amber-600 text-white hover:bg-amber-700 transition"
             >
               Contratar Plano Empresa
