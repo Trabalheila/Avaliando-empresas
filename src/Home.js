@@ -91,10 +91,27 @@ function sortCompaniesAlphabetically(items) {
 // Pequena alteração para forçar novo deploy (sem impacto funcional)
 function Home({ theme, toggleTheme }) {
   const REVIEW_DRAFT_STORAGE_KEY = "trabalheiLa_review_draft_v1";
+  const LAUNCH_BANNER_DISMISSED_KEY = "trabalheiLa_launch_banner_dismissed";
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [firebaseStatus, setFirebaseStatus] = useState("verificando...");
+  const [isLaunchBannerVisible, setIsLaunchBannerVisible] = useState(() => {
+    try {
+      return localStorage.getItem(LAUNCH_BANNER_DISMISSED_KEY) !== "1";
+    } catch {
+      return true;
+    }
+  });
+
+  const handleCloseLaunchBanner = useCallback(() => {
+    setIsLaunchBannerVisible(false);
+    try {
+      localStorage.setItem(LAUNCH_BANNER_DISMISSED_KEY, "1");
+    } catch {
+      // ignore storage failures
+    }
+  }, []);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -1353,10 +1370,77 @@ function Home({ theme, toggleTheme }) {
     ),
   };
 
-  return isMobile ? (
-    <TrabalheiLaMobile {...commonProps} />
-  ) : (
-    <TrabalheiLaDesktop {...commonProps} />
+  return (
+    <>
+      {isLaunchBannerVisible && (
+        <div
+          role="region"
+          aria-label="Aviso de lançamento"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 60,
+            backgroundColor: "#2563eb",
+            color: "#ffffff",
+            textAlign: "center",
+            padding: "10px 44px 10px 16px",
+            lineHeight: 1.4,
+            fontWeight: 600,
+            whiteSpace: "normal",
+            wordBreak: "break-word",
+            boxShadow: "0 2px 10px rgba(0, 0, 0, 0.15)",
+          }}
+        >
+          <span>
+            🎉 Período de Lançamento — Plano Empresarial gratuito até 31 de julho de 2026. Aproveite!
+          </span>
+          <button
+            type="button"
+            aria-label="Fechar aviso de lançamento"
+            onClick={handleCloseLaunchBanner}
+            style={{
+              position: "absolute",
+              right: 10,
+              top: "50%",
+              transform: "translateY(-50%)",
+              border: "none",
+              background: "transparent",
+              color: "#ffffff",
+              cursor: "pointer",
+              fontSize: 18,
+              lineHeight: 1,
+              padding: 6,
+            }}
+          >
+            X
+          </button>
+        </div>
+      )}
+
+      <style>
+        {`
+          .home-launch-banner-offset header {
+            top: ${isLaunchBannerVisible ? "52px" : "0px"} !important;
+          }
+
+          @media (max-width: 767px) {
+            .home-launch-banner-offset header {
+              top: ${isLaunchBannerVisible ? "74px" : "0px"} !important;
+            }
+          }
+        `}
+      </style>
+
+      <div className="home-launch-banner-offset">
+        {isMobile ? (
+          <TrabalheiLaMobile {...commonProps} />
+        ) : (
+          <TrabalheiLaDesktop {...commonProps} />
+        )}
+      </div>
+    </>
   );
 }
 
