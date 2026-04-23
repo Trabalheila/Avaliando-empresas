@@ -196,41 +196,43 @@ function TrabalheiLaMobile({
     return "🏅";
   };
 
+  const isDark = theme === "dark";
   const selectStyles = {
     control: (base, state) => ({
       ...base,
       borderRadius: "0.75rem",
       padding: "0.25rem",
-      borderColor: state.isFocused ? "#1d4ed8" : "#e5e7eb",
+      borderColor: state.isFocused ? "#1d4ed8" : (isDark ? "#475569" : "#e5e7eb"),
       boxShadow: state.isFocused ? "0 0 0 1px #1d4ed8" : "none",
-      backgroundColor: "#ffffff",
+      backgroundColor: isDark ? "#0f172a" : "#ffffff",
     }),
     menu: (base) => ({
       ...base,
       borderRadius: "0.75rem",
       overflow: "hidden",
-      border: "1px solid #dbeafe",
+      border: `1px solid ${isDark ? "#475569" : "#dbeafe"}`,
+      backgroundColor: isDark ? "#0f172a" : "#ffffff",
       boxShadow: "0 10px 30px rgba(30, 58, 138, 0.12)",
     }),
     option: (base, state) => ({
       ...base,
-      color: "#1e3a8a",
-      backgroundColor: state.isSelected ? "#dbeafe" : state.isFocused ? "#eff6ff" : "#ffffff",
+      color: isDark ? "#e2e8f0" : "#1e3a8a",
+      backgroundColor: state.isSelected ? (isDark ? "#1e3a8a" : "#dbeafe") : state.isFocused ? (isDark ? "#1e293b" : "#eff6ff") : (isDark ? "#0f172a" : "#ffffff"),
       fontWeight: state.isSelected ? 700 : 500,
       cursor: "pointer",
     }),
     singleValue: (base) => ({
       ...base,
-      color: "#1e3a8a",
+      color: isDark ? "#e2e8f0" : "#1e3a8a",
       fontWeight: 600,
     }),
     input: (base) => ({
       ...base,
-      color: "#1e3a8a",
+      color: isDark ? "#e2e8f0" : "#1e3a8a",
     }),
     placeholder: (base) => ({
       ...base,
-      color: "#1e3a8a",
+      color: isDark ? "#94a3b8" : "#1e3a8a",
       fontWeight: 500,
     }),
   };
@@ -244,7 +246,7 @@ function TrabalheiLaMobile({
         <span className="ml-2 text-slate-700 dark:text-blue-200 font-medium">{value}/5</span>
       </div>
       <textarea
-        className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 mt-2"
+        className="w-full p-2 border border-gray-300 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-100 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 mt-2"
         placeholder={`Comentário sobre ${label.toLowerCase()} (opcional)`}
         rows={3}
         value={commentValue}
@@ -622,7 +624,7 @@ function TrabalheiLaMobile({
               type="button"
               onClick={onGoogleLogin}
               disabled={isLoading}
-              className="w-full max-w-xs flex items-center justify-center gap-3 bg-white border border-blue-200 text-blue-800 font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-50 transition-colors text-sm md:text-base disabled:opacity-60"
+              className="w-full max-w-xs flex items-center justify-center gap-3 bg-white dark:bg-slate-900 border border-blue-200 dark:border-slate-700 text-blue-800 dark:text-blue-200 font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors text-sm md:text-base disabled:opacity-60"
             >
               <FaGoogle className="text-lg" /> Cadastrar com Google
             </button>
@@ -706,7 +708,7 @@ function TrabalheiLaMobile({
                       setNewCompanyCnpj(m);
                     }}
                     placeholder="00.000.000/0001-00"
-                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     inputMode="numeric"
                     autoComplete="off"
                   />
@@ -721,7 +723,7 @@ function TrabalheiLaMobile({
                   </button>
 
                   {pendingCompanyData && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-900">
+                    <div className="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-xl p-3 text-sm text-blue-900 dark:text-blue-100">
                       <p className="font-semibold">Empresa encontrada: {pendingCompanyData.company}</p>
                       <p className="text-xs text-blue-700 mt-1">CNPJ: {pendingCompanyData.cnpj}</p>
                       {pendingCompanyData.cnaeDescricao && (
@@ -742,7 +744,7 @@ function TrabalheiLaMobile({
               )}
 
               <div className="mt-3 grid grid-cols-1 gap-3">
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                <div className="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-xl p-3">
                   <p className="text-sm font-bold text-blue-800 mb-2">Como entrou na empresa?</p>
                   <div className="space-y-2 text-sm text-slate-700">
                     {sourceConfig.map((item) => (
@@ -759,7 +761,7 @@ function TrabalheiLaMobile({
                   </div>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                <div className="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-xl p-3">
                   <p className="text-sm font-bold text-blue-800 mb-2">Forma de contratação</p>
                   <div className="space-y-2 text-sm text-slate-700">
                     {contractConfig.map((item) => (
@@ -776,7 +778,7 @@ function TrabalheiLaMobile({
                   </div>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                <div className="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-xl p-3">
                   <p className="text-sm font-bold text-blue-800 mb-2">Modelo de trabalho</p>
                   <div className="space-y-2 text-sm text-slate-700">
                     {workModelConfig.map((item) => (
@@ -796,7 +798,7 @@ function TrabalheiLaMobile({
 
               {selectedCompanyData && (
                 <div className="mt-3 grid grid-cols-1 gap-3">
-                  <div className="bg-white border border-blue-100 rounded-xl p-3">
+                  <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-3">
                     <p className="text-sm font-bold text-blue-800 mb-1">Classificação profissional geral</p>
                     <p className="text-xs text-blue-600 mb-2">{getTopSliceLabel(globalContractPieData)}</p>
                     <div className="flex items-center gap-3">
@@ -812,7 +814,7 @@ function TrabalheiLaMobile({
                     </div>
                   </div>
 
-                  <div className="bg-white border border-blue-100 rounded-xl p-3">
+                  <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-3">
                     <p className="text-sm font-bold text-blue-800 mb-1">Modelo de trabalho geral</p>
                     <p className="text-xs text-blue-600 mb-2">{getTopSliceLabel(globalWorkModelPieData)}</p>
                     <div className="flex items-center gap-3">
@@ -828,7 +830,7 @@ function TrabalheiLaMobile({
                     </div>
                   </div>
 
-                  <div className="bg-white border border-blue-100 rounded-xl p-3">
+                  <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-3">
                     <p className="text-sm font-bold text-blue-800 mb-1">Entradas na empresa</p>
                     <p className="text-xs text-blue-600 mb-2">{getTopSliceLabel(sourcePieData)}</p>
                     <div className="flex items-center gap-3">
@@ -844,7 +846,7 @@ function TrabalheiLaMobile({
                     </div>
                   </div>
 
-                  <div className="bg-white border border-blue-100 rounded-xl p-3">
+                  <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-3">
                     <p className="text-sm font-bold text-blue-800 mb-1">Classificação profissional da empresa</p>
                     <p className="text-xs text-blue-600 mb-2">{getTopSliceLabel(contractPieData)}</p>
                     <div className="flex items-center gap-3">
@@ -860,7 +862,7 @@ function TrabalheiLaMobile({
                     </div>
                   </div>
 
-                  <div className="bg-white border border-blue-100 rounded-xl p-3">
+                  <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-3">
                     <p className="text-sm font-bold text-blue-800 mb-1">Modelo de trabalho na empresa</p>
                     <p className="text-xs text-blue-600 mb-2">{getTopSliceLabel(workModelPieData)}</p>
                     <div className="flex items-center gap-3">
@@ -912,7 +914,7 @@ function TrabalheiLaMobile({
             <div className="bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border border-gray-200 dark:border-slate-700">
               <label className="text-slate-700 dark:text-blue-200 font-semibold text-sm block mb-2">Algo que queira acrescentar?</label>
               <textarea
-                className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-100 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 placeholder="Descreva sua experiência na empresa..."
                 rows={3}
                 value={generalComment}

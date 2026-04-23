@@ -221,9 +221,29 @@ code {
     background-color: #ffffff;
   }
 
+  .dark input,
+  .dark textarea,
+  .dark select {
+    color: #e2e8f0;
+    background-color: #0f172a;
+    border-color: #334155;
+  }
+
   input::placeholder,
   textarea::placeholder {
     color: #94a3b8;
     opacity: 1;
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: #64748b;
+  }
+
+  .dark .card,
+  .dark .form-container,
+  .dark .criteria-card {
+    background-color: #0f172a;
+    border-color: #334155;
   }
 }

@@ -51,9 +51,33 @@ function TrabalheiLaDesktop({
     window.addEventListener("resize", updateHeaderSpacer);
     return () => window.removeEventListener("resize", updateHeaderSpacer);
   }, [company, firebaseStatus, hasCompletedProfile, isAuthenticated, theme, userProfile?.avatar, userProfile?.name, userProfile?.verification?.certified, userPseudonym]);
+  const isDark = theme === "dark";
   const selectStyles = {
-    control: (base) => ({ ...base, borderRadius: "0.75rem", padding: "0.25rem", borderColor: "#d1d5db", boxShadow: "none", "&:hover": { borderColor: "#3b82f6" } }),
-    option: (base, state) => ({ ...base, backgroundColor: state.isFocused ? "#eff6ff" : "white", color: "#1e293b", cursor: "pointer" }),
+    control: (base) => ({
+      ...base,
+      borderRadius: "0.75rem",
+      padding: "0.25rem",
+      borderColor: isDark ? "#475569" : "#d1d5db",
+      backgroundColor: isDark ? "#0f172a" : "#ffffff",
+      boxShadow: "none",
+      "&:hover": { borderColor: "#3b82f6" },
+    }),
+    menu: (base) => ({
+      ...base,
+      backgroundColor: isDark ? "#0f172a" : "#ffffff",
+      border: `1px solid ${isDark ? "#475569" : "#dbeafe"}`,
+    }),
+    option: (base, state) => ({
+      ...base,
+      backgroundColor: state.isFocused
+        ? (isDark ? "#1e293b" : "#eff6ff")
+        : (isDark ? "#0f172a" : "#ffffff"),
+      color: isDark ? "#e2e8f0" : "#1e293b",
+      cursor: "pointer",
+    }),
+    singleValue: (base) => ({ ...base, color: isDark ? "#e2e8f0" : "#1e293b" }),
+    input: (base) => ({ ...base, color: isDark ? "#e2e8f0" : "#1e293b" }),
+    placeholder: (base) => ({ ...base, color: isDark ? "#94a3b8" : "#64748b" }),
   };
     const legacyMetricsBridge = {
       beneficios, setBeneficios, commentBeneficios, setCommentBeneficios,
@@ -79,7 +103,7 @@ function TrabalheiLaDesktop({
         placeholder={`Comentário sobre ${label.toLowerCase()} (opcional)`}
         value={comment}
         onChange={(e) => setComment(e.target.value)}
-        className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"
+        className="w-full p-2 text-sm border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100"
       />
     </div>
   );
@@ -345,7 +369,7 @@ function TrabalheiLaDesktop({
                 <div className="flex max-w-4xl flex-col md:flex-row items-center gap-3 bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-400 rounded-2xl shadow-lg px-5 py-2 border-2 border-blue-200 dark:border-slate-700">
                   <span className="text-white text-base md:text-lg font-bold drop-shadow text-center">Premium para trabalhadores, empresas e apoiadores — <span className="underline">conheça os planos</span></span>
                   <button
-                    className="mt-1 md:mt-0 px-5 py-2 rounded-lg bg-white text-blue-700 font-bold shadow hover:bg-blue-50 transition"
+                    className="mt-1 md:mt-0 px-5 py-2 rounded-lg bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-200 font-bold shadow hover:bg-blue-50 dark:hover:bg-slate-800 transition"
                     onClick={() => navigate('/escolha-perfil?planos=1')}
                   >
                     Ver benefícios
@@ -390,7 +414,7 @@ function TrabalheiLaDesktop({
 
             {/* LOGIN ATUALIZADO (Sem Google, LinkedIn Corrigido) */}
             <section
-              className="bg-white rounded-3xl shadow-xl p-6 mb-6 border border-blue-100"
+              className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 mb-6 border border-blue-100 dark:border-slate-700"
               style={{ animation: "homeLoginSectionIn 700ms ease-out both" }}
             >
               <style>{`
@@ -419,7 +443,7 @@ function TrabalheiLaDesktop({
                   type="button"
                   onClick={onGoogleLogin}
                   disabled={isLoading}
-                  className="w-full max-w-xs -ml-3 flex items-center justify-center gap-3 bg-white border border-blue-200 text-blue-800 font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-50 transition-colors text-sm md:text-base disabled:opacity-60"
+                  className="w-full max-w-xs -ml-3 flex items-center justify-center gap-3 bg-white dark:bg-slate-900 border border-blue-200 dark:border-slate-700 text-blue-800 dark:text-blue-200 font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors text-sm md:text-base disabled:opacity-60"
                 >
                   <FaGoogle className="text-lg" /> Cadastrar com Google
                 </button>
@@ -460,7 +484,7 @@ function TrabalheiLaDesktop({
             </section>
 
             {/* FORMULÁRIO */}
-            <section className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100">
+            <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
               <h2 className="text-3xl font-extrabold text-blue-900 dark:text-blue-900 text-center mb-2 tracking-wide font-azonix">Avalie uma Empresa</h2>
               <div className="w-32 h-1 mx-auto mb-5 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -586,7 +610,7 @@ function TrabalheiLaDesktop({
 
                 {/* Barra de progresso dos critérios */}
                 {visibleCriterionIdx >= 0 && (
-                  <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm rounded-xl border border-blue-100 p-2 mb-2">
+                  <div className="sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-xl border border-blue-100 dark:border-slate-700 p-2 mb-2">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-bold text-blue-800">Critério {visibleCriterionIdx + 1} de {campos.length}</span>
                       <span className="text-xs text-slate-500">{Math.round(((visibleCriterionIdx + 1) / campos.length) * 100)}%</span>
@@ -598,24 +622,24 @@ function TrabalheiLaDesktop({
                 )}
 
                 {campos.map((campo, idx) => (
-                  <div key={idx} ref={el => criterionRefs.current[idx] = el} data-criterion-idx={idx} className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
-                    <label className="w-full md:w-1/3 text-slate-700 font-semibold flex items-center gap-2 mb-2 md:mb-0">
+                  <div key={idx} ref={el => criterionRefs.current[idx] = el} data-criterion-idx={idx} className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+                    <label className="w-full md:w-1/3 text-slate-700 dark:text-slate-100 font-semibold flex items-center gap-2 mb-2 md:mb-0">
                       <span className={`w-9 h-9 rounded-xl border bg-gradient-to-br ${campo.iconBg} flex items-center justify-center shadow-sm`}>
                         {campo.icon}
                       </span>
                       <span>
                         <span className="block">{campo.label}</span>
-                        {campo.subtitle && <span className="block text-xs text-slate-500">{campo.subtitle}</span>}
+                        {campo.subtitle && <span className="block text-xs text-slate-500 dark:text-slate-400">{campo.subtitle}</span>}
                       </span>
                     </label>
                     {renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label)}
                   </div>
                 ))}
 
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                  <label className="text-slate-700 font-semibold text-lg block mb-2">Algo que queira acrescentar?</label>
+                <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+                  <label className="text-slate-700 dark:text-slate-100 font-semibold text-lg block mb-2">Algo que queira acrescentar?</label>
                   <textarea
-                    className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-100 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     placeholder="Descreva sua experiência na empresa..."
                     rows={3}
                     value={generalComment}
@@ -646,9 +670,9 @@ function TrabalheiLaDesktop({
 
           {/* COLUNA DIREITA - RANKING */}
           <div className="w-80">
-            <div className="bg-white rounded-3xl shadow-xl p-6 border border-blue-100 sticky top-6">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700 sticky top-6">
               <div className="mb-4 space-y-4">
-                <div className="bg-white border border-blue-100 rounded-xl p-4">
+                <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
                   <p className="text-sm font-bold text-blue-800 mb-1">Classificação profissional da empresa</p>
                   <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(contractPieData)}</p>
                   <div className="flex items-center gap-4">
@@ -667,7 +691,7 @@ function TrabalheiLaDesktop({
                   </div>
                 </div>
 
-                <div className="bg-white border border-blue-100 rounded-xl p-4">
+                <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
                   <p className="text-sm font-bold text-blue-800 mb-1">Classificação profissional geral</p>
                   <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(globalContractPieData)}</p>
                   <div className="flex items-center gap-4">
@@ -686,7 +710,7 @@ function TrabalheiLaDesktop({
                   </div>
                 </div>
 
-                <div className="bg-white border border-blue-100 rounded-xl p-4">
+                <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
                   <p className="text-sm font-bold text-blue-800 mb-1">Modelo de trabalho geral</p>
                   <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(globalWorkModelPieData)}</p>
                   <div className="flex items-center gap-4">
@@ -705,7 +729,7 @@ function TrabalheiLaDesktop({
                   </div>
                 </div>
 
-                <div className="bg-white border border-blue-100 rounded-xl p-4">
+                <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
                   <p className="text-sm font-bold text-blue-800 mb-1">Formas de entrada na empresa</p>
                   <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(sourcePieData)}</p>
                   <div className="flex items-center gap-4">
@@ -724,7 +748,7 @@ function TrabalheiLaDesktop({
                   </div>
                 </div>
 
-                <div className="bg-white border border-blue-100 rounded-xl p-4">
+                <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
                   <p className="text-sm font-bold text-blue-800 mb-1">Modelo de trabalho na empresa</p>
                   <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(workModelPieData)}</p>
                   <div className="flex items-center gap-4">
@@ -750,7 +774,7 @@ function TrabalheiLaDesktop({
                 <select
                   value={sectorFilter}
                   onChange={(e) => setSectorFilter(e.target.value)}
-                  className="w-full mb-4 p-2 text-sm border border-blue-200 rounded-xl bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="w-full mb-4 p-2 text-sm border border-blue-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 >
                   <option value="">Todos os setores</option>
                   {setoresList.map((s) => (
@@ -790,7 +814,7 @@ function TrabalheiLaDesktop({
                 </div>
               )}
 
-              <div className="bg-blue-50 rounded-2xl p-4 border border-blue-200">
+              <div className="bg-blue-50 dark:bg-slate-800 rounded-2xl p-4 border border-blue-200 dark:border-slate-700">
                 <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-900 mb-2 tracking-wide">Empresas por Autocompletação</h3>
                 <p className="text-sm text-blue-900 leading-relaxed">
                   Para manter performance com muitas empresas, a seleção agora é feita pelo campo
@@ -799,7 +823,7 @@ function TrabalheiLaDesktop({
                 </p>
               </div>
 
-              <div className="mt-4 bg-emerald-50 rounded-2xl p-4 border border-emerald-200">
+              <div className="mt-4 bg-emerald-50 dark:bg-slate-800 rounded-2xl p-4 border border-emerald-200 dark:border-slate-700">
                 <h3 className="text-base font-bold text-emerald-900 mb-2">Como funciona a plataforma</h3>
                 <p className="text-sm text-emerald-900 leading-relaxed mb-3">
                   O objetivo do Trabalhei Lá é ajudar profissionais a decidir melhor onde trabalhar por meio de avaliações anônimas e verificadas.
@@ -816,7 +840,7 @@ function TrabalheiLaDesktop({
         </div>
 
         <footer className="w-full px-6 py-8 text-center">
-          <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-5 border border-blue-100">
+          <div className="bg-white/70 dark:bg-slate-900/80 backdrop-blur-lg rounded-2xl p-5 border border-blue-100 dark:border-slate-700">
             <p className="text-slate-700 text-sm">
               <a href="/politica-de-privacidade.html" className="text-blue-700 hover:text-blue-900 font-extrabold underline">
                 Política de Privacidade
