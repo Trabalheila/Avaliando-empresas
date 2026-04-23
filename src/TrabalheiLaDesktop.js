@@ -427,7 +427,7 @@ function TrabalheiLaDesktop({
                   to { opacity: 1; transform: translateX(0); }
                 }
               `}</style>
-              <h2 className="text-3xl font-extrabold text-blue-900 dark:text-blue-900 text-center mb-2 tracking-wide font-azonix">Login para Avaliar</h2>
+              <h2 className="text-3xl font-extrabold text-blue-900 dark:text-blue-200 text-center mb-2 tracking-wide font-azonix">Login para Avaliar</h2>
               <div className="w-28 h-1 mx-auto mb-5 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
               <div className="flex flex-col items-center space-y-4">
                 <div className="w-full max-w-xs -ml-3">
@@ -459,7 +459,7 @@ function TrabalheiLaDesktop({
                   className="w-full max-w-2xl flex items-center justify-center"
                   style={{ animation: "homeCalloutIn 950ms ease-out both" }}
                 >
-                  <p className="text-black font-extrabold text-[2.2rem] leading-[1.06] tracking-tight text-center">
+                  <p className="text-black dark:text-slate-100 font-extrabold text-[2.2rem] leading-[1.06] tracking-tight text-center">
                     CRIE SEU PERFIL E AVALIE ANONIMAMENTE!
                   </p>
                 </div>
@@ -474,7 +474,7 @@ function TrabalheiLaDesktop({
                     </button>
                   </div>
                 )}
-                <p className="text-xs text-slate-500 text-center">
+                <p className="text-xs text-slate-500 dark:text-slate-300 text-center">
                   Sem LinkedIn: entre com Google e complete seu perfil manualmente na próxima etapa.
                 </p>
               </div>
@@ -485,12 +485,12 @@ function TrabalheiLaDesktop({
 
             {/* FORMULÁRIO */}
             <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
-              <h2 className="text-3xl font-extrabold text-blue-900 dark:text-blue-900 text-center mb-2 tracking-wide font-azonix">Avalie uma Empresa</h2>
+              <h2 className="text-3xl font-extrabold text-blue-900 dark:text-blue-200 text-center mb-2 tracking-wide font-azonix">Avalie uma Empresa</h2>
               <div className="w-32 h-1 mx-auto mb-5 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
               <form onSubmit={handleSubmit} className="space-y-4">
 
                 <div>
-                  <label className="font-semibold text-slate-700 mb-2 block">Selecione a Empresa</label>
+                  <label className="font-semibold text-slate-700 dark:text-slate-200 mb-2 block">Selecione a Empresa</label>
                   <Select
                     options={safeCompanyOptions}
                     value={company}
@@ -534,11 +534,11 @@ function TrabalheiLaDesktop({
                       {cnpjError && <p className="text-sm text-red-600">{cnpjError}</p>}
 
                       {pendingCompanyData && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-900">
+                        <div className="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-xl p-3 text-sm text-blue-900 dark:text-blue-100">
                           <p className="font-semibold">Empresa encontrada: {pendingCompanyData.company}</p>
-                          <p className="text-xs text-blue-700 mt-1">CNPJ: {pendingCompanyData.cnpj}</p>
+                          <p className="text-xs text-blue-700 dark:text-blue-200 mt-1">CNPJ: {pendingCompanyData.cnpj}</p>
                           {pendingCompanyData.cnaeDescricao && (
-                            <p className="text-xs text-emerald-700 mt-0.5">Setor: {pendingCompanyData.cnaeDescricao}</p>
+                            <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">Setor: {pendingCompanyData.cnaeDescricao}</p>
                           )}
                           <p className="mt-2 font-medium">👍 Está correto?</p>
                           <button
@@ -556,9 +556,9 @@ function TrabalheiLaDesktop({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                    <p className="text-sm font-bold text-blue-800 mb-2">Como entrou na empresa?</p>
-                    <div className="space-y-2 text-sm text-slate-700">
+                  <div className="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-xl p-4">
+                    <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-2">Como entrou na empresa?</p>
+                    <div className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
                       {sourceConfig.map((item) => (
                         <label key={item.key} className="flex items-center gap-2 cursor-pointer">
                           <input
@@ -573,9 +573,9 @@ function TrabalheiLaDesktop({
                     </div>
                   </div>
 
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                    <p className="text-sm font-bold text-blue-800 mb-2">Forma de contratação</p>
-                    <div className="space-y-2 text-sm text-slate-700">
+                  <div className="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-xl p-4">
+                    <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-2">Forma de contratação</p>
+                    <div className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
                       {contractConfig.map((item) => (
                         <label key={item.key} className="flex items-center gap-2 cursor-pointer">
                           <input
@@ -590,9 +590,9 @@ function TrabalheiLaDesktop({
                     </div>
                   </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                  <p className="text-sm font-bold text-blue-800 mb-2">Modelo de trabalho</p>
-                  <div className="space-y-2 text-sm text-slate-700">
+                <div className="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-xl p-4">
+                  <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-2">Modelo de trabalho</p>
+                  <div className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
                     {workModelConfig.map((item) => (
                       <label key={item.key} className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -612,7 +612,7 @@ function TrabalheiLaDesktop({
                 {visibleCriterionIdx >= 0 && (
                   <div className="sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-xl border border-blue-100 dark:border-slate-700 p-2 mb-2">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold text-blue-800">Critério {visibleCriterionIdx + 1} de {campos.length}</span>
+                      <span className="text-xs font-bold text-blue-800 dark:text-blue-200">Critério {visibleCriterionIdx + 1} de {campos.length}</span>
                       <span className="text-xs text-slate-500">{Math.round(((visibleCriterionIdx + 1) / campos.length) * 100)}%</span>
                     </div>
                     <div className="w-full h-2 bg-blue-100 rounded-full overflow-hidden">
@@ -673,8 +673,8 @@ function TrabalheiLaDesktop({
             <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700 sticky top-6">
               <div className="mb-4 space-y-4">
                 <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
-                  <p className="text-sm font-bold text-blue-800 mb-1">Classificação profissional da empresa</p>
-                  <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(contractPieData)}</p>
+                  <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Classificação profissional da empresa</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(contractPieData)}</p>
                   <div className="flex items-center gap-4">
                     <div
                       className="w-24 h-24 rounded-full border border-gray-200"
@@ -682,7 +682,7 @@ function TrabalheiLaDesktop({
                     />
                     <div className="space-y-1 text-xs">
                       {contractPieData.items.map((item) => (
-                        <p key={`company_contract_${item.key}`} className="flex items-center gap-2 text-slate-700">
+                        <p key={`company_contract_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
                           <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                           {item.label}: {item.percent.toFixed(0)}%
                         </p>
@@ -692,8 +692,8 @@ function TrabalheiLaDesktop({
                 </div>
 
                 <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
-                  <p className="text-sm font-bold text-blue-800 mb-1">Classificação profissional geral</p>
-                  <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(globalContractPieData)}</p>
+                  <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Classificação profissional geral</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(globalContractPieData)}</p>
                   <div className="flex items-center gap-4">
                     <div
                       className="w-24 h-24 rounded-full border border-gray-200"
@@ -701,7 +701,7 @@ function TrabalheiLaDesktop({
                     />
                     <div className="space-y-1 text-xs">
                       {globalContractPieData.items.map((item) => (
-                        <p key={`global_contract_${item.key}`} className="flex items-center gap-2 text-slate-700">
+                        <p key={`global_contract_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
                           <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                           {item.label}: {item.percent.toFixed(0)}%
                         </p>
@@ -711,8 +711,8 @@ function TrabalheiLaDesktop({
                 </div>
 
                 <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
-                  <p className="text-sm font-bold text-blue-800 mb-1">Modelo de trabalho geral</p>
-                  <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(globalWorkModelPieData)}</p>
+                  <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Modelo de trabalho geral</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(globalWorkModelPieData)}</p>
                   <div className="flex items-center gap-4">
                     <div
                       className="w-24 h-24 rounded-full border border-gray-200"
@@ -720,7 +720,7 @@ function TrabalheiLaDesktop({
                     />
                     <div className="space-y-1 text-xs">
                       {globalWorkModelPieData.items.map((item) => (
-                        <p key={`global_work_model_${item.key}`} className="flex items-center gap-2 text-slate-700">
+                        <p key={`global_work_model_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
                           <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                           {item.label}: {item.percent.toFixed(0)}%
                         </p>
@@ -730,8 +730,8 @@ function TrabalheiLaDesktop({
                 </div>
 
                 <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
-                  <p className="text-sm font-bold text-blue-800 mb-1">Formas de entrada na empresa</p>
-                  <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(sourcePieData)}</p>
+                  <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Formas de entrada na empresa</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(sourcePieData)}</p>
                   <div className="flex items-center gap-4">
                     <div
                       className="w-24 h-24 rounded-full border border-gray-200"
@@ -739,7 +739,7 @@ function TrabalheiLaDesktop({
                     />
                     <div className="space-y-1 text-xs">
                       {sourcePieData.items.map((item) => (
-                        <p key={`source_${item.key}`} className="flex items-center gap-2 text-slate-700">
+                        <p key={`source_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
                           <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                           {item.label}: {item.percent.toFixed(0)}%
                         </p>
@@ -749,8 +749,8 @@ function TrabalheiLaDesktop({
                 </div>
 
                 <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
-                  <p className="text-sm font-bold text-blue-800 mb-1">Modelo de trabalho na empresa</p>
-                  <p className="text-xs text-blue-600 mb-3">{getTopSliceLabel(workModelPieData)}</p>
+                  <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Modelo de trabalho na empresa</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(workModelPieData)}</p>
                   <div className="flex items-center gap-4">
                     <div
                       className="w-24 h-24 rounded-full border border-gray-200"
@@ -758,7 +758,7 @@ function TrabalheiLaDesktop({
                     />
                     <div className="space-y-1 text-xs">
                       {workModelPieData.items.map((item) => (
-                        <p key={`company_work_model_${item.key}`} className="flex items-center gap-2 text-slate-700">
+                        <p key={`company_work_model_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
                           <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                           {item.label}: {item.percent.toFixed(0)}%
                         </p>
@@ -768,7 +768,7 @@ function TrabalheiLaDesktop({
                 </div>
               </div>
 
-              <h2 className="text-2xl font-extrabold text-blue-900 dark:text-blue-900 text-center mb-2 font-azonix tracking-wide">🏆 Ranking de Empresas</h2>
+              <h2 className="text-2xl font-extrabold text-blue-900 dark:text-blue-200 text-center mb-2 font-azonix tracking-wide">🏆 Ranking de Empresas</h2>
               <div className="w-24 h-1 mx-auto mb-4 rounded-full bg-gradient-to-r from-yellow-300 via-amber-500 to-yellow-300" />
               {Array.isArray(setoresList) && setoresList.length > 0 && (
                 <select
@@ -815,8 +815,8 @@ function TrabalheiLaDesktop({
               )}
 
               <div className="bg-blue-50 dark:bg-slate-800 rounded-2xl p-4 border border-blue-200 dark:border-slate-700">
-                <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-900 mb-2 tracking-wide">Empresas por Autocompletação</h3>
-                <p className="text-sm text-blue-900 leading-relaxed">
+                <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-200 mb-2 tracking-wide">Empresas por Autocompletação</h3>
+                <p className="text-sm text-blue-900 dark:text-slate-200 leading-relaxed">
                   Para manter performance com muitas empresas, a seleção agora é feita pelo campo
                   <span className="font-semibold"> "Selecione a Empresa"</span> no formulário.
                   Digite parte do nome para buscar rapidamente.
@@ -824,11 +824,11 @@ function TrabalheiLaDesktop({
               </div>
 
               <div className="mt-4 bg-emerald-50 dark:bg-slate-800 rounded-2xl p-4 border border-emerald-200 dark:border-slate-700">
-                <h3 className="text-base font-bold text-emerald-900 mb-2">Como funciona a plataforma</h3>
-                <p className="text-sm text-emerald-900 leading-relaxed mb-3">
+                <h3 className="text-base font-bold text-emerald-900 dark:text-emerald-200 mb-2">Como funciona a plataforma</h3>
+                <p className="text-sm text-emerald-900 dark:text-slate-200 leading-relaxed mb-3">
                   O objetivo do Trabalhei Lá é ajudar profissionais a decidir melhor onde trabalhar por meio de avaliações anônimas e verificadas.
                 </p>
-                <ul className="space-y-2 text-sm text-emerald-900">
+                <ul className="space-y-2 text-sm text-emerald-900 dark:text-slate-200">
                   <li><span className="font-semibold">1.</span> Entre com LinkedIn e ajuste seu perfil anônimo.</li>
                   <li><span className="font-semibold">2.</span> Escolha uma empresa e avalie os critérios da sua experiência.</li>
                   <li><span className="font-semibold">3.</span> Veja notas, comentários e ranking para comparar empresas.</li>
@@ -841,12 +841,12 @@ function TrabalheiLaDesktop({
 
         <footer className="w-full px-6 py-8 text-center">
           <div className="bg-white/70 dark:bg-slate-900/80 backdrop-blur-lg rounded-2xl p-5 border border-blue-100 dark:border-slate-700">
-            <p className="text-slate-700 text-sm">
-              <a href="/politica-de-privacidade.html" className="text-blue-700 hover:text-blue-900 font-extrabold underline">
+            <p className="text-slate-700 dark:text-slate-200 text-sm">
+              <a href="/politica-de-privacidade.html" className="text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-200 font-extrabold underline">
                 Política de Privacidade
               </a>
               {" • "}
-              <Link to="/purpose" className="text-blue-700 hover:text-blue-900 font-extrabold underline">
+              <Link to="/purpose" className="text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-200 font-extrabold underline">
                 Qual o nosso propósito?
               </Link>
               {" • "}

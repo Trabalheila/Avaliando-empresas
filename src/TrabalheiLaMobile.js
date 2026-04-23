@@ -661,7 +661,7 @@ function TrabalheiLaMobile({
                 </button>
               </div>
             )}
-            <p className="text-xs text-slate-500 text-center">
+            <p className="text-xs text-slate-500 dark:text-slate-300 text-center">
               Sem LinkedIn: entre com Google e complete seu perfil manualmente na etapa seguinte.
             </p>
           </div>
@@ -745,8 +745,8 @@ function TrabalheiLaMobile({
 
               <div className="mt-3 grid grid-cols-1 gap-3">
                 <div className="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-xl p-3">
-                  <p className="text-sm font-bold text-blue-800 mb-2">Como entrou na empresa?</p>
-                  <div className="space-y-2 text-sm text-slate-700">
+                    <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-2">Como entrou na empresa?</p>
+                  <div className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
                     {sourceConfig.map((item) => (
                       <label key={item.key} className="flex items-center gap-2">
                         <input
@@ -762,8 +762,8 @@ function TrabalheiLaMobile({
                 </div>
 
                 <div className="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-xl p-3">
-                  <p className="text-sm font-bold text-blue-800 mb-2">Forma de contratação</p>
-                  <div className="space-y-2 text-sm text-slate-700">
+                  <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-2">Forma de contratação</p>
+                  <div className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
                     {contractConfig.map((item) => (
                       <label key={item.key} className="flex items-center gap-2">
                         <input
@@ -779,8 +779,8 @@ function TrabalheiLaMobile({
                 </div>
 
                 <div className="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-xl p-3">
-                  <p className="text-sm font-bold text-blue-800 mb-2">Modelo de trabalho</p>
-                  <div className="space-y-2 text-sm text-slate-700">
+                  <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-2">Modelo de trabalho</p>
+                  <div className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
                     {workModelConfig.map((item) => (
                       <label key={item.key} className="flex items-center gap-2">
                         <input
@@ -799,13 +799,13 @@ function TrabalheiLaMobile({
               {selectedCompanyData && (
                 <div className="mt-3 grid grid-cols-1 gap-3">
                   <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-3">
-                    <p className="text-sm font-bold text-blue-800 mb-1">Classificação profissional geral</p>
-                    <p className="text-xs text-blue-600 mb-2">{getTopSliceLabel(globalContractPieData)}</p>
+                    <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Classificação profissional geral</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-300 mb-2">{getTopSliceLabel(globalContractPieData)}</p>
                     <div className="flex items-center gap-3">
                       <div className="w-24 h-24 rounded-full border border-gray-200" style={{ background: `conic-gradient(${globalContractPieData.chart})` }} />
                       <div className="space-y-1 text-xs">
                         {globalContractPieData.items.map((item) => (
-                          <p key={`global_contract_${item.key}`} className="flex items-center gap-2 text-slate-700">
+                          <p key={`global_contract_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
                             <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                             {item.label}: {item.percent.toFixed(0)}%
                           </p>
@@ -815,13 +815,13 @@ function TrabalheiLaMobile({
                   </div>
 
                   <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-3">
-                    <p className="text-sm font-bold text-blue-800 mb-1">Modelo de trabalho geral</p>
-                    <p className="text-xs text-blue-600 mb-2">{getTopSliceLabel(globalWorkModelPieData)}</p>
+                    <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Modelo de trabalho geral</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-300 mb-2">{getTopSliceLabel(globalWorkModelPieData)}</p>
                     <div className="flex items-center gap-3">
                       <div className="w-24 h-24 rounded-full border border-gray-200" style={{ background: `conic-gradient(${globalWorkModelPieData.chart})` }} />
                       <div className="space-y-1 text-xs">
                         {globalWorkModelPieData.items.map((item) => (
-                          <p key={`global_work_model_${item.key}`} className="flex items-center gap-2 text-slate-700">
+                          <p key={`global_work_model_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
                             <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                             {item.label}: {item.percent.toFixed(0)}%
                           </p>
@@ -831,13 +831,13 @@ function TrabalheiLaMobile({
                   </div>
 
                   <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-3">
-                    <p className="text-sm font-bold text-blue-800 mb-1">Entradas na empresa</p>
-                    <p className="text-xs text-blue-600 mb-2">{getTopSliceLabel(sourcePieData)}</p>
+                    <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Entradas na empresa</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-300 mb-2">{getTopSliceLabel(sourcePieData)}</p>
                     <div className="flex items-center gap-3">
                       <div className="w-24 h-24 rounded-full border border-gray-200" style={{ background: `conic-gradient(${sourcePieData.chart})` }} />
                       <div className="space-y-1 text-xs">
                         {sourcePieData.items.map((item) => (
-                          <p key={item.key} className="flex items-center gap-2 text-slate-700">
+                          <p key={item.key} className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
                             <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                             {item.label}: {item.percent.toFixed(0)}%
                           </p>
@@ -847,13 +847,13 @@ function TrabalheiLaMobile({
                   </div>
 
                   <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-3">
-                    <p className="text-sm font-bold text-blue-800 mb-1">Classificação profissional da empresa</p>
-                    <p className="text-xs text-blue-600 mb-2">{getTopSliceLabel(contractPieData)}</p>
+                    <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Classificação profissional da empresa</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-300 mb-2">{getTopSliceLabel(contractPieData)}</p>
                     <div className="flex items-center gap-3">
                       <div className="w-24 h-24 rounded-full border border-gray-200" style={{ background: `conic-gradient(${contractPieData.chart})` }} />
                       <div className="space-y-1 text-xs">
                         {contractPieData.items.map((item) => (
-                          <p key={item.key} className="flex items-center gap-2 text-slate-700">
+                          <p key={item.key} className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
                             <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                             {item.label}: {item.percent.toFixed(0)}%
                           </p>
@@ -863,13 +863,13 @@ function TrabalheiLaMobile({
                   </div>
 
                   <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-3">
-                    <p className="text-sm font-bold text-blue-800 mb-1">Modelo de trabalho na empresa</p>
-                    <p className="text-xs text-blue-600 mb-2">{getTopSliceLabel(workModelPieData)}</p>
+                    <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Modelo de trabalho na empresa</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-300 mb-2">{getTopSliceLabel(workModelPieData)}</p>
                     <div className="flex items-center gap-3">
                       <div className="w-24 h-24 rounded-full border border-gray-200" style={{ background: `conic-gradient(${workModelPieData.chart})` }} />
                       <div className="space-y-1 text-xs">
                         {workModelPieData.items.map((item) => (
-                          <p key={`company_work_model_${item.key}`} className="flex items-center gap-2 text-slate-700">
+                          <p key={`company_work_model_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
                             <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                             {item.label}: {item.percent.toFixed(0)}%
                           </p>
