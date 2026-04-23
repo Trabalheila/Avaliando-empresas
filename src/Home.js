@@ -91,23 +91,23 @@ function sortCompaniesAlphabetically(items) {
 // Pequena alteração para forçar novo deploy (sem impacto funcional)
 function Home({ theme, toggleTheme }) {
   const REVIEW_DRAFT_STORAGE_KEY = "trabalheiLa_review_draft_v1";
-  const LAUNCH_BANNER_DISMISSED_KEY = "trabalheiLa_launch_banner_dismissed";
+  const LAUNCH_POPUP_DISMISSED_KEY = "trabalheiLa_launch_popup_dismissed";
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [firebaseStatus, setFirebaseStatus] = useState("verificando...");
-  const [isLaunchBannerVisible, setIsLaunchBannerVisible] = useState(() => {
+  const [isLaunchPopupVisible, setIsLaunchPopupVisible] = useState(() => {
     try {
-      return localStorage.getItem(LAUNCH_BANNER_DISMISSED_KEY) !== "1";
+      return localStorage.getItem(LAUNCH_POPUP_DISMISSED_KEY) !== "1";
     } catch {
       return true;
     }
   });
 
-  const handleCloseLaunchBanner = useCallback(() => {
-    setIsLaunchBannerVisible(false);
+  const handleCloseLaunchPopup = useCallback(() => {
+    setIsLaunchPopupVisible(false);
     try {
-      localStorage.setItem(LAUNCH_BANNER_DISMISSED_KEY, "1");
+      localStorage.setItem(LAUNCH_POPUP_DISMISSED_KEY, "1");
     } catch {
       // ignore storage failures
     }
@@ -1372,74 +1372,84 @@ function Home({ theme, toggleTheme }) {
 
   return (
     <>
-      {isLaunchBannerVisible && (
+      {isLaunchPopupVisible && (
         <div
-          role="region"
-          aria-label="Aviso de lançamento"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Comunicado de lançamento"
           style={{
             position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 60,
-            backgroundColor: "#2563eb",
-            color: "#ffffff",
-            textAlign: "center",
-            padding: "10px 44px 10px 16px",
-            lineHeight: 1.4,
-            fontWeight: 600,
-            whiteSpace: "normal",
-            wordBreak: "break-word",
-            boxShadow: "0 2px 10px rgba(0, 0, 0, 0.15)",
+            inset: 0,
+            zIndex: 70,
+            backgroundColor: "rgba(15, 23, 42, 0.55)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
           }}
         >
-          <span>
-            🎉 Período de Lançamento — Plano Empresarial gratuito até 31 de julho de 2026. Aproveite!
-          </span>
-          <button
-            type="button"
-            aria-label="Fechar aviso de lançamento"
-            onClick={handleCloseLaunchBanner}
+          <div
             style={{
-              position: "absolute",
-              right: 10,
-              top: "50%",
-              transform: "translateY(-50%)",
-              border: "none",
-              background: "transparent",
+              position: "relative",
+              width: "100%",
+              maxWidth: 560,
+              borderRadius: 16,
+              backgroundColor: "#2563eb",
               color: "#ffffff",
-              cursor: "pointer",
-              fontSize: 18,
-              lineHeight: 1,
-              padding: 6,
+              boxShadow: "0 20px 40px rgba(0, 0, 0, 0.25)",
+              padding: "20px 18px 16px 18px",
+              textAlign: "center",
             }}
           >
-            X
-          </button>
+            <button
+              type="button"
+              aria-label="Fechar aviso de lançamento"
+              onClick={handleCloseLaunchPopup}
+              style={{
+                position: "absolute",
+                right: 10,
+                top: 8,
+                border: "none",
+                background: "transparent",
+                color: "#ffffff",
+                cursor: "pointer",
+                fontSize: 18,
+                lineHeight: 1,
+                padding: 6,
+              }}
+            >
+              X
+            </button>
+
+            <div style={{ fontWeight: 700, lineHeight: 1.5, whiteSpace: "normal", wordBreak: "break-word", paddingRight: 20 }}>
+              🎉 Período de Lançamento — Plano Empresarial gratuito até 31 de julho de 2026. Aproveite!
+            </div>
+
+            <button
+              type="button"
+              onClick={handleCloseLaunchPopup}
+              style={{
+                marginTop: 14,
+                border: "none",
+                borderRadius: 10,
+                padding: "8px 14px",
+                backgroundColor: "#ffffff",
+                color: "#1d4ed8",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              Entendi
+            </button>
+          </div>
         </div>
       )}
 
-      <style>
-        {`
-          .home-launch-banner-offset header {
-            top: ${isLaunchBannerVisible ? "52px" : "0px"} !important;
-          }
-
-          @media (max-width: 767px) {
-            .home-launch-banner-offset header {
-              top: ${isLaunchBannerVisible ? "74px" : "0px"} !important;
-            }
-          }
-        `}
-      </style>
-
-      <div className="home-launch-banner-offset">
-        {isMobile ? (
-          <TrabalheiLaMobile {...commonProps} />
-        ) : (
-          <TrabalheiLaDesktop {...commonProps} />
-        )}
-      </div>
+      {isMobile ? (
+        <TrabalheiLaMobile {...commonProps} />
+      ) : (
+        <TrabalheiLaDesktop {...commonProps} />
+      )}
     </>
   );
 }

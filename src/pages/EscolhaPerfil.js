@@ -11,6 +11,21 @@ import {
 import AppHeader from "../components/AppHeader";
 import PlanosApoiador from "../components/PlanosApoiador";
 
+const EMPLOYER_FREE_PERIOD_END_ISO = "2026-07-31T23:59:59-03:00";
+const EMPLOYER_FREE_PERIOD_LABEL = "31 de julho de 2026";
+
+function extractProfileCnpj(profile) {
+  const candidates = [
+    profile?.cnpj,
+    profile?.companyCnpj,
+    profile?.empresaCnpj,
+    profile?.business?.cnpj,
+    profile?.company?.cnpj,
+  ];
+  const found = candidates.find((value) => value != null && String(value).trim());
+  return (found || "").toString().replace(/\D/g, "");
+}
+
 function EscolhaPerfil({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,6 +34,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
   const supporterRef = useRef(null);
   const [checkoutLoadingAudience, setCheckoutLoadingAudience] = useState(null);
   const [checkoutError, setCheckoutError] = useState("");
+  const [checkoutSuccess, setCheckoutSuccess] = useState("");
   const [consultores, setConsultores] = useState([]);
   const [prestadores, setPrestadores] = useState([]);
   const [guardChecked, setGuardChecked] = useState(false);
@@ -29,6 +45,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
     () => new URLSearchParams(location.search).get("planos") === "1",
     [location.search]
   );
+  const isEmployerFreeWindowActive = Date.now() <= new Date(EMPLOYER_FREE_PERIOD_END_ISO).getTime();
 
   // Guard: se o usuário já escolheu o tipo de perfil, redirecionar para /minha-conta
   // Exceto quando o usuário está acessando via ?planos=1 (ver benefícios premium)
@@ -91,19 +108,69 @@ function EscolhaPerfil({ theme, toggleTheme }) {
   const handlePremiumUnlock = async (audience = "worker") => {
     setCheckoutLoadingAudience(audience);
     setCheckoutError("");
+    setCheckoutSuccess("");
     try {
-      // Marcar que o usuário já fez a escolha de perfil
+      let stored = {};
       try {
-        const stored = JSON.parse(localStorage.getItem("userProfile") || "{}");
-        stored.profileTypeChosen = audience;
-        localStorage.setItem("userProfile", JSON.stringify(stored));
-        // Salvar no Firestore
-        const pid = stored?.profileId || resolveProfileId(stored, { persistGeneratedId: false });
+        stored = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      } catch {
+        stored = {};
+      }
+
+      const isEmployer = audience === "employer";
+      const canGrantEmployerForFree = isEmployer && isEmployerFreeWindowActive;
+
+      if (canGrantEmployerForFree) {
+        const updatedProfile = {
+          ...stored,
+          profileTypeChosen: "employer",
+          role: "admin_empresa",
+          is_premium: true,
+          premiumAudience: "employer",
+          premiumSource: "launch_free_period",
+          premiumStatus: "active",
+          premiumExpiresAt: EMPLOYER_FREE_PERIOD_END_ISO,
+          companyCnpj: extractProfileCnpj(stored) || null,
+        };
+
+        localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
+
+        const pid = updatedProfile?.profileId || resolveProfileId(updatedProfile, { persistGeneratedId: false });
         if (pid) {
           const userRef = doc(db, "users", pid);
-          await setDoc(userRef, { profileTypeChosen: audience }, { merge: true });
+          await setDoc(
+            userRef,
+            {
+              profileTypeChosen: "employer",
+              role: "admin_empresa",
+              is_premium: true,
+              premiumAudience: "employer",
+              premiumSource: "launch_free_period",
+              premiumStatus: "active",
+              premiumExpiresAt: EMPLOYER_FREE_PERIOD_END_ISO,
+              companyCnpj: extractProfileCnpj(stored) || null,
+            },
+            { merge: true }
+          );
         }
-      } catch { /* silencioso */ }
+
+        window.dispatchEvent(new Event("trabalheiLa_user_updated"));
+        setCheckoutSuccess(`Plano Empresarial liberado gratuitamente ate ${EMPLOYER_FREE_PERIOD_LABEL}.`);
+        navigate("/minha-conta", { replace: true });
+        return;
+      }
+
+      const updatedProfile = {
+        ...stored,
+        profileTypeChosen: audience,
+      };
+      localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
+
+      const pid = updatedProfile?.profileId || resolveProfileId(updatedProfile, { persistGeneratedId: false });
+      if (pid) {
+        const userRef = doc(db, "users", pid);
+        await setDoc(userRef, { profileTypeChosen: audience }, { merge: true });
+      }
 
       await handleCheckout({
         cnpj: "",
@@ -133,6 +200,14 @@ function EscolhaPerfil({ theme, toggleTheme }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center">
       <AppHeader theme={theme} toggleTheme={toggleTheme} />
+
+      {checkoutSuccess && (
+        <div className="w-full max-w-5xl mx-auto px-4 pt-4">
+          <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 text-sm text-emerald-700 dark:text-emerald-300 text-center">
+            {checkoutSuccess}
+          </div>
+        </div>
+      )}
 
       {/* Erro de checkout */}
       {checkoutError && (
@@ -346,7 +421,15 @@ function EscolhaPerfil({ theme, toggleTheme }) {
               </div>
               <h3 className="text-lg font-bold text-indigo-700 dark:text-indigo-400 mb-1">Plano Fundador</h3>
               <p className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
-                R$ 1.499,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
+                {isEmployerFreeWindowActive ? (
+                  <>
+                    R$ 0<span className="text-sm font-medium text-slate-600 dark:text-slate-400"> ate {EMPLOYER_FREE_PERIOD_LABEL}</span>
+                  </>
+                ) : (
+                  <>
+                    R$ 1.499,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
+                  </>
+                )}
               </p>
               <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200">
                 <FeatureRow ok>Painel completo de avaliações por critério</FeatureRow>
@@ -357,7 +440,9 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 <FeatureRow ok>Conexão com consultores empresariais parceiros para transformar dados em ação</FeatureRow>
               </ul>
               <p className="mt-3 text-xs text-indigo-700 dark:text-indigo-300 italic">
-                Quem entra agora garante o preço Fundador. Quando os recursos avançados forem lançados, você não paga a diferença.
+                {isEmployerFreeWindowActive
+                  ? "Plano empresarial com gratuidade provisoria valida ate 31 de julho de 2026."
+                  : "Quem entra agora garante o preço Fundador. Quando os recursos avançados forem lançados, você não paga a diferença."}
               </p>
             </div>
           </div>
@@ -405,10 +490,20 @@ function EscolhaPerfil({ theme, toggleTheme }) {
 
             <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-xl p-4 mb-6 border border-indigo-200 dark:border-indigo-700">
               <p className="text-slate-800 dark:text-slate-200 leading-relaxed">
-                Quem entra agora paga{" "}
-                <span className="font-bold text-indigo-700 dark:text-indigo-400">R$ 1.499,90/mês</span>{" "}
-                no Plano Fundador. Quando os recursos avançados forem lançados, o valor aumenta.{" "}
-                <span className="font-bold">Quem já estiver dentro, não paga a diferença.</span>
+                {isEmployerFreeWindowActive ? (
+                  <>
+                    Durante o período de lançamento, empresas podem ativar o plano gratuitamente até{" "}
+                    <span className="font-bold text-indigo-700 dark:text-indigo-400">{EMPLOYER_FREE_PERIOD_LABEL}</span>.{" "}
+                    <span className="font-bold">Depois disso, as condições comerciais voltam ao fluxo padrão.</span>
+                  </>
+                ) : (
+                  <>
+                    Quem entra agora paga{" "}
+                    <span className="font-bold text-indigo-700 dark:text-indigo-400">R$ 1.499,90/mês</span>{" "}
+                    no Plano Fundador. Quando os recursos avançados forem lançados, o valor aumenta.{" "}
+                    <span className="font-bold">Quem já estiver dentro, não paga a diferença.</span>
+                  </>
+                )}
               </p>
             </div>
 
@@ -427,10 +522,14 @@ function EscolhaPerfil({ theme, toggleTheme }) {
               onClick={() => handlePremiumUnlock("employer")}
               disabled={!!checkoutLoadingAudience}
             >
-              {checkoutLoadingAudience === "employer" ? "Abrindo checkout…" : "Quero ser Fundador"}
+              {checkoutLoadingAudience === "employer"
+                ? (isEmployerFreeWindowActive ? "Ativando acesso gratuito…" : "Abrindo checkout…")
+                : (isEmployerFreeWindowActive ? "Ativar gratis ate 31/07/2026" : "Quero ser Fundador")}
             </button>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
-              Plano mensal para gestores e RH.
+              {isEmployerFreeWindowActive
+                ? "Oferta de lancamento valida para ativacao provisoria do plano empresarial."
+                : "Plano mensal para gestores e RH."}
             </p>
           </div>
         </div>
