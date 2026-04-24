@@ -6,10 +6,10 @@
 
 /* === Classes de fonte para o logo principal === */
 .logo-syne {
-  font-family: 'Inter', sans-serif;
+  font-family: inherit;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: normal;
   color: white;
 }
 

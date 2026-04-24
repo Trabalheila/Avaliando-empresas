@@ -487,11 +487,11 @@ function TrabalheiLaDesktop({
 
         <div style={{ height: headerSpacerHeight + 32 }} />
 
-        {/* CONTEÚDO - 2 COLUNAS */}
-        <div className="flex gap-6 mb-8">
+        {/* CONTEÚDO - 3 COLUNAS NO DESKTOP (>1024px), 2 COLUNAS NO MOBILE (<1024px) */}
+        <div className="flex flex-col lg:flex-row gap-6 mb-8">
 
-          {/* COLUNA ESQUERDA */}
-          <div className="flex-1">
+          {/* COLUNA ESQUERDA - LOGIN + RANKING (flex-col ordem 1) */}
+          <div className="w-full lg:w-80 flex flex-col gap-6 order-1 lg:order-1">
 
             {/* LOGIN ATUALIZADO (Sem Google, LinkedIn Corrigido) */}
             <section
@@ -563,6 +563,68 @@ function TrabalheiLaDesktop({
                 <p className="text-green-600 font-semibold text-center mt-4">✓ Você está autenticado!</p>
               )}
             </section>
+
+            {/* RANKING DE EMPRESAS */}
+            <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
+              <h2 className="text-2xl font-extrabold text-blue-900 dark:text-blue-200 text-center mb-2 font-azonix tracking-wide">🏆 Ranking de Empresas</h2>
+              <div className="w-24 h-1 mx-auto mb-4 rounded-full bg-gradient-to-r from-yellow-300 via-amber-500 to-yellow-300" />
+              {Array.isArray(setoresList) && setoresList.length > 0 && (
+                <select
+                  value={sectorFilter}
+                  onChange={(e) => setSectorFilter(e.target.value)}
+                  className="w-full mb-4 p-2 text-sm border border-blue-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  <option value="">Todos os setores</option>
+                  {setoresList.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              )}
+
+              {Array.isArray(top3) && top3.length > 0 && (
+                <div className="mb-4 space-y-2">
+                  {top3.map((emp, i) => {
+                    const media = calcularMedia(emp);
+                    const isUnrated = media === "--";
+                    const mediaValue = Number.parseFloat(media);
+                    const isRecommendedCompany = !isUnrated && Number.isFinite(mediaValue) && mediaValue >= 3;
+                    return (
+                      <div key={i} className={`${isUnrated ? "bg-slate-200 text-slate-600" : `bg-gradient-to-r ${getMedalColor(i)} text-white`} rounded-2xl p-3`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl">{getMedalEmoji(i)}</span>
+                            <div>
+                              <p className="font-bold text-sm">{emp.company}</p>
+                              {!isUnrated && (
+                                <p className={`text-[11px] font-bold ${isUnrated ? "text-slate-600" : "text-white/90"}`}>
+                                  {isRecommendedCompany ? "✓ Empresa indicada" : "X Empresa não indicada"}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className={`${isUnrated ? "bg-slate-300 text-slate-700" : "bg-white/20 text-white"} px-2 py-1 rounded-full font-bold text-xs`}>
+                            {isUnrated ? "--" : `${media} ⭐`}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="bg-blue-50 dark:bg-slate-800 rounded-2xl p-4 border border-blue-200 dark:border-slate-700">
+                <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-200 mb-2 tracking-wide">Empresas por Autocompletação</h3>
+                <p className="text-sm text-blue-900 dark:text-slate-200 leading-relaxed">
+                  Para manter performance com muitas empresas, a seleção agora é feita pelo campo
+                  <span className="font-semibold"> "Selecione a Empresa"</span> no formulário.
+                  Digite parte do nome para buscar rapidamente.
+                </p>
+              </div>
+            </section>
+          </div>
+
+          {/* COLUNA CENTRAL - FORMULÁRIO (ordem 2 no desktop) */}
+          <div className="w-full lg:flex-1 flex flex-col gap-6 order-2 lg:order-2">
 
             {/* FORMULÁRIO */}
             <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
@@ -749,9 +811,9 @@ function TrabalheiLaDesktop({
             </section>
           </div>
 
-          {/* COLUNA DIREITA - RANKING */}
-          <div className="w-80">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700 sticky top-6">
+          {/* COLUNA DIREITA - GRÁFICOS + COMO FUNCIONA (ordem 3 no desktop) */}
+          <div className="w-full lg:w-80 flex flex-col gap-6 order-3 lg:order-3">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
               <div className="mb-4 space-y-4">
                 <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
                   <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Classificação profissional da empresa</p>
@@ -847,61 +909,6 @@ function TrabalheiLaDesktop({
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <h2 className="text-2xl font-extrabold text-blue-900 dark:text-blue-200 text-center mb-2 font-azonix tracking-wide">🏆 Ranking de Empresas</h2>
-              <div className="w-24 h-1 mx-auto mb-4 rounded-full bg-gradient-to-r from-yellow-300 via-amber-500 to-yellow-300" />
-              {Array.isArray(setoresList) && setoresList.length > 0 && (
-                <select
-                  value={sectorFilter}
-                  onChange={(e) => setSectorFilter(e.target.value)}
-                  className="w-full mb-4 p-2 text-sm border border-blue-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                >
-                  <option value="">Todos os setores</option>
-                  {setoresList.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              )}
-
-              {Array.isArray(top3) && top3.length > 0 && (
-                <div className="mb-4 space-y-2">
-                  {top3.map((emp, i) => {
-                    const media = calcularMedia(emp);
-                    const isUnrated = media === "--";
-                    const mediaValue = Number.parseFloat(media);
-                    const isRecommendedCompany = !isUnrated && Number.isFinite(mediaValue) && mediaValue >= 3;
-                    return (
-                      <div key={i} className={`${isUnrated ? "bg-slate-200 text-slate-600" : `bg-gradient-to-r ${getMedalColor(i)} text-white`} rounded-2xl p-3`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-2xl">{getMedalEmoji(i)}</span>
-                            <div>
-                              <p className="font-bold text-sm">{emp.company}</p>
-                              {!isUnrated && (
-                                <p className={`text-[11px] font-bold ${isUnrated ? "text-slate-600" : "text-white/90"}`}>
-                                  {isRecommendedCompany ? "✓ Empresa indicada" : "X Empresa não indicada"}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                          <div className={`${isUnrated ? "bg-slate-300 text-slate-700" : "bg-white/20 text-white"} px-2 py-1 rounded-full font-bold text-xs`}>
-                            {isUnrated ? "--" : `${media} ⭐`}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              <div className="bg-blue-50 dark:bg-slate-800 rounded-2xl p-4 border border-blue-200 dark:border-slate-700">
-                <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-200 mb-2 tracking-wide">Empresas por Autocompletação</h3>
-                <p className="text-sm text-blue-900 dark:text-slate-200 leading-relaxed">
-                  Para manter performance com muitas empresas, a seleção agora é feita pelo campo
-                  <span className="font-semibold"> "Selecione a Empresa"</span> no formulário.
-                  Digite parte do nome para buscar rapidamente.
-                </p>
               </div>
 
               <div className="mt-4 bg-emerald-50 dark:bg-slate-800 rounded-2xl p-4 border border-emerald-200 dark:border-slate-700">
