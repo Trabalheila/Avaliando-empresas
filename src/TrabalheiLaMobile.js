@@ -119,6 +119,87 @@ function TrabalheiLaMobile({
 }) {
   // const { t } = useTranslation();
   const navigate = useNavigate();
+  const COMMENT_GUIDANCE_TEXT = "Descreva comportamentos e situações. Evite citar nomes de pessoas.";
+  const COMMENT_WARNING_TEXT = "Identificamos possível citação de nome. Considere substituir por descrição do comportamento ou situação.";
+
+  const normalizeText = React.useCallback((value) => {
+    const replacements = {
+      "3": "e",
+      "0": "o",
+      "4": "a",
+      "@": "a",
+      "1": "i",
+      "!": "i",
+      "5": "s",
+      "7": "t",
+      "8": "b",
+    };
+
+    return String(value || "").replace(/[304@1!578]/g, (char) => replacements[char] || char);
+  }, []);
+
+  const containsPossiblePersonName = React.useCallback((value) => {
+    const text = normalizeText(value);
+    const namePattern = /\b[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][a-záàâãéêíóôõúç]+(?:\s+[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][a-záàâãéêíóôõúç]+)+\b/g;
+    const sentenceBoundaryPattern = /[.!?\n]/;
+    let match = namePattern.exec(text);
+
+    while (match) {
+      const idx = match.index;
+      const before = text.slice(0, idx);
+      const lastBoundary = Math.max(
+        before.lastIndexOf("."),
+        before.lastIndexOf("!"),
+        before.lastIndexOf("?"),
+        before.lastIndexOf("\n")
+      );
+      const segmentBeforeMatch = before.slice(lastBoundary + 1);
+
+      if (sentenceBoundaryPattern.test(before) && segmentBeforeMatch.trim().length === 0) {
+        match = namePattern.exec(text);
+        continue;
+      }
+
+      if (segmentBeforeMatch.trim().length > 0) {
+        return true;
+      }
+
+      match = namePattern.exec(text);
+    }
+
+    return false;
+  }, [normalizeText]);
+
+  function CommentTextarea({ value, onChange, placeholder, rows = 3, className = "" }) {
+    const [showWarning, setShowWarning] = React.useState(false);
+
+    React.useEffect(() => {
+      const timer = window.setTimeout(() => {
+        setShowWarning(containsPossiblePersonName(value));
+      }, 1000);
+
+      return () => window.clearTimeout(timer);
+    }, [value]);
+
+    return (
+      <>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{COMMENT_GUIDANCE_TEXT}</p>
+        <textarea
+          className={className}
+          placeholder={placeholder}
+          rows={rows}
+          value={value}
+          onChange={onChange}
+        />
+        {showWarning && (
+          <p className="text-xs text-yellow-700 dark:text-yellow-300 bg-yellow-100/80 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-md px-2 py-1 mt-1">
+            {COMMENT_WARNING_TEXT}
+          </p>
+        )}
+      </>
+    );
+  }
+
   const legacyMetricsBridge = {
     beneficios, setBeneficios,
     oportunidades, setOportunidades,
@@ -245,7 +326,7 @@ function TrabalheiLaMobile({
         ))}
         <span className="ml-2 text-slate-700 dark:text-blue-200 font-medium">{value}/5</span>
       </div>
-      <textarea
+      <CommentTextarea
         className="w-full p-2 border border-gray-300 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-100 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 mt-2"
         placeholder={`Comentário sobre ${label.toLowerCase()} (opcional)`}
         rows={3}
@@ -913,7 +994,7 @@ function TrabalheiLaMobile({
 
             <div className="bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border border-gray-200 dark:border-slate-700">
               <label className="text-slate-700 dark:text-blue-200 font-semibold text-sm block mb-2">Algo que queira acrescentar?</label>
-              <textarea
+              <CommentTextarea
                 className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-100 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 placeholder="Descreva sua experiência na empresa..."
                 rows={3}
@@ -1007,7 +1088,11 @@ function TrabalheiLaMobile({
       />
 
       <footer className="text-center text-xs text-slate-500 dark:text-slate-300 mt-6 space-x-2">
-        <a href="/politica-de-privacidade.html" className="text-blue-600 dark:text-blue-300 hover:underline font-semibold">
+        <Link to="/termos-de-uso" className="text-blue-600 dark:text-blue-300 hover:underline font-semibold">
+          Termos de Uso
+        </Link>
+        <span>•</span>
+        <a href="/politica-de-privacidade" className="text-blue-600 dark:text-blue-300 hover:underline font-semibold">
           Política de Privacidade
         </a>
         <span>•</span>

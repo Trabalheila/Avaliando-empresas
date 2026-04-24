@@ -10,6 +10,7 @@ import CompanyDetails from './pages/CompanyDetails';
 import CompanyItemComments from './pages/CompanyItemComments';
 import Purpose from './pages/Purpose';
 import DeleteData from './pages/DeleteData';
+import TermsOfUse from './pages/TermsOfUse';
 import EscolhaPerfil from './pages/EscolhaPerfil';
 import BusinessDashboard from './pages/BusinessDashboard';
 import AdminPanel from './pages/AdminPanel';
@@ -20,6 +21,7 @@ import ApoiadoresList from './pages/ApoiadoresList';
 import ApoiadorPerfil from './pages/ApoiadorPerfil';
 import WorkerProfile from './pages/WorkerProfile';
 import MinhaConta from './pages/MinhaConta';
+import CookieBanner from './components/CookieBanner';
 
 // Função para aplicar o tema (dark/light)
 function applyTheme(theme) {
@@ -181,6 +183,7 @@ function App() {
       <Route path="/apoiadores/perfil/:id" element={<ApoiadorPerfil theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/empresa/comentarios-item" element={<CompanyItemComments theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/purpose" element={<Purpose theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/termos-de-uso" element={<TermsOfUse theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/escolha-perfil" element={<EscolhaPerfil theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/excluir-dados" element={<DeleteData theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/perfil/:profileId" element={<WorkerProfile theme={theme} toggleTheme={toggleTheme} />} />
@@ -222,6 +225,7 @@ function App() {
           </div>
         )}
       </div>
+      <CookieBanner />
     </>
   );
 }
