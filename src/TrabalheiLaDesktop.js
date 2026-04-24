@@ -92,14 +92,16 @@ function TrabalheiLaDesktop({
 
   function CommentTextarea({ value, onChange, placeholder, rows = 3, className = "" }) {
     const [showWarning, setShowWarning] = React.useState(false);
+    const rawValue = typeof value === "string" ? value : "";
 
     React.useEffect(() => {
       const timer = window.setTimeout(() => {
-        setShowWarning(containsPossiblePersonName(value));
+        // Usa apenas para detecção interna, sem alterar o texto mostrado ao usuário.
+        setShowWarning(containsPossiblePersonName(rawValue));
       }, 1000);
 
       return () => window.clearTimeout(timer);
-    }, [value]);
+    }, [rawValue]);
 
     return (
       <>
@@ -107,7 +109,7 @@ function TrabalheiLaDesktop({
         <textarea
           rows={rows}
           placeholder={placeholder}
-          value={value}
+          value={rawValue}
           onChange={onChange}
           className={className}
         />
@@ -488,10 +490,10 @@ function TrabalheiLaDesktop({
         <div style={{ height: headerSpacerHeight + 32 }} />
 
         {/* CONTEÚDO - 3 COLUNAS NO DESKTOP (>1024px), 2 COLUNAS NO MOBILE (<1024px) */}
-        <div className="flex flex-col lg:flex-row gap-6 mb-8">
+        <div className="flex flex-col lg:flex-row lg:flex-nowrap gap-6 mb-8">
 
           {/* COLUNA ESQUERDA - LOGIN + RANKING (flex-col ordem 1) */}
-          <div className="w-full lg:w-80 flex flex-col gap-6 order-1 lg:order-1">
+          <div className="w-full lg:basis-[20%] lg:max-w-[20%] lg:min-w-[220px] lg:shrink-0 flex flex-col gap-6 order-1 lg:order-1">
 
             {/* LOGIN ATUALIZADO (Sem Google, LinkedIn Corrigido) */}
             <section
@@ -624,7 +626,7 @@ function TrabalheiLaDesktop({
           </div>
 
           {/* COLUNA CENTRAL - FORMULÁRIO (ordem 2 no desktop) */}
-          <div className="w-full lg:flex-1 flex flex-col gap-6 order-2 lg:order-2">
+          <div className="w-full lg:basis-[55%] lg:min-w-[500px] lg:flex-none flex flex-col gap-6 order-2 lg:order-2">
 
             {/* FORMULÁRIO */}
             <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
@@ -812,7 +814,7 @@ function TrabalheiLaDesktop({
           </div>
 
           {/* COLUNA DIREITA - GRÁFICOS + COMO FUNCIONA (ordem 3 no desktop) */}
-          <div className="w-full lg:w-80 flex flex-col gap-6 order-3 lg:order-3">
+          <div className="w-full lg:basis-[25%] lg:max-w-[25%] lg:min-w-[280px] lg:shrink-0 flex flex-col gap-6 order-3 lg:order-3">
             <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
               <div className="mb-4 space-y-4">
                 <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
