@@ -855,7 +855,7 @@ function TrabalheiLaDesktop({
                   <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(contractPieData)}</p>
                   <div className="flex items-center gap-4">
                     <div
-                      className="w-24 h-24 rounded-full border border-gray-200"
+                      className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square"
                       style={{ background: `conic-gradient(${contractPieData.chart})` }}
                     />
                     <div className="space-y-1 text-xs">
@@ -874,7 +874,7 @@ function TrabalheiLaDesktop({
                   <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(globalContractPieData)}</p>
                   <div className="flex items-center gap-4">
                     <div
-                      className="w-24 h-24 rounded-full border border-gray-200"
+                      className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square"
                       style={{ background: `conic-gradient(${globalContractPieData.chart})` }}
                     />
                     <div className="space-y-1 text-xs">
@@ -893,7 +893,7 @@ function TrabalheiLaDesktop({
                   <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(globalWorkModelPieData)}</p>
                   <div className="flex items-center gap-4">
                     <div
-                      className="w-24 h-24 rounded-full border border-gray-200"
+                      className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square"
                       style={{ background: `conic-gradient(${globalWorkModelPieData.chart})` }}
                     />
                     <div className="space-y-1 text-xs">
@@ -912,7 +912,7 @@ function TrabalheiLaDesktop({
                   <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(sourcePieData)}</p>
                   <div className="flex items-center gap-4">
                     <div
-                      className="w-24 h-24 rounded-full border border-gray-200"
+                      className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square"
                       style={{ background: `conic-gradient(${sourcePieData.chart})` }}
                     />
                     <div className="space-y-1 text-xs">
@@ -931,7 +931,7 @@ function TrabalheiLaDesktop({
                   <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(workModelPieData)}</p>
                   <div className="flex items-center gap-4">
                     <div
-                      className="w-24 h-24 rounded-full border border-gray-200"
+                      className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square"
                       style={{ background: `conic-gradient(${workModelPieData.chart})` }}
                     />
                     <div className="space-y-1 text-xs">
