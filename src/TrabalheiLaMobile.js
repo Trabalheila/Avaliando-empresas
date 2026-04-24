@@ -13,6 +13,68 @@ import LoginLinkedInButton from "./LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
 import { getCompanyLogoCandidates } from "./utils/getCompanyLogo";
 
+function CommentTextarea({
+  value,
+  onValueChange,
+  containsPossiblePersonName,
+  guidanceText,
+  warningText,
+  placeholder,
+  rows = 3,
+  className = "",
+}) {
+  const [draftValue, setDraftValue] = React.useState(() => (typeof value === "string" ? value : ""));
+  const [showWarning, setShowWarning] = React.useState(false);
+  const lastEmittedValueRef = React.useRef(typeof value === "string" ? value : "");
+
+  React.useEffect(() => {
+    const nextValue = typeof value === "string" ? value : "";
+    if (nextValue !== lastEmittedValueRef.current) {
+      setDraftValue(nextValue);
+      lastEmittedValueRef.current = nextValue;
+    }
+  }, [value]);
+
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setShowWarning(containsPossiblePersonName(draftValue));
+
+      if (draftValue !== lastEmittedValueRef.current) {
+        onValueChange(draftValue);
+        lastEmittedValueRef.current = draftValue;
+      }
+    }, 180);
+
+    return () => window.clearTimeout(timer);
+  }, [containsPossiblePersonName, draftValue, onValueChange]);
+
+  const handleBlur = React.useCallback(() => {
+    if (draftValue !== lastEmittedValueRef.current) {
+      onValueChange(draftValue);
+      lastEmittedValueRef.current = draftValue;
+    }
+  }, [draftValue, onValueChange]);
+
+  return (
+    <>
+      <p className="text-xs text-slate-500 dark:text-slate-400">{guidanceText}</p>
+      <textarea
+        className={className}
+        placeholder={placeholder}
+        rows={rows}
+        value={draftValue}
+        onChange={(e) => setDraftValue(e.target.value)}
+        onBlur={handleBlur}
+      />
+      {showWarning && (
+        <p className="text-xs text-yellow-700 dark:text-yellow-300 bg-yellow-100/80 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-md px-2 py-1 mt-1">
+          {warningText}
+        </p>
+      )}
+    </>
+  );
+}
+
 function OutlinedStar({ active, onClick, size = 18, label }) {
   const outlineScale = 1.24;
   const touchSize = size * 1.8;
@@ -170,36 +232,6 @@ function TrabalheiLaMobile({
     return false;
   }, [normalizeText]);
 
-  function CommentTextarea({ value, onChange, placeholder, rows = 3, className = "" }) {
-    const [showWarning, setShowWarning] = React.useState(false);
-
-    React.useEffect(() => {
-      const timer = window.setTimeout(() => {
-        setShowWarning(containsPossiblePersonName(value));
-      }, 1000);
-
-      return () => window.clearTimeout(timer);
-    }, [value]);
-
-    return (
-      <>
-        <p className="text-xs text-slate-500 dark:text-slate-400">{COMMENT_GUIDANCE_TEXT}</p>
-        <textarea
-          className={className}
-          placeholder={placeholder}
-          rows={rows}
-          value={value}
-          onChange={onChange}
-        />
-        {showWarning && (
-          <p className="text-xs text-yellow-700 dark:text-yellow-300 bg-yellow-100/80 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-md px-2 py-1 mt-1">
-            {COMMENT_WARNING_TEXT}
-          </p>
-        )}
-      </>
-    );
-  }
-
   const legacyMetricsBridge = {
     beneficios, setBeneficios,
     oportunidades, setOportunidades,
@@ -327,11 +359,14 @@ function TrabalheiLaMobile({
         <span className="ml-2 text-slate-700 dark:text-blue-200 font-medium">{value}/5</span>
       </div>
       <CommentTextarea
+        guidanceText={COMMENT_GUIDANCE_TEXT}
+        warningText={COMMENT_WARNING_TEXT}
+        containsPossiblePersonName={containsPossiblePersonName}
         className="w-full p-2 border border-gray-300 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-100 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 mt-2"
         placeholder={`Comentário sobre ${label.toLowerCase()} (opcional)`}
         rows={3}
         value={commentValue}
-        onChange={(e) => setCommentValue(e.target.value)}
+        onValueChange={setCommentValue}
       />
     </div>
   );
@@ -995,11 +1030,14 @@ function TrabalheiLaMobile({
             <div className="bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border border-gray-200 dark:border-slate-700">
               <label className="text-slate-700 dark:text-blue-200 font-semibold text-sm block mb-2">Algo que queira acrescentar?</label>
               <CommentTextarea
+                guidanceText={COMMENT_GUIDANCE_TEXT}
+                warningText={COMMENT_WARNING_TEXT}
+                containsPossiblePersonName={containsPossiblePersonName}
                 className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-100 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 placeholder="Descreva sua experiência na empresa..."
                 rows={3}
                 value={generalComment}
-                onChange={(e) => setGeneralComment(e.target.value)}
+                onValueChange={setGeneralComment}
               />
             </div>
 

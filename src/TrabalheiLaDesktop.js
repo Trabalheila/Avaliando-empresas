@@ -11,6 +11,68 @@ import {
 import LoginLinkedInButton from "./LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
 
+function CommentTextarea({
+  value,
+  onValueChange,
+  containsPossiblePersonName,
+  guidanceText,
+  warningText,
+  placeholder,
+  rows = 3,
+  className = "",
+}) {
+  const [draftValue, setDraftValue] = React.useState(() => (typeof value === "string" ? value : ""));
+  const [showWarning, setShowWarning] = React.useState(false);
+  const lastEmittedValueRef = React.useRef(typeof value === "string" ? value : "");
+
+  React.useEffect(() => {
+    const nextValue = typeof value === "string" ? value : "";
+    if (nextValue !== lastEmittedValueRef.current) {
+      setDraftValue(nextValue);
+      lastEmittedValueRef.current = nextValue;
+    }
+  }, [value]);
+
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setShowWarning(containsPossiblePersonName(draftValue));
+
+      if (draftValue !== lastEmittedValueRef.current) {
+        onValueChange(draftValue);
+        lastEmittedValueRef.current = draftValue;
+      }
+    }, 180);
+
+    return () => window.clearTimeout(timer);
+  }, [containsPossiblePersonName, draftValue, onValueChange]);
+
+  const handleBlur = React.useCallback(() => {
+    if (draftValue !== lastEmittedValueRef.current) {
+      onValueChange(draftValue);
+      lastEmittedValueRef.current = draftValue;
+    }
+  }, [draftValue, onValueChange]);
+
+  return (
+    <>
+      <p className="text-xs text-slate-500 dark:text-slate-400">{guidanceText}</p>
+      <textarea
+        rows={rows}
+        placeholder={placeholder}
+        value={draftValue}
+        onChange={(e) => setDraftValue(e.target.value)}
+        onBlur={handleBlur}
+        className={className}
+      />
+      {showWarning && (
+        <p className="text-xs text-yellow-700 dark:text-yellow-300 bg-yellow-100/80 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-md px-2 py-1">
+          {warningText}
+        </p>
+      )}
+    </>
+  );
+}
+
 function TrabalheiLaDesktop({
   theme, toggleTheme, firebaseStatus,
   company, setCompany, rating, setRating, commentRating, setCommentRating,
@@ -90,38 +152,6 @@ function TrabalheiLaDesktop({
     return false;
   }, [normalizeText]);
 
-  function CommentTextarea({ value, onChange, placeholder, rows = 3, className = "" }) {
-    const [showWarning, setShowWarning] = React.useState(false);
-    const rawValue = typeof value === "string" ? value : "";
-
-    React.useEffect(() => {
-      const timer = window.setTimeout(() => {
-        // Usa apenas para detecção interna, sem alterar o texto mostrado ao usuário.
-        setShowWarning(containsPossiblePersonName(rawValue));
-      }, 1000);
-
-      return () => window.clearTimeout(timer);
-    }, [rawValue]);
-
-    return (
-      <>
-        <p className="text-xs text-slate-500 dark:text-slate-400">{COMMENT_GUIDANCE_TEXT}</p>
-        <textarea
-          rows={rows}
-          placeholder={placeholder}
-          value={rawValue}
-          onChange={onChange}
-          className={className}
-        />
-        {showWarning && (
-          <p className="text-xs text-yellow-700 dark:text-yellow-300 bg-yellow-100/80 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-md px-2 py-1">
-            {COMMENT_WARNING_TEXT}
-          </p>
-        )}
-      </>
-    );
-  }
-
   const headerRef = React.useRef(null);
   const [headerSpacerHeight, setHeaderSpacerHeight] = React.useState(0);
   const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
@@ -182,10 +212,13 @@ function TrabalheiLaDesktop({
         ))}
       </div>
       <CommentTextarea
+        guidanceText={COMMENT_GUIDANCE_TEXT}
+        warningText={COMMENT_WARNING_TEXT}
+        containsPossiblePersonName={containsPossiblePersonName}
         rows={3}
         placeholder={`Comentário sobre ${label.toLowerCase()} (opcional)`}
         value={comment}
-        onChange={(e) => setComment(e.target.value)}
+        onValueChange={setComment}
         className="w-full p-2 text-sm border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100"
       />
     </div>
@@ -781,11 +814,14 @@ function TrabalheiLaDesktop({
                 <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
                   <label className="text-slate-700 dark:text-slate-100 font-semibold text-lg block mb-2">Algo que queira acrescentar?</label>
                   <CommentTextarea
+                    guidanceText={COMMENT_GUIDANCE_TEXT}
+                    warningText={COMMENT_WARNING_TEXT}
+                    containsPossiblePersonName={containsPossiblePersonName}
                     className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-100 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     placeholder="Descreva sua experiência na empresa..."
                     rows={3}
                     value={generalComment}
-                    onChange={(e) => setGeneralComment(e.target.value)}
+                    onValueChange={setGeneralComment}
                   />
                 </div>
 
