@@ -538,11 +538,8 @@ function TrabalheiLaDesktop({
                 >
                   <FaUserEdit className="text-xl" />
                 </Link>
-                <div
-                  className="w-full max-w-2xl flex items-center justify-center"
-                  style={{ animation: "homeCalloutIn 950ms ease-out both" }}
-                >
-                  <p className="text-black dark:text-slate-100 font-extrabold text-[2.2rem] leading-[1.06] tracking-tight text-center">
+                <div className="w-full max-w-full flex items-center justify-center px-2">
+                  <p className="text-black dark:text-slate-100 font-extrabold text-[1.2rem] xl:text-[1.45rem] leading-tight tracking-tight text-center break-words [text-wrap:balance]">
                     CRIE SEU PERFIL E AVALIE ANONIMAMENTE!
                   </p>
                 </div>
