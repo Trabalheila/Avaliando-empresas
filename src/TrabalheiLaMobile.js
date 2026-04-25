@@ -484,14 +484,14 @@ function TrabalheiLaMobile({
           : "bg-gradient-to-b from-blue-50 via-sky-50 to-blue-100"
       }`}
     >
-      <header ref={headerRef} className="fixed top-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm px-2 py-2 z-50 border-b border-blue-100 dark:border-slate-700">
+      <header ref={headerRef} className="fixed top-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm px-2 py-1 z-50 border-b border-blue-100 dark:border-slate-700">
         {/* ── Linha do título + ícones ── */}
         <div className="flex items-center w-full" style={{ gap: 8 }}>
           <FaStar className="text-amber-500" style={{ width: 24, height: 24, flexShrink: 0 }} />
           <span
             className="logo-syne leading-none whitespace-nowrap"
             style={{
-              fontSize: 'clamp(22px, 5vw, 28px)',
+              fontSize: 'clamp(18px, 4.5vw, 24px)',
               fontWeight: 900,
               letterSpacing: 'normal',
               color: theme === 'dark' ? '#90caf9' : '#1a237e',
@@ -514,12 +514,7 @@ function TrabalheiLaMobile({
             {theme === "dark" ? "🌙" : "☀️"}
           </button>
         </div>
-        <div className="text-center">
-          <div className="w-20 h-1 mx-auto mt-1 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
-          <p className="mt-1 text-[0.68rem] leading-tight font-medium text-blue-500 dark:text-blue-300">
-            Sua opinião anônima evolui o mercado de trabalho
-          </p>
-        </div>
+        <div className="w-20 h-0.5 mx-auto rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
 
         {firebaseStatus && <p className="text-[11px] text-red-500 dark:text-red-400 mt-1 text-center">{firebaseStatus}</p>}
       </header>
@@ -1055,6 +1050,9 @@ function TrabalheiLaMobile({
               disabled={!isAuthenticated || isLoading}>
               {isLoading ? "Enviando..." : isAuthenticated ? "Enviar Avaliação" : "Faça login para avaliar"}
             </button>
+            <p className="text-blue-600 dark:text-blue-300 text-xs font-semibold text-center mt-2">
+              Sua opinião é anônima e ajuda outros profissionais
+            </p>
           </form>
         </section>
 

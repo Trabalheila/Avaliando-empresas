@@ -347,7 +347,7 @@ function TrabalheiLaDesktop({
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-6">
       <div className="w-full max-w-6xl">
         {/* HEADER */}
-        <header ref={headerRef} className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-b-3xl shadow-2xl px-3 py-3 border-2 border-blue-200 dark:border-slate-700">
+        <header ref={headerRef} className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-b-3xl shadow-2xl px-3 py-1.5 border-2 border-blue-200 dark:border-slate-700">
           <div className="flex items-start justify-between gap-3">
             <div className="flex w-[110px] flex-col items-center">
 
@@ -391,9 +391,9 @@ function TrabalheiLaDesktop({
 
             <div className="flex-1 text-center px-4 overflow-visible">
               <h1
-                className="font-extrabold text-blue-800 dark:text-blue-300 drop-shadow-[0_3px_0_rgba(30,64,175,0.25)] dark:drop-shadow-[0_3px_0_rgba(15,23,42,0.6)] tracking-[0.05em] mb-1 logo-syne"
+                className="font-extrabold text-blue-800 dark:text-blue-300 drop-shadow-[0_3px_0_rgba(30,64,175,0.25)] dark:drop-shadow-[0_3px_0_rgba(15,23,42,0.6)] tracking-[0.05em] mb-0.5 logo-syne"
                 style={{
-                  fontSize: '3rem',
+                  fontSize: '2rem',
                   fontWeight: 800,
                   whiteSpace: 'nowrap',
                   overflow: 'visible',
@@ -404,12 +404,9 @@ function TrabalheiLaDesktop({
               >
                 TRABALHEI LÁ
               </h1>
-              <div className="w-44 h-1.5 mx-auto rounded-full bg-gradient-to-r from-blue-300 via-blue-700 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500 mb-3" />
-              <p className="text-blue-700 dark:text-blue-200 text-xl font-extrabold leading-tight mb-1">
+              <div className="w-32 h-1 mx-auto rounded-full bg-gradient-to-r from-blue-300 via-blue-700 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500 mb-1.5" />
+              <p className="text-blue-700 dark:text-blue-200 text-base font-extrabold leading-tight">
                 {t('Evoluindo o mercado de trabalho')}
-              </p>
-              <p className="text-blue-600 dark:text-blue-300 text-sm font-semibold leading-tight mb-3">
-                {t('Sua opinião é anônima e ajuda outros profissionais')}
               </p>
 
               {isAuthenticated && (
@@ -840,6 +837,9 @@ function TrabalheiLaDesktop({
                     disabled={!isAuthenticated || isLoading}>
                     {isLoading ? "Enviando..." : isAuthenticated ? "Enviar Avaliação" : "Faça login para avaliar"}
                   </button>
+                  <p className="text-blue-600 dark:text-blue-300 text-xs font-semibold leading-tight mt-2">
+                    {t('Sua opinião é anônima e ajuda outros profissionais')}
+                  </p>
                 </div>
 
               </form>
