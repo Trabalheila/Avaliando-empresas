@@ -1007,7 +1007,10 @@ function TrabalheiLaMobile({
             <div className="space-y-4">
               {/* Barra de progresso dos critérios */}
               {visibleCriterionIdx >= 0 && (
-                <div className="sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-xl border border-blue-100 dark:border-slate-700 p-2">
+                <div
+                  className="sticky top-0 z-10 mb-2 mx-auto w-full max-w-[380px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-lg border border-blue-100 dark:border-slate-700 px-3 py-2 shadow-sm"
+                  style={{ left: 0, right: 0 }}
+                >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-bold text-blue-800 dark:text-blue-200">Critério {visibleCriterionIdx + 1} de {campos.length}</span>
                     <span className="text-xs text-slate-500">{Math.round(((visibleCriterionIdx + 1) / campos.length) * 100)}%</span>
