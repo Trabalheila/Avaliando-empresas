@@ -118,6 +118,7 @@ function BusinessDashboard({ theme, toggleTheme }) {
 
   /* ── Estado de benchmarking ── */
   const [companyOptions, setCompanyOptions] = useState([]);
+  const [mySegment, setMySegment] = useState("");
   const [competitors, setCompetitors] = useState(["", "", ""]);
   const [competitorReviews, setCompetitorReviews] = useState({});
   const [benchLoading, setBenchLoading] = useState(false);
@@ -147,13 +148,27 @@ function BusinessDashboard({ theme, toggleTheme }) {
     (async () => {
       try {
         const all = await listCompanies(300);
+
+        const myCompanyRecord = (all || []).find((c) => {
+          const itemName = c?.name || c?.company || "";
+          const itemSlug = c?.slug || slugifyCompany(itemName);
+          return itemSlug === mySlug;
+        });
+        const currentSegment = (myCompanyRecord?.segmento || "").toString().trim();
+        setMySegment(currentSegment);
+
         setCompanyOptions(
           all
             .map((c) => ({
               slug: c.slug || slugifyCompany(c.name || c.company || ""),
               name: c.name || c.company || c.slug || "",
+              segmento: (c.segmento || "").toString().trim(),
             }))
-            .filter((c) => c.slug && c.slug !== mySlug)
+            .filter((c) => {
+              if (!c.slug || c.slug === mySlug) return false;
+              if (currentSegment && c.segmento !== currentSegment) return false;
+              return true;
+            })
             .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
         );
       } catch {
@@ -316,6 +331,11 @@ function BusinessDashboard({ theme, toggleTheme }) {
         <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-blue-100 dark:border-slate-700 p-6">
           <h2 className="text-xl font-extrabold text-blue-800 dark:text-blue-200 mb-1">Benchmarking com concorrentes</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Compare até 3 empresas. Valores de concorrentes são indicativos.</p>
+          {mySegment && (
+            <p className="text-xs text-blue-700 dark:text-blue-300 mb-3">
+              Lista filtrada por segmento CNAE da sua empresa: <span className="font-bold">{mySegment}</span>
+            </p>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
             {competitors.map((slug, idx) => (

@@ -4,12 +4,13 @@ import TrabalheiLaMobile from "./TrabalheiLaMobile";
 import TrabalheiLaDesktop from "./TrabalheiLaDesktop";
 import { empresasBrasileiras } from "./empresas";
 import { saveReview, listRecentReviews } from "./services/reviews";
-import { saveCompany, listCompanies } from "./services/companies";
+import { saveCompany, listCompanies, enrichCompanyWithBrasilAPI } from "./services/companies";
 import { getUserProfile, saveUserProfile, findUnifiedProfile } from "./services/users";
 import { auth, db } from "./firebase";
 import { signInAnonymously, signInWithPopup, signOut } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { googleProvider } from "./firebase";
+import { isAdmin } from "./utils/rbac";
 import {
   clearStoredProfileId,
   isProfileAuthenticated,
@@ -35,6 +36,30 @@ const METRIC_KEYS = [
 ];
 
 const LINKEDIN_OAUTH_RESULT_KEY = "linkedin_oauth_result";
+
+const CNAE_SEGMENT_OPTIONS = [
+  { code: "01", label: "01 - Agropecuária" },
+  { code: "05", label: "05 - Indústria extrativa" },
+  { code: "10", label: "10 - Indústria de transformação" },
+  { code: "35", label: "35 - Energia e utilidades" },
+  { code: "41", label: "41 - Construção civil" },
+  { code: "45", label: "45 - Comércio e reparação de veículos" },
+  { code: "47", label: "47 - Comércio varejista" },
+  { code: "49", label: "49 - Transporte terrestre" },
+  { code: "55", label: "55 - Hospedagem e alimentação" },
+  { code: "58", label: "58 - Informação e comunicação" },
+  { code: "62", label: "62 - Tecnologia da informação" },
+  { code: "64", label: "64 - Atividades financeiras" },
+  { code: "68", label: "68 - Atividades imobiliárias" },
+  { code: "69", label: "69 - Jurídico, contábil e auditoria" },
+  { code: "70", label: "70 - Administração e consultoria" },
+  { code: "71", label: "71 - Arquitetura e engenharia" },
+  { code: "72", label: "72 - Pesquisa e desenvolvimento" },
+  { code: "78", label: "78 - Seleção e gestão de RH" },
+  { code: "85", label: "85 - Educação" },
+  { code: "86", label: "86 - Saúde" },
+  { code: "93", label: "93 - Esporte, cultura e lazer" },
+];
 
 function normalizeCompanyKey(name) {
   return (name || "")
@@ -86,6 +111,11 @@ function sortCompaniesAlphabetically(items) {
   return [...(items || [])].sort((a, b) =>
     (a?.company || "").localeCompare(b?.company || "", "pt-BR", { sensitivity: "base" })
   );
+}
+
+function getSegmentFromCnae(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  return digits.length >= 2 ? digits.slice(0, 2) : "";
 }
 
 // Pequena alteração para forçar novo deploy (sem impacto funcional)
@@ -162,6 +192,10 @@ function Home({ theme, toggleTheme }) {
   const [cnpjError, setCnpjError] = useState(null);
   const [pendingCompanyData, setPendingCompanyData] = useState(null);
   const [sectorFilter, setSectorFilter] = useState("");
+  const [segmentFilter, setSegmentFilter] = useState("");
+  const [manualCompanyName, setManualCompanyName] = useState("");
+  const [manualSegment, setManualSegment] = useState("");
+  const [manualRazaoSocial, setManualRazaoSocial] = useState("");
   const [rating, setRating] = useState(0);
   const [commentRating, setCommentRating] = useState("");
   const [salario, setSalario] = useState(0);
@@ -221,6 +255,14 @@ function Home({ theme, toggleTheme }) {
     }
   });
   const userPseudonym = localStorage.getItem("userPseudonym") || "";
+  const attemptedSegmentEnrichmentRef = React.useRef(new Set());
+  const isUserAdmin = useMemo(() => {
+    try {
+      return isAdmin();
+    } catch {
+      return false;
+    }
+  }, []);
 
   // Inicializa as empresa3s dinamicamente sem erro de map
   
@@ -251,6 +293,9 @@ function Home({ theme, toggleTheme }) {
         .map((nome) => ({
           company: nome,
           cnpj: null,
+          razaoSocial: null,
+          segmento: null,
+          cnae_principal: null,
           sourceStats: { indicacao: 0, siteVagas: 0, gruposWhatsapp: 0, redesSociais: 0 },
           contractStats: { pj: 0, clt: 0 },
           workModelStats: { presencial: 0, hibrida: 0, remota: 0 },
@@ -312,6 +357,9 @@ function Home({ theme, toggleTheme }) {
               map.set(companyName, {
                 company: companyName,
                 cnpj: rc?.cnpj || null,
+                razaoSocial: rc?.razaoSocial || null,
+                segmento: rc?.segmento || null,
+                cnae_principal: rc?.cnae_principal || null,
                 website: rc?.website || null,
                 sourceStats: rc?.sourceStats || null,
                 contractStats: rc?.contractStats || null,
@@ -321,6 +369,18 @@ function Home({ theme, toggleTheme }) {
                 inovacao: 0, lideranca: 0, diversidade: 0, ambiente: 0, equilibrio: 0,
                 reconhecimento: 0, comunicacao: 0, etica: 0, desenvolvimento: 0,
                 saudeBemEstar: 0, impactoSocial: 0, reputacao: 0, estimacaoOrganizacao: 0,
+              });
+            } else {
+              const current = map.get(companyName);
+              map.set(companyName, {
+                ...current,
+                cnpj: rc?.cnpj || current?.cnpj || null,
+                razaoSocial: rc?.razaoSocial || current?.razaoSocial || null,
+                segmento: rc?.segmento || current?.segmento || null,
+                cnae_principal: rc?.cnae_principal || current?.cnae_principal || null,
+                website: rc?.website || current?.website || null,
+                cnaeCode: rc?.cnaeCode || current?.cnaeCode || null,
+                cnaeDescricao: rc?.cnaeDescricao || current?.cnaeDescricao || null,
               });
             }
           }
@@ -415,10 +475,20 @@ function Home({ theme, toggleTheme }) {
       .filter((s) => s && !seen.has(s) && seen.add(s));
   }, [empresas]);
 
+  const segmentosList = useMemo(() => {
+    const seen = new Set();
+    return empresas
+      .map((emp) => (emp?.segmento || "").toString().trim())
+      .filter((seg) => seg && !seen.has(seg) && seen.add(seg))
+      .sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [empresas]);
+
   const top3 = useMemo(() => {
-    const filtered = sectorFilter
-      ? empresas.filter((emp) => emp.cnaeDescricao === sectorFilter)
-      : empresas;
+    const filtered = empresas.filter((emp) => {
+      if (sectorFilter && emp.cnaeDescricao !== sectorFilter) return false;
+      if (segmentFilter && (emp?.segmento || "") !== segmentFilter) return false;
+      return true;
+    });
     return [...filtered]
       .sort((a, b) => {
         const avgA = getCompanyAverageValue(a);
@@ -426,7 +496,7 @@ function Home({ theme, toggleTheme }) {
         return (avgB ?? -1) - (avgA ?? -1);
       })
       .slice(0, 3);
-  }, [empresas, getCompanyAverageValue, sectorFilter]);
+  }, [empresas, getCompanyAverageValue, sectorFilter, segmentFilter]);
 
   const getMedalColor = (index) => {
     if (index === 0) return "from-yellow-400 to-yellow-600";
@@ -633,6 +703,52 @@ function Home({ theme, toggleTheme }) {
     }
   }, [company, empresas]);
 
+  useEffect(() => {
+    const selected = selectedCompanyData;
+    const cnpjDigits = String(selected?.cnpj || "").replace(/\D/g, "");
+    if (!selected || !cnpjDigits) return;
+
+    if (attemptedSegmentEnrichmentRef.current.has(cnpjDigits)) return;
+    attemptedSegmentEnrichmentRef.current.add(cnpjDigits);
+
+    (async () => {
+      try {
+        const enriched = await enrichCompanyWithBrasilAPI(cnpjDigits);
+        if (!enriched) return;
+
+        const nextSegmento = enriched.segmento || getSegmentFromCnae(enriched?.cnae_principal?.codigo);
+        const nextCnaePrincipal = enriched.cnae_principal || null;
+        const nextRazaoSocial = enriched.razaoSocial || selected?.razaoSocial || null;
+
+        setEmpresas((prev) => prev.map((emp) => {
+          if (emp.company !== selected.company) return emp;
+          return {
+            ...emp,
+            segmento: nextSegmento || emp.segmento || null,
+            cnae_principal: nextCnaePrincipal || emp.cnae_principal || null,
+            razaoSocial: nextRazaoSocial || emp.razaoSocial || null,
+            cnaeCode: nextCnaePrincipal?.codigo || emp.cnaeCode || null,
+            cnaeDescricao: nextCnaePrincipal?.descricao || emp.cnaeDescricao || null,
+            website: enriched.site || emp.website || null,
+          };
+        }));
+
+        await saveCompany({
+          company: selected.company,
+          cnpj: cnpjDigits,
+          website: enriched.site || selected.website || null,
+          cnaeCode: nextCnaePrincipal?.codigo || selected.cnaeCode || null,
+          cnaeDescricao: nextCnaePrincipal?.descricao || selected.cnaeDescricao || null,
+          cnaePrincipal: nextCnaePrincipal,
+          segmento: nextSegmento || null,
+          razaoSocial: nextRazaoSocial,
+        });
+      } catch (err) {
+        console.warn("Falha ao enriquecer segmento por CNPJ:", err);
+      }
+    })();
+  }, [selectedCompanyData]);
+
   const handleAddNewCompany = useCallback(async () => {
     const cleanedCnpj = newCompanyCnpj.replace(/\D/g, "");
 
@@ -651,18 +767,12 @@ function Home({ theme, toggleTheme }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/cnpj", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cnpj: cleanedCnpj }),
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "CNPJ inválido ou não encontrado.");
+      const data = await enrichCompanyWithBrasilAPI(cleanedCnpj);
+      if (!data) {
+        throw new Error("CNPJ inválido ou não encontrado.");
       }
 
-      const rawName = data.fantasia || data.nome_fantasia || data.nome || data.razao_social;
+      const rawName = data.descricao || data.razaoSocial;
       const companyName = normalizeCompanyName(rawName || "");
 
       if (!companyName) {
@@ -682,13 +792,18 @@ function Home({ theme, toggleTheme }) {
         throw new Error("Esta empresa já está na lista.");
       }
 
-      const website = data.site || data.website || null;
-      const cnaeCode = data.atividade_principal?.[0]?.code || null;
-      const cnaeDescricao = data.atividade_principal?.[0]?.text || null;
+      const website = data.site || null;
+      const cnaeCode = data?.cnae_principal?.codigo || null;
+      const cnaeDescricao = data?.cnae_principal?.descricao || null;
+      const segmento = data?.segmento || getSegmentFromCnae(cnaeCode) || null;
+      const razaoSocial = data?.razaoSocial || null;
 
       setPendingCompanyData({
         company: companyName,
         cnpj: cleanedCnpj,
+        razaoSocial,
+        segmento,
+        cnae_principal: data?.cnae_principal || null,
         website,
         cnaeCode,
         cnaeDescricao,
@@ -700,17 +815,66 @@ function Home({ theme, toggleTheme }) {
     }
   }, [newCompanyCnpj, empresas]);
 
+  const handleAddCompanyWithoutCnpj = useCallback(() => {
+    if (!isUserAdmin) {
+      setCnpjError("Apenas administradores podem cadastrar empresa sem CNPJ.");
+      return;
+    }
+
+    const normalizedName = normalizeCompanyName(manualCompanyName || "");
+    if (!normalizedName) {
+      setCnpjError("Informe o nome da empresa para cadastro manual.");
+      return;
+    }
+
+    if (!manualSegment) {
+      setCnpjError("Selecione o segmento principal (divisão CNAE).");
+      return;
+    }
+
+    const alreadyExists = empresas.some((emp) => normalizeCompanyName(emp?.company || "") === normalizedName);
+    if (alreadyExists) {
+      setCnpjError("Esta empresa já está na lista.");
+      return;
+    }
+
+    setCnpjError(null);
+    setPendingCompanyData({
+      company: normalizedName,
+      cnpj: null,
+      website: null,
+      cnaeCode: null,
+      cnaeDescricao: null,
+      cnae_principal: null,
+      segmento: manualSegment,
+      razaoSocial: (manualRazaoSocial || normalizedName || "").trim(),
+    });
+  }, [isUserAdmin, manualCompanyName, manualSegment, manualRazaoSocial, empresas]);
+
   const handleConfirmNewCompany = useCallback(async () => {
-    if (!pendingCompanyData?.company || !pendingCompanyData?.cnpj) {
+    if (!pendingCompanyData?.company) {
+      setCnpjError("Informe os dados da empresa antes de confirmar.");
+      return;
+    }
+
+    if (!pendingCompanyData?.cnpj && !isUserAdmin) {
       setCnpjError("Consulte um CNPJ válido antes de confirmar.");
+      return;
+    }
+
+    if (!pendingCompanyData?.cnpj && !pendingCompanyData?.segmento) {
+      setCnpjError("Selecione o segmento (divisão CNAE) para cadastro sem CNPJ.");
       return;
     }
 
     setIsLoading(true);
     setCnpjError(null);
 
+    const pendingCnpjDigits = (pendingCompanyData.cnpj || "").toString().replace(/\D/g, "");
+
     const alreadyExists = empresas.some((emp) => {
-      const sameCnpj = (emp?.cnpj || "").toString().replace(/\D/g, "") === (pendingCompanyData.cnpj || "").toString().replace(/\D/g, "");
+      const empCnpjDigits = (emp?.cnpj || "").toString().replace(/\D/g, "");
+      const sameCnpj = Boolean(pendingCnpjDigits && empCnpjDigits && empCnpjDigits === pendingCnpjDigits);
       const sameName = normalizeCompanyName(emp?.company || "") === normalizeCompanyName(pendingCompanyData.company || "");
       return sameCnpj || sameName;
     });
@@ -725,6 +889,9 @@ function Home({ theme, toggleTheme }) {
     const newCompanyData = {
       company: pendingCompanyData.company,
       cnpj: pendingCompanyData.cnpj,
+      razaoSocial: pendingCompanyData.razaoSocial || null,
+      segmento: pendingCompanyData.segmento || null,
+      cnae_principal: pendingCompanyData.cnae_principal || null,
       website: pendingCompanyData.website || null,
       cnaeCode: pendingCompanyData.cnaeCode || null,
       cnaeDescricao: pendingCompanyData.cnaeDescricao || null,
@@ -738,13 +905,21 @@ function Home({ theme, toggleTheme }) {
     };
 
     setEmpresas((prev) => {
-      const exists = prev.some((emp) => emp.company === pendingCompanyData.company || emp.cnpj === pendingCompanyData.cnpj);
+      const exists = prev.some((emp) => {
+        const sameName = emp.company === pendingCompanyData.company;
+        const empCnpjDigits = (emp?.cnpj || "").toString().replace(/\D/g, "");
+        const sameCnpj = Boolean(pendingCnpjDigits && empCnpjDigits && empCnpjDigits === pendingCnpjDigits);
+        return sameName || sameCnpj;
+      });
       if (exists) return prev;
       return sortCompaniesAlphabetically([...prev, newCompanyData]);
     });
 
     setCompany({ value: newCompanyData.company, label: newCompanyData.company });
     setNewCompanyCnpj("");
+    setManualCompanyName("");
+    setManualSegment("");
+    setManualRazaoSocial("");
     setPendingCompanyData(null);
     setShowNewCompanyInput(false);
 
@@ -755,6 +930,9 @@ function Home({ theme, toggleTheme }) {
         website: newCompanyData.website,
         cnaeCode: newCompanyData.cnaeCode,
         cnaeDescricao: newCompanyData.cnaeDescricao,
+        cnaePrincipal: newCompanyData.cnae_principal,
+        segmento: newCompanyData.segmento,
+        razaoSocial: newCompanyData.razaoSocial,
       });
     } catch (saveErr) {
       console.warn("Falha ao salvar empresa no Firebase:", saveErr);
@@ -764,7 +942,7 @@ function Home({ theme, toggleTheme }) {
     } finally {
       setIsLoading(false);
     }
-  }, [pendingCompanyData, empresas]);
+  }, [pendingCompanyData, empresas, isUserAdmin]);
 
   const buildEvaluationData = useCallback((termsData = {}) => {
     const pseudonym = localStorage.getItem("userPseudonym");
@@ -1378,8 +1556,15 @@ function Home({ theme, toggleTheme }) {
     entrySource, setEntrySource, contractType, setContractType, workModel, setWorkModel,
     generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
     sectorFilter, setSectorFilter, setoresList,
+    segmentFilter, setSegmentFilter, segmentosList,
     newCompanyCnpj, setNewCompanyCnpj, cnpjError,
+    manualCompanyName, setManualCompanyName,
+    manualSegment, setManualSegment,
+    manualRazaoSocial, setManualRazaoSocial,
+    cnaeSegmentOptions: CNAE_SEGMENT_OPTIONS,
+    isUserAdmin,
     showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany,
+    handleAddCompanyWithoutCnpj,
     handleConfirmNewCompany, pendingCompanyData,
     linkedInClientId, linkedInRedirectUri, error, setError, isAuthenticated, setIsAuthenticated, handleLogout,
     showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,

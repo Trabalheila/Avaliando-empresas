@@ -90,6 +90,11 @@ function TrabalheiLaDesktop({
   handleSaibaMais,
   showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany, handleConfirmNewCompany, pendingCompanyData, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
   sectorFilter, setSectorFilter, setoresList,
+  segmentFilter, setSegmentFilter, segmentosList,
+  manualCompanyName, setManualCompanyName,
+  manualSegment, setManualSegment,
+  manualRazaoSocial, setManualRazaoSocial,
+  cnaeSegmentOptions, isUserAdmin, handleAddCompanyWithoutCnpj,
   linkedInClientId, linkedInRedirectUri, error, setError, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, selectedCompanyData, calcularMedia,
   handleLogout,
   onGoogleLogin,
@@ -605,6 +610,19 @@ function TrabalheiLaDesktop({
                   ))}
                 </select>
               )}
+              {Array.isArray(segmentosList) && segmentosList.length > 0 && (
+                <select
+                  value={segmentFilter}
+                  onChange={(e) => setSegmentFilter(e.target.value)}
+                  className="w-full mb-4 p-2 text-sm border border-blue-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  <option value="">Todos os segmentos (CNAE)</option>
+                  {segmentosList.map((seg) => {
+                    const opt = (cnaeSegmentOptions || []).find((item) => item.code === seg);
+                    return <option key={seg} value={seg}>{opt ? opt.label : seg}</option>;
+                  })}
+                </select>
+              )}
 
               {Array.isArray(top3) && top3.length > 0 && (
                 <div className="mb-4 space-y-2">
@@ -701,10 +719,57 @@ function TrabalheiLaDesktop({
                       </div>
                       {cnpjError && <p className="text-sm text-red-600">{cnpjError}</p>}
 
+                      {isUserAdmin && (
+                        <div className="rounded-xl border border-dashed border-blue-200 dark:border-slate-700 p-3 bg-blue-50/50 dark:bg-slate-800/60">
+                          <p className="text-xs font-semibold text-blue-900 dark:text-blue-200 mb-2">
+                            Sem CNPJ? Cadastro manual (apenas admin)
+                          </p>
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              value={manualCompanyName}
+                              onChange={(e) => setManualCompanyName(e.target.value)}
+                              placeholder="Nome da empresa"
+                              className="w-full p-2 border border-blue-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-sm"
+                            />
+                            <input
+                              type="text"
+                              value={manualRazaoSocial}
+                              onChange={(e) => setManualRazaoSocial(e.target.value)}
+                              placeholder="Razão social (opcional)"
+                              className="w-full p-2 border border-blue-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-sm"
+                            />
+                            <select
+                              value={manualSegment}
+                              onChange={(e) => setManualSegment(e.target.value)}
+                              className="w-full p-2 border border-blue-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-sm"
+                            >
+                              <option value="">Selecione o segmento (divisão CNAE)</option>
+                              {(cnaeSegmentOptions || []).map((opt) => (
+                                <option key={opt.code} value={opt.code}>{opt.label}</option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              onClick={handleAddCompanyWithoutCnpj}
+                              className="w-full px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition"
+                            >
+                              Preparar cadastro sem CNPJ
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
                       {pendingCompanyData && (
                         <div className="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-xl p-3 text-sm text-blue-900 dark:text-blue-100">
                           <p className="font-semibold">Empresa encontrada: {pendingCompanyData.company}</p>
-                          <p className="text-xs text-blue-700 dark:text-blue-200 mt-1">CNPJ: {pendingCompanyData.cnpj}</p>
+                          <p className="text-xs text-blue-700 dark:text-blue-200 mt-1">CNPJ: {pendingCompanyData.cnpj || "não informado"}</p>
+                          {pendingCompanyData.razaoSocial && (
+                            <p className="text-xs text-blue-700 dark:text-blue-200 mt-0.5">Razão social: {pendingCompanyData.razaoSocial}</p>
+                          )}
+                          {pendingCompanyData.segmento && (
+                            <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-0.5">Segmento (CNAE): {pendingCompanyData.segmento}</p>
+                          )}
                           {pendingCompanyData.cnaeDescricao && (
                             <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">Setor: {pendingCompanyData.cnaeDescricao}</p>
                           )}

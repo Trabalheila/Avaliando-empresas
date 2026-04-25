@@ -727,6 +727,7 @@ function CompanyDetails({ theme, toggleTheme }) {
 
     const loadCompareOptions = async () => {
       const currentSlug = getCompanySlug();
+      const currentSegment = (company?.segmento || "").toString().trim();
       if (!currentSlug) {
         if (alive) {
           setCompareOptions([]);
@@ -742,7 +743,9 @@ function CompanyDetails({ theme, toggleTheme }) {
         for (const item of stored) {
           const itemName = (item?.company || item?.name || "").toString().trim();
           const itemSlug = toSlug(itemName);
+          const itemSegment = (item?.segmento || "").toString().trim();
           if (!itemSlug || itemSlug === currentSlug) continue;
+          if (currentSegment && itemSegment !== currentSegment) continue;
           if (!optionMap.has(itemSlug)) {
             optionMap.set(itemSlug, { slug: itemSlug, name: itemName || itemSlug });
           }
@@ -756,7 +759,9 @@ function CompanyDetails({ theme, toggleTheme }) {
         for (const item of remoteCompanies || []) {
           const itemName = (item?.name || item?.company || item?.slug || "").toString().trim();
           const itemSlug = toSlug(item?.slug || itemName);
+          const itemSegment = (item?.segmento || "").toString().trim();
           if (!itemSlug || itemSlug === currentSlug) continue;
+          if (currentSegment && itemSegment !== currentSegment) continue;
           if (!optionMap.has(itemSlug)) {
             optionMap.set(itemSlug, { slug: itemSlug, name: itemName || itemSlug });
           }
@@ -782,7 +787,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     return () => {
       alive = false;
     };
-  }, [company?.company, getCompanySlug, compareTargetSlug]);
+  }, [company?.company, company?.segmento, getCompanySlug, compareTargetSlug]);
 
   const getReactionsKey = React.useCallback(() => {
     return company ? `comment_reactions_${company.company}` : null;
