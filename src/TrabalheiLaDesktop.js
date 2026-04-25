@@ -269,6 +269,11 @@ function TrabalheiLaDesktop({
     return () => observer.disconnect();
   }, [campos.length]);
 
+  const progressPercent = visibleCriterionIdx >= 0
+    ? Math.round(((visibleCriterionIdx + 1) / campos.length) * 100)
+    : 0;
+  const stickyProgressTop = headerSpacerHeight + 8;
+
   const sourceConfig = [
     { key: "indicacao", label: "Indicação", color: "#2563eb" },
     { key: "siteVagas", label: "Site de vagas", color: "#16a34a" },
@@ -471,6 +476,13 @@ function TrabalheiLaDesktop({
                         return null;
                       })()}
                     </div>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="ml-3 px-3 py-1.5 border-2 border-blue-700 text-blue-700 text-sm font-bold rounded-md hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
+                    >
+                      Sair
+                    </button>
                   </div>
 
                 </div>
@@ -573,17 +585,6 @@ function TrabalheiLaDesktop({
                     CRIE SEU PERFIL E AVALIE ANONIMAMENTE!
                   </p>
                 </div>
-                {isAuthenticated && (
-                  <div className="w-full flex justify-end">
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="px-3 py-1.5 border-2 border-blue-700 text-blue-700 text-sm font-bold rounded-md hover:bg-blue-50 transition"
-                    >
-                      Sair
-                    </button>
-                  </div>
-                )}
                 <p className="text-xs text-slate-500 dark:text-slate-300 text-center">
                   Sem LinkedIn: entre com Google e complete seu perfil manualmente na próxima etapa.
                 </p>
@@ -782,13 +783,16 @@ function TrabalheiLaDesktop({
 
                 {/* Barra de progresso dos critérios */}
                 {visibleCriterionIdx >= 0 && (
-                  <div className="sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-xl border border-blue-100 dark:border-slate-700 p-2 mb-2">
+                  <div
+                    className="sticky z-10 mb-2 ml-auto w-full max-w-[380px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-lg border border-blue-100 dark:border-slate-700 px-3 py-2 shadow-sm"
+                    style={{ top: stickyProgressTop }}
+                  >
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-bold text-blue-800 dark:text-blue-200">Critério {visibleCriterionIdx + 1} de {campos.length}</span>
-                      <span className="text-xs text-slate-500">{Math.round(((visibleCriterionIdx + 1) / campos.length) * 100)}%</span>
+                      <span className="text-[11px] text-slate-500">{progressPercent}%</span>
                     </div>
-                    <div className="w-full h-2 bg-blue-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-blue-500 to-blue-700 rounded-full transition-all duration-300" style={{ width: `${((visibleCriterionIdx + 1) / campos.length) * 100}%` }} />
+                    <div className="w-full h-1.5 bg-blue-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-blue-500 to-blue-700 rounded-full transition-all duration-300" style={{ width: `${progressPercent}%` }} />
                     </div>
                   </div>
                 )}
