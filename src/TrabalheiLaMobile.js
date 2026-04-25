@@ -182,7 +182,7 @@ function TrabalheiLaMobile({
   const COMMENT_GUIDANCE_TEXT = "Descreva comportamentos e situações. Evite citar nomes de pessoas.";
   const COMMENT_WARNING_TEXT = "Identificamos possível citação de nome. Considere substituir por descrição do comportamento ou situação.";
 
-  const normalizeText = React.useCallback((value) => {
+  const containsPossiblePersonName = React.useCallback((value) => {
     const replacements = {
       "3": "e",
       "0": "o",
@@ -194,12 +194,7 @@ function TrabalheiLaMobile({
       "7": "t",
       "8": "b",
     };
-
-    return String(value || "").replace(/[304@1!578]/g, (char) => replacements[char] || char);
-  }, []);
-
-  const containsPossiblePersonName = React.useCallback((value) => {
-    const text = normalizeText(value);
+    const text = String(value || "").replace(/[304@1!578]/g, (char) => replacements[char] || char);
     const namePattern = /\b[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][a-záàâãéêíóôõúç]+(?:\s+[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][a-záàâãéêíóôõúç]+)+\b/g;
     const sentenceBoundaryPattern = /[.!?\n]/;
     let match = namePattern.exec(text);
@@ -228,7 +223,7 @@ function TrabalheiLaMobile({
     }
 
     return false;
-  }, [normalizeText]);
+  }, []);
 
   const legacyMetricsBridge = {
     beneficios, setBeneficios,

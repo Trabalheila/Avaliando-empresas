@@ -206,6 +206,9 @@ function Home({ theme, toggleTheme }) {
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showResponsibilityModal, setShowResponsibilityModal] = useState(false);
+  const [responsibilityAccepted, setResponsibilityAccepted] = useState(false);
+  const [pendingEvaluationData, setPendingEvaluationData] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showNewCompanyInput, setShowNewCompanyInput] = useState(false);
   const [showCaptcha, setShowCaptcha] = useState(false);
@@ -763,7 +766,114 @@ function Home({ theme, toggleTheme }) {
     }
   }, [pendingCompanyData, empresas]);
 
-  const handleSubmit = useCallback(async (e) => {
+  const buildEvaluationData = useCallback((termsData = {}) => {
+    const pseudonym = localStorage.getItem("userPseudonym");
+    const authorProfileId = resolveProfileId(userProfile, { persistGeneratedId: false }) || "";
+
+    return {
+      company: company?.value || "",
+      pseudonym: pseudonym || "",
+      authorProfileId,
+      rating, commentRating, salario, commentSalario, beneficios, commentBeneficios,
+      cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao,
+      lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente,
+      equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao,
+      etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar,
+      impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao,
+      generalComment,
+      entrySource,
+      contractType,
+      workModel,
+      timestamp: new Date().toISOString(),
+      ...termsData,
+    };
+  }, [company, userProfile, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment, entrySource, contractType, workModel]);
+
+  const submitEvaluation = useCallback(async (evaluationData) => {
+    const pseudonym = evaluationData?.pseudonym;
+    if (!pseudonym) {
+      setError("Por favor, defina um pseudônimo antes de avaliar.");
+      return;
+    }
+
+    // Não permite que o mesmo pseudônimo avalie a mesma empresa mais de uma vez (cache local rápido)
+    const evaluationsKey = `evaluations_${evaluationData.company}`;
+    const storedEvals = localStorage.getItem(evaluationsKey);
+    const existingEvals = storedEvals ? JSON.parse(storedEvals) : {};
+
+    if (existingEvals[pseudonym]) {
+      setError("Você já avaliou essa empresa com este pseudônimo.");
+      return;
+    }
+
+    const nextEvals = {
+      ...existingEvals,
+      [pseudonym]: evaluationData,
+    };
+
+    try {
+      localStorage.setItem(evaluationsKey, JSON.stringify(nextEvals));
+    } catch {
+      // Ignore falha em salvar localmente
+    }
+
+    console.log("Dados prontos para envio (Firestore):", evaluationData);
+
+    await saveReview(evaluationData);
+
+    // Atualiza a empresa localmente para refletir a nova avaliação
+    setEmpresas((prev) =>
+      prev.map((emp) => {
+        if (emp.company !== evaluationData.company) return emp;
+
+        const previousCount = Number(emp?.reviewCount) || 0;
+        const nextCount = previousCount + 1;
+
+        const averagedMetrics = {};
+        for (const key of METRIC_KEYS) {
+          const prevAvg = Number(emp?.[key]) || 0;
+          const incoming = Number(evaluationData?.[key]) || 0;
+          averagedMetrics[key] = Number((((prevAvg * previousCount) + incoming) / nextCount).toFixed(2));
+        }
+
+        const sourceStats = {
+          indicacao: emp?.sourceStats?.indicacao || 0,
+          siteVagas: emp?.sourceStats?.siteVagas || 0,
+          gruposWhatsapp: emp?.sourceStats?.gruposWhatsapp || 0,
+          redesSociais: emp?.sourceStats?.redesSociais || 0,
+          [evaluationData.entrySource]: (emp?.sourceStats?.[evaluationData.entrySource] || 0) + 1,
+        };
+
+        const contractStats = {
+          pj: emp?.contractStats?.pj || 0,
+          clt: emp?.contractStats?.clt || 0,
+          [evaluationData.contractType]: (emp?.contractStats?.[evaluationData.contractType] || 0) + 1,
+        };
+
+        const workModelStats = {
+          presencial: emp?.workModelStats?.presencial || 0,
+          hibrida: emp?.workModelStats?.hibrida || 0,
+          remota: emp?.workModelStats?.remota || 0,
+          [evaluationData.workModel]: (emp?.workModelStats?.[evaluationData.workModel] || 0) + 1,
+        };
+
+        return {
+          ...emp,
+          ...averagedMetrics,
+          reviewCount: nextCount,
+          sourceStats,
+          contractStats,
+          workModelStats,
+        };
+      })
+    );
+
+    alert("Avaliação enviada com sucesso! Obrigado por sua contribuição.");
+    localStorage.removeItem(REVIEW_DRAFT_STORAGE_KEY);
+    navigate(`/empresa?name=${encodeURIComponent(evaluationData.company)}`);
+  }, [navigate]);
+
+  const handleSubmit = useCallback((e) => {
     e.preventDefault();
 
     if (!captchaConfirmed) {
@@ -798,109 +908,36 @@ function Home({ theme, toggleTheme }) {
     const pseudonym = localStorage.getItem("userPseudonym");
     if (!pseudonym) {
       setError("Por favor, defina um pseudônimo antes de avaliar.");
-      setIsLoading(false);
       return;
     }
 
-    const authorProfileId = resolveProfileId(userProfile, { persistGeneratedId: false }) || "";
-
-    setIsLoading(true);
     setError(null);
+    setResponsibilityAccepted(false);
+    setPendingEvaluationData(buildEvaluationData());
+    setShowResponsibilityModal(true);
+  }, [captchaConfirmed, isAuthenticated, company, entrySource, contractType, workModel, buildEvaluationData]);
+
+  const handleCancelResponsibility = useCallback(() => {
+    setShowResponsibilityModal(false);
+    setResponsibilityAccepted(false);
+    setPendingEvaluationData(null);
+  }, []);
+
+  const handleConfirmResponsibility = useCallback(async () => {
+    if (!responsibilityAccepted || !pendingEvaluationData) return;
 
     const evaluationData = {
-      company: company.value,
-      pseudonym,
-      authorProfileId,
-      rating, commentRating, salario, commentSalario, beneficios, commentBeneficios,
-      cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao,
-      lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente,
-      equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao,
-      etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar,
-      impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao,
-      generalComment,
-      entrySource,
-      contractType,
-      workModel,
-      timestamp: new Date().toISOString(),
+      ...pendingEvaluationData,
+      termsAccepted: true,
+      termsAcceptedAt: new Date().toISOString(),
     };
 
-    // Não permite que o mesmo pseudô1nimo avale a mesma empr2esa ma1is de uma vez (cache local rápido)
-    const evaluationsKey = `evaluations_${company.value}`;
-    const storedEvals = localStorage.getItem(evaluationsKey);
-    const existingEvals = storedEvals ? JSON.parse(storedEvals) : {};
-
-    if (existingEvals[pseudonym]) {
-      setError("Você já avaliou essa empresa com este pseudônimo.");
-      setIsLoading(false);
-      return;
-    }
-
-    const nextEvals = {
-      ...existingEvals,
-      [pseudonym]: evaluationData,
-    };
+    setIsLoading(true);
+    setShowResponsibilityModal(false);
+    setError(null);
 
     try {
-      localStorage.setItem(evaluationsKey, JSON.stringify(nextEvals));
-    } catch {
-      // Ignore falha em salvar localmente
-    }
-
-    console.log("Dados prontos para envio (Firestore):", evaluationData);
-
-    try {
-      await saveReview(evaluationData);
-
-      // Atualiza a empresa localmente para refletir a nova avaliação
-      setEmpresas((prev) =>
-        prev.map((emp) => {
-          if (emp.company !== company.value) return emp;
-
-          const previousCount = Number(emp?.reviewCount) || 0;
-          const nextCount = previousCount + 1;
-
-          const averagedMetrics = {};
-          for (const key of METRIC_KEYS) {
-            const prevAvg = Number(emp?.[key]) || 0;
-            const incoming = Number(evaluationData?.[key]) || 0;
-            averagedMetrics[key] = Number((((prevAvg * previousCount) + incoming) / nextCount).toFixed(2));
-          }
-
-          const sourceStats = {
-            indicacao: emp?.sourceStats?.indicacao || 0,
-            siteVagas: emp?.sourceStats?.siteVagas || 0,
-            gruposWhatsapp: emp?.sourceStats?.gruposWhatsapp || 0,
-            redesSociais: emp?.sourceStats?.redesSociais || 0,
-            [entrySource]: (emp?.sourceStats?.[entrySource] || 0) + 1,
-          };
-
-          const contractStats = {
-            pj: emp?.contractStats?.pj || 0,
-            clt: emp?.contractStats?.clt || 0,
-            [contractType]: (emp?.contractStats?.[contractType] || 0) + 1,
-          };
-
-          const workModelStats = {
-            presencial: emp?.workModelStats?.presencial || 0,
-            hibrida: emp?.workModelStats?.hibrida || 0,
-            remota: emp?.workModelStats?.remota || 0,
-            [workModel]: (emp?.workModelStats?.[workModel] || 0) + 1,
-          };
-
-          return {
-            ...emp,
-            ...averagedMetrics,
-            reviewCount: nextCount,
-            sourceStats,
-            contractStats,
-            workModelStats,
-          };
-        })
-      );
-
-      alert("Avaliação enviada com sucesso! Obrigado por sua contribuição.");
-      localStorage.removeItem(REVIEW_DRAFT_STORAGE_KEY);
-      navigate(`/empresa?name=${encodeURIComponent(company.value)}`);
+      await submitEvaluation(evaluationData);
     } catch (err) {
       const rawMessage = String(err?.message || "Erro desconhecido");
       if (rawMessage.toLowerCase().includes("missing or insufficient permissions")) {
@@ -911,10 +948,12 @@ function Home({ theme, toggleTheme }) {
         setError("Erro ao enviar avaliação: " + rawMessage);
       }
     } finally {
+      setPendingEvaluationData(null);
+      setResponsibilityAccepted(false);
       setIsLoading(false);
       setCaptchaConfirmed(false);
     }
-  }, [isAuthenticated, captchaConfirmed, company, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment, entrySource, contractType, workModel, navigate, userProfile]);
+  }, [responsibilityAccepted, pendingEvaluationData, submitEvaluation]);
 
   const handleSaibaMais = useCallback(() => {
     if (!company) {
@@ -1424,6 +1463,98 @@ function Home({ theme, toggleTheme }) {
             >
               Entendi
             </button>
+          </div>
+        </div>
+      )}
+
+      {showResponsibilityModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirmação de Responsabilidade"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 80,
+            backgroundColor: "rgba(15, 23, 42, 0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 620,
+              borderRadius: 14,
+              backgroundColor: "#ffffff",
+              color: "#0f172a",
+              boxShadow: "0 24px 48px rgba(2, 6, 23, 0.28)",
+              padding: "18px 18px 16px 18px",
+            }}
+          >
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#1e3a8a" }}>
+              Confirmação de Responsabilidade
+            </h2>
+
+            <p style={{ marginTop: 12, marginBottom: 0, lineHeight: 1.5, fontSize: 14 }}>
+              Ao publicar esta avaliação você confirma que: seu conteúdo não cita nomes de pessoas físicas, as informações são verídicas e baseadas em experiência real, e você é o único responsável pelo conteúdo publicado. A plataforma Trabalhei Lá não se responsabiliza por avaliações que violem estas condições.
+            </p>
+
+            <label
+              style={{
+                marginTop: 14,
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 8,
+                fontSize: 14,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={responsibilityAccepted}
+                onChange={(e) => setResponsibilityAccepted(e.target.checked)}
+                style={{ marginTop: 2 }}
+              />
+              <span>Li e concordo com as condições acima</span>
+            </label>
+
+            <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button
+                type="button"
+                onClick={handleCancelResponsibility}
+                disabled={isLoading}
+                style={{
+                  border: "1px solid #94a3b8",
+                  borderRadius: 10,
+                  padding: "8px 14px",
+                  backgroundColor: "#ffffff",
+                  color: "#0f172a",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmResponsibility}
+                disabled={!responsibilityAccepted || isLoading}
+                style={{
+                  border: "none",
+                  borderRadius: 10,
+                  padding: "8px 14px",
+                  backgroundColor: responsibilityAccepted ? "#1d4ed8" : "#93c5fd",
+                  color: "#ffffff",
+                  fontWeight: 700,
+                  cursor: responsibilityAccepted ? "pointer" : "not-allowed",
+                  opacity: isLoading ? 0.7 : 1,
+                }}
+              >
+                Publicar Avaliação
+              </button>
+            </div>
           </div>
         </div>
       )}
