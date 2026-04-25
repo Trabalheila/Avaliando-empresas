@@ -174,8 +174,6 @@ function TrabalheiLaMobile({
   error, setError, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, safeCompanyOptions,
   handleLogout,
   onGoogleLogin,
-  globalContractStats,
-  globalWorkModelStats,
   selectedCompanyData,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
 }) {
@@ -448,9 +446,7 @@ function TrabalheiLaMobile({
 
   const sourcePieData = buildPieData(selectedCompanyData?.sourceStats, sourceConfig);
   const contractPieData = buildPieData(selectedCompanyData?.contractStats, contractConfig);
-  const globalContractPieData = buildPieData(globalContractStats, contractConfig);
   const workModelPieData = buildPieData(selectedCompanyData?.workModelStats, workModelConfig);
-  const globalWorkModelPieData = buildPieData(globalWorkModelStats, workModelConfig);
   const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
   const headerRef = React.useRef(null);
   const [headerSpacerHeight, setHeaderSpacerHeight] = React.useState(0);
@@ -909,38 +905,6 @@ function TrabalheiLaMobile({
 
               {selectedCompanyData && (
                 <div className="mt-3 grid grid-cols-1 gap-3">
-                  <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-3">
-                    <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Classificação profissional geral</p>
-                    <p className="text-xs text-blue-600 dark:text-blue-300 mb-2">{getTopSliceLabel(globalContractPieData)}</p>
-                    <div className="flex items-center gap-3">
-                      <div className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square" style={{ background: `conic-gradient(${globalContractPieData.chart})` }} />
-                      <div className="space-y-1 text-xs">
-                        {globalContractPieData.items.map((item) => (
-                          <p key={`global_contract_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                            {item.label}: {item.percent.toFixed(0)}%
-                          </p>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-3">
-                    <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Modelo de trabalho geral</p>
-                    <p className="text-xs text-blue-600 dark:text-blue-300 mb-2">{getTopSliceLabel(globalWorkModelPieData)}</p>
-                    <div className="flex items-center gap-3">
-                      <div className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square" style={{ background: `conic-gradient(${globalWorkModelPieData.chart})` }} />
-                      <div className="space-y-1 text-xs">
-                        {globalWorkModelPieData.items.map((item) => (
-                          <p key={`global_work_model_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                            {item.label}: {item.percent.toFixed(0)}%
-                          </p>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
                   <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-3">
                     <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Entradas na empresa</p>
                     <p className="text-xs text-blue-600 dark:text-blue-300 mb-2">{getTopSliceLabel(sourcePieData)}</p>

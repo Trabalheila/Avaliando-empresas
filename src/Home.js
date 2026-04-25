@@ -1351,23 +1351,6 @@ function Home({ theme, toggleTheme }) {
     onGoogleLogin: handleGoogleLogin,
     getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
     handleSaibaMais,
-    globalContractStats: empresas.reduce(
-      (acc, emp) => {
-        acc.pj += Number(emp?.contractStats?.pj) || 0;
-        acc.clt += Number(emp?.contractStats?.clt) || 0;
-        return acc;
-      },
-      { pj: 0, clt: 0 }
-    ),
-    globalWorkModelStats: empresas.reduce(
-      (acc, emp) => {
-        acc.presencial += Number(emp?.workModelStats?.presencial) || 0;
-        acc.hibrida += Number(emp?.workModelStats?.hibrida) || 0;
-        acc.remota += Number(emp?.workModelStats?.remota) || 0;
-        return acc;
-      },
-      { presencial: 0, hibrida: 0, remota: 0 }
-    ),
   };
 
   return (

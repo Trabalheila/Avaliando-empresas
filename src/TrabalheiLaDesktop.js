@@ -93,8 +93,6 @@ function TrabalheiLaDesktop({
   linkedInClientId, linkedInRedirectUri, error, setError, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, selectedCompanyData, calcularMedia,
   handleLogout,
   onGoogleLogin,
-  globalContractStats,
-  globalWorkModelStats,
   getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed
 }) {
@@ -152,18 +150,20 @@ function TrabalheiLaDesktop({
     return false;
   }, [normalizeText]);
 
-  const headerRef = React.useRef(null);
-  const [headerSpacerHeight, setHeaderSpacerHeight] = React.useState(0);
   const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
-
-  React.useEffect(() => {
-    const updateHeaderSpacer = () => {
-      setHeaderSpacerHeight(headerRef.current?.offsetHeight || 0);
-    };
-    updateHeaderSpacer();
-    window.addEventListener("resize", updateHeaderSpacer);
-    return () => window.removeEventListener("resize", updateHeaderSpacer);
-  }, [company, firebaseStatus, hasCompletedProfile, isAuthenticated, theme, userProfile?.avatar, userProfile?.name, userProfile?.verification?.certified, userPseudonym]);
+  const navbarUserLabel = userPseudonym || userProfile?.name || "Usuário";
+  const userAvatar = userProfile?.avatar || "";
+  let hasCompanyPanelAccess = false;
+  let hasAdminAccess = false;
+  try {
+    const { getUserRole, isPremium, isAdmin } = require("./utils/rbac");
+    hasAdminAccess = isAdmin();
+    const role = getUserRole();
+    hasCompanyPanelAccess = role === "admin_empresa" || isPremium() || hasAdminAccess;
+  } catch {
+    hasCompanyPanelAccess = false;
+    hasAdminAccess = false;
+  }
   const isDark = theme === "dark";
   const selectStyles = {
     control: (base) => ({
@@ -216,183 +216,56 @@ function TrabalheiLaDesktop({
         warningText={COMMENT_WARNING_TEXT}
         containsPossiblePersonName={containsPossiblePersonName}
         rows={3}
-        placeholder={`Comentário sobre ${label.toLowerCase()} (opcional)`}
-        value={comment}
-        onValueChange={setComment}
-        className="w-full p-2 text-sm border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100"
-      />
-    </div>
-  );
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center px-6 pb-6 pt-[72px]">
+            <header className="fixed inset-x-0 top-0 z-50 h-16 border-b border-blue-200 dark:border-slate-700 bg-blue-950/92 dark:bg-slate-950/92 backdrop-blur-sm shadow-lg">
+              <div className="mx-auto flex h-full w-full max-w-6xl items-center justify-between gap-4 px-6">
+                <div className="min-w-[180px] shrink-0">
+                  <h1 className="text-xl font-black tracking-[0.08em] text-white logo-syne leading-none">
+                    TRABALHEI LÁ
+                  </h1>
+                </div>
 
-  const campos = [
-    { label: t('Processo de Recrutamento'), value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao, icon: <FiMessageCircle className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200" },
-    { label: t('Proposta salarial e benefícios'), value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica, icon: <FiDollarSign className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200" },
-    { label: t('Visão e valores da empresa'), value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura, icon: <FiCompass className="text-blue-700" />, iconBg: "from-blue-50 to-sky-100 border-blue-200" },
-    { label: t('Data do Pagamento'), value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario, icon: <FiCalendar className="text-rose-600" />, iconBg: "from-rose-50 to-red-100 border-rose-200" },
-    { label: t('Acessibilidade e respeito da liderança'), value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca, icon: <FiUsers className="text-indigo-600" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200" },
-    { label: t('Condições de trabalho'), value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao, icon: <FiBriefcase className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200" },
-    { label: t('Estímulo ao respeito'), value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente, icon: <FiUsers className="text-violet-600" />, iconBg: "from-violet-50 to-fuchsia-100 border-violet-200" },
-    { label: t('Sofreu discriminação?'), value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade, icon: <FiAlertCircle className="text-teal-600" />, iconBg: "from-teal-50 to-cyan-100 border-teal-200" },
-    { label: t('Segurança e integridade'), value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FiShield className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200" },
-    { label: t('Preocupação com o bem estar'), value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar, icon: <FiHeart className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200" },
-    { label: t('Rotatividade'), subtitle: t('(Demite com facilidade?)'), value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio, icon: <FiRepeat className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300" },
-    { label: t('Reconhecimento'), value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento, icon: <FiAward className="text-amber-700" />, iconBg: "from-amber-50 to-orange-100 border-amber-200" },
-    { label: t('Planos de cargos e salários'), value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento, icon: <FiTrendingUp className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200" },
-  ];
+                <div className="flex-1 text-center px-4">
+                  <p className="text-xs font-medium tracking-[0.12em] text-blue-100/80 uppercase">
+                    {t('Evoluindo o mercado de trabalho')}
+                  </p>
+                </div>
 
-  const companyNote = selectedCompanyData ? calcularMedia(selectedCompanyData) : "--";
-  const isCompanyUnrated = companyNote === "--";
-  const companyNoteValue = Number.parseFloat(companyNote);
-  const isCompanyRecommended = !isCompanyUnrated && Number.isFinite(companyNoteValue) && companyNoteValue >= 3;
-
-  // Progress bar: IntersectionObserver para critérios
-  const criterionRefs = React.useRef([]);
-  const [visibleCriterionIdx, setVisibleCriterionIdx] = React.useState(-1);
-
-  React.useEffect(() => {
-    const refs = criterionRefs.current;
-    if (!refs.length) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        let maxIdx = -1;
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            const idx = Number(entry.target.dataset.criterionIdx);
-            if (idx > maxIdx) maxIdx = idx;
-          }
-        }
-        if (maxIdx >= 0) setVisibleCriterionIdx(maxIdx);
-      },
-      { threshold: 0.5 }
-    );
-    for (const el of refs) { if (el) observer.observe(el); }
-    return () => observer.disconnect();
-  }, [campos.length]);
-
-  const sourceConfig = [
-    { key: "indicacao", label: "Indicação", color: "#2563eb" },
-    { key: "siteVagas", label: "Site de vagas", color: "#16a34a" },
-    { key: "gruposWhatsapp", label: "Grupos de WhatsApp", color: "#d97706" },
-    { key: "redesSociais", label: "Redes sociais", color: "#9333ea" },
-  ];
-
-  const contractConfig = [
-    { key: "pj", label: "PJ", color: "#0284c7" },
-    { key: "clt", label: "CLT", color: "#16a34a" },
-  ];
-
-  const workModelConfig = [
-    { key: "presencial", label: "Presencial", color: "#2563eb" },
-    { key: "hibrida", label: "Híbrida (Semi presencial)", color: "#d97706" },
-    { key: "remota", label: "Remota", color: "#16a34a" },
-  ];
-
-  const buildPieData = (stats, config) => {
-    const total = config.reduce((sum, item) => sum + (stats?.[item.key] || 0), 0);
-    if (!total) {
-      return {
-        chart: "#e5e7eb 0deg 360deg",
-        items: config.map((item) => ({ ...item, percent: 0 })),
-      };
-    }
-
-    let cursor = 0;
-    const items = config.map((item) => {
-      const value = stats?.[item.key] || 0;
-      const percent = (value / total) * 100;
-      const deg = (percent / 100) * 360;
-      const start = cursor;
-      cursor += deg;
-      return {
-        ...item,
-        percent,
-        slice: `${item.color} ${start.toFixed(2)}deg ${cursor.toFixed(2)}deg`,
-      };
-    });
-
-    return {
-      chart: items.filter((item) => item.percent > 0).map((item) => item.slice).join(", "),
-      items,
-    };
-  };
-
-  const sourcePieData = buildPieData(selectedCompanyData?.sourceStats, sourceConfig);
-  const contractPieData = buildPieData(selectedCompanyData?.contractStats, contractConfig);
-  const globalContractPieData = buildPieData(globalContractStats, contractConfig);
-  const workModelPieData = buildPieData(selectedCompanyData?.workModelStats, workModelConfig);
-  const globalWorkModelPieData = buildPieData(globalWorkModelStats, workModelConfig);
-
-  const getTopSliceLabel = (pieData) => {
-    const topItem = pieData.items.reduce((best, current) => (current.percent > best.percent ? current : best), pieData.items[0]);
-    if (!topItem || topItem.percent <= 0) {
-      return "Ainda sem dados suficientes";
-    }
-    return `${topItem.label} lidera com ${topItem.percent.toFixed(0)}%`;
-  };
-
-  // Lógica para gerar a Logo baseada no nome da empresa
-  const companyNameForLogo = selectedCompanyData ? selectedCompanyData.company : "TL";
-  const logoCandidates = getCompanyLogoCandidates(companyNameForLogo, {
-    size: 128,
-    website: selectedCompanyData?.website,
-  });
-  const [logoIndex, setLogoIndex] = React.useState(0);
-  const logoUrl = logoCandidates[logoIndex] || null;
-
-  React.useEffect(() => {
-    setLogoIndex(0);
-  }, [companyNameForLogo, selectedCompanyData?.website]);
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-6">
-      <div className="w-full max-w-6xl">
-        {/* HEADER */}
-        <header ref={headerRef} className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-b-3xl shadow-2xl px-3 py-1.5 border-2 border-blue-200 dark:border-slate-700">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex w-[110px] flex-col items-center">
-
-              {/* ÁREA DA LOGO ATUALIZADA */}
-              <div className={`w-20 h-20 rounded-2xl flex items-center justify-center border-2 overflow-hidden ${logoUrl ? 'bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-slate-600' : 'bg-blue-900 border-blue-700'}`}>
-                {logoUrl ? (
-                  <img
-                    src={logoUrl}
-                    alt={`Logo ${companyNameForLogo}`}
-                    className="w-full h-full object-contain p-1"
-                    onError={() => {
-                      if (logoIndex < logoCandidates.length - 1) {
-                        setLogoIndex((prev) => prev + 1);
-                      }
-                    }}
-                  />
-                ) : (
-                  <span className="text-white font-black text-3xl tracking-tight">TL</span>
-                )}
+                <div className="flex min-w-[420px] items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleTheme}
+                    className="inline-flex h-9 items-center rounded-full bg-white/10 px-3 text-xs font-semibold text-white transition hover:bg-white/15"
+                    aria-label="Alternar tema"
+                  >
+                    {theme === "dark" ? "🌙 Tema" : "☀️ Tema"}
+                  </button>
+                  <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/90">Anônimo</span>
+                  <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/90">Verificado</span>
+                  <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/90">Confiável</span>
+                  <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-2 py-1.5">
+                    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-white/15 text-sm text-white">
+                      {userAvatar ? (
+                        typeof userAvatar === "string" && (userAvatar.startsWith("data:") || userAvatar.startsWith("http")) ? (
+                          <img src={userAvatar} alt="Avatar" className="h-full w-full object-cover" />
+                        ) : (
+                          <span>{userAvatar}</span>
+                        )
+                      ) : (
+                        <span>👤</span>
+                      )}
+                    </div>
+                    <span className="max-w-[110px] truncate text-xs font-semibold text-white/90">
+                      {navbarUserLabel}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <span className="text-xs mt-2 text-blue-500 dark:text-slate-300 text-center max-w-[100px] truncate" title={companyNameForLogo}>
-                {companyNameForLogo}
-              </span>
+            </header>
 
-              <div className={`mt-2 rounded-xl px-3 py-1 text-center shadow-lg ${isCompanyUnrated ? "bg-slate-500 dark:bg-slate-600" : "bg-blue-700 dark:bg-blue-800"}`}>
-                <p className="text-xl font-extrabold text-white">{isCompanyUnrated ? "--" : `${companyNote}/5`}</p>
-                <p className={`text-xs ${isCompanyUnrated ? "text-slate-200" : "text-blue-200"}`}>NOTA</p>
-              </div>
-              {!isCompanyUnrated && (
-                <p
-                  className={`mt-2 text-[11px] font-bold px-2 py-1 rounded-lg border ${
-                    isCompanyRecommended
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                      : "bg-red-50 text-red-700 border-red-200"
-                  }`}
-                >
-                  {isCompanyRecommended ? "✓ Empresa indicada" : "X Empresa não indicada"}
-                </p>
-              )}
-            </div>
-
-            <div className="flex-1 text-center px-4 overflow-visible">
-              <h1
-                className="font-extrabold text-blue-800 dark:text-blue-300 drop-shadow-[0_3px_0_rgba(30,64,175,0.25)] dark:drop-shadow-[0_3px_0_rgba(15,23,42,0.6)] tracking-[0.05em] mb-0.5 logo-syne"
-                style={{
+            <div className="w-full max-w-6xl">
+              {firebaseStatus && <p className="mb-4 text-xs text-red-500 dark:text-red-400">{firebaseStatus}</p>}
                   fontSize: '2rem',
                   fontWeight: 800,
                   whiteSpace: 'nowrap',
@@ -591,6 +464,81 @@ function TrabalheiLaDesktop({
               {isAuthenticated && (
                 <p className="text-green-600 font-semibold text-center mt-4">✓ Você está autenticado!</p>
               )}
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                <a
+                  href="/pseudonym"
+                  className="inline-flex items-center px-3 py-1.5 rounded-full bg-emerald-300 text-emerald-900 text-xs font-medium tracking-normal hover:bg-emerald-400 shadow-md transition"
+                >
+                  <FaUserEdit className="mr-1 text-[11px]" />
+                  {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
+                </a>
+                {hasCompanyPanelAccess && (
+                  <a
+                    href="/empresa/dashboard"
+                    className="inline-flex items-center px-3 py-1.5 rounded-full bg-amber-400 text-amber-900 text-xs font-bold tracking-normal hover:bg-amber-500 shadow-md transition"
+                  >
+                    Painel Empresa
+                  </a>
+                )}
+                {hasAdminAccess && (
+                  <a
+                    href="/admin"
+                    className="inline-flex items-center px-3 py-1.5 rounded-full bg-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-300 transition dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                  >
+                    Admin
+                  </a>
+                )}
+              </div>
+            </section>
+
+            <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
+              <div className="flex items-start gap-4">
+                <div className={`h-20 w-20 shrink-0 rounded-2xl flex items-center justify-center border-2 overflow-hidden ${logoUrl ? 'bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-slate-600' : 'bg-blue-900 border-blue-700'}`}>
+                  {logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt={`Logo ${companyNameForLogo}`}
+                      className="w-full h-full object-contain p-1"
+                      onError={() => {
+                        if (logoIndex < logoCandidates.length - 1) {
+                          setLogoIndex((prev) => prev + 1);
+                        }
+                      }}
+                    />
+                  ) : (
+                    <span className="text-white font-black text-3xl tracking-tight">TL</span>
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-500 dark:text-blue-300">Empresa selecionada</p>
+                  <h3 className="mt-1 truncate text-xl font-extrabold text-blue-900 dark:text-blue-200" title={companyNameForLogo}>
+                    {companyNameForLogo}
+                  </h3>
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                    {selectedCompanyData ? "Resumo rápido da empresa escolhida para avaliação e consulta." : "Selecione uma empresa no formulário para ver o perfil resumido aqui."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <div className={`rounded-2xl px-4 py-2 text-center shadow-lg ${isCompanyUnrated ? "bg-slate-500 dark:bg-slate-600" : "bg-blue-700 dark:bg-blue-800"}`}>
+                  <p className="text-2xl font-extrabold text-white">{isCompanyUnrated ? "--" : `${companyNote}/5`}</p>
+                  <p className={`text-[11px] font-semibold tracking-[0.16em] ${isCompanyUnrated ? "text-slate-200" : "text-blue-200"}`}>NOTA</p>
+                </div>
+
+                {!isCompanyUnrated && (
+                  <p
+                    className={`text-[11px] font-bold px-3 py-2 rounded-xl border ${
+                      isCompanyRecommended
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : "bg-red-50 text-red-700 border-red-200"
+                    }`}
+                  >
+                    {isCompanyRecommended ? "✓ Empresa indicada" : "X Empresa não indicada"}
+                  </p>
+                )}
+              </div>
             </section>
 
             {/* RANKING DE EMPRESAS */}
@@ -654,6 +602,16 @@ function TrabalheiLaDesktop({
 
           {/* COLUNA CENTRAL - FORMULÁRIO (ordem 2 no desktop) */}
           <div className="w-full lg:basis-[55%] lg:min-w-[500px] lg:flex-none flex flex-col gap-6 order-2 lg:order-2">
+
+            {company && (
+              <button
+                type="button"
+                onClick={handleSaibaMais}
+                className="self-start bg-blue-700 text-white font-extrabold py-3 px-8 rounded-2xl shadow-lg transition-all transform hover:scale-[1.02] hover:bg-blue-800 text-base font-azonix"
+              >
+                {`Ver avaliações da ${company.value.length > 25 ? company.value.slice(0, 25) + "…" : company.value}`}
+              </button>
+            )}
 
             {/* FORMULÁRIO */}
             <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
@@ -889,44 +847,6 @@ function TrabalheiLaDesktop({
                 </div>
 
                 <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
-                  <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Classificação profissional geral</p>
-                  <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(globalContractPieData)}</p>
-                  <div className="flex items-center gap-4">
-                    <div
-                      className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square"
-                      style={{ background: `conic-gradient(${globalContractPieData.chart})` }}
-                    />
-                    <div className="space-y-1 text-xs">
-                      {globalContractPieData.items.map((item) => (
-                        <p key={`global_contract_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                          {item.label}: {item.percent.toFixed(0)}%
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
-                  <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Modelo de trabalho geral</p>
-                  <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(globalWorkModelPieData)}</p>
-                  <div className="flex items-center gap-4">
-                    <div
-                      className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square"
-                      style={{ background: `conic-gradient(${globalWorkModelPieData.chart})` }}
-                    />
-                    <div className="space-y-1 text-xs">
-                      {globalWorkModelPieData.items.map((item) => (
-                        <p key={`global_work_model_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                          {item.label}: {item.percent.toFixed(0)}%
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
                   <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Formas de entrada na empresa</p>
                   <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(sourcePieData)}</p>
                   <div className="flex items-center gap-4">
@@ -965,7 +885,22 @@ function TrabalheiLaDesktop({
                 </div>
               </div>
 
-              <div className="mt-4 bg-emerald-50 dark:bg-slate-800 rounded-2xl p-4 border border-emerald-200 dark:border-slate-700">
+            </div>
+
+            <section className="bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-400 rounded-3xl shadow-xl px-5 py-4 border-2 border-blue-200 dark:border-slate-700">
+              <div className="flex flex-col items-start gap-3">
+                <span className="text-white text-base font-bold drop-shadow leading-snug">Premium para trabalhadores, empresas e apoiadores — <span className="underline">conheça os planos</span></span>
+                <button
+                  className="px-5 py-2 rounded-lg bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-200 font-bold shadow hover:bg-blue-50 dark:hover:bg-slate-800 transition"
+                  onClick={() => navigate('/escolha-perfil?planos=1')}
+                >
+                  Ver benefícios
+                </button>
+              </div>
+            </section>
+
+            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
+              <div className="bg-emerald-50 dark:bg-slate-800 rounded-2xl p-4 border border-emerald-200 dark:border-slate-700">
                 <h3 className="text-base font-bold text-emerald-900 dark:text-emerald-200 mb-2">Como funciona a plataforma</h3>
                 <p className="text-sm text-emerald-900 dark:text-slate-200 leading-relaxed mb-3">
                   O objetivo do Trabalhei Lá é ajudar profissionais a decidir melhor onde trabalhar por meio de avaliações anônimas e verificadas.
