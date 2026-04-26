@@ -36,7 +36,7 @@ export default function CompanyRegister() {
       setLoadingCnpj(true);
       setRazaoSocial("");
       if (!cnpjValue || cnpjValue.length < 14) return;
-      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjValue}`);
+      const res = await fetch(`/api/consulta-cnpj?cnpj=${cnpjValue}`);
       if (!res.ok) throw new Error("CNPJ não encontrado");
       const data = await res.json();
       setRazaoSocial(data.razao_social || "");
