@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { db } from "../firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 export default function CompanyRegister() {
   const navigate = useNavigate();
@@ -33,15 +35,43 @@ export default function CompanyRegister() {
     else setRazaoSocial("");
   }
 
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
     setLoading(true);
-    // Aqui você pode adicionar a lógica de cadastro da empresa
-    setTimeout(() => {
+    try {
+      // Gera um ID simples para a empresa (pode ser o CNPJ ou um UUID)
+      const empresaId = cnpj;
+      // Salva no Firestore
+      await setDoc(doc(db, "companies", empresaId), {
+        cnpj,
+        razaoSocial,
+        responsavel,
+        cargo,
+        email,
+        senha, // Em produção, nunca salve senha em texto puro!
+        status: "pendente",
+        createdAt: Date.now(),
+      });
+      // Chama API para enviar e-mail de confirmação
+      await fetch("/api/send-confirmation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cnpj,
+          razaoSocial,
+          responsavel,
+          email,
+          empresaId,
+        }),
+      });
       setLoading(false);
-      navigate("/empresa/cadastro/sucesso");
-    }, 1200);
+      navigate("/empresa/cadastro/aguarde", { state: { email } });
+    } catch (err) {
+      setError("Erro ao cadastrar empresa. Tente novamente.");
+      setLoading(false);
+    }
   }
 
   return (

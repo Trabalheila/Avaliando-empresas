@@ -22,6 +22,8 @@ import WorkerProfile from './pages/WorkerProfile';
 import MinhaConta from './pages/MinhaConta';
 import CookieBanner from './components/CookieBanner';
 import CompanyRegister from './pages/CompanyRegister';
+import CompanyConfirm from './pages/CompanyConfirm';
+import CompanyRegisterAwait from './pages/CompanyRegisterAwait';
 
 // Função para aplicar o tema (dark/light)
 function applyTheme(theme) {
@@ -189,6 +191,8 @@ function App() {
       <Route path="/perfil/:profileId" element={<WorkerProfile theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/minha-conta" element={<MinhaConta theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/empresa/cadastro" element={<CompanyRegister />} />
+      <Route path="/empresa/cadastro/aguarde" element={<CompanyRegisterAwait />} />
+      <Route path="/empresa/confirmar" element={<CompanyConfirm />} />
     </Routes>
   );
 
