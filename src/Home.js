@@ -1579,78 +1579,7 @@ function Home({ theme, toggleTheme }) {
 
   return (
     <>
-      {isLaunchPopupVisible && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Comunicado de lançamento"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 70,
-            backgroundColor: "rgba(15, 23, 42, 0.55)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 16,
-          }}
-        >
-          <div
-            style={{
-              position: "relative",
-              width: "100%",
-              maxWidth: 560,
-              borderRadius: 16,
-              backgroundColor: "#2563eb",
-              color: "#ffffff",
-              boxShadow: "0 20px 40px rgba(0, 0, 0, 0.25)",
-              padding: "20px 18px 16px 18px",
-              textAlign: "center",
-            }}
-          >
-            <button
-              type="button"
-              aria-label="Fechar aviso de lançamento"
-              onClick={handleCloseLaunchPopup}
-              style={{
-                position: "absolute",
-                right: 10,
-                top: 8,
-                border: "none",
-                background: "transparent",
-                color: "#ffffff",
-                cursor: "pointer",
-                fontSize: 18,
-                lineHeight: 1,
-                padding: 6,
-              }}
-            >
-              X
-            </button>
-
-            <div style={{ fontWeight: 700, lineHeight: 1.5, whiteSpace: "normal", wordBreak: "break-word", paddingRight: 20 }}>
-              🎉 Período de Lançamento — Plano Empresarial gratuito até 31 de julho de 2026. Aproveite!
-            </div>
-
-            <button
-              type="button"
-              onClick={handleCloseLaunchPopup}
-              style={{
-                marginTop: 14,
-                border: "none",
-                borderRadius: 10,
-                padding: "8px 14px",
-                backgroundColor: "#ffffff",
-                color: "#1d4ed8",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              Entendi
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Banner de lançamento removido */}
 
       {showResponsibilityModal && (
         <div

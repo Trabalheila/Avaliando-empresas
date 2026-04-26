@@ -1733,6 +1733,34 @@ function CompanyDetails({ theme, toggleTheme }) {
         </div>
       </div>
 
+      {/* Bloco de cadastro/verificação de empresa */}
+      <div className="w-full bg-transparent">
+        <div className="max-w-5xl mx-auto px-4">
+          {company && (typeof company.verified === 'undefined' || company.verified === false) ? (
+            <div className="flex items-center justify-between bg-blue-50 dark:bg-slate-900 border border-blue-100 dark:border-slate-700 rounded-lg px-4 py-2 mt-2 mb-2">
+              <span className="text-xs text-blue-900 dark:text-blue-200">
+                Esta é a sua empresa? Cadastre-se gratuitamente até 31/07/2026 e gerencie este perfil.
+              </span>
+              <button
+                type="button"
+                className="ml-4 px-3 py-1 text-xs font-semibold bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                onClick={() => navigate('/empresa/cadastro')}
+              >
+                Cadastrar empresa
+              </button>
+            </div>
+          ) : null}
+          {company && company.verified === true ? (
+            <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900 border border-emerald-200 dark:border-emerald-700 rounded-lg px-4 py-2 mt-2 mb-2">
+              <span className="inline-flex items-center text-xs text-emerald-800 dark:text-emerald-200 font-semibold">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                Empresa Verificada
+              </span>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
       {/* ═══ LINHA 3 — Banner Premium (só p/ não-premium e não-admin) ═══ */}
       {!userIsPremium && !isAdmin() && (
         <div className="w-full bg-gradient-to-r from-amber-600 to-yellow-500 dark:from-amber-800 dark:to-yellow-700">

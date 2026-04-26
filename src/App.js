@@ -1,5 +1,4 @@
-﻿
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Routes, Route, useLocation, useNavigationType } from 'react-router-dom';
 import Home from './Home';
 import './i18n';
@@ -22,6 +21,7 @@ import ApoiadorPerfil from './pages/ApoiadorPerfil';
 import WorkerProfile from './pages/WorkerProfile';
 import MinhaConta from './pages/MinhaConta';
 import CookieBanner from './components/CookieBanner';
+import CompanyRegister from './pages/CompanyRegister';
 
 // Função para aplicar o tema (dark/light)
 function applyTheme(theme) {
@@ -188,6 +188,7 @@ function App() {
       <Route path="/excluir-dados" element={<DeleteData theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/perfil/:profileId" element={<WorkerProfile theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/minha-conta" element={<MinhaConta theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/empresa/cadastro" element={<CompanyRegister />} />
     </Routes>
   );
 
