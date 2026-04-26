@@ -74,91 +74,24 @@ export default function CompanyRegister() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          cnpj,
-          razaoSocial,
-      function formatCnpjMask(value) {
-        const v = value.replace(/\D/g, "").slice(0, 14);
-        if (!v) return "";
-        let m = v;
-        if (v.length > 12) m = `${v.slice(0,2)}.${v.slice(2,5)}.${v.slice(5,8)}/${v.slice(8,12)}-${v.slice(12)}`;
-        else if (v.length > 8) m = `${v.slice(0,2)}.${v.slice(2,5)}.${v.slice(5,8)}/${v.slice(8)}`;
-        else if (v.length > 5) m = `${v.slice(0,2)}.${v.slice(2,5)}.${v.slice(5)}`;
-        else if (v.length > 2) m = `${v.slice(0,2)}.${v.slice(2)}`;
-        return m;
-      }
-
-      function handleCnpjChange(e) {
-        const raw = e.target.value.replace(/\D/g, "").slice(0, 14);
-        setCnpj(formatCnpjMask(e.target.value));
-        if (raw.length === 14) fetchRazaoSocial(raw);
-        else setRazaoSocial("");
+          email,
+          companyName: razaoSocial,
+          token: window.crypto?.randomUUID ? window.crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now()
+        })
+      });
       setLoading(false);
-      navigate("/empresa/cadastro/aguarde", { state: { email } });
-      function validarSenha(s) {
-        return {
-          tamanho: s.length >= 8,
-          maiuscula: /[A-Z]/.test(s),
-          numero: /\d/.test(s),
-          especial: /[^A-Za-z0-9]/.test(s),
-        };
-      }
+      navigate("/empresa/enviado");
+    } catch (err) {
+      setError("Erro ao cadastrar empresa. Tente novamente.");
+      setLoading(false);
+    }
+  }
 
-      function validarSenha(s) {
-        return {
-          tamanho: s.length >= 8,
-          maiuscula: /[A-Z]/.test(s),
-          numero: /\d/.test(s),
-          especial: /[^A-Za-z0-9]/.test(s),
-        };
-      }
-
-      async function handleSubmit(e) {
-        e.preventDefault();
-        setError("");
-        setSenhaTouched(true);
-        setConfirmarTouched(true);
-        const rawCnpj = cnpj.replace(/\D/g, "");
-        if (rawCnpj.length !== 14) {
-          setError("CNPJ inválido.");
-          return;
-        }
-        if (senha !== confirmarSenha) {
-          setError("As senhas não coincidem.");
-          return;
-        }
-        const v = validarSenha(senha);
-        if (!v.tamanho || !v.maiuscula || !v.numero || !v.especial) {
-          setError("A senha não atende todos os requisitos.");
-          return;
-        }
-        setLoading(true);
-        try {
-          const empresaId = rawCnpj;
-          await setDoc(doc(db, "companies", empresaId), {
-            cnpj: rawCnpj,
-            razaoSocial,
-            responsavel,
-            cargo,
-            email,
-            senha, // Em produção, nunca salve senha em texto puro!
-            status: "pendente",
-            createdAt: Date.now(),
-          });
-          // Gera token único para confirmação
-          const token = window.crypto?.randomUUID ? window.crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now();
-          await fetch("/api/send-confirmation", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email,
-              companyName: razaoSocial,
-              token
-            responsavel,
-          });
-          setLoading(false);
-          navigate("/empresa/enviado");
-        } catch (err) {
-          setError("Erro ao cadastrar empresa. Tente novamente.");
-          setLoading(false);
-        }
-      }
+  function validarSenha(s) {
+    return {
+      tamanho: s.length >= 8,
+      maiuscula: /[A-Z]/.test(s),
+      numero: /\d/.test(s),
+      especial: /[^A-Za-z0-9]/.test(s),
+    };
+  }
