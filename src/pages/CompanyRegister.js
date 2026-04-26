@@ -132,3 +132,4 @@ export default function CompanyRegister() {
         {loading ? "Enviando..." : "Cadastrar"}
       </button>
     </form>
+  }
