@@ -95,3 +95,41 @@ export default function CompanyRegister() {
       especial: /[^A-Za-z0-9]/.test(s),
     };
   }
+
+  return (
+    <form onSubmit={handleSubmit} className="max-w-md mx-auto mt-10 p-6 bg-white rounded shadow">
+      <h2 className="text-2xl font-bold mb-4">Cadastro de Empresa</h2>
+      <div className="mb-4">
+        <label className="block mb-1">CNPJ</label>
+        <input type="text" value={cnpj} onChange={handleCnpjChange} className="w-full border p-2 rounded" required />
+      </div>
+      <div className="mb-4">
+        <label className="block mb-1">Razão Social</label>
+        <input type="text" value={razaoSocial} onChange={e => setRazaoSocial(e.target.value)} className="w-full border p-2 rounded" required />
+      </div>
+      <div className="mb-4">
+        <label className="block mb-1">Responsável</label>
+        <input type="text" value={responsavel} onChange={e => setResponsavel(e.target.value)} className="w-full border p-2 rounded" required />
+      </div>
+      <div className="mb-4">
+        <label className="block mb-1">Cargo</label>
+        <input type="text" value={cargo} onChange={e => setCargo(e.target.value)} className="w-full border p-2 rounded" required />
+      </div>
+      <div className="mb-4">
+        <label className="block mb-1">E-mail</label>
+        <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full border p-2 rounded" required />
+      </div>
+      <div className="mb-4">
+        <label className="block mb-1">Senha</label>
+        <input type="password" value={senha} onChange={e => setSenha(e.target.value)} className="w-full border p-2 rounded" required />
+      </div>
+      <div className="mb-4">
+        <label className="block mb-1">Confirmar Senha</label>
+        <input type="password" value={confirmarSenha} onChange={e => setConfirmarSenha(e.target.value)} className="w-full border p-2 rounded" required />
+      </div>
+      {error && <div className="text-red-600 mb-2">{error}</div>}
+      <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded" disabled={loading}>
+        {loading ? "Enviando..." : "Cadastrar"}
+      </button>
+    </form>
+  );
