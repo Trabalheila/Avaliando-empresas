@@ -19,13 +19,13 @@ export default function CompanyRegister() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Busca razÃ£o social via BrasilAPI
+  // Busca razão social via BrasilAPI
   async function fetchRazaoSocial(cnpjValue) {
     try {
       setRazaoSocial("");
       if (!cnpjValue || cnpjValue.length < 14) return;
       const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjValue}`);
-      if (!res.ok) throw new Error("CNPJ nÃ£o encontrado");
+      if (!res.ok) throw new Error("CNPJ não encontrado");
       const data = await res.json();
       setRazaoSocial(data.razao_social || "");
     } catch {
@@ -98,39 +98,42 @@ export default function CompanyRegister() {
     };
   }
 
+  const inputClass = "w-full p-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500";
+  const labelClass = "block mb-1 text-sm font-medium text-slate-700 dark:text-slate-200";
+
   return (
-    <form onSubmit={handleSubmit} className="max-w-md mx-auto mt-10 p-6 bg-white rounded shadow">
-      <h2 className="text-2xl font-bold mb-4">Cadastro de Empresa</h2>
+    <form onSubmit={handleSubmit} className="max-w-md mx-auto mt-10 p-6 bg-white dark:bg-slate-900 rounded-xl shadow border border-slate-200 dark:border-slate-700">
+      <h2 className="text-2xl font-bold mb-4 text-slate-800 dark:text-slate-100">Cadastro de Empresa</h2>
       <div className="mb-4">
-        <label className="block mb-1">CNPJ</label>
-        <input type="text" value={cnpj} onChange={handleCnpjChange} className="w-full border p-2 rounded" required />
+        <label className={labelClass}>CNPJ</label>
+        <input type="text" value={cnpj} onChange={handleCnpjChange} className={inputClass} required />
       </div>
       <div className="mb-4">
-        <label className="block mb-1">RazÃ£o Social</label>
-        <input type="text" value={razaoSocial} onChange={e => setRazaoSocial(e.target.value)} className="w-full border p-2 rounded" required />
+        <label className={labelClass}>Razão Social</label>
+        <input type="text" value={razaoSocial} onChange={e => setRazaoSocial(e.target.value)} className={inputClass} required />
       </div>
       <div className="mb-4">
-        <label className="block mb-1">ResponsÃ¡vel</label>
-        <input type="text" value={responsavel} onChange={e => setResponsavel(e.target.value)} className="w-full border p-2 rounded" required />
+        <label className={labelClass}>Responsável</label>
+        <input type="text" value={responsavel} onChange={e => setResponsavel(e.target.value)} className={inputClass} required />
       </div>
       <div className="mb-4">
-        <label className="block mb-1">Cargo</label>
-        <input type="text" value={cargo} onChange={e => setCargo(e.target.value)} className="w-full border p-2 rounded" required />
+        <label className={labelClass}>Cargo</label>
+        <input type="text" value={cargo} onChange={e => setCargo(e.target.value)} className={inputClass} required />
       </div>
       <div className="mb-4">
-        <label className="block mb-1">E-mail</label>
-        <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full border p-2 rounded" required />
+        <label className={labelClass}>E-mail</label>
+        <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={inputClass} required />
       </div>
       <div className="mb-4">
-        <label className="block mb-1">Senha</label>
-        <input type="password" value={senha} onChange={e => setSenha(e.target.value)} className="w-full border p-2 rounded" required />
+        <label className={labelClass}>Senha</label>
+        <input type="password" value={senha} onChange={e => setSenha(e.target.value)} className={inputClass} required />
       </div>
       <div className="mb-4">
-        <label className="block mb-1">Confirmar Senha</label>
-        <input type="password" value={confirmarSenha} onChange={e => setConfirmarSenha(e.target.value)} className="w-full border p-2 rounded" required />
+        <label className={labelClass}>Confirmar Senha</label>
+        <input type="password" value={confirmarSenha} onChange={e => setConfirmarSenha(e.target.value)} className={inputClass} required />
       </div>
-      {error && <div className="text-red-600 mb-2">{error}</div>}
-      <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded" disabled={loading}>
+      {error && <div className="text-red-600 dark:text-red-400 mb-2 text-sm">{error}</div>}
+      <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors disabled:opacity-60" disabled={loading}>
         {loading ? "Enviando..." : "Cadastrar"}
       </button>
     </form>
