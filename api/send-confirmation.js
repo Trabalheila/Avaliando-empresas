@@ -41,10 +41,11 @@ module.exports = async (req, res) => {
   `;
 
   await resend.emails.send({
-    from: 'Trabalhei Lá <no-reply@trabalheila.com.br>',
+    from: 'Trabalhei Lá <confirmacao@trabalheila.com.br>',
     to: email,
     subject: 'Confirme o cadastro da sua empresa no Trabalhei Lá',
     html,
+    reply_to: 'faleconosco@trabalheila.com.br',
   });
 
   res.status(200).json({ ok: true });
