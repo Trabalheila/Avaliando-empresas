@@ -1062,8 +1062,8 @@ function TrabalheiLaMobile({
             <button type="submit"
               className={`w-full py-3 rounded-xl font-bold text-white transition-all ${
                 isAuthenticated ? (
-                  (commentRating && containsPossiblePersonName(commentRating) ||
-                   generalComment && containsPossiblePersonName(generalComment) ||
+                  ((commentRating && containsPossiblePersonName(commentRating)) ||
+                   (generalComment && containsPossiblePersonName(generalComment)) ||
                    Object.values(campos).some(c => c.comment && containsPossiblePersonName(c.comment)))
                     ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed"
                     : "bg-blue-600 hover:bg-blue-700"
@@ -1077,8 +1077,8 @@ function TrabalheiLaMobile({
             >
               {isLoading ? "Enviando..." : isAuthenticated ? "Enviar Avaliação" : "Faça login para avaliar"}
             </button>
-            {(commentRating && containsPossiblePersonName(commentRating) ||
-              generalComment && containsPossiblePersonName(generalComment) ||
+            {((commentRating && containsPossiblePersonName(commentRating)) ||
+              (generalComment && containsPossiblePersonName(generalComment)) ||
               Object.values(campos).some(c => c.comment && containsPossiblePersonName(c.comment))) && (
               <p className="text-red-600 dark:text-red-400 text-xs font-semibold text-center mt-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded px-2 py-1">
                 Detectamos possível citação de nome. Reformule usando descrição de comportamento/situação.

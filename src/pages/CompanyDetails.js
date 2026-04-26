@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { getCompanyLogoCandidates } from "../utils/getCompanyLogo";
 import { db } from "../firebase";
-import { collection, doc, getDocs, getDoc, limit, orderBy, query, setDoc, where, updateDoc } from "firebase/firestore";
+import { collection, doc, getDocs, limit, orderBy, query, setDoc, where, updateDoc } from "firebase/firestore";
 import { hasCompanyInResumeExperiences } from "../utils/resumeParser";
 import { listReviewsByCompanySlug } from "../services/reviews";
 import { listCompanies, enrichCompanyWithBrasilAPI } from "../services/companies";

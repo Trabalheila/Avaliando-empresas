@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { db } from "../firebase";
-import { doc, getDocs, getDoc, updateDoc, collection, query, where } from "firebase/firestore";
+import { getDocs, updateDoc, collection, query, where } from "firebase/firestore";
 
 export default function CompanyConfirm() {
   const [searchParams] = useSearchParams();

@@ -126,6 +126,7 @@ function Home({ theme, toggleTheme }) {
   const location = useLocation();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [firebaseStatus, setFirebaseStatus] = useState("verificando...");
+  // eslint-disable-next-line no-unused-vars
   const [isLaunchPopupVisible, setIsLaunchPopupVisible] = useState(() => {
     try {
       return localStorage.getItem(LAUNCH_POPUP_DISMISSED_KEY) !== "1";
@@ -134,6 +135,7 @@ function Home({ theme, toggleTheme }) {
     }
   });
 
+  // eslint-disable-next-line no-unused-vars
   const handleCloseLaunchPopup = useCallback(() => {
     setIsLaunchPopupVisible(false);
     try {

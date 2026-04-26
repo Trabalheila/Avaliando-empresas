@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import { doc, setDoc } from "firebase/firestore";
@@ -12,18 +12,20 @@ export default function CompanyRegister() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
+  // eslint-disable-next-line no-unused-vars
   const [senhaTouched, setSenhaTouched] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [confirmarTouched, setConfirmarTouched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Busca razão social via BrasilAPI
+  // Busca razÃ£o social via BrasilAPI
   async function fetchRazaoSocial(cnpjValue) {
     try {
       setRazaoSocial("");
       if (!cnpjValue || cnpjValue.length < 14) return;
       const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjValue}`);
-      if (!res.ok) throw new Error("CNPJ não encontrado");
+      if (!res.ok) throw new Error("CNPJ nÃ£o encontrado");
       const data = await res.json();
       setRazaoSocial(data.razao_social || "");
     } catch {
@@ -65,11 +67,11 @@ export default function CompanyRegister() {
         responsavel,
         cargo,
         email,
-        senha, // Em produção, nunca salve senha em texto puro!
+        senha, // Em produÃ§Ã£o, nunca salve senha em texto puro!
         status: "pendente",
         createdAt: Date.now(),
       });
-      // Chama API para enviar e-mail de confirmação
+      // Chama API para enviar e-mail de confirmaÃ§Ã£o
       await fetch("/api/send-confirmation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -87,7 +89,7 @@ export default function CompanyRegister() {
     }
   }
 
-  function validarSenha(s) {
+  function validarSenha(s) { // eslint-disable-line no-unused-vars
     return {
       tamanho: s.length >= 8,
       maiuscula: /[A-Z]/.test(s),
@@ -104,11 +106,11 @@ export default function CompanyRegister() {
         <input type="text" value={cnpj} onChange={handleCnpjChange} className="w-full border p-2 rounded" required />
       </div>
       <div className="mb-4">
-        <label className="block mb-1">Razão Social</label>
+        <label className="block mb-1">RazÃ£o Social</label>
         <input type="text" value={razaoSocial} onChange={e => setRazaoSocial(e.target.value)} className="w-full border p-2 rounded" required />
       </div>
       <div className="mb-4">
-        <label className="block mb-1">Responsável</label>
+        <label className="block mb-1">ResponsÃ¡vel</label>
         <input type="text" value={responsavel} onChange={e => setResponsavel(e.target.value)} className="w-full border p-2 rounded" required />
       </div>
       <div className="mb-4">
@@ -132,4 +134,5 @@ export default function CompanyRegister() {
         {loading ? "Enviando..." : "Cadastrar"}
       </button>
     </form>
-  }
+  );
+}
