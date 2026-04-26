@@ -31,10 +31,22 @@ export default function CompanyRegister() {
     }
   }
 
+
+  function formatCnpjMask(value) {
+    const v = value.replace(/\D/g, "").slice(0, 14);
+    if (!v) return "";
+    let m = v;
+    if (v.length > 12) m = `${v.slice(0,2)}.${v.slice(2,5)}.${v.slice(5,8)}/${v.slice(8,12)}-${v.slice(12)}`;
+    else if (v.length > 8) m = `${v.slice(0,2)}.${v.slice(2,5)}.${v.slice(5,8)}/${v.slice(8)}`;
+    else if (v.length > 5) m = `${v.slice(0,2)}.${v.slice(2,5)}.${v.slice(5)}`;
+    else if (v.length > 2) m = `${v.slice(0,2)}.${v.slice(2)}`;
+    return m;
+  }
+
   function handleCnpjChange(e) {
-    const value = e.target.value.replace(/\D/g, "").slice(0, 14);
-    setCnpj(value);
-    if (value.length === 14) fetchRazaoSocial(value);
+    const raw = e.target.value.replace(/\D/g, "").slice(0, 14);
+    setCnpj(formatCnpjMask(e.target.value));
+    if (raw.length === 14) fetchRazaoSocial(raw);
     else setRazaoSocial("");
   }
 
@@ -91,6 +103,15 @@ export default function CompanyRegister() {
         };
       }
 
+      function validarSenha(s) {
+        return {
+          tamanho: s.length >= 8,
+          maiuscula: /[A-Z]/.test(s),
+          numero: /\d/.test(s),
+          especial: /[^A-Za-z0-9]/.test(s),
+        };
+      }
+
       async function handleSubmit(e) {
         e.preventDefault();
         setError("");
@@ -132,7 +153,7 @@ export default function CompanyRegister() {
               email,
               companyName: razaoSocial,
               token
-            }),
+            responsavel,
           });
           setLoading(false);
           navigate("/empresa/enviado");
@@ -140,15 +161,4 @@ export default function CompanyRegister() {
           setError("Erro ao cadastrar empresa. Tente novamente.");
           setLoading(false);
         }
-            <label className="block text-sm font-semibold text-blue-900 dark:text-blue-200 mb-1">Senha</label>
-            <input type="password" value={senha} onChange={e => setSenha(e.target.value)} required minLength={6} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Crie uma senha" />
-          </div>
-          {error && <div className="text-red-600 text-xs font-semibold mt-2">{error}</div>}
-          <button type="submit" disabled={loading} className="w-full py-2 mt-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 transition disabled:opacity-60">
-            {loading ? "Cadastrando..." : "Cadastrar Empresa"}
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-}
+      }
