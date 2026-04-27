@@ -186,7 +186,15 @@ function CompanyDetails({ theme, toggleTheme }) {
         );
         const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         setApoiadoresRecomendados(list);
-      } catch { /* silencioso */ }
+      } catch (err) {
+        if (err?.code === "failed-precondition") {
+          console.error(
+            "%c[Firestore] Índice composto necessário para apoiadores (status + plano + rating). Crie no Firebase Console:",
+            "color:#b45309;font-weight:bold",
+            err?.message || err
+          );
+        }
+      }
     })();
     (async () => {
       try {
@@ -194,7 +202,15 @@ function CompanyDetails({ theme, toggleTheme }) {
           query(collection(db, "apoiadores"), where("status", "==", "ativo"), where("tipo", "==", "advogado"), orderBy("rating", "desc"), limit(6))
         );
         setAdvogadosTrabalhistas(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      } catch { /* silencioso */ }
+      } catch (err) {
+        if (err?.code === "failed-precondition") {
+          console.error(
+            "%c[Firestore] Índice composto necessário para apoiadores (status + tipo + rating). Crie no Firebase Console:",
+            "color:#b45309;font-weight:bold",
+            err?.message || err
+          );
+        }
+      }
     })();
   }, []);
 
@@ -342,7 +358,15 @@ function CompanyDetails({ theme, toggleTheme }) {
     ? getCompanyLogoCandidates(company.company, { size: 128, website: company.website })
     : [];
   const [logoIndex, setLogoIndex] = React.useState(0);
-  const companyLogo = logoCandidates[logoIndex] || null;
+  const [logoFailed, setLogoFailed] = React.useState(false);
+  const companyLogo = !logoFailed ? (logoCandidates[logoIndex] || null) : null;
+  const companyInitials = React.useMemo(() => {
+    const name = (company?.company || "").trim();
+    if (!name) return "?";
+    const parts = name.split(/\s+/).filter(Boolean);
+    const letters = parts.length === 1 ? parts[0].slice(0, 2) : parts[0][0] + parts[parts.length - 1][0];
+    return letters.toUpperCase();
+  }, [company]);
   const [itemCommentCounts, setItemCommentCounts] = React.useState({});
   const [companyReviewCount, setCompanyReviewCount] = React.useState(0);
   const [companyAverages, setCompanyAverages] = React.useState({});
@@ -914,7 +938,15 @@ function CompanyDetails({ theme, toggleTheme }) {
 
         saveComments(normalized);
       } catch (err) {
-        console.warn("Falha ao carregar comentários do Firebase:", err);
+        if (err?.code === "failed-precondition") {
+          console.error(
+            "%c[Firestore] Índice composto necessário para comments (companySlug + createdAt desc). Crie no Firebase Console:",
+            "color:#b45309;font-weight:bold",
+            err?.message || err
+          );
+        } else {
+          console.warn("Falha ao carregar comentários do Firebase:", err);
+        }
       }
     };
 
@@ -1706,8 +1738,8 @@ function CompanyDetails({ theme, toggleTheme }) {
         <div className="max-w-5xl mx-auto flex items-center gap-4 px-4 py-4">
           {/* Esquerda: logo + nome + setor + localização */}
           <div className="flex items-center gap-4 min-w-0">
-            {companyLogo && (
-              <div className="w-14 h-14 rounded-2xl overflow-hidden border border-blue-200 dark:border-slate-600 bg-white flex-shrink-0">
+            <div className="w-14 h-14 rounded-2xl overflow-hidden border border-blue-200 dark:border-slate-600 bg-white flex-shrink-0">
+              {companyLogo ? (
                 <img
                   src={companyLogo}
                   alt={`Logo ${company.company}`}
@@ -1715,11 +1747,20 @@ function CompanyDetails({ theme, toggleTheme }) {
                   onError={() => {
                     if (logoIndex < logoCandidates.length - 1) {
                       setLogoIndex((prev) => prev + 1);
+                    } else {
+                      setLogoFailed(true);
                     }
                   }}
                 />
-              </div>
-            )}
+              ) : (
+                <div
+                  className="w-full h-full flex items-center justify-center bg-blue-900 text-white font-extrabold text-lg select-none"
+                  aria-label={`Logo ${company.company}`}
+                >
+                  {companyInitials}
+                </div>
+              )}
+            </div>
             <div className="min-w-0">
               <h1 className="text-lg font-extrabold text-blue-800 dark:text-slate-100 leading-tight truncate">{company.company}</h1>
               {companyInfo?.sector && companyInfo.sector !== "Não identificado automaticamente" && (
