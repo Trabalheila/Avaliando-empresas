@@ -147,13 +147,16 @@ export default function CompanyRegister() {
 
         {/* CNPJ */}
         <div className="mb-4">
-          <label className={labelClass}>CNPJ</label>
+          <label htmlFor="cnpj" className={labelClass}>CNPJ</label>
           <input
+            id="cnpj"
+            name="cnpj"
             type="text"
             value={cnpj}
             onChange={handleCnpjChange}
             placeholder="00.000.000/0000-00"
             inputMode="numeric"
+            autoComplete="off"
             className={inputClass}
             required
           />
@@ -161,13 +164,16 @@ export default function CompanyRegister() {
 
         {/* Razão Social (readonly quando vinda da API; editável quando falha) */}
         <div className="mb-4">
-          <label className={labelClass}>Razão Social</label>
+          <label htmlFor="razaoSocial" className={labelClass}>Razão Social</label>
           <div className="relative">
             <input
+              id="razaoSocial"
+              name="razaoSocial"
               type="text"
               value={razaoSocial}
               onChange={e => setRazaoSocial(e.target.value)}
               readOnly={!cnpjLookupFailed}
+              autoComplete="organization"
               placeholder={
                 loadingCnpj
                   ? "Buscando..."
@@ -208,12 +214,15 @@ export default function CompanyRegister() {
 
         {/* Responsável */}
         <div className="mb-4">
-          <label className={labelClass}>Nome do Responsável</label>
+          <label htmlFor="nomeResponsavel" className={labelClass}>Nome do Responsável</label>
           <input
+            id="nomeResponsavel"
+            name="nomeResponsavel"
             type="text"
             value={responsavel}
             onChange={e => setResponsavel(e.target.value)}
             placeholder="Nome completo do responsável"
+            autoComplete="name"
             className={inputClass}
             required
           />
@@ -221,12 +230,15 @@ export default function CompanyRegister() {
 
         {/* Cargo */}
         <div className="mb-4">
-          <label className={labelClass}>Cargo do Responsável</label>
+          <label htmlFor="cargoResponsavel" className={labelClass}>Cargo do Responsável</label>
           <input
+            id="cargoResponsavel"
+            name="cargoResponsavel"
             type="text"
             value={cargo}
             onChange={e => setCargo(e.target.value)}
             placeholder="Ex: Diretor, Gerente de RH"
+            autoComplete="organization-title"
             className={inputClass}
             required
           />
@@ -234,12 +246,15 @@ export default function CompanyRegister() {
 
         {/* E-mail */}
         <div className="mb-4">
-          <label className={labelClass}>E-mail Corporativo</label>
+          <label htmlFor="emailCorporativo" className={labelClass}>E-mail Corporativo</label>
           <input
+            id="emailCorporativo"
+            name="emailCorporativo"
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
             placeholder="email@suaempresa.com.br"
+            autoComplete="email"
             className={inputClass}
             required
           />
@@ -257,13 +272,16 @@ export default function CompanyRegister() {
 
         {/* Senha */}
         <div className="mb-4">
-          <label className={labelClass}>Senha</label>
+          <label htmlFor="senha" className={labelClass}>Senha</label>
           <div className="relative">
             <input
+              id="senha"
+              name="senha"
               type={showSenha ? "text" : "password"}
               value={senha}
               onChange={e => setSenha(e.target.value)}
               placeholder="Crie uma senha segura"
+              autoComplete="off"
               className={`${inputClass} pr-11`}
               required
             />
@@ -310,14 +328,17 @@ export default function CompanyRegister() {
 
         {/* Confirmar Senha */}
         <div className="mb-5">
-          <label className={labelClass}>Confirmar Senha</label>
+          <label htmlFor="confirmarSenha" className={labelClass}>Confirmar Senha</label>
           <div className="relative">
             <input
+              id="confirmarSenha"
+              name="confirmarSenha"
               type={showConfirmar ? "text" : "password"}
               value={confirmarSenha}
               onChange={e => setConfirmarSenha(e.target.value)}
               onBlur={() => setConfirmarTouched(true)}
               placeholder="Repita a senha"
+              autoComplete="off"
               className={`${inputClass} pr-11`}
               required
             />
