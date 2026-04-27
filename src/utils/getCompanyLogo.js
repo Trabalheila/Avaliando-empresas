@@ -152,8 +152,15 @@ export function getCompanyLogoCandidates(companyName, options = {}) {
   }
 
   // Fallback garantido para qualquer empresa.
+  const initials = (companyName || "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase() || "?";
   candidates.push(
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(companyName)}&background=0D8ABC&color=fff&size=${size}&font-size=0.4`
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=1a237e&color=fff&size=${size}&font-size=0.4&bold=true`
   );
 
   return [...new Set(candidates)];

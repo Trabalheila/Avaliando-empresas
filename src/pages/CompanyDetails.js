@@ -358,8 +358,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     ? getCompanyLogoCandidates(company.company, { size: 128, website: company.website })
     : [];
   const [logoIndex, setLogoIndex] = React.useState(0);
-  const [logoFailed, setLogoFailed] = React.useState(false);
-  const companyLogo = !logoFailed ? (logoCandidates[logoIndex] || null) : null;
+  const companyLogo = logoCandidates[logoIndex] || null;
   const companyInitials = React.useMemo(() => {
     const name = (company?.company || "").trim();
     if (!name) return "?";
@@ -1744,11 +1743,12 @@ function CompanyDetails({ theme, toggleTheme }) {
                   src={companyLogo}
                   alt={`Logo ${company.company}`}
                   className="w-full h-full object-contain p-1"
-                  onError={() => {
+                  onError={(e) => {
                     if (logoIndex < logoCandidates.length - 1) {
                       setLogoIndex((prev) => prev + 1);
                     } else {
-                      setLogoFailed(true);
+                      e.target.onerror = null;
+                      e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(companyInitials)}&background=1a237e&color=fff&size=128&bold=true`;
                     }
                   }}
                 />

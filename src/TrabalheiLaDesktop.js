@@ -363,9 +363,15 @@ function TrabalheiLaDesktop({
                     src={logoUrl}
                     alt={`Logo ${companyNameForLogo}`}
                     className="w-full h-full object-contain p-1"
-                    onError={() => {
+                    onError={(e) => {
                       if (logoIndex < logoCandidates.length - 1) {
                         setLogoIndex((prev) => prev + 1);
+                      } else {
+                        const initials = (companyNameForLogo || "")
+                          .split(/\s+/).filter(Boolean).slice(0, 2)
+                          .map((w) => w[0]).join("").toUpperCase() || "?";
+                        e.target.onerror = null;
+                        e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=1a237e&color=fff&size=128&bold=true`;
                       }
                     }}
                   />
