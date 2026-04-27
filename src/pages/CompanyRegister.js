@@ -27,6 +27,7 @@ export default function CompanyRegister() {
   const [showConfirmar, setShowConfirmar] = useState(false);
   const [confirmarTouched, setConfirmarTouched] = useState(false);
   const [loadingCnpj, setLoadingCnpj] = useState(false);
+  const [cnpjLookupFailed, setCnpjLookupFailed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -34,14 +35,17 @@ export default function CompanyRegister() {
   async function fetchRazaoSocial(cnpjValue) {
     try {
       setLoadingCnpj(true);
+      setCnpjLookupFailed(false);
       setRazaoSocial("");
       if (!cnpjValue || cnpjValue.length < 14) return;
       const res = await fetch(`/api/consulta-cnpj?cnpj=${cnpjValue}`);
       if (!res.ok) throw new Error("CNPJ não encontrado");
       const data = await res.json();
       setRazaoSocial(data.razao_social || "");
+      if (!data.razao_social) setCnpjLookupFailed(true);
     } catch {
       setRazaoSocial("");
+      setCnpjLookupFailed(true);
     } finally {
       setLoadingCnpj(false);
     }
@@ -62,7 +66,10 @@ export default function CompanyRegister() {
     const raw = e.target.value.replace(/\D/g, "").slice(0, 14);
     setCnpj(formatCnpjMask(e.target.value));
     if (raw.length === 14) fetchRazaoSocial(raw);
-    else setRazaoSocial("");
+    else {
+      setRazaoSocial("");
+      setCnpjLookupFailed(false);
+    }
   }
 
   async function handleSubmit(e) {
@@ -152,32 +159,51 @@ export default function CompanyRegister() {
           />
         </div>
 
-        {/* Razão Social (readonly) */}
+        {/* Razão Social (readonly quando vinda da API; editável quando falha) */}
         <div className="mb-4">
           <label className={labelClass}>Razão Social</label>
           <div className="relative">
             <input
               type="text"
               value={razaoSocial}
-              readOnly
-              placeholder={loadingCnpj ? "Buscando..." : "Preenchido automaticamente"}
-              className={`${inputClass} pr-10 cursor-not-allowed opacity-90`}
+              onChange={e => setRazaoSocial(e.target.value)}
+              readOnly={!cnpjLookupFailed}
+              placeholder={
+                loadingCnpj
+                  ? "Buscando..."
+                  : cnpjLookupFailed
+                    ? "Digite a razão social da empresa"
+                    : "Preenchido automaticamente"
+              }
+              className={`${inputClass} ${cnpjLookupFailed ? "" : "pr-10 cursor-not-allowed opacity-90"}`}
               required
             />
-            <div className="absolute inset-y-0 right-3 flex items-center text-slate-400 dark:text-slate-500" aria-hidden="true">
-              {loadingCnpj ? (
-                <svg className="animate-spin h-4 w-4 text-blue-500" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
-                  <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                </svg>
-              ) : (
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-              )}
-            </div>
+            {!cnpjLookupFailed && (
+              <div className="absolute inset-y-0 right-3 flex items-center text-slate-400 dark:text-slate-500" aria-hidden="true">
+                {loadingCnpj ? (
+                  <svg className="animate-spin h-4 w-4 text-blue-500" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
+                    <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                  </svg>
+                ) : (
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                )}
+              </div>
+            )}
           </div>
+          {cnpjLookupFailed && (
+            <div className="mt-2 flex items-start gap-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-lg px-3 py-2">
+              <svg className="h-4 w-4 mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              <span>Não conseguimos buscar os dados automaticamente. Preencha a razão social manualmente.</span>
+            </div>
+          )}
         </div>
 
         {/* Responsável */}
