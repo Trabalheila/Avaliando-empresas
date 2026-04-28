@@ -30,6 +30,7 @@ export default function CompanyRegister() {
   const [cnpjLookupFailed, setCnpjLookupFailed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
   // Busca razão social via BrasilAPI
   async function fetchRazaoSocial(cnpjValue) {
@@ -100,7 +101,7 @@ export default function CompanyRegister() {
         })
       });
       setLoading(false);
-      navigate("/empresa/enviado");
+      setSubmitted(true);
     } catch (err) {
       console.error("Erro no cadastro:", err?.code, err?.message, err);
       setError("Erro ao cadastrar empresa. Tente novamente.");
@@ -129,6 +130,38 @@ export default function CompanyRegister() {
   const inputClass =
     "w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition";
   const labelClass = "block mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-200";
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center px-4 py-10">
+        <div className="w-full max-w-[480px] bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-10 text-center">
+          <div className="text-3xl font-extrabold text-blue-700 dark:text-blue-300 tracking-tight">Trabalhei Lá</div>
+
+          <div className="mt-6 mx-auto w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+            <svg className="h-9 w-9 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+
+          <h1 className="mt-5 text-2xl font-bold text-slate-800 dark:text-slate-100">
+            Cadastro enviado com sucesso!
+          </h1>
+
+          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+            Enviamos um e-mail de confirmação para o endereço cadastrado. Por favor, acesse sua caixa de entrada e clique no link para ativar o perfil da sua empresa na plataforma. Verifique também a pasta de spam caso não encontre o e-mail.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="mt-8 w-full h-12 rounded-lg font-bold text-blue-700 dark:text-blue-300 border border-blue-700 dark:border-blue-300 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+          >
+            Voltar para a página inicial
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center px-4 py-10">

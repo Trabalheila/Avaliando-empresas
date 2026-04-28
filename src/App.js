@@ -24,6 +24,8 @@ import CookieBanner from './components/CookieBanner';
 import CompanyRegister from './pages/CompanyRegister';
 import CompanyConfirm from './pages/CompanyConfirm';
 import CompanyRegisterAwait from './pages/CompanyRegisterAwait';
+import CompanyProfile from './pages/CompanyProfile';
+import AuthAction from './pages/AuthAction';
 
 // Função para aplicar o tema (dark/light)
 function applyTheme(theme) {
@@ -193,6 +195,8 @@ function App() {
       <Route path="/empresa/cadastro" element={<CompanyRegister />} />
       <Route path="/empresa/cadastro/aguarde" element={<CompanyRegisterAwait />} />
       <Route path="/empresa/confirmar" element={<CompanyConfirm />} />
+      <Route path="/empresa/perfil" element={<CompanyProfile theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/auth/action" element={<AuthAction />} />
     </Routes>
   );
 
