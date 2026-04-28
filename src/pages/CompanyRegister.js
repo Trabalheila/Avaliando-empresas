@@ -77,9 +77,11 @@ export default function CompanyRegister() {
     setError("");
     setLoading(true);
     try {
-      const empresaId = cnpj;
+      // CNPJ sem máscara: usado tanto como ID do documento quanto como campo persistido.
+      const cnpjDigits = cnpj.replace(/\D/g, "");
+      const empresaId = cnpjDigits;
       await setDoc(doc(db, "companies", empresaId), {
-        cnpj,
+        cnpj: cnpjDigits,
         razaoSocial,
         responsavel,
         cargo,
@@ -100,6 +102,7 @@ export default function CompanyRegister() {
       setLoading(false);
       navigate("/empresa/enviado");
     } catch (err) {
+      console.error("Erro no cadastro:", err?.code, err?.message, err);
       setError("Erro ao cadastrar empresa. Tente novamente.");
       setLoading(false);
     }

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from "react-router-dom";
 import Select from "react-select";
 import { getCompanyLogoCandidates } from "./utils/getCompanyLogo";
-import { FaPlus, FaStar, FaRegStar, FaUserEdit, FaGoogle } from "react-icons/fa";
+import { FaPlus, FaStar, FaRegStar, FaUserEdit, FaGoogle, FaUserSecret, FaCheckCircle, FaShieldAlt } from "react-icons/fa";
 import {
   FiMessageCircle, FiDollarSign, FiCompass, FiCalendar, FiUsers,
   FiBriefcase, FiShield, FiHeart, FiRepeat, FiAward, FiTrendingUp, FiAlertCircle,
@@ -395,7 +395,7 @@ function TrabalheiLaDesktop({
                       : "bg-red-50 text-red-700 border-red-200"
                   }`}
                 >
-                  {isCompanyRecommended ? "✓ Empresa indicada" : "X Empresa não indicada"}
+                  {isCompanyRecommended ? "✓ Acima da média" : "X Abaixo da média"}
                 </p>
               )}
             </div>
@@ -419,6 +419,31 @@ function TrabalheiLaDesktop({
               <p className="text-blue-700 dark:text-blue-200 text-base font-extrabold leading-tight">
                 {t('Evoluindo o mercado de trabalho')}
               </p>
+
+              {/* Badges horizontais (Anônimo / Verificado / Confiável) com tooltip */}
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+                <span
+                  title="Sua identidade é mantida em sigilo: avaliações são publicadas sob pseudônimo."
+                  className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
+                >
+                  <FaUserSecret className="text-[11px]" aria-hidden="true" />
+                  Anônimo
+                </span>
+                <span
+                  title="Conta verificada via login LinkedIn ou Google."
+                  className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
+                >
+                  <FaCheckCircle className="text-[11px]" aria-hidden="true" />
+                  Verificado
+                </span>
+                <span
+                  title="Plataforma com regras anti-fraude e moderação de avaliações."
+                  className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
+                >
+                  <FaShieldAlt className="text-[11px]" aria-hidden="true" />
+                  Confiável
+                </span>
+              </div>
 
               {isAuthenticated && (
                 <div className="mb-2 mx-auto flex max-w-3xl items-center justify-center gap-3 bg-blue-50/70 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-600 rounded-2xl px-3 py-2">
@@ -495,19 +520,6 @@ function TrabalheiLaDesktop({
               )}
               {firebaseStatus && <p className="text-xs text-red-500 dark:text-red-400 mb-4">{firebaseStatus}</p>}
 
-              {/* Banner Premium — sempre visível abaixo do card do usuário */}
-              <div className="mb-3 flex items-center justify-center">
-                <div className="flex max-w-4xl flex-col md:flex-row items-center gap-3 bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-400 rounded-2xl shadow-lg px-5 py-2 border-2 border-blue-200 dark:border-slate-700">
-                  <span className="text-white text-base md:text-lg font-bold drop-shadow text-center">Premium para trabalhadores, empresas e apoiadores — <span className="underline">conheça os planos</span></span>
-                  <button
-                    className="mt-1 md:mt-0 px-5 py-2 rounded-lg bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-200 font-bold shadow hover:bg-blue-50 dark:hover:bg-slate-800 transition"
-                    onClick={() => navigate('/escolha-perfil?planos=1')}
-                  >
-                    Ver benefícios
-                  </button>
-                </div>
-              </div>
-
               {company && (
                 <button
                   type="button"
@@ -517,6 +529,18 @@ function TrabalheiLaDesktop({
                   {`Ver avaliações da ${company.value.length > 25 ? company.value.slice(0, 25) + "…" : company.value}`}
                 </button>
               )}
+
+              {/* Banner Premium — faixa discreta logo abaixo do botão principal */}
+              <div className="mt-3 flex items-center justify-center">
+                <button
+                  type="button"
+                  onClick={() => navigate('/escolha-perfil?planos=1')}
+                  className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 text-blue-700 dark:text-blue-200 text-xs font-medium hover:bg-blue-100 dark:hover:bg-slate-700 transition"
+                >
+                  <span>Premium para trabalhadores, empresas e apoiadores</span>
+                  <span className="underline font-semibold">ver benefícios</span>
+                </button>
+              </div>
             </div>
 
             <div className="flex w-[110px] flex-col items-center gap-3">
@@ -528,9 +552,6 @@ function TrabalheiLaDesktop({
               >
                 {theme === "dark" ? "🌙 Tema" : "☀️ Tema"}
               </button>
-              <span className="flex items-center gap-2 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-4 py-2 rounded-full font-semibold">✓ Anônimo</span>
-              <span className="flex items-center gap-2 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-4 py-2 rounded-full font-semibold">✓ Verificado</span>
-              <span className="flex items-center gap-2 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-4 py-2 rounded-full font-semibold">✓ Confiável</span>
             </div>
           </div>
         </header>
@@ -646,7 +667,7 @@ function TrabalheiLaDesktop({
                               <p className="font-bold text-sm">{emp.company}</p>
                               {!isUnrated && (
                                 <p className={`text-[11px] font-bold ${isUnrated ? "text-slate-600" : "text-white/90"}`}>
-                                  {isRecommendedCompany ? "✓ Empresa indicada" : "X Empresa não indicada"}
+                                  {isRecommendedCompany ? "✓ Acima da média" : "X Abaixo da média"}
                                 </p>
                               )}
                             </div>
@@ -693,7 +714,7 @@ function TrabalheiLaDesktop({
                   />
 
                   <button type="button" onClick={() => setShowNewCompanyInput(!showNewCompanyInput)}
-                    className="mt-3 w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow transition-all">
+                    className={`mt-3 inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow transition-all ${showNewCompanyInput ? "w-auto py-2 px-4 text-sm" : "w-full py-3 px-4"}`}>
                     <FaPlus />
                     {showNewCompanyInput ? "Cancelar" : "Adicione a empresa"}
                   </button>
@@ -723,6 +744,9 @@ function TrabalheiLaDesktop({
                           {isLoading ? "Consultando..." : "Consultar CNPJ"}
                         </button>
                       </div>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">
+                        Não sabe o CNPJ? Pesquise o nome da empresa no Google seguido de CNPJ.
+                      </p>
                       {cnpjError && <p className="text-sm text-red-600">{cnpjError}</p>}
 
                       {isUserAdmin && (

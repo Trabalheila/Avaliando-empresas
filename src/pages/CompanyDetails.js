@@ -1884,7 +1884,7 @@ function CompanyDetails({ theme, toggleTheme }) {
                 }`}
               >
                 <span className="text-xl" aria-hidden="true">{isRecommendedCompany ? "✓" : "X"}</span>
-                <span>{isRecommendedCompany ? "Empresa indicada" : "Empresa não indicada"}</span>
+                <span>{isRecommendedCompany ? "Acima da média" : "Abaixo da média"}</span>
               </div>
             )}
           </div>

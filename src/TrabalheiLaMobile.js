@@ -564,7 +564,7 @@ function TrabalheiLaMobile({
                           : "bg-red-50 text-red-700 border-red-200"
                       }`}
                     >
-                      {isCompanyRecommended ? "✓ Empresa indicada" : "X Empresa não indicada"}
+                      {isCompanyRecommended ? "✓ Acima da média" : "X Abaixo da média"}
                     </p>
                   )}
                 </div>
@@ -802,7 +802,7 @@ function TrabalheiLaMobile({
                 <button
                   type="button"
                   onClick={() => setShowNewCompanyInput(!showNewCompanyInput)}
-                  className="w-full py-2 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition"
+                  className={`inline-flex items-center justify-center bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition ${showNewCompanyInput ? "w-auto py-1.5 px-4 text-sm" : "w-full py-2"}`}
                 >
                   {showNewCompanyInput ? "Cancelar" : "Adicione a empresa"}
                 </button>
@@ -826,6 +826,9 @@ function TrabalheiLaMobile({
                     inputMode="numeric"
                     autoComplete="off"
                   />
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                    Não sabe o CNPJ? Pesquise o nome da empresa no Google seguido de CNPJ.
+                  </p>
                   {cnpjError && <p className="text-sm text-red-600">{cnpjError}</p>}
 
                   {isUserAdmin && (
@@ -1140,7 +1143,7 @@ function TrabalheiLaMobile({
                         <p className="font-bold text-sm truncate max-w-[120px]">{emp.company}</p>
                         {!isUnrated && (
                           <p className={`text-[10px] font-bold ${isUnrated ? "text-slate-600" : "text-white/90"}`}>
-                            {isRecommendedCompany ? "✓ Empresa indicada" : "X Empresa não indicada"}
+                            {isRecommendedCompany ? "✓ Acima da média" : "X Abaixo da média"}
                           </p>
                         )}
                       </div>

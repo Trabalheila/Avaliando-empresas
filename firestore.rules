@@ -10,6 +10,14 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Cadastro de empresas (formulário CompanyRegister): leitura pública,
+    // escrita restrita a usuários autenticados.
+    match /companies/{companyId} {
+      allow read: if true;
+      allow create, update: if request.auth != null;
+      allow delete: if false;
+    }
+
     // Dados sensiveis separados para permitir controle por regra.
     // Estrutura sugerida:
     // /empresas_private/{cnpj} {
@@ -92,6 +100,14 @@ service cloud.firestore {
       allow create: if request.auth != null;
       allow update: if request.auth != null;
       allow delete: if request.auth != null;
+    }
+
+    // Perfis de usuário: apenas o próprio dono pode ler e escrever.
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
     }
 
     // Apoiadores (coleção unificada).

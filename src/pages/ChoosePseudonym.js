@@ -68,6 +68,8 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   const [isParsingResume, setIsParsingResume] = useState(false);
   const [resumeFile, setResumeFile] = useState(null);
   const [resumePreviewUrl, setResumePreviewUrl] = useState(null);
+  // Experiências extraídas do currículo aguardando revisão do usuário (apenas empresa + cargo).
+  const [pendingResumeExperiences, setPendingResumeExperiences] = useState([]);
   const [isCertifiedProfile, setIsCertifiedProfile] = useState(false);
   const [isVerificationPending, setIsVerificationPending] = useState(false);
   const [verifiedCompany, setVerifiedCompany] = useState("");
@@ -318,16 +320,18 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     try {
       const text = await extractResumeText(file);
       const parsed = parseResumeText(text, []);
-      const imported = (parsed.experiencesStructured || []).map((item) => ({
-        company: item.company || "",
-        role: item.role || "",
-        source: "curriculo",
-        verified: false,
-      })).filter((item) => item.company || item.role);
+      // Foco exclusivo em empresa + cargo. Demais campos (datas, descrições, endereços) são descartados.
+      const imported = (parsed.experiencesStructured || [])
+        .map((item) => ({
+          company: (item?.company || "").toString().trim(),
+          role: (item?.role || "").toString().trim(),
+          touched: false,
+        }))
+        .filter((item) => item.company || item.role);
 
       if (imported.length > 0) {
-        setStructuredExperiences((prev) => dedupeExperiences([...prev, ...imported]));
-        setInfo(`Importamos ${imported.length} experiência(s) do currículo.`);
+        setPendingResumeExperiences((prev) => [...prev, ...imported]);
+        setInfo(`Encontramos ${imported.length} experiência(s) no currículo. Revise empresa e cargo de cada uma e confirme abaixo.`);
       } else {
         setInfo("Não encontramos experiências no currículo. Tente adicionar manualmente.");
       }
@@ -523,6 +527,43 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     setStructuredExperiences((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  // Atualiza o campo de uma experiência pendente (revisão do currículo) e marca como tocada.
+  const handleUpdatePendingResumeExperience = (idx, field, value) => {
+    setPendingResumeExperiences((prev) =>
+      prev.map((item, i) =>
+        i === idx ? { ...item, [field]: value, touched: true } : item
+      )
+    );
+  };
+
+  // Confirma uma experiência pendente, movendo-a para a lista oficial.
+  const handleConfirmPendingResumeExperience = (idx) => {
+    setError(null);
+    setPendingResumeExperiences((prev) => {
+      const item = prev[idx];
+      if (!item) return prev;
+      const company = (item.company || "").trim();
+      const role = (item.role || "").trim();
+      if (!company || !role) {
+        setError("Preencha empresa e cargo antes de confirmar a experiência.");
+        return prev;
+      }
+      setStructuredExperiences((curr) =>
+        dedupeExperiences([
+          ...curr,
+          { company, role, source: "curriculo", verified: false },
+        ])
+      );
+      setInfo("Experiência confirmada e adicionada ao perfil.");
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
+
+  // Descarta uma experiência pendente sem adicioná-la.
+  const handleDiscardPendingResumeExperience = (idx) => {
+    setPendingResumeExperiences((prev) => prev.filter((_, i) => i !== idx));
+  };
+
   const handleSubmit = useCallback(
     async (e) => {
       e.preventDefault();
@@ -658,24 +699,6 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       <div className="w-full">
         <AppHeader theme={theme} toggleTheme={toggleTheme} hideAvatar />
       </div>
-      {/* Barra de progresso flutuante */}
-      {formVisible && (
-        <div
-          style={{ position: "fixed", top: 0, left: 0, width: "100%", zIndex: 1000 }}
-          className="bg-slate-900/85 backdrop-blur-sm text-white"
-        >
-          <div className="flex items-center justify-between px-4 py-2 text-sm font-semibold max-w-2xl mx-auto">
-            <span>Campo {currentSection + 1} de {totalSections}</span>
-            <span>{Math.round(((currentSection + 1) / totalSections) * 100)}%</span>
-          </div>
-          <div className="h-1 bg-slate-700">
-            <div
-              className="h-full bg-blue-500 transition-all duration-300"
-              style={{ width: `${((currentSection + 1) / totalSections) * 100}%` }}
-            />
-          </div>
-        </div>
-      )}
       {(info || error) && (
         <div className="fixed top-3 left-1/2 -translate-x-1/2 z-50 w-[min(94vw,56rem)]">
           {error ? (
@@ -690,6 +713,19 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         </div>
       )}
       <div className="w-full max-w-2xl px-6 py-8">
+        {/* Barra de progresso — fluxo normal, logo acima do card "Seu perfil anônimo" */}
+        <div className="mb-4 rounded-xl bg-slate-900/85 text-white overflow-hidden shadow-sm">
+          <div className="flex items-center justify-between px-4 py-2 text-sm font-semibold">
+            <span>Campo {currentSection + 1} de {totalSections}</span>
+            <span>{Math.round(((currentSection + 1) / totalSections) * 100)}%</span>
+          </div>
+          <div className="h-1 bg-slate-700">
+            <div
+              className="h-full bg-blue-500 transition-all duration-300"
+              style={{ width: `${((currentSection + 1) / totalSections) * 100}%` }}
+            />
+          </div>
+        </div>
         <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-8 border border-blue-100 dark:border-slate-700">
           <h1 className="text-2xl font-extrabold font-azonix tracking-wide text-blue-800 dark:text-blue-200 mb-4 text-center">
             Seu perfil anônimo
@@ -830,6 +866,58 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 />
                 {isParsingResume && (
                   <p className="text-xs text-blue-700 mt-2">Lendo e interpretando currículo...</p>
+                )}
+
+                {/* Revisão das experiências extraídas do currículo — apenas empresa e cargo */}
+                {pendingResumeExperiences.length > 0 && (
+                  <div className="mt-4 space-y-3">
+                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                      Revise as experiências extraídas ({pendingResumeExperiences.length}). Corrija empresa e cargo se necessário e confirme cada uma.
+                    </p>
+                    {pendingResumeExperiences.map((exp, idx) => (
+                      <div
+                        key={`pending_${idx}`}
+                        className="rounded-xl border border-amber-200 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-900/10 p-3"
+                      >
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <input
+                            value={exp.company}
+                            onChange={(e) => handleUpdatePendingResumeExperience(idx, "company", e.target.value)}
+                            placeholder="Empresa"
+                            className="w-full p-2 text-sm border border-amber-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+                          />
+                          <input
+                            value={exp.role}
+                            onChange={(e) => handleUpdatePendingResumeExperience(idx, "role", e.target.value)}
+                            placeholder="Cargo"
+                            className="w-full p-2 text-sm border border-amber-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+                          />
+                        </div>
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleDiscardPendingResumeExperience(idx)}
+                            className="text-xs text-slate-500 hover:text-red-600 hover:underline"
+                          >
+                            Descartar
+                          </button>
+                          {exp.touched ? (
+                            <button
+                              type="button"
+                              onClick={() => handleConfirmPendingResumeExperience(idx)}
+                              className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 transition"
+                            >
+                              Confirmar experiência
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-amber-700 dark:text-amber-300 italic">
+                              Revise os campos para liberar a confirmação
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
 
                 {/* Preview em miniatura do currículo carregado */}
