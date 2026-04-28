@@ -481,6 +481,21 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       if (linkedInExperiences.length > 0) {
         setStructuredExperiences((prev) => dedupeExperiences([...linkedInExperiences, ...prev]));
         loadedFields.push(`${linkedInExperiences.length} experiência(s)`);
+      } else {
+        // Fallback: o `code` OAuth já foi consumido em uma sessão anterior, então não
+        // temos como refazer fetch. Nesse caso, recuperamos experiências do LinkedIn
+        // já persistidas (Firestore via mergedProfile / localStorage) preservando
+        // o flag `verified` original.
+        const persistedStructured = Array.isArray(mergedProfile?.resumeData?.experiencesStructured)
+          ? mergedProfile.resumeData.experiencesStructured
+          : [];
+        const persistedLinkedIn = persistedStructured.filter(
+          (exp) => (exp?.source || "").toString().toLowerCase() === "linkedin"
+        );
+        if (persistedLinkedIn.length > 0) {
+          setStructuredExperiences((prev) => dedupeExperiences([...persistedLinkedIn, ...prev]));
+          loadedFields.push(`${persistedLinkedIn.length} experiência(s) já salva(s)`);
+        }
       }
 
       if (loadedFields.length > 0) {
