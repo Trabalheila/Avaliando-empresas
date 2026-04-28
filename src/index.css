@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,24 +7,47 @@
 /* === Classes de fonte para o logo principal === */
 .logo-syne {
   font-family: inherit;
-  font-weight: 800;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: normal;
   color: white;
 }
 
 /* Seu estilo global (fonte e cores base) */
+:root {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
 *, *::before, *::after {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 body {
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #e0f2fe; /* azul claro padrão */
   color: #0f172a;
+}
+
+/* Logo do cabeçalho "TRABALHEI LÁ" — peso 700 */
+.font-azonix,
+h1.font-azonix {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+}
+
+/* Botões primários — peso 600 */
+button {
+  font-weight: 600;
+}
+
+/* Botões com border-radius muito grande (>20px) reduzidos para 10px.
+   Mantém botões em pílula (rounded-full) intactos. */
+button.rounded-3xl {
+  border-radius: 10px;
 }
 
 /* Modo noturno (VS Code / terminal) */
