@@ -40,8 +40,8 @@ export default function AuthAction() {
         await applyActionCode(auth, oobCode);
         if (canceled) return;
         setStatus("success");
-        // Redireciona automaticamente para o perfil da empresa.
-        setTimeout(() => navigate("/empresa/perfil", { replace: true }), 1200);
+        // Redireciona automaticamente para o dashboard da empresa.
+        setTimeout(() => navigate("/empresa-dashboard", { replace: true }), 1200);
       } catch (err) {
         if (canceled) return;
         console.error("Erro ao aplicar código de verificação:", err);

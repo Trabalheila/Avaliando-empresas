@@ -44,7 +44,7 @@ export default function CompanyConfirm() {
       });
       setStatus("success");
       setTimeout(() => {
-        navigate("/empresa/painel?confirm=1");
+        navigate("/empresa-dashboard?confirm=1");
       }, 2000);
     }
     checkToken();

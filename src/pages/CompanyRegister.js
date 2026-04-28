@@ -18,6 +18,7 @@ export default function CompanyRegister() {
   const navigate = useNavigate();
   const [cnpj, setCnpj] = useState("");
   const [razaoSocial, setRazaoSocial] = useState("");
+  const [cnae, setCnae] = useState(null); // { codigo, descricao, setor }
   const [responsavel, setResponsavel] = useState("");
   const [cargo, setCargo] = useState("");
   const [email, setEmail] = useState("");
@@ -38,14 +39,25 @@ export default function CompanyRegister() {
       setLoadingCnpj(true);
       setCnpjLookupFailed(false);
       setRazaoSocial("");
+      setCnae(null);
       if (!cnpjValue || cnpjValue.length < 14) return;
       const res = await fetch(`/api/consulta-cnpj?cnpj=${cnpjValue}`);
       if (!res.ok) throw new Error("CNPJ não encontrado");
       const data = await res.json();
       setRazaoSocial(data.razao_social || "");
+      // CNAE principal: BrasilAPI retorna `cnae_fiscal` (número) e `cnae_fiscal_descricao`.
+      const cnaeCodigoRaw = data?.cnae_fiscal ?? data?.cnae_principal?.codigo ?? null;
+      const cnaeDescricao = data?.cnae_fiscal_descricao || data?.cnae_principal?.descricao || "";
+      const cnaeCodigo = cnaeCodigoRaw != null ? String(cnaeCodigoRaw).replace(/\D/g, "") : "";
+      // Setor: primeiros 2 dígitos do CNAE = divisão (proxy de setor para agrupamento).
+      const setor = cnaeCodigo ? cnaeCodigo.slice(0, 2) : "";
+      if (cnaeCodigo || cnaeDescricao) {
+        setCnae({ codigo: cnaeCodigo, descricao: cnaeDescricao, setor });
+      }
       if (!data.razao_social) setCnpjLookupFailed(true);
     } catch {
       setRazaoSocial("");
+      setCnae(null);
       setCnpjLookupFailed(true);
     } finally {
       setLoadingCnpj(false);
@@ -69,6 +81,7 @@ export default function CompanyRegister() {
     if (raw.length === 14) fetchRazaoSocial(raw);
     else {
       setRazaoSocial("");
+      setCnae(null);
       setCnpjLookupFailed(false);
     }
   }
@@ -84,6 +97,10 @@ export default function CompanyRegister() {
       await setDoc(doc(db, "companies", empresaId), {
         cnpj: cnpjDigits,
         razaoSocial,
+        cnae: cnae || null,
+        cnaeCodigo: cnae?.codigo || null,
+        cnaeDescricao: cnae?.descricao || null,
+        setor: cnae?.setor || null,
         responsavel,
         cargo,
         email,
