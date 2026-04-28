@@ -712,7 +712,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
           )}
         </div>
       )}
-      <div className="w-full max-w-2xl px-6 py-8">
+      <div className="w-full max-w-2xl md:max-w-6xl px-6 py-8">
         {/* Barra de progresso — fluxo normal, logo acima do card "Seu perfil anônimo" */}
         <div className="mb-4 rounded-xl bg-slate-900/85 text-white overflow-hidden shadow-sm">
           <div className="flex items-center justify-between px-4 py-2 text-sm font-semibold">
@@ -726,10 +726,73 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             />
           </div>
         </div>
-        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-8 border border-blue-100 dark:border-slate-700">
-          <h1 className="text-2xl font-extrabold font-azonix tracking-wide text-blue-800 dark:text-blue-200 mb-4 text-center">
-            Seu perfil anônimo
-          </h1>
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-8 border border-blue-100 dark:border-slate-700 md:grid md:grid-cols-[35%_65%] md:gap-8">
+          {/* ===== Coluna esquerda (>= md): título, privacidade, banner do cadeado, stepper vertical ===== */}
+          <aside className="md:sticky md:top-4 md:self-start">
+            <h1 className="text-2xl font-extrabold font-azonix tracking-wide text-blue-800 dark:text-blue-200 mb-4 text-center md:text-left">
+              Seu perfil anônimo
+            </h1>
+
+            <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+              Essas informações ajudam a manter a qualidade das avaliações. Seus dados são armazenados localmente e não
+              serão compartilhados.
+            </p>
+
+            <div className="mb-4 rounded-xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 px-4 py-3 text-emerald-800 dark:text-emerald-200 text-sm">
+              🔒 Seu nome real e CPF são criptografados e nunca serão exibidos. Escolha um <strong>Pseudônimo</strong> para suas avaliações.
+            </div>
+
+            {/* Stepper vertical (somente >= md) */}
+            {(() => {
+              const stepperLabels = ["Identificação", "Experiências", "Avatar", "Confirmar"];
+              const activeIdx =
+                currentSection <= 3 ? 0 : currentSection === 4 ? 1 : currentSection === 5 ? 2 : 3;
+              return (
+                <ol className="hidden md:block mt-2 space-y-3" aria-label="Progresso do cadastro">
+                  {stepperLabels.map((label, idx) => {
+                    const isActive = idx === activeIdx;
+                    const isDone = idx < activeIdx;
+                    return (
+                      <li key={label} className="flex items-start gap-3">
+                        <span
+                          className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border ${
+                            isActive
+                              ? "bg-blue-600 text-white border-blue-600"
+                              : isDone
+                              ? "bg-emerald-500 text-white border-emerald-500"
+                              : "bg-white dark:bg-slate-800 text-slate-500 border-slate-300 dark:border-slate-600"
+                          }`}
+                          aria-current={isActive ? "step" : undefined}
+                        >
+                          {isDone ? (
+                            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          ) : (
+                            idx + 1
+                          )}
+                        </span>
+                        <span
+                          className={`pt-1 text-sm ${
+                            isActive
+                              ? "font-bold text-blue-700 dark:text-blue-300"
+                              : isDone
+                              ? "font-semibold text-emerald-700 dark:text-emerald-400"
+                              : "text-slate-500 dark:text-slate-400"
+                          }`}
+                        >
+                          {label}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
+              );
+            })()}
+          </aside>
+
+          {/* ===== Coluna direita: conteúdo dinâmico + formulário ===== */}
+          <div className="min-w-0">
 
           {/* Botão Ver meu perfil — exibido quando já tem um profileId salvo */}
           {(() => {
@@ -768,12 +831,12 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             </div>
           )}
 
-          <p className="text-sm text-slate-600 dark:text-slate-300 mb-6">
+          <p className="text-sm text-slate-600 dark:text-slate-300 mb-6 md:hidden">
             Essas informações ajudam a manter a qualidade das avaliações. Seus dados são armazenados localmente e não
             serão compartilhados.
           </p>
 
-          <div className="mb-4 rounded-xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 px-4 py-3 text-emerald-800 dark:text-emerald-200 text-sm">
+          <div className="mb-4 rounded-xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 px-4 py-3 text-emerald-800 dark:text-emerald-200 text-sm md:hidden">
             🔒 Seu nome real e CPF são criptografados e nunca serão exibidos. Escolha um <strong>Pseudônimo</strong> para suas avaliações.
           </div>
 
@@ -791,6 +854,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
               />
             </div>
+
+            {/* E-mail e Nome completo lado a lado em md+ */}
+            <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
 
             {/* E-mail */}
             <div ref={(el) => assignSectionRef(el, 1)}>
@@ -822,6 +888,8 @@ function ChoosePseudonym({ theme, toggleTheme }) {
               />
             </div>
 
+            </div>
+
             {/* CPF */}
             <div ref={(el) => assignSectionRef(el, 3)}>
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
@@ -848,6 +916,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                   Importe de uma plataforma ou adicione manualmente. Apenas empresa e cargo são necessários.
                 </p>
               </div>
+
+              {/* Currículo + LinkedIn lado a lado em md+ */}
+              <div className="space-y-5 md:space-y-0 md:grid md:grid-cols-2 md:gap-5">
 
               {/* 0. Importar via currículo do LinkedIn (PDF) */}
               <div className="bg-white dark:bg-slate-900 rounded-xl border border-blue-200 dark:border-slate-600 p-4">
@@ -997,6 +1068,8 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 )}
               </div>
 
+              </div>
+
               {/* Adicionar manualmente */}
               <div className="bg-white dark:bg-slate-900 rounded-xl border border-blue-200 dark:border-slate-600 p-4">
                 <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">
@@ -1091,7 +1164,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                   <p className="text-xs text-slate-500">Use o botão "Salvar imagem" para aplicar no app.</p>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2 mb-3">
+              <div className="grid grid-cols-5 md:grid-cols-6 gap-2 mb-3">
                 {predefinedAvatars.map((item) => (
                   <button
                     key={item}
@@ -1175,6 +1248,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
               </Link>
             </div>
           </form>
+          </div>
         </div>
       </div>
     </div>
