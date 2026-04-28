@@ -181,11 +181,47 @@ export default function CompanyRegister() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center px-4 py-10">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-[480px] bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-10"
-      >
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 px-4 py-10">
+      <div className="max-w-6xl mx-auto">
+        {/* Stepper visual (3 etapas) */}
+        <ol className="mb-8 grid grid-cols-3 gap-2 sm:gap-4" aria-label="Progresso do cadastro">
+          {[
+            { n: 1, label: "Dados da Empresa", active: true, done: false },
+            { n: 2, label: "Confirmação de E-mail", active: false, done: false },
+            { n: 3, label: "Acesse seu Dashboard", active: false, done: false },
+          ].map((step) => (
+            <li key={step.n} className="flex items-center gap-2 sm:gap-3">
+              <span
+                aria-current={step.active ? "step" : undefined}
+                className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border ${
+                  step.active
+                    ? "bg-blue-700 text-white border-blue-700"
+                    : step.done
+                    ? "bg-emerald-500 text-white border-emerald-500"
+                    : "bg-white dark:bg-slate-800 text-slate-500 border-slate-300 dark:border-slate-600"
+                }`}
+              >
+                {step.n}
+              </span>
+              <span
+                className={`text-xs sm:text-sm leading-snug ${
+                  step.active
+                    ? "font-bold text-blue-700 dark:text-blue-300"
+                    : "text-slate-500 dark:text-slate-400"
+                }`}
+              >
+                {step.label}
+              </span>
+            </li>
+          ))}
+        </ol>
+
+        <div className="flex flex-col-reverse lg:grid lg:grid-cols-[55%_45%] lg:gap-8 lg:items-start">
+          {/* Painel esquerdo: formulário */}
+          <form
+            onSubmit={handleSubmit}
+            className="w-full bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8 lg:p-10"
+          >
         {/* Header */}
         <div className="text-center mb-8">
           <div className="text-2xl font-extrabold text-blue-700 dark:text-blue-300 tracking-tight">Trabalhei Lá</div>
@@ -197,6 +233,11 @@ export default function CompanyRegister() {
             Preencha os dados para criar o perfil empresarial e gerenciar avaliações.
           </p>
         </div>
+
+        {/* Grupo: Dados da Empresa */}
+        <h3 className="text-[11px] font-bold tracking-[0.18em] uppercase text-slate-500 dark:text-slate-400 mb-3">
+          Dados da Empresa
+        </h3>
 
         {/* CNPJ */}
         <div className="mb-4">
@@ -264,6 +305,14 @@ export default function CompanyRegister() {
             </div>
           )}
         </div>
+
+        {/* Separador entre grupos */}
+        <div className="my-6 border-t border-slate-200 dark:border-slate-700" aria-hidden="true" />
+
+        {/* Grupo: Dados do Responsável */}
+        <h3 className="text-[11px] font-bold tracking-[0.18em] uppercase text-slate-500 dark:text-slate-400 mb-3">
+          Dados do Responsável
+        </h3>
 
         {/* Responsável */}
         <div className="mb-4">
@@ -458,7 +507,48 @@ export default function CompanyRegister() {
           <a href="/politica-de-privacidade" className="text-blue-700 dark:text-blue-300 hover:underline">Política de Privacidade</a>{" "}
           do Trabalhei Lá.
         </p>
-      </form>
+          </form>
+
+          {/* Painel direito: benefícios Premium (sticky em desktop, acima do form em mobile) */}
+          <aside className="w-full lg:sticky lg:top-6 lg:self-start mb-6 lg:mb-0">
+            <div className="rounded-2xl shadow-xl border border-blue-200 dark:border-blue-900/60 bg-gradient-to-br from-blue-700 to-blue-900 text-white p-8">
+              <div className="inline-flex items-center gap-1.5 bg-white/15 text-white text-[11px] font-bold tracking-wider px-3 py-1 rounded-full">
+                PLANO PREMIUM EMPRESA
+              </div>
+              <h3 className="mt-4 text-2xl font-bold leading-tight">
+                Tenha o controle estratégico do clima da sua empresa
+              </h3>
+              <p className="mt-2 text-sm text-blue-100/90 leading-relaxed">
+                Recursos exclusivos para gestores que querem decidir com base em dados reais.
+              </p>
+
+              <ul className="mt-6 space-y-3">
+                {[
+                  "Compare sua empresa com concorrentes em tempo real",
+                  "Identifique tendências e riscos do setor",
+                  "Relatórios executivos com oportunidades e ameaças",
+                  "Benchmarks exclusivos e reputação de mercado",
+                ].map((benefit) => (
+                  <li key={benefit} className="flex items-start gap-3">
+                    <span className="shrink-0 mt-0.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-400/20 text-emerald-300">
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </span>
+                    <span className="text-sm text-white/95 leading-snug">{benefit}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-6 pt-6 border-t border-white/15">
+                <div className="text-xs text-blue-100/80">A partir de</div>
+                <div className="text-2xl font-extrabold tracking-tight">R$ 1.499,99<span className="text-sm font-semibold text-blue-100/80">/mês</span></div>
+                <div className="text-xs text-blue-100/80 mt-1">Disponível a partir de 01/08/2026</div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
     </div>
   );
 }
