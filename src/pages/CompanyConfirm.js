@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { db } from "../firebase";
-import { getDocs, updateDoc, collection, query, where } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 
 export default function CompanyConfirm() {
   const [searchParams] = useSearchParams();
@@ -19,28 +19,30 @@ export default function CompanyConfirm() {
         setError("Token não informado.");
         return;
       }
-      // Busca empresa pelo token
-      const q = query(collection(db, "companies"), where("confirmationToken", "==", token));
-      const snap = await getDocs(q);
-      if (snap.empty) {
+      // O token é o próprio ID do documento em pendingCompanyConfirmations
+      const docRef = doc(db, "pendingCompanyConfirmations", token);
+      const snap = await getDoc(docRef);
+      if (!snap.exists()) {
         setStatus("invalid");
         setError("Token inválido ou empresa não encontrada.");
         return;
       }
-      const docRef = snap.docs[0].ref;
-      const data = snap.docs[0].data();
-      setEmpresa({ ...data, id: docRef.id });
-      if (!data.tokenExpiresAt || Date.now() > data.tokenExpiresAt) {
+      const data = snap.data();
+      setEmpresa({ ...data, id: snap.id });
+
+      // expiresAt é um Firestore Timestamp (gravado pelo Admin SDK)
+      const expiresMs =
+        data.expiresAt?.toMillis?.() ??
+        (data.expiresAt instanceof Date ? data.expiresAt.getTime() : null);
+      if (!expiresMs || Date.now() > expiresMs) {
         setStatus("expired");
         setError("Token expirado. Solicite um novo e-mail de confirmação.");
         return;
       }
-      // Token válido
+      // Token válido — marca como confirmado
       await updateDoc(docRef, {
         verified: true,
-        status: "ativo",
-        confirmationToken: null,
-        tokenExpiresAt: null,
+        status: "confirmed",
       });
       setStatus("success");
       setTimeout(() => {
@@ -59,11 +61,9 @@ export default function CompanyConfirm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          cnpj: empresa.cnpj,
-          razaoSocial: empresa.razaoSocial,
-          responsavel: empresa.responsavel,
           email: empresa.email,
-          empresaId: empresa.id,
+          companyName: empresa.companyName,
+          token: empresa.token || empresa.id,
         }),
       });
       setStatus("reenviado");
