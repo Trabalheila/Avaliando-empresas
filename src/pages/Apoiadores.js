@@ -25,21 +25,35 @@ function Apoiadores({ theme, toggleTheme }) {
           do Trabalhei Lá. Escolha o plano que combina com o seu momento.
         </p>
 
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
+        {/* CTA principal: cadastro do perfil */}
+        <div className="mt-8 flex flex-col items-center gap-3">
           <Link
             to="/apoiadores/cadastro"
-            className="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition"
+            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-8 sm:px-10 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-base sm:text-lg font-extrabold tracking-wide shadow-lg shadow-blue-600/30 hover:shadow-blue-700/40 transform hover:-translate-y-0.5 transition-all"
           >
-            Cadastrar meu perfil
+            <span>✨ Cadastrar meu perfil</span>
           </Link>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            É rápido e gratuito — comece agora a ser encontrado.
+          </p>
           <Link
             to="/apoiadores/lista"
-            className="px-5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+            className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-300 underline-offset-2 hover:underline transition"
           >
             Ver apoiadores ativos
           </Link>
         </div>
       </main>
+
+      {/* Transição para a seção de planos */}
+      <section className="max-w-5xl mx-auto px-4 mt-10 text-center">
+        <h2 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-slate-100">
+          Já tem um perfil? Conheça nossos planos para ir além
+        </h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-2xl mx-auto">
+          Amplie sua visibilidade na plataforma e receba mais leads qualificados com os planos pagos.
+        </p>
+      </section>
 
       {/* Cards dos 3 planos: Gratuito, Apoiador Essencial (RECOMENDADO) e Apoiador Premium. */}
       <PlanosApoiador />
