@@ -237,7 +237,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
             Seu cadastro será analisado em até <strong>5 dias úteis</strong>. Após aprovação, seu perfil aparecerá na listagem de apoiadores.
           </p>
-          <button type="button" onClick={() => navigate("/apoiadores")} className="px-6 py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition">
+          <button type="button" onClick={() => navigate("/apoiadores/lista")} className="px-6 py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition">
             Ver Apoiadores
           </button>
         </div>

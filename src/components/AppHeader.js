@@ -188,6 +188,13 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
                     onClick={() => { setDropdownOpen(false); navigate("/apoiadores"); }}
                     className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
                   >
+                    Seja um Apoiador
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setDropdownOpen(false); navigate("/apoiadores/lista"); }}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+                  >
                     Apoiadores
                   </button>
                   {admin && (
