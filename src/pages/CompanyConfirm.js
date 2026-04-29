@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { db } from "../firebase";
-import { doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 
 export default function CompanyConfirm() {
   const [searchParams] = useSearchParams();
@@ -20,47 +18,36 @@ export default function CompanyConfirm() {
         return;
       }
       try {
-        // O token é o próprio ID do documento em pendingCompanyConfirmations
-        const pendingRef = doc(db, "pendingCompanyConfirmations", token);
-        const snap = await getDoc(pendingRef);
-        if (!snap.exists()) {
-          setStatus("invalid");
-          setError("Token inválido ou empresa não encontrada.");
-          return;
-        }
-        const data = snap.data();
-        setEmpresa({ ...data, id: snap.id });
-
-        // expiresAt é um Firestore Timestamp (gravado pelo Admin SDK)
-        const expiresMs =
-          data.expiresAt?.toMillis?.() ??
-          (data.expiresAt instanceof Date ? data.expiresAt.getTime() : null);
-        if (!expiresMs || Date.now() > expiresMs) {
-          setStatus("expired");
-          setError("Token expirado. Solicite um novo e-mail de confirmação.");
-          return;
-        }
-
-        // Token válido — migra para a coleção companies e remove o pendente
-        const companyRef = doc(db, "companies", token);
-        await setDoc(companyRef, {
-          email: data.email,
-          companyName: data.companyName,
-          verified: true,
-          status: "active",
-          createdAt: data.createdAt ?? serverTimestamp(),
-          confirmedAt: serverTimestamp(),
+        const response = await fetch("/api/confirm-company", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
         });
-        await deleteDoc(pendingRef);
 
-        setStatus("success");
-        setTimeout(() => {
-          navigate("/empresa-dashboard?confirm=1");
-        }, 2000);
-      } catch (e) {
-        console.error("Erro ao confirmar cadastro:", e);
+        const result = await response.json().catch(() => ({}));
+
+        if (response.ok) {
+          setStatus("success");
+          setTimeout(() => {
+            navigate("/empresa-dashboard?confirm=1");
+          }, 2000);
+          return;
+        }
+
+        // Erro retornado pela API
+        const apiError = result.error || "Erro desconhecido na confirmação.";
+        if (apiError === "Token expirado") {
+          setStatus("expired");
+        } else {
+          setStatus("invalid");
+        }
+        setError(apiError);
+        // Mantém referência mínima da empresa para permitir reenvio
+        setEmpresa((prev) => prev || { token });
+      } catch (apiError) {
+        console.error("Erro ao chamar API de confirmação:", apiError);
         setStatus("invalid");
-        setError("Erro ao confirmar cadastro. Tente novamente mais tarde.");
+        setError("Falha na comunicação com o servidor.");
       }
     }
     checkToken();
@@ -68,16 +55,15 @@ export default function CompanyConfirm() {
   }, [token]);
 
   async function handleResend() {
-    if (!empresa) return;
     setReenviando(true);
     try {
       await fetch("/api/send-confirmation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: empresa.email,
-          companyName: empresa.companyName,
-          token: empresa.token || empresa.id,
+          email: empresa?.email,
+          companyName: empresa?.companyName,
+          token: empresa?.token || token,
         }),
       });
       setStatus("reenviado");

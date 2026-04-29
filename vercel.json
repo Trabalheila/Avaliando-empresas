@@ -11,6 +11,9 @@
     },
     "api/webhook.js": {
       "maxDuration": 30
+    },
+    "api/confirm-company.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
