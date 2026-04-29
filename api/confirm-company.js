@@ -46,7 +46,11 @@ export default async function handler(req, res) {
         : (data.expiresAt instanceof Date ? data.expiresAt.getTime() : null);
 
     if (!expiresMs || Date.now() > expiresMs) {
-      return res.status(400).json({ error: 'Token expirado' });
+      return res.status(400).json({
+        error: 'Token expirado',
+        email: data.email,
+        companyName: data.companyName,
+      });
     }
 
     // Migra para a coleção companies usando o mesmo token como ID

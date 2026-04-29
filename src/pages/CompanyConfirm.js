@@ -38,12 +38,17 @@ export default function CompanyConfirm() {
         const apiError = result.error || "Erro desconhecido na confirmação.";
         if (apiError === "Token expirado") {
           setStatus("expired");
+          // API devolve email/companyName quando o token expira → permite reenvio
+          setEmpresa({
+            token,
+            email: result.email,
+            companyName: result.companyName,
+          });
         } else {
           setStatus("invalid");
+          setEmpresa((prev) => prev || { token });
         }
         setError(apiError);
-        // Mantém referência mínima da empresa para permitir reenvio
-        setEmpresa((prev) => prev || { token });
       } catch (apiError) {
         console.error("Erro ao chamar API de confirmação:", apiError);
         setStatus("invalid");
