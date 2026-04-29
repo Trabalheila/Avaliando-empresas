@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 export default function CompanyConfirm() {
@@ -9,8 +9,13 @@ export default function CompanyConfirm() {
   const [empresa, setEmpresa] = useState(null);
   const [reenviando, setReenviando] = useState(false);
   const token = searchParams.get("token");
+  // Evita execução dupla do efeito (React 18 StrictMode em dev) e re-execuções
+  const calledRef = useRef(false);
 
   useEffect(() => {
+    if (calledRef.current) return;
+    calledRef.current = true;
+
     async function checkToken() {
       if (!token) {
         setStatus("invalid");
@@ -28,8 +33,9 @@ export default function CompanyConfirm() {
 
         if (response.ok) {
           setStatus("success");
+          // Redireciona para o dashboard após exibir o sucesso
           setTimeout(() => {
-            navigate("/empresa-dashboard?confirm=1");
+            navigate("/empresa-dashboard?confirm=1", { replace: true });
           }, 2000);
           return;
         }

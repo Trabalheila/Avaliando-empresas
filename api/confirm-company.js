@@ -31,9 +31,20 @@ export default async function handler(req, res) {
   try {
     const firestore = getFirestore();
     const pendingRef = firestore.collection('pendingCompanyConfirmations').doc(token);
+    const companyRef = firestore.collection('companies').doc(token);
     const snap = await pendingRef.get();
 
     if (!snap.exists) {
+      // Idempotência: se o doc pendente já foi consumido mas a empresa existe
+      // em companies, considera a confirmação já realizada (sucesso).
+      const companySnap = await companyRef.get();
+      if (companySnap.exists) {
+        return res.status(200).json({
+          success: true,
+          alreadyConfirmed: true,
+          message: 'Empresa já confirmada anteriormente.',
+        });
+      }
       return res.status(404).json({ error: 'Token inválido ou não encontrado.' });
     }
 
@@ -54,7 +65,6 @@ export default async function handler(req, res) {
     }
 
     // Migra para a coleção companies usando o mesmo token como ID
-    const companyRef = firestore.collection('companies').doc(token);
     await companyRef.set({
       email: data.email,
       companyName: data.companyName,
