@@ -32,7 +32,7 @@ function normalizeCompanySlug(value) {
 }
 
 
-async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, audience, paymentMethod, apoiadorId }) {
+async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, audience, tier, paymentMethod, apoiadorId }) {
   const accessToken = (process.env.MERCADO_PAGO_ACCESS_TOKEN || "").toString().trim();
   if (!accessToken) {
     throw new Error("MERCADO_PAGO_ACCESS_TOKEN nao configurado.");
@@ -42,22 +42,112 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
   const serverBase = getServerBaseUrl(req);
   const externalReference = cnpj ? cnpj : `slug:${companySlug}`;
 
-  const isEmployer = audience === "employer";
-  const planLabel = isEmployer ? "Empresa" : "Trabalhador";
-  const transactionAmount = isEmployer ? 1499.90 : 29.90;
-  const frequency = 1;
-  const frequencyType = "months";
+  // Mapeamento tier -> preco + nome do plano + variavel de preapproval_plan_id pre-criado.
+  // Se a variavel de ambiente correspondente estiver definida, o checkout usa o
+  // preapproval_plan_id ja existente em vez de criar um novo plano dinamicamente.
+  const PLAN_MATRIX = {
+    worker: {
+      essential: {
+        amount: 29.90,
+        reason: "Plano Trabalhador Essencial - Trabalhei La",
+        envPlanId: "MP_PLAN_WORKER_ESSENTIAL",
+      },
+      premium: {
+        amount: 79.90,
+        reason: "Plano Premium Trabalhador - Trabalhei La",
+        envPlanId: "MP_PLAN_WORKER_PREMIUM",
+      },
+    },
+    supporter: {
+      essential: {
+        amount: 199.90,
+        reason: "Apoiador Essencial - Trabalhei La",
+        envPlanId: "MP_PLAN_SUPPORTER_ESSENTIAL",
+      },
+      premium: {
+        amount: 399.90,
+        reason: "Apoiador Premium - Trabalhei La",
+        envPlanId: "MP_PLAN_SUPPORTER_PREMIUM",
+      },
+    },
+    employer: {
+      essential: {
+        amount: 1499.90,
+        reason: "Plano Empresa Fundador - Trabalhei La",
+        envPlanId: "MP_PLAN_EMPLOYER_ESSENTIAL",
+      },
+      premium: {
+        amount: 1499.90,
+        reason: "Plano Empresa Fundador - Trabalhei La",
+        envPlanId: "MP_PLAN_EMPLOYER_ESSENTIAL",
+      },
+    },
+  };
+
+  const planConfig = PLAN_MATRIX[audience]?.[tier] || PLAN_MATRIX.worker.essential;
+  const transactionAmount = planConfig.amount;
+  const planReason = planConfig.reason;
+  const preapprovalPlanId = (process.env[planConfig.envPlanId] || "").toString().trim();
 
   const notificationParams = new URLSearchParams({
     provider: "mercadopago",
     cnpj: cnpj || "",
     companySlug: companySlug || "",
     audience,
+    tier,
     apoiadorId: apoiadorId || "",
   });
 
+  // Caminho 1: usar preapproval_plan_id pre-cadastrado no Mercado Pago.
+  if (preapprovalPlanId) {
+    const subscriptionPayload = {
+      preapproval_plan_id: preapprovalPlanId,
+      external_reference: externalReference,
+      back_url: `${appOrigin}/?billing=success`,
+      notification_url: `${serverBase}/api/webhook?${notificationParams.toString()}`,
+    };
+
+    const response = await fetch("https://api.mercadopago.com/preapproval", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(subscriptionPayload),
+    });
+
+    const responseText = await response.text();
+    let json;
+    try {
+      json = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      json = {};
+    }
+
+    if (!response.ok) {
+      const message = json?.message || json?.cause?.[0]?.description || "Falha ao criar assinatura no Mercado Pago.";
+      throw new Error(message);
+    }
+
+    const checkoutUrl = json?.init_point;
+    if (!checkoutUrl) {
+      throw new Error("Resposta do Mercado Pago invalida: init_point ausente.");
+    }
+
+    return {
+      provider: "mercadopago",
+      redirectMode: "url",
+      checkoutUrl,
+      planId: preapprovalPlanId,
+    };
+  }
+
+  // Caminho 2: criar plano dinamicamente (fallback).
+  const frequency = 1;
+  const frequencyType = "months";
+
   const payload = {
-    reason: `Plano ${planLabel} Premium - Trabalhei La`,
+    reason: planReason,
     auto_recurring: {
       frequency,
       frequency_type: frequencyType,
@@ -109,12 +199,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { cnpj, companySlug, companyName, audience, paymentMethod, apoiadorId } = req.body || {};
+  const { cnpj, companySlug, companyName, audience, tier, paymentMethod, apoiadorId } = req.body || {};
   const cleanedCnpj = (cnpj || "").toString().replace(/\D/g, "");
   const hasValidCnpj = cleanedCnpj.length === 14;
   const normalizedCompanySlug = normalizeCompanySlug(companySlug);
   const normalizedCompanyName = (companyName || "").toString().trim();
   const normalizedAudience = ["worker", "employer", "supporter"].includes(audience) ? audience : "worker";
+  const normalizedTier = ["essential", "premium"].includes(tier) ? tier : "essential";
   const normalizedPaymentMethod = paymentMethod === "pix" ? "pix" : "card";
   const cleanedApoiadorId = (apoiadorId || "").toString().trim();
 
@@ -129,6 +220,7 @@ export default async function handler(req, res) {
       companySlug: normalizedCompanySlug,
       companyName: normalizedCompanyName,
       audience: normalizedAudience,
+      tier: normalizedTier,
       paymentMethod: normalizedPaymentMethod,
       apoiadorId: cleanedApoiadorId,
     });

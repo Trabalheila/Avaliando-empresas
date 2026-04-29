@@ -10,6 +10,7 @@ import {
 } from "react-icons/fi";
 import AppHeader from "../components/AppHeader";
 import PlanosApoiador from "../components/PlanosApoiador";
+import { getMpPlanUrl } from "../utils/mpSubscription";
 
 const EMPLOYER_FREE_PERIOD_END_ISO = "2026-07-31T23:59:59-03:00";
 const EMPLOYER_FREE_PERIOD_LABEL = "31 de julho de 2026";
@@ -105,8 +106,9 @@ function EscolhaPerfil({ theme, toggleTheme }) {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const handlePremiumUnlock = async (audience = "worker") => {
-    setCheckoutLoadingAudience(audience);
+  const handlePremiumUnlock = async (audience = "worker", tier = "essential") => {
+    const loadingKey = `${audience}-${tier}`;
+    setCheckoutLoadingAudience(loadingKey);
     setCheckoutError("");
     setCheckoutSuccess("");
     try {
@@ -119,6 +121,23 @@ function EscolhaPerfil({ theme, toggleTheme }) {
 
       const isEmployer = audience === "employer";
       const canGrantEmployerForFree = isEmployer && isEmployerFreeWindowActive;
+
+      // Caminho 1: redirect direto para o checkout de assinatura do Mercado Pago
+      // usando preapproval_plan_id da variavel de ambiente. Funciona para todos os
+      // tiers exceto quando o empregador esta dentro da janela gratuita.
+      const directMpUrl = getMpPlanUrl(audience, tier);
+      if (directMpUrl && !canGrantEmployerForFree) {
+        // Persistir intencao de perfil antes do redirect.
+        const updatedProfile = { ...stored, profileTypeChosen: audience };
+        localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
+        const pid = updatedProfile?.profileId || resolveProfileId(updatedProfile, { persistGeneratedId: false });
+        if (pid) {
+          const userRef = doc(db, "users", pid);
+          await setDoc(userRef, { profileTypeChosen: audience }, { merge: true });
+        }
+        window.location.assign(directMpUrl);
+        return;
+      }
 
       if (canGrantEmployerForFree) {
         const updatedProfile = {
@@ -177,6 +196,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
         companySlug: "trabalhei-la",
         companyName: "Trabalheila",
         audience,
+        tier,
       });
     } catch (err) {
       setCheckoutError(err?.message || "Erro ao iniciar checkout. Tente novamente.");
@@ -317,12 +337,12 @@ function EscolhaPerfil({ theme, toggleTheme }) {
             Veja o que muda ao se tornar Premium.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto mb-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-10 items-stretch">
             {/* Gratuito */}
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-6">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-6 flex flex-col">
               <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300 mb-1">Gratuito</h3>
               <p className="text-2xl font-bold text-slate-900 dark:text-white mb-4">R$ 0</p>
-              <ul className="space-y-3 text-sm text-slate-700 dark:text-slate-300">
+              <ul className="space-y-3 text-sm text-slate-700 dark:text-slate-300 flex-1">
                 <FeatureRow ok>Avaliar empresas anonimamente</FeatureRow>
                 <FeatureRow ok>Ver nota geral da empresa</FeatureRow>
                 <FeatureRow ok>Comentários públicos</FeatureRow>
@@ -331,19 +351,20 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 <FeatureRow>Dashboard de cultura e ambiente</FeatureRow>
                 <FeatureRow>Tendências e análises exclusivas</FeatureRow>
                 <FeatureRow>Assessoria jurídica trabalhista gratuita</FeatureRow>
+                <FeatureRow>Apoio Psicológico</FeatureRow>
               </ul>
             </div>
 
-            {/* Premium Trabalhador */}
-            <div className="rounded-2xl border-2 border-blue-400 dark:border-blue-600 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 p-6 relative overflow-hidden">
+            {/* Essencial — RECOMENDADO */}
+            <div className="rounded-2xl border-2 border-blue-400 dark:border-blue-600 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 p-6 relative overflow-hidden flex flex-col md:scale-[1.02] shadow-lg">
               <div className="absolute top-0 right-0 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
                 RECOMENDADO
               </div>
-              <h3 className="text-lg font-bold text-blue-700 dark:text-blue-400 mb-1">Premium</h3>
+              <h3 className="text-lg font-bold text-blue-700 dark:text-blue-400 mb-1">Trabalhador Essencial</h3>
               <p className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
                 R$ 29,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
               </p>
-              <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200">
+              <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">
                 <FeatureRow ok>Avaliar empresas anonimamente</FeatureRow>
                 <FeatureRow ok>Ver nota geral da empresa</FeatureRow>
                 <FeatureRow ok>Comentários públicos</FeatureRow>
@@ -355,26 +376,63 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 <FeatureRow ok>Primeira consulta gratuita com advogado trabalhista parceiro verificado</FeatureRow>
                 <FeatureRow ok>Orientação sobre rescisão indevida, assédio moral e discriminação</FeatureRow>
                 <FeatureRow ok>Acesso ao marketplace de advogados com OAB verificada</FeatureRow>
-                <FeatureRow ok>Avaliações de outros usuários Premium sobre advogados parceiros</FeatureRow>
+                <FeatureRow ok>Avaliações de outros usuários Essencial sobre advogados parceiros</FeatureRow>
+                <FeatureRow>Apoio Psicológico</FeatureRow>
               </ul>
+              <button
+                type="button"
+                className="mt-6 w-full py-3 rounded-lg bg-blue-600 text-white text-base font-bold hover:bg-blue-700 transition"
+                style={{ animation: "premiumGlow 2s ease-in-out infinite" }}
+                onClick={() => handlePremiumUnlock("worker", "essential")}
+                disabled={!!checkoutLoadingAudience}
+              >
+                {checkoutLoadingAudience === "worker-essential" ? "Abrindo checkout…" : "Assinar Essencial"}
+              </button>
+            </div>
+
+            {/* Premium */}
+            <div className="rounded-2xl border-2 border-amber-400 dark:border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 p-6 relative overflow-hidden flex flex-col shadow-lg">
+              <div className="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
+                COMPLETO
+              </div>
+              <h3 className="text-lg font-bold text-amber-700 dark:text-amber-400 mb-1">Premium Trabalhador</h3>
+              <p className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+                R$ 79,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
+              </p>
+              <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">
+                <FeatureRow ok>Avaliar empresas anonimamente</FeatureRow>
+                <FeatureRow ok>Ver nota geral da empresa</FeatureRow>
+                <FeatureRow ok>Comentários públicos</FeatureRow>
+                <FeatureRow ok>Comparar empresas lado a lado</FeatureRow>
+                <FeatureRow ok>Relatórios executivos completos</FeatureRow>
+                <FeatureRow ok>Dashboard de cultura e ambiente</FeatureRow>
+                <FeatureRow ok>Tendências e análises exclusivas</FeatureRow>
+                <FeatureRow ok>Assessoria jurídica trabalhista — acesso estendido a advogados parceiros (mais consultas e horas inclusas)</FeatureRow>
+                <FeatureRow ok>Primeira consulta gratuita com advogado trabalhista parceiro verificado</FeatureRow>
+                <FeatureRow ok>Orientação sobre rescisão indevida, assédio moral e discriminação</FeatureRow>
+                <FeatureRow ok>Acesso ao marketplace de advogados com OAB verificada</FeatureRow>
+                <FeatureRow ok>Avaliações de outros usuários Premium sobre advogados parceiros</FeatureRow>
+                <FeatureRow ok><span className="font-semibold">Apoio Psicológico</span> — acesso a psicólogos parceiros, primeira consulta gratuita e descontos em sessões</FeatureRow>
+                <FeatureRow ok>Consultoria de Carreira Personalizada (1 sessão/mês com mentor parceiro)</FeatureRow>
+                <FeatureRow ok>Workshops exclusivos sobre carreira, negociação e direitos trabalhistas</FeatureRow>
+              </ul>
+              <button
+                type="button"
+                className="mt-6 w-full py-3 rounded-lg bg-amber-500 text-white text-base font-bold hover:bg-amber-600 transition"
+                onClick={() => handlePremiumUnlock("worker", "premium")}
+                disabled={!!checkoutLoadingAudience}
+              >
+                {checkoutLoadingAudience === "worker-premium" ? "Abrindo checkout…" : "Assinar Premium"}
+              </button>
             </div>
           </div>
 
-          {/* Destaque + botão */}
+          {/* Destaque */}
           <div className="max-w-md mx-auto text-center">
             <div className="bg-blue-100 dark:bg-blue-900/30 rounded-xl p-4 mb-4 text-blue-900 dark:text-blue-200 text-sm font-medium shadow-inner">
               <span className="font-bold">Destaque:</span> Quem é Premium sente até{" "}
               <span className="font-bold">3× mais segurança</span> na escolha do emprego.
             </div>
-            <button
-              type="button"
-              className="w-full max-w-xs mx-auto py-3 rounded-lg bg-blue-600 text-white text-lg font-bold hover:bg-blue-700 transition"
-              style={{ animation: "premiumGlow 2s ease-in-out infinite" }}
-              onClick={() => handlePremiumUnlock("worker")}
-              disabled={!!checkoutLoadingAudience}
-            >
-              {checkoutLoadingAudience === "worker" ? "Abrindo checkout…" : "Quero ser Premium"}
-            </button>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
               Pagamento via Mercado Pago. Escolha PIX, cartão ou boleto no checkout.
             </p>
@@ -398,12 +456,12 @@ function EscolhaPerfil({ theme, toggleTheme }) {
             Dados estratégicos para decisões assertivas.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto mb-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-10 items-stretch">
             {/* Gratuito */}
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 flex flex-col">
               <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300 mb-1">Gratuito</h3>
               <p className="text-2xl font-bold text-slate-900 dark:text-white mb-4">R$ 0</p>
-              <ul className="space-y-3 text-sm text-slate-700 dark:text-slate-300">
+              <ul className="space-y-3 text-sm text-slate-700 dark:text-slate-300 flex-1">
                 <FeatureRow ok>Ver nota geral da empresa</FeatureRow>
                 <FeatureRow ok>Acompanhar avaliações públicas</FeatureRow>
                 <FeatureRow>Painel completo de avaliações por critério</FeatureRow>
@@ -415,7 +473,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
             </div>
 
             {/* Plano Fundador */}
-            <div className="rounded-2xl border-2 border-indigo-400 dark:border-indigo-600 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 p-6 relative overflow-hidden">
+            <div className="rounded-2xl border-2 border-indigo-400 dark:border-indigo-600 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 p-6 relative overflow-hidden flex flex-col">
               <div className="absolute top-0 right-0 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
                 FUNDADOR
               </div>
@@ -431,7 +489,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                   </>
                 )}
               </p>
-              <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200">
+              <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">
                 <FeatureRow ok>Painel completo de avaliações por critério</FeatureRow>
                 <FeatureRow ok>Relatório de reputação da empresa</FeatureRow>
                 <FeatureRow ok>Ferramenta de resposta a avaliações</FeatureRow>
@@ -444,6 +502,32 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                   ? "Plano empresarial com gratuidade provisoria valida ate 31 de julho de 2026."
                   : "Quem entra agora garante o preço Fundador. Quando os recursos avançados forem lançados, você não paga a diferença."}
               </p>
+            </div>
+
+            {/* Empresa Premium */}
+            <div className="rounded-2xl border-2 border-amber-400 dark:border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 p-6 relative overflow-hidden flex flex-col shadow-lg">
+              <div className="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
+                COMPLETO
+              </div>
+              <h3 className="text-lg font-bold text-amber-700 dark:text-amber-400 mb-1">Empresa Premium</h3>
+              <p className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+                R$ 3.499,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/ano</span>
+              </p>
+              <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">
+                <FeatureRow ok>Compare sua empresa com concorrentes em tempo real</FeatureRow>
+                <FeatureRow ok>Identifique tendências e riscos do setor</FeatureRow>
+                <FeatureRow ok>Receba relatórios executivos com oportunidades e ameaças</FeatureRow>
+                <FeatureRow ok>Dashboard dinâmico para análise de desempenho e contratos</FeatureRow>
+                <FeatureRow ok>Acesso a benchmarks exclusivos e reputação de mercado</FeatureRow>
+              </ul>
+              <button
+                type="button"
+                className="mt-6 w-full py-3 rounded-lg bg-amber-500 text-white text-base font-bold hover:bg-amber-600 transition"
+                onClick={() => handlePremiumUnlock("employer", "premium")}
+                disabled={!!checkoutLoadingAudience}
+              >
+                {checkoutLoadingAudience === "employer-premium" ? "Abrindo checkout…" : "Assinar Empresa Premium"}
+              </button>
             </div>
           </div>
 
@@ -519,10 +603,10 @@ function EscolhaPerfil({ theme, toggleTheme }) {
               type="button"
               className="w-full max-w-xs mx-auto py-3 rounded-lg bg-indigo-600 text-white text-lg font-bold hover:bg-indigo-700 transition"
               style={{ animation: "premiumGlowIndigo 2s ease-in-out infinite" }}
-              onClick={() => handlePremiumUnlock("employer")}
+              onClick={() => handlePremiumUnlock("employer", "essential")}
               disabled={!!checkoutLoadingAudience}
             >
-              {checkoutLoadingAudience === "employer"
+              {checkoutLoadingAudience === "employer-essential"
                 ? (isEmployerFreeWindowActive ? "Ativando acesso gratuito…" : "Abrindo checkout…")
                 : (isEmployerFreeWindowActive ? "Ativar gratis ate 31/07/2026" : "Quero ser Fundador")}
             </button>

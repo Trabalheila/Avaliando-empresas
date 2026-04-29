@@ -5,7 +5,7 @@ import { buildApiUrl } from "../utils/apiBase";
  * Prioriza CNPJ quando disponível e usa companySlug como fallback de vínculo.
  * O backend deve criar a sessao no endpoint /api/create-checkout-session.
  */
-export async function handleCheckout({ cnpj, companySlug, companyName, audience, paymentMethod, apoiadorId } = {}) {
+export async function handleCheckout({ cnpj, companySlug, companyName, audience, paymentMethod, apoiadorId, tier } = {}) {
   const cleanedCnpjRaw = (cnpj || "").toString().replace(/\D/g, "");
   const cleanedCnpj = cleanedCnpjRaw.length === 14 ? cleanedCnpjRaw : "";
   const normalizedCompanySlug = (companySlug || "")
@@ -16,6 +16,7 @@ export async function handleCheckout({ cnpj, companySlug, companyName, audience,
     .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "");
   const cleanedApoiadorId = (apoiadorId || "").toString().trim();
+  const normalizedTier = ["essential", "premium"].includes(tier) ? tier : "essential";
 
   if (!cleanedCnpj && !normalizedCompanySlug && !cleanedApoiadorId) {
     throw new Error("Nao foi possivel identificar a empresa para iniciar o checkout.");
@@ -29,6 +30,7 @@ export async function handleCheckout({ cnpj, companySlug, companyName, audience,
       companySlug: normalizedCompanySlug || null,
       companyName: (companyName || "").toString().trim() || null,
       audience: ["worker", "employer", "supporter"].includes(audience) ? audience : "worker",
+      tier: normalizedTier,
       paymentMethod: paymentMethod === "pix" ? "pix" : "card",
       apoiadorId: cleanedApoiadorId || null,
     }),
