@@ -167,6 +167,7 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
   }
 
   const isPremium = apoiador.plano === "premium";
+  const isVerified = apoiador.verificationStatus === "verified";
   const nichos = apoiador.nichos || apoiador.areas || apoiador.segmentos || [];
 
   return (
@@ -188,6 +189,11 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
                 {isPremium && (
                   <span className="px-2.5 py-0.5 text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 rounded-full">
                     ✓ Apoiador Premium Verificado
+                  </span>
+                )}
+                {isVerified && !isPremium && (
+                  <span className="px-2.5 py-0.5 text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 rounded-full">
+                    ✓ Apoiador Verificado
                   </span>
                 )}
               </div>

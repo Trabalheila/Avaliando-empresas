@@ -40,6 +40,25 @@ const SEGMENTOS_PRESTADOR = [
   "Treinamento técnico",
 ];
 
+/* ── Profissoes (obrigatorio para todos os apoiadores) ── */
+const PROFISSOES = [
+  { value: "advogado", label: "Advogado" },
+  { value: "medico", label: "Médico" },
+  { value: "psicologo", label: "Psicólogo" },
+  { value: "consultor_rh", label: "Consultor de RH" },
+  { value: "recrutador", label: "Recrutador" },
+  { value: "outro", label: "Outro" },
+];
+
+/* Profissoes regulamentadas exigem numero + estado/regiao do conselho */
+const REGULATED_PROFESSIONS = new Set(["advogado", "medico", "psicologo"]);
+
+const CREDENTIAL_LABELS = {
+  advogado:  { number: "Número da OAB", state: "Estado da OAB (UF)", placeholder: "Ex: SP" },
+  medico:    { number: "Número do CRM", state: "Estado do CRM (UF)", placeholder: "Ex: SP" },
+  psicologo: { number: "Número do CRP", state: "Região do CRP",     placeholder: "Ex: 06/SP" },
+};
+
 const MAX_DESC = 600;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_FILES = 3;
@@ -81,6 +100,14 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
   const [cnpj, setCnpj] = useState("");
   const [segmentos, setSegmentos] = useState([]);
   const [site, setSite] = useState("");
+
+  /* ── Profissao + credenciais (privado, nao exibido publicamente) ── */
+  const [profession, setProfession] = useState("");
+  const [credentialNumber, setCredentialNumber] = useState("");
+  const [credentialStateOrRegion, setCredentialStateOrRegion] = useState("");
+  const [credentialPortfolioUrl, setCredentialPortfolioUrl] = useState("");
+  const [credentialCertifications, setCredentialCertifications] = useState("");
+  const [credentialProof, setCredentialProof] = useState(null); // { name, size, type, url(base64) }
 
   /* ── UI ── */
   const [submitting, setSubmitting] = useState(false);
@@ -153,6 +180,37 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
     e.target.value = "";
   }, []);
 
+  const handleCredentialProof = useCallback((e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const ext = f.name.split(".").pop().toLowerCase();
+    if (!["pdf", "jpg", "jpeg", "png"].includes(ext)) {
+      setError("Comprovante deve ser PDF, JPG ou PNG.");
+      e.target.value = "";
+      return;
+    }
+    if (f.size > MAX_FILE_SIZE) {
+      setError("Comprovante excede 5 MB.");
+      e.target.value = "";
+      return;
+    }
+    setError("");
+    const reader = new FileReader();
+    reader.onload = () =>
+      setCredentialProof({ name: f.name, size: f.size, type: f.type, url: reader.result });
+    reader.readAsDataURL(f);
+    e.target.value = "";
+  }, []);
+
+  /* Reset campos condicionais ao trocar profissao */
+  const handleProfessionChange = useCallback((value) => {
+    setProfession(value);
+    setCredentialNumber("");
+    setCredentialStateOrRegion("");
+    setCredentialPortfolioUrl("");
+    setCredentialCertifications("");
+  }, []);
+
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     setError("");
@@ -162,6 +220,20 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
     if (tipo === "advogado" && (!oab.trim() || !seccional.trim())) { setError("Preencha OAB e seccional."); return; }
     if (tipo === "prestador" && !cnpj.trim()) { setError("Preencha o CNPJ."); return; }
     if (tipo === "consultor" && !especialidade.trim()) { setError("Preencha a especialidade."); return; }
+
+    /* Validacao da nova secao Profissao + credenciais */
+    if (!profession) { setError("Selecione sua profissão."); return; }
+    if (REGULATED_PROFESSIONS.has(profession)) {
+      if (!credentialNumber.trim() || !credentialStateOrRegion.trim()) {
+        setError("Informe o número e o estado/região do conselho da sua categoria.");
+        return;
+      }
+    }
+    if (!credentialProof) {
+      setError("Anexe o comprovante de credencial (PDF, JPG ou PNG).");
+      return;
+    }
+
     if (!allTermosAceitos) { setError("Aceite todos os termos obrigatórios."); return; }
 
     setSubmitting(true);
@@ -199,6 +271,19 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
         nichos: nichos.slice(0, 3),
         uid: auth.currentUser?.uid || null,
         createdAt: serverTimestamp(),
+
+        /* Profissao + credenciais (PRIVADO - nao exibir publicamente).
+           Apenas o selo "Apoiador Verificado" sera exposto quando
+           verificationStatus for definido como "verified" manualmente. */
+        profession,
+        credential: {
+          number: REGULATED_PROFESSIONS.has(profession) ? credentialNumber.trim() : "",
+          stateOrRegion: REGULATED_PROFESSIONS.has(profession) ? credentialStateOrRegion.trim() : "",
+          portfolioUrl: !REGULATED_PROFESSIONS.has(profession) ? credentialPortfolioUrl.trim() : "",
+          certifications: !REGULATED_PROFESSIONS.has(profession) ? credentialCertifications.trim() : "",
+          proof: credentialProof, // { name, size, type, url(base64) }
+        },
+        verificationStatus: "pending",
       };
 
       /* Campos específicos por tipo */
@@ -225,7 +310,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
       setError("Ocorreu um erro ao enviar o cadastro. Tente novamente.");
     }
     setSubmitting(false);
-  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, arquivos, allTermosAceitos, especialidade, areas, linkedin, valorMedio, oab, seccional, cnpj, segmentos, site, portfolio, nichos]);
+  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, arquivos, allTermosAceitos, especialidade, areas, linkedin, valorMedio, oab, seccional, cnpj, segmentos, site, portfolio, nichos, profession, credentialNumber, credentialStateOrRegion, credentialPortfolioUrl, credentialCertifications, credentialProof]);
 
   /* ═══ Tela de sucesso ═══ */
   if (success) {
@@ -481,6 +566,140 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                     + Adicionar caso ou projeto
                   </button>
                 )}
+              </div>
+
+              {/* ── Profissão + credenciais (privado, nunca exibido publicamente) ── */}
+              <div className="mb-6 p-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/40 dark:bg-blue-900/10">
+                <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                    Profissão e credenciais
+                  </p>
+                  <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                    Privado
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mb-4">
+                  Esses dados são usados apenas para verificação interna. Não aparecem
+                  publicamente. Após análise, seu perfil pode receber o selo
+                  <span className="font-semibold"> "Apoiador Verificado"</span>.
+                </p>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Profissão *
+                  </label>
+                  <select
+                    value={profession}
+                    onChange={(e) => handleProfessionChange(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200"
+                  >
+                    <option value="">Selecione…</option>
+                    {PROFISSOES.map((p) => (
+                      <option key={p.value} value={p.value}>{p.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Conditionals com transição suave */}
+                <div
+                  className={`grid transition-all duration-300 ease-out overflow-hidden ${
+                    profession ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                  }`}
+                >
+                  <div className="min-h-0">
+                    {REGULATED_PROFESSIONS.has(profession) && CREDENTIAL_LABELS[profession] && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                            {CREDENTIAL_LABELS[profession].number} *
+                          </label>
+                          <input
+                            type="text"
+                            value={credentialNumber}
+                            onChange={(e) => setCredentialNumber(e.target.value)}
+                            maxLength={30}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                            {CREDENTIAL_LABELS[profession].state} *
+                          </label>
+                          <input
+                            type="text"
+                            value={credentialStateOrRegion}
+                            onChange={(e) => setCredentialStateOrRegion(e.target.value)}
+                            placeholder={CREDENTIAL_LABELS[profession].placeholder}
+                            maxLength={10}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 uppercase"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {profession && !REGULATED_PROFESSIONS.has(profession) && (
+                      <div className="grid grid-cols-1 gap-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                            Link para Portfólio / LinkedIn
+                          </label>
+                          <input
+                            type="url"
+                            value={credentialPortfolioUrl}
+                            onChange={(e) => setCredentialPortfolioUrl(e.target.value)}
+                            placeholder="https://linkedin.com/in/seu-perfil"
+                            className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                            Certificações relevantes
+                          </label>
+                          <textarea
+                            value={credentialCertifications}
+                            onChange={(e) => setCredentialCertifications(e.target.value.slice(0, 600))}
+                            rows={3}
+                            maxLength={600}
+                            placeholder="Liste cursos, certificações, formações ou experiências relevantes"
+                            className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 resize-none"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Comprovante (obrigatório para todas as profissões) */}
+                    <div className="mt-4">
+                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                        Comprovante de credencial *
+                      </label>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                        Foto da carteira da OAB/CRM/CRP, certificado de formação ou outro
+                        documento que comprove sua qualificação. PDF, JPG ou PNG (máx. 5 MB).
+                      </p>
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={handleCredentialProof}
+                        className="text-sm text-slate-600 dark:text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-blue-900/30 dark:file:text-blue-300"
+                      />
+                      {credentialProof && (
+                        <div className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                          <span className="truncate max-w-[240px]">{credentialProof.name}</span>
+                          <span className="text-slate-400">
+                            ({(credentialProof.size / 1024).toFixed(0)} KB)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setCredentialProof(null)}
+                            className="text-red-500 hover:text-red-700 font-bold"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* ── Termos obrigatórios ── */}
