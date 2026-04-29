@@ -833,15 +833,6 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             </div>
           )}
 
-          <p className="text-sm text-slate-600 dark:text-slate-300 mb-6 md:hidden">
-            Essas informações ajudam a manter a qualidade das avaliações. Seus dados são armazenados localmente e não
-            serão compartilhados.
-          </p>
-
-          <div className="mb-4 rounded-xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 px-4 py-3 text-emerald-800 dark:text-emerald-200 text-sm md:hidden">
-            🔒 Seu nome real e CPF são criptografados e nunca serão exibidos. Escolha um <strong>Pseudônimo</strong> para suas avaliações.
-          </div>
-
           <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
             {/* Pseudônimo */}
             <div ref={(el) => assignSectionRef(el, 0)}>
