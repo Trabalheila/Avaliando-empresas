@@ -5,11 +5,17 @@ import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { signInAnonymously } from "firebase/auth";
 import AppHeader from "../components/AppHeader";
 
-/* ── Opções por tipo ── */
+/* ── Opções por tipo (lista abrangente de profissões) ── */
 const TIPOS = [
-  { value: "consultor", label: "Consultor de RH" },
-  { value: "advogado", label: "Advogado Trabalhista" },
-  { value: "prestador", label: "Prestador de Serviços" },
+  { value: "advogado", label: "Advogado" },
+  { value: "medico", label: "Médico" },
+  { value: "psicologo", label: "Psicólogo" },
+  { value: "consultor_rh", label: "Consultor de RH" },
+  { value: "recrutador", label: "Recrutador" },
+  { value: "contador", label: "Contador" },
+  { value: "engenheiro_seguranca", label: "Engenheiro de Segurança do Trabalho" },
+  { value: "fisioterapeuta_ocupacional", label: "Fisioterapeuta Ocupacional" },
+  { value: "outro", label: "Outro" },
 ];
 
 const NICHOS_OPTIONS = [
@@ -40,24 +46,19 @@ const SEGMENTOS_PRESTADOR = [
   "Treinamento técnico",
 ];
 
-/* ── Profissoes (obrigatorio para todos os apoiadores) ── */
-const PROFISSOES = [
-  { value: "advogado", label: "Advogado" },
-  { value: "medico", label: "Médico" },
-  { value: "psicologo", label: "Psicólogo" },
-  { value: "consultor_rh", label: "Consultor de RH" },
-  { value: "recrutador", label: "Recrutador" },
-  { value: "outro", label: "Outro" },
-];
-
-/* Profissoes regulamentadas exigem numero + estado/regiao do conselho */
-const REGULATED_PROFESSIONS = new Set(["advogado", "medico", "psicologo"]);
+/* ── Profissões regulamentadas exigem número + estado/região do conselho ── */
+const REGULATED_PROFESSIONS = new Set(["advogado", "medico", "psicologo", "engenheiro_seguranca", "fisioterapeuta_ocupacional", "contador"]);
 
 const CREDENTIAL_LABELS = {
-  advogado:  { number: "Número da OAB", state: "Estado da OAB (UF)", placeholder: "Ex: SP" },
-  medico:    { number: "Número do CRM", state: "Estado do CRM (UF)", placeholder: "Ex: SP" },
-  psicologo: { number: "Número do CRP", state: "Região do CRP",     placeholder: "Ex: 06/SP" },
+  advogado:                  { number: "Número da OAB",  state: "Estado da OAB (UF)",     placeholder: "Ex: SP" },
+  medico:                    { number: "Número do CRM",  state: "Estado do CRM (UF)",     placeholder: "Ex: SP" },
+  psicologo:                 { number: "Número do CRP",  state: "Região do CRP",          placeholder: "Ex: 06/SP" },
+  contador:                  { number: "Número do CRC",  state: "Estado do CRC (UF)",     placeholder: "Ex: SP" },
+  engenheiro_seguranca:      { number: "Número do CREA", state: "Estado do CREA (UF)",    placeholder: "Ex: SP" },
+  fisioterapeuta_ocupacional:{ number: "Número do CREFITO", state: "Região do CREFITO",  placeholder: "Ex: 3/SP" },
 };
+
+/* Removidas as constantes antigas: PROFISSOES, AREAS_RH, SEGMENTOS_PRESTADOR (não utilizadas no novo fluxo unificado). */
 
 const MAX_DESC = 600;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -96,13 +97,12 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
   const [oab, setOab] = useState("");
   const [seccional, setSeccional] = useState("");
 
-  /* ── Estado prestador ── */
+  /* ── CNPJ e site (opcionais para todos) ── */
   const [cnpj, setCnpj] = useState("");
   const [segmentos, setSegmentos] = useState([]);
   const [site, setSite] = useState("");
 
-  /* ── Profissao + credenciais (privado, nao exibido publicamente) ── */
-  const [profession, setProfession] = useState("");
+  /* ── Credenciais (privado, nao exibido publicamente) ── */
   const [credentialNumber, setCredentialNumber] = useState("");
   const [credentialStateOrRegion, setCredentialStateOrRegion] = useState("");
   const [credentialPortfolioUrl, setCredentialPortfolioUrl] = useState("");
@@ -202,9 +202,9 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
     e.target.value = "";
   }, []);
 
-  /* Reset campos condicionais ao trocar profissao */
-  const handleProfessionChange = useCallback((value) => {
-    setProfession(value);
+  /* Reset campos condicionais ao trocar tipo (profissão) */
+  const handleTipoChange = useCallback((value) => {
+    setTipo(value);
     setCredentialNumber("");
     setCredentialStateOrRegion("");
     setCredentialPortfolioUrl("");
@@ -217,13 +217,9 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
 
     if (!tipo) { setError("Selecione o tipo de apoiador."); return; }
     if (!nome.trim() || !email.trim() || !telefone.trim()) { setError("Preencha todos os campos obrigatórios."); return; }
-    if (tipo === "advogado" && (!oab.trim() || !seccional.trim())) { setError("Preencha OAB e seccional."); return; }
-    if (tipo === "prestador" && !cnpj.trim()) { setError("Preencha o CNPJ."); return; }
-    if (tipo === "consultor" && !especialidade.trim()) { setError("Preencha a especialidade."); return; }
 
-    /* Validacao da nova secao Profissao + credenciais */
-    if (!profession) { setError("Selecione sua profissão."); return; }
-    if (REGULATED_PROFESSIONS.has(profession)) {
+    /* Validação das credenciais */
+    if (REGULATED_PROFESSIONS.has(tipo)) {
       if (!credentialNumber.trim() || !credentialStateOrRegion.trim()) {
         setError("Informe o número e o estado/região do conselho da sua categoria.");
         return;
@@ -272,36 +268,23 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
         uid: auth.currentUser?.uid || null,
         createdAt: serverTimestamp(),
 
-        /* Profissao + credenciais (PRIVADO - nao exibir publicamente).
+        /* Credenciais (PRIVADO - nao exibir publicamente).
            Apenas o selo "Apoiador Verificado" sera exposto quando
            verificationStatus for definido como "verified" manualmente. */
-        profession,
         credential: {
-          number: REGULATED_PROFESSIONS.has(profession) ? credentialNumber.trim() : "",
-          stateOrRegion: REGULATED_PROFESSIONS.has(profession) ? credentialStateOrRegion.trim() : "",
-          portfolioUrl: !REGULATED_PROFESSIONS.has(profession) ? credentialPortfolioUrl.trim() : "",
-          certifications: !REGULATED_PROFESSIONS.has(profession) ? credentialCertifications.trim() : "",
+          number: REGULATED_PROFESSIONS.has(tipo) ? credentialNumber.trim() : "",
+          stateOrRegion: REGULATED_PROFESSIONS.has(tipo) ? credentialStateOrRegion.trim() : "",
+          portfolioUrl: !REGULATED_PROFESSIONS.has(tipo) ? credentialPortfolioUrl.trim() : "",
+          certifications: !REGULATED_PROFESSIONS.has(tipo) ? credentialCertifications.trim() : "",
           proof: credentialProof, // { name, size, type, url(base64) }
         },
         verificationStatus: "pending",
       };
 
-      /* Campos específicos por tipo */
-      if (tipo === "consultor") {
-        baseData.especialidade = especialidade.trim();
-        baseData.areas = areas;
-        baseData.linkedin = linkedin.trim();
-        baseData.valorMedio = valorMedio.trim();
-      }
-      if (tipo === "advogado") {
-        baseData.oab = oab.trim();
-        baseData.seccional = seccional.trim();
-      }
-      if (tipo === "prestador") {
-        baseData.cnpj = cnpj.trim();
-        baseData.segmentos = segmentos;
-        baseData.site = site.trim();
-      }
+      /* CNPJ / site / segmentos são opcionais e válidos para qualquer profissão */
+      if (cnpj.trim()) baseData.cnpj = cnpj.trim();
+      if (site.trim()) baseData.site = site.trim();
+      if (segmentos.length > 0) baseData.segmentos = segmentos;
 
       await setDoc(doc(db, "apoiadores", id), baseData);
       setSuccess(true);
@@ -310,7 +293,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
       setError("Ocorreu um erro ao enviar o cadastro. Tente novamente.");
     }
     setSubmitting(false);
-  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, arquivos, allTermosAceitos, especialidade, areas, linkedin, valorMedio, oab, seccional, cnpj, segmentos, site, portfolio, nichos, profession, credentialNumber, credentialStateOrRegion, credentialPortfolioUrl, credentialCertifications, credentialProof]);
+  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, arquivos, allTermosAceitos, cnpj, segmentos, site, portfolio, nichos, credentialNumber, credentialStateOrRegion, credentialPortfolioUrl, credentialCertifications, credentialProof]);
 
   /* ═══ Tela de sucesso ═══ */
   if (success) {
@@ -335,7 +318,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center">
       <AppHeader theme={theme} toggleTheme={toggleTheme} hideAvatar />
 
-      <form onSubmit={handleSubmit} className="w-full max-w-3xl px-4 py-8">
+      <form onSubmit={handleSubmit} className="w-full max-w-4xl px-4 py-8">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-blue-100 dark:border-slate-700 p-6 md:p-8">
           <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white mb-1">Cadastro de Apoiador</h1>
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
@@ -348,34 +331,28 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
             </div>
           )}
 
-          {/* ── Seletor de tipo ── */}
+          {/* ── Seletor de tipo (profissão) ── */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Tipo de apoiador *</label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <select
+              value={tipo}
+              onChange={(e) => handleTipoChange(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200"
+            >
+              <option value="">Selecione sua profissão…</option>
               {TIPOS.map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => setTipo(t.value)}
-                  className={`p-3 rounded-xl text-sm font-semibold border-2 transition ${
-                    tipo === t.value
-                      ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                      : "border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-blue-300"
-                  }`}
-                >
-                  {t.label}
-                </button>
+                <option key={t.value} value={t.value}>{t.label}</option>
               ))}
-            </div>
+            </select>
           </div>
 
           {tipo && (
             <>
-              {/* ── Campos comuns ── */}
+              {/* ── Campos comuns (2 colunas no desktop) ── */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
-                    {tipo === "prestador" ? "Razão social *" : "Nome completo *"}
+                    Nome completo / Razão social *
                   </label>
                   <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} maxLength={120}
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200" />
@@ -395,82 +372,30 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                   <input type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} maxLength={20} placeholder="Mesmo do telefone se vazio"
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200" />
                 </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">CNPJ <span className="text-xs font-normal text-slate-500">(opcional)</span></label>
+                  <input type="text" value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="00.000.000/0001-00" maxLength={18}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Site institucional <span className="text-xs font-normal text-slate-500">(opcional)</span></label>
+                  <input type="url" value={site} onChange={(e) => setSite(e.target.value)} placeholder="https://www.empresa.com"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200" />
+                </div>
               </div>
 
-              {/* ── Campos específicos: Consultor ── */}
-              {tipo === "consultor" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Especialidade principal *</label>
-                    <input type="text" value={especialidade} onChange={(e) => setEspecialidade(e.target.value)} placeholder="Ex: Gestão de clima organizacional"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">LinkedIn</label>
-                    <input type="url" value={linkedin} onChange={(e) => setLinkedin(e.target.value)} placeholder="https://linkedin.com/in/seu-perfil"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Valor médio (R$)</label>
-                    <input type="text" value={valorMedio} onChange={(e) => setValorMedio(e.target.value)} placeholder="Ex: 5.000,00"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200" />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Áreas de atuação</label>
-                    <div className="flex flex-wrap gap-2">
-                      {AREAS_RH.map((a) => (
-                        <button key={a} type="button" onClick={() => toggleArea(a)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${areas.includes(a) ? "bg-blue-600 text-white border-blue-600" : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-blue-400"}`}>
-                          {a}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+              {/* ── Segmentos de atuação (largura total) ── */}
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Segmentos de atuação</label>
+                <div className="flex flex-wrap gap-2">
+                  {SEGMENTOS_PRESTADOR.map((s) => (
+                    <button key={s} type="button" onClick={() => toggleSegmento(s)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${segmentos.includes(s) ? "bg-blue-600 text-white border-blue-600" : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-blue-400"}`}>
+                      {s}
+                    </button>
+                  ))}
                 </div>
-              )}
-
-              {/* ── Campos específicos: Advogado ── */}
-              {tipo === "advogado" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Número OAB *</label>
-                    <input type="text" value={oab} onChange={(e) => setOab(e.target.value)} placeholder="Ex: 123456" maxLength={20}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Seccional (UF) *</label>
-                    <input type="text" value={seccional} onChange={(e) => setSeccional(e.target.value)} placeholder="Ex: SP" maxLength={2}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 uppercase" />
-                  </div>
-                </div>
-              )}
-
-              {/* ── Campos específicos: Prestador ── */}
-              {tipo === "prestador" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">CNPJ *</label>
-                    <input type="text" value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="00.000.000/0001-00" maxLength={18}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Site institucional</label>
-                    <input type="url" value={site} onChange={(e) => setSite(e.target.value)} placeholder="https://www.empresa.com"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200" />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Segmentos de atuação</label>
-                    <div className="flex flex-wrap gap-2">
-                      {SEGMENTOS_PRESTADOR.map((s) => (
-                        <button key={s} type="button" onClick={() => toggleSegmento(s)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${segmentos.includes(s) ? "bg-blue-600 text-white border-blue-600" : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-blue-400"}`}>
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
+              </div>
 
               {/* ── Nichos de atuação (todos os tipos, máx 3) ── */}
               <div className="mb-6">
@@ -568,11 +493,11 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                 )}
               </div>
 
-              {/* ── Profissão + credenciais (privado, nunca exibido publicamente) ── */}
+              {/* ── Credenciais (privado, nunca exibido publicamente) ── */}
               <div className="mb-6 p-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/40 dark:bg-blue-900/10">
                 <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
                   <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                    Profissão e credenciais
+                    Credenciais
                   </p>
                   <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
                     Privado
@@ -584,121 +509,96 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                   <span className="font-semibold"> "Apoiador Verificado"</span>.
                 </p>
 
-                <div className="mb-4">
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
-                    Profissão *
-                  </label>
-                  <select
-                    value={profession}
-                    onChange={(e) => handleProfessionChange(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200"
-                  >
-                    <option value="">Selecione…</option>
-                    {PROFISSOES.map((p) => (
-                      <option key={p.value} value={p.value}>{p.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Conditionals com transição suave */}
-                <div
-                  className={`grid transition-all duration-300 ease-out overflow-hidden ${
-                    profession ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                  }`}
-                >
-                  <div className="min-h-0">
-                    {REGULATED_PROFESSIONS.has(profession) && CREDENTIAL_LABELS[profession] && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
-                            {CREDENTIAL_LABELS[profession].number} *
-                          </label>
-                          <input
-                            type="text"
-                            value={credentialNumber}
-                            onChange={(e) => setCredentialNumber(e.target.value)}
-                            maxLength={30}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
-                            {CREDENTIAL_LABELS[profession].state} *
-                          </label>
-                          <input
-                            type="text"
-                            value={credentialStateOrRegion}
-                            onChange={(e) => setCredentialStateOrRegion(e.target.value)}
-                            placeholder={CREDENTIAL_LABELS[profession].placeholder}
-                            maxLength={10}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 uppercase"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {profession && !REGULATED_PROFESSIONS.has(profession) && (
-                      <div className="grid grid-cols-1 gap-4">
-                        <div>
-                          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
-                            Link para Portfólio / LinkedIn
-                          </label>
-                          <input
-                            type="url"
-                            value={credentialPortfolioUrl}
-                            onChange={(e) => setCredentialPortfolioUrl(e.target.value)}
-                            placeholder="https://linkedin.com/in/seu-perfil"
-                            className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
-                            Certificações relevantes
-                          </label>
-                          <textarea
-                            value={credentialCertifications}
-                            onChange={(e) => setCredentialCertifications(e.target.value.slice(0, 600))}
-                            rows={3}
-                            maxLength={600}
-                            placeholder="Liste cursos, certificações, formações ou experiências relevantes"
-                            className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 resize-none"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Comprovante (obrigatório para todas as profissões) */}
-                    <div className="mt-4">
+                {REGULATED_PROFESSIONS.has(tipo) && CREDENTIAL_LABELS[tipo] && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
                       <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
-                        Comprovante de credencial *
+                        {CREDENTIAL_LABELS[tipo].number} *
                       </label>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                        Foto da carteira da OAB/CRM/CRP, certificado de formação ou outro
-                        documento que comprove sua qualificação. PDF, JPG ou PNG (máx. 5 MB).
-                      </p>
                       <input
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        onChange={handleCredentialProof}
-                        className="text-sm text-slate-600 dark:text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-blue-900/30 dark:file:text-blue-300"
+                        type="text"
+                        value={credentialNumber}
+                        onChange={(e) => setCredentialNumber(e.target.value)}
+                        maxLength={30}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200"
                       />
-                      {credentialProof && (
-                        <div className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-                          <span className="truncate max-w-[240px]">{credentialProof.name}</span>
-                          <span className="text-slate-400">
-                            ({(credentialProof.size / 1024).toFixed(0)} KB)
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setCredentialProof(null)}
-                            className="text-red-500 hover:text-red-700 font-bold"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                        {CREDENTIAL_LABELS[tipo].state} *
+                      </label>
+                      <input
+                        type="text"
+                        value={credentialStateOrRegion}
+                        onChange={(e) => setCredentialStateOrRegion(e.target.value)}
+                        placeholder={CREDENTIAL_LABELS[tipo].placeholder}
+                        maxLength={10}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 uppercase"
+                      />
                     </div>
                   </div>
+                )}
+
+                {!REGULATED_PROFESSIONS.has(tipo) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                        Link para Portfólio / LinkedIn
+                      </label>
+                      <input
+                        type="url"
+                        value={credentialPortfolioUrl}
+                        onChange={(e) => setCredentialPortfolioUrl(e.target.value)}
+                        placeholder="https://linkedin.com/in/seu-perfil"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                        Certificações relevantes
+                      </label>
+                      <textarea
+                        value={credentialCertifications}
+                        onChange={(e) => setCredentialCertifications(e.target.value.slice(0, 600))}
+                        rows={3}
+                        maxLength={600}
+                        placeholder="Liste cursos, certificações, formações ou experiências relevantes"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 resize-none"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Comprovante (obrigatório para todas as profissões) */}
+                <div className="mt-4">
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Comprovante de credencial *
+                  </label>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                    Foto da carteira (OAB/CRM/CRP/CRC/CREA/CREFITO), certificado de formação ou outro
+                    documento que comprove sua qualificação. PDF, JPG ou PNG (máx. 5 MB).
+                  </p>
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={handleCredentialProof}
+                    className="text-sm text-slate-600 dark:text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-blue-900/30 dark:file:text-blue-300"
+                  />
+                  {credentialProof && (
+                    <div className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                      <span className="truncate max-w-[240px]">{credentialProof.name}</span>
+                      <span className="text-slate-400">
+                        ({(credentialProof.size / 1024).toFixed(0)} KB)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setCredentialProof(null)}
+                        className="text-red-500 hover:text-red-700 font-bold"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
