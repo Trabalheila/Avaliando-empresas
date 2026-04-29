@@ -1,17 +1,16 @@
 import { Resend } from 'resend';
-// Importe o Firebase Admin SDK
 import * as admin from 'firebase-admin';
+// Importe getFirestore do módulo firebase-admin/firestore
+import { getFirestore } from 'firebase-admin/firestore'; // <--- ADICIONE ESTA LINHA
 
 // Inicialize o Firebase Admin SDK APENAS UMA VEZ
-// Verifique se já não foi inicializado para evitar erros em ambientes de desenvolvimento
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'), // Importante para chaves com quebras de linha
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
     }),
-    // Se você usa Realtime Database ou Storage, adicione o databaseURL ou storageBucket
   });
 }
 
@@ -22,7 +21,6 @@ export default async function handler(req, res) {
 
   const { email, companyName, token } = req.body;
 
-  // --- Adicione logs para depuração ---
   console.log('Requisição recebida para send-confirmation:', { email, companyName, token });
 
   if (!email || !companyName || !token) {
@@ -32,16 +30,17 @@ export default async function handler(req, res) {
 
   // --- 1. Salvar o token e os dados da empresa no Firestore ---
   try {
-    const firestore = admin.firestore();
-    const companyRef = firestore.collection('pendingCompanyConfirmations').doc(token); // Use o token como ID do documento para fácil busca
+    // Use getFirestore() para obter a instância do Firestore
+    const firestore = getFirestore(); // <--- ALTERE ESTA LINHA
+    const companyRef = firestore.collection('pendingCompanyConfirmations').doc(token);
 
     const companyData = {
       email,
       companyName,
-      token, // Salve o token também dentro do documento
-      status: 'pending', // Status inicial
-      createdAt: admin.firestore.FieldValue.serverTimestamp(), // Data de criação
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Expira em 24 horas
+      token,
+      status: 'pending',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     };
 
     await companyRef.set(companyData);
@@ -54,7 +53,7 @@ export default async function handler(req, res) {
 
   // --- 2. Enviar o e-mail com Resend ---
   const confirmationLink = `https://trabalheila.vercel.app/empresa/confirmar?token=${token}`;
-  console.log('Link de confirmação enviado no e-mail:', confirmationLink); // Log do link
+  console.log('Link de confirmação enviado no e-mail:', confirmationLink);
 
   const { data, error } = await resend.emails.send({
     from: 'Trabalhei Lá <confirmacao@trabalheila.com.br>',
