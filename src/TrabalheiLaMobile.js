@@ -742,23 +742,35 @@ function TrabalheiLaMobile({
             >
               <FaGoogle className="text-lg" /> Cadastrar com Google
             </button>
-            <Link
-              to="/pseudonym"
-              className="inline-flex items-center justify-center bg-lime-400 text-white hover:bg-lime-500 transition shadow-md"
-              style={{
-                width: '80%',
-                borderRadius: 25,
-                fontSize: '1rem',
-                fontWeight: 700,
-                padding: '12px 0',
-                textDecoration: 'none',
-                textAlign: 'center',
-              }}
-              aria-label="Ir para editar perfil"
-              title="Editar perfil"
-            >
-              CADASTRO ANÔNIMO
-            </Link>
+            {/* Bloco neutro de cadastro por perfil */}
+            <div className="w-full pt-3 mt-1 border-t border-blue-100 dark:border-slate-700">
+              <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-100 text-center">
+                Crie sua conta
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-300 text-center mt-1 mb-3">
+                Escolha seu perfil e comece a usar a plataforma!
+              </p>
+              <div className="flex flex-col gap-2">
+                <Link
+                  to="/pseudonym"
+                  className="w-full text-center py-2.5 px-3 rounded-xl bg-lime-400 hover:bg-lime-500 text-emerald-950 text-sm font-bold shadow transition"
+                >
+                  Sou Trabalhador
+                </Link>
+                <Link
+                  to="/empresa/cadastro"
+                  className="w-full text-center py-2.5 px-3 rounded-xl bg-amber-400 hover:bg-amber-500 text-amber-950 text-sm font-bold shadow transition"
+                >
+                  Sou Empresário
+                </Link>
+                <Link
+                  to="/apoiadores"
+                  className="w-full text-center py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow transition"
+                >
+                  Sou Apoiador
+                </Link>
+              </div>
+            </div>
             <div className="flex items-center justify-center gap-2 flex-wrap" style={{ animation: "homeCalloutIn 1100ms ease-out both" }}>
               <span className="flex items-center gap-1 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold">✓ Anônimo</span>
               <span className="flex items-center gap-1 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold">✓ Verificado</span>

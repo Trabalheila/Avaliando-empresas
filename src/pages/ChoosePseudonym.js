@@ -728,19 +728,6 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         </div>
       )}
       <div className="w-full max-w-2xl md:max-w-6xl px-6 py-8">
-        {/* Barra de progresso — fluxo normal, logo acima do card "Seu perfil anônimo" */}
-        <div className="mb-4 rounded-xl bg-slate-900/85 text-white overflow-hidden shadow-sm">
-          <div className="flex items-center justify-between px-4 py-2 text-sm font-semibold">
-            <span>Campo {currentSection + 1} de {totalSections}</span>
-            <span>{Math.round(((currentSection + 1) / totalSections) * 100)}%</span>
-          </div>
-          <div className="h-1 bg-slate-700">
-            <div
-              className="h-full bg-blue-500 transition-all duration-300"
-              style={{ width: `${((currentSection + 1) / totalSections) * 100}%` }}
-            />
-          </div>
-        </div>
         <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-8 border border-blue-100 dark:border-slate-700 md:grid md:grid-cols-[35%_65%] md:gap-8">
           {/* ===== Coluna esquerda (>= md): título, privacidade, banner do cadeado, stepper vertical ===== */}
           <aside className="md:sticky md:top-4 md:self-start">
