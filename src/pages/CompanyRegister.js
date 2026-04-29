@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import { doc, setDoc } from "firebase/firestore";
@@ -32,6 +32,21 @@ export default function CompanyRegister() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
+
+  // Modal informativo (uma vez por sessão)
+  const [showFreeModal, setShowFreeModal] = useState(false);
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+      const seen = window.sessionStorage.getItem("companyRegisterFreeModalSeen");
+      if (!seen) setShowFreeModal(true);
+    } catch { /* sessionStorage indisponível */ }
+  }, []);
+
+  function dismissFreeModal() {
+    try { window.sessionStorage.setItem("companyRegisterFreeModalSeen", "1"); } catch { /* ignore */ }
+    setShowFreeModal(false);
+  }
 
   // Busca razão social via BrasilAPI
   async function fetchRazaoSocial(cnpjValue) {
@@ -182,6 +197,40 @@ export default function CompanyRegister() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 px-4 py-10">
+      {showFreeModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="free-modal-title"
+          className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-slate-900/60 backdrop-blur-sm"
+          onClick={dismissFreeModal}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-6 text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-2xl">
+              🎉
+            </div>
+            <h2 id="free-modal-title" className="mt-4 text-xl font-extrabold text-slate-800 dark:text-slate-100">
+              Atenção Importante!
+            </h2>
+            <p className="mt-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+              O <span className="font-bold text-blue-700 dark:text-blue-300">Plano Premium Empresa</span>{" "}
+              está <span className="font-bold text-emerald-600 dark:text-emerald-400">GRATUITO</span> até{" "}
+              <span className="font-bold">01/08/2026</span>! Aproveite todos os recursos estratégicos para sua empresa
+              sem custo durante este período.
+            </p>
+            <button
+              type="button"
+              onClick={dismissFreeModal}
+              className="mt-6 w-full py-2.5 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-sm transition"
+            >
+              Entendi
+            </button>
+          </div>
+        </div>
+      )}
       <div className="max-w-6xl mx-auto">
         {/* Stepper visual (3 etapas) */}
         <ol className="mb-8 grid grid-cols-3 gap-2 sm:gap-4" aria-label="Progresso do cadastro">
@@ -542,7 +591,7 @@ export default function CompanyRegister() {
 
               <div className="mt-6 pt-6 border-t border-white/15">
                 <div className="text-xs text-blue-100/80">A partir de</div>
-                <div className="text-2xl font-extrabold tracking-tight">R$ 1.499,99<span className="text-sm font-semibold text-blue-100/80">/mês</span></div>
+                <div className="text-2xl font-extrabold tracking-tight">R$ 3.499,90<span className="text-sm font-semibold text-blue-100/80">/mês</span></div>
                 <div className="text-xs text-blue-100/80 mt-1">Disponível a partir de 01/08/2026</div>
               </div>
             </div>
