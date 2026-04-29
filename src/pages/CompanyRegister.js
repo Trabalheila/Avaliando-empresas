@@ -265,7 +265,7 @@ export default function CompanyRegister() {
           ))}
         </ol>
 
-        <div className="flex flex-col-reverse lg:grid lg:grid-cols-[55%_45%] lg:gap-8 lg:items-start">
+        <div className="flex flex-col lg:grid lg:grid-cols-[55%_45%] lg:gap-8 lg:items-start">
           {/* Painel esquerdo: formulário */}
           <form
             onSubmit={handleSubmit}
