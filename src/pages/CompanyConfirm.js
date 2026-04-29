@@ -33,10 +33,10 @@ export default function CompanyConfirm() {
 
         if (response.ok) {
           setStatus("success");
-          // Redireciona para o dashboard após exibir o sucesso
+          // Após confirmar, leva para a home onde o empresário pode fazer login
           setTimeout(() => {
-            navigate("/empresa-dashboard?confirm=1", { replace: true });
-          }, 2000);
+            navigate("/?empresaConfirmada=1", { replace: true });
+          }, 2500);
           return;
         }
 
@@ -91,7 +91,10 @@ export default function CompanyConfirm() {
         {status === "loading" && <p className="text-blue-900 dark:text-blue-100 font-bold">Validando token...</p>}
         {status === "success" && <>
           <h1 className="text-xl font-extrabold text-emerald-700 mb-2">Cadastro confirmado!</h1>
-          <p className="text-slate-700 dark:text-slate-200 mb-4">Sua empresa foi ativada com sucesso.<br />Redirecionando para o painel...</p>
+          <p className="text-slate-700 dark:text-slate-200 mb-4">
+            Sua empresa foi ativada com sucesso.<br />
+            Faça login com sua conta para acessar o painel.
+          </p>
         </>}
         {status === "invalid" && <>
           <h1 className="text-xl font-extrabold text-red-700 mb-2">Token inválido</h1>
