@@ -125,14 +125,24 @@ function Home({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const location = useLocation();
   // Parâmetros vindos do fluxo de confirmação de empresa (CompanyConfirm).
-  // companyConfirmed=true → exibe banner de "cadastro confirmado, faça login".
-  // redirectAfterLogin=/rota → após login bem-sucedido, redireciona para esta rota.
-  const { companyConfirmed, redirectAfterLogin } = useMemo(() => {
-    const params = new URLSearchParams(location.search || "");
-    return {
-      companyConfirmed: params.get("companyConfirmed") === "true",
-      redirectAfterLogin: params.get("redirectAfterLogin") || "",
-    };
+  // Persistimos em sessionStorage porque o login via LinkedIn faz uma navegação
+  // externa (sai do app e volta com ?code=...) que descarta a query string
+  // original — sem persistir, o redirecionamento pós-login se perde.
+  const COMPANY_CONFIRMED_FLAG_KEY = "trabalheiLa_companyConfirmedFlag";
+  const REDIRECT_AFTER_LOGIN_KEY = "trabalheiLa_redirectAfterLogin";
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(location.search || "");
+      if (params.get("companyConfirmed") === "true") {
+        sessionStorage.setItem(COMPANY_CONFIRMED_FLAG_KEY, "1");
+      }
+      const redir = params.get("redirectAfterLogin");
+      if (redir && redir.startsWith("/")) {
+        sessionStorage.setItem(REDIRECT_AFTER_LOGIN_KEY, redir);
+      }
+    } catch {
+      /* sessionStorage indisponível */
+    }
   }, [location.search]);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [firebaseStatus, setFirebaseStatus] = useState("verificando...");
@@ -257,13 +267,26 @@ function Home({ theme, toggleTheme }) {
   const [pendingEvaluationData, setPendingEvaluationData] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Após login bem-sucedido, se houver um destino solicitado via query string
-  // (?redirectAfterLogin=/...), redireciona para essa rota.
+  // Após login bem-sucedido, se houver um destino solicitado (via query string
+  // ou sessionStorage — que sobrevive ao redirect do OAuth), navega para lá.
   useEffect(() => {
-    if (isAuthenticated && redirectAfterLogin) {
-      navigate(redirectAfterLogin, { replace: true });
+    if (!isAuthenticated) return;
+    let target = "";
+    try {
+      target = sessionStorage.getItem(REDIRECT_AFTER_LOGIN_KEY) || "";
+    } catch {
+      target = "";
     }
-  }, [isAuthenticated, redirectAfterLogin, navigate]);
+    if (!target) {
+      const params = new URLSearchParams(location.search || "");
+      const fromQuery = params.get("redirectAfterLogin") || "";
+      if (fromQuery.startsWith("/")) target = fromQuery;
+    }
+    if (target && target.startsWith("/")) {
+      try { sessionStorage.removeItem(REDIRECT_AFTER_LOGIN_KEY); } catch { /* ignore */ }
+      navigate(target, { replace: true });
+    }
+  }, [isAuthenticated, navigate, location.search, REDIRECT_AFTER_LOGIN_KEY]);
   const [showNewCompanyInput, setShowNewCompanyInput] = useState(false);
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [captchaConfirmed, setCaptchaConfirmed] = useState(false);
@@ -1600,26 +1623,6 @@ function Home({ theme, toggleTheme }) {
   return (
     <>
       {/* Banner de lançamento removido */}
-
-      {companyConfirmed && (
-        <div
-          role="status"
-          aria-live="polite"
-          style={{
-            margin: "12px auto 0",
-            maxWidth: 720,
-            padding: "12px 16px",
-            borderRadius: 12,
-            backgroundColor: "#ecfdf5",
-            color: "#065f46",
-            border: "1px solid #a7f3d0",
-            fontWeight: 600,
-            textAlign: "center",
-          }}
-        >
-          ✅ Empresa confirmada com sucesso! Faça login para acessar o painel da empresa.
-        </div>
-      )}
 
       {showResponsibilityModal && (
         <div

@@ -105,6 +105,20 @@ export default function EmpresaDashboard() {
   const [company, setCompany] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [peerStats, setPeerStats] = useState(null); // { count, avg }
+
+  // Banner de boas-vindas pós-confirmação (vindo de CompanyConfirm via Home).
+  // A flag fica em sessionStorage para sobreviver ao OAuth do LinkedIn/Google.
+  const [showConfirmedToast, setShowConfirmedToast] = useState(false);
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem("trabalheiLa_companyConfirmedFlag") === "1") {
+        setShowConfirmedToast(true);
+        sessionStorage.removeItem("trabalheiLa_companyConfirmedFlag");
+      }
+    } catch {
+      /* sessionStorage indisponível */
+    }
+  }, []);
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [prefs, setPrefs] = useState({
     notifyOnReview: true,
@@ -495,6 +509,32 @@ export default function EmpresaDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 px-4 py-10">
       <div className="max-w-5xl mx-auto space-y-6">
+        {showConfirmedToast && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-5 py-4 flex items-start gap-3 shadow-sm"
+          >
+            <span className="text-2xl leading-none" aria-hidden="true">✅</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-extrabold text-emerald-800 dark:text-emerald-200">
+                Empresa confirmada com sucesso!
+              </div>
+              <p className="mt-0.5 text-sm text-emerald-900/90 dark:text-emerald-100/90">
+                Bem-vindo(a) ao painel da sua empresa. Configure suas preferências e responda às avaliações abaixo.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowConfirmedToast(false)}
+              aria-label="Fechar aviso"
+              className="text-emerald-700 dark:text-emerald-300 hover:text-emerald-900 dark:hover:text-emerald-100 font-bold text-lg leading-none"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
         {/* Header / Resumo */}
         <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
           <div className="flex items-start justify-between flex-wrap gap-4">
