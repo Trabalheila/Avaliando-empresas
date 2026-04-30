@@ -37,7 +37,7 @@ export default function CompanyConfirm() {
           // e o destino final (dashboard da empresa) após o login.
           setTimeout(() => {
             navigate(
-              "/?companyConfirmed=true&redirectAfterLogin=/empresa-dashboard",
+              "/entrar?companyConfirmed=true&redirectAfterLogin=/empresa-dashboard",
               { replace: true }
             );
           }, 2500);

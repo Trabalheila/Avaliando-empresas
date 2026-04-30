@@ -177,6 +177,7 @@ function App() {
   const renderRoutes = (routeLocation) => (
     <Routes location={routeLocation}>
       <Route path="/" element={<Home theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/entrar" element={<Home theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/auth/linkedin" element={<AuthLinkedIn />} />
       <Route path="/pseudonym" element={<ChoosePseudonym theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/empresa" element={<CompanyDetails theme={theme} toggleTheme={toggleTheme} />} />
