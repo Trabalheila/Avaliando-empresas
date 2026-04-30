@@ -13,6 +13,7 @@ import TermsOfUse from './pages/TermsOfUse';
 import EscolhaPerfil from './pages/EscolhaPerfil';
 import BusinessDashboard from './pages/BusinessDashboard';
 import AdminPanel from './pages/AdminPanel';
+import AdminSupportersDashboard from './pages/AdminSupportersDashboard';
 import ConsultorCadastro from './pages/ConsultorCadastro';
 import PrestadorCadastro from './pages/PrestadorCadastro';
 import ApoiadorCadastro from './pages/ApoiadorCadastro';
@@ -28,6 +29,7 @@ import CompanyRegisterAwait from './pages/CompanyRegisterAwait';
 import CompanyProfile from './pages/CompanyProfile';
 import EmpresaDashboard from './pages/EmpresaDashboard';
 import Login from './pages/Login';
+import SealDetailsPage from './pages/SealDetailsPage';
 import AuthAction from './pages/AuthAction';
 
 // Função para aplicar o tema (dark/light)
@@ -185,6 +187,7 @@ function App() {
       <Route path="/empresa" element={<CompanyDetails theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/empresa/dashboard" element={<BusinessDashboard theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/admin" element={<AdminPanel theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/admin/apoiadores" element={<AdminSupportersDashboard theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/consultores/cadastro" element={<ConsultorCadastro theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/prestadores/cadastro" element={<PrestadorCadastro theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/apoiadores" element={<Apoiadores theme={theme} toggleTheme={toggleTheme} />} />
@@ -203,6 +206,7 @@ function App() {
       <Route path="/empresa/confirmar" element={<CompanyConfirm />} />
       <Route path="/empresa/perfil" element={<CompanyProfile theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/empresa-dashboard" element={<EmpresaDashboard theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/selo-trabalheila" element={<SealDetailsPage />} />
       <Route path="/auth/action" element={<AuthAction />} />
     </Routes>
   );
