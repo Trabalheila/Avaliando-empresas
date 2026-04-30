@@ -1,9 +1,10 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { db, auth } from "../firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { signInAnonymously } from "firebase/auth";
 import AppHeader from "../components/AppHeader";
+import { isAdmin } from "../utils/rbac";
 
 /* ── Opções por tipo (lista abrangente de profissões) ── */
 const TIPOS = [
@@ -74,6 +75,7 @@ const TERMOS = [
 
 function ApoiadorCadastro({ theme, toggleTheme }) {
   const navigate = useNavigate();
+  const admin = useMemo(() => isAdmin(), []);
 
   /* ── Estado comum ── */
   const [tipo, setTipo] = useState("");
@@ -321,9 +323,21 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
       <form onSubmit={handleSubmit} className="w-full max-w-4xl px-4 py-8">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-blue-100 dark:border-slate-700 p-6 md:p-8">
           <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white mb-1">Cadastro de Apoiador</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
             Consultores de RH, advogados trabalhistas e prestadores de serviços corporativos podem se cadastrar como apoiadores da plataforma.
           </p>
+
+          {admin && (
+            <div className="mb-6">
+              <button
+                type="button"
+                onClick={() => navigate("/admin/profissoes")}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-sm font-semibold shadow"
+              >
+                ⚙️ Gerenciar Profissões/Especialidades
+              </button>
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300">
