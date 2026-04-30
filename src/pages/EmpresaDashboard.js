@@ -11,6 +11,8 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { auth, db } from "../firebase";
+import { SealIcon } from "./SealDetailsPage";
+import CompanyCommentsManager from "../components/CompanyCommentsManager";
 
 const PREMIUM_PRICE_LABEL = "R$ 1.499,99/mês";
 const PREMIUM_AVAILABLE_AT = "01/08/2026";
@@ -140,6 +142,25 @@ export default function EmpresaDashboard() {
   const [sendingSupport, setSendingSupport] = useState(false);
   const [supportSent, setSupportSent] = useState(false);
 
+  // Modal "Linha Direta com Apoiadores Premium" via WhatsApp (apenas Premium).
+  const [showHotlineModal, setShowHotlineModal] = useState(false);
+
+  // TODO: tornar dinâmico (vir do perfil do apoiador no Firestore).
+  const PREMIUM_SUPPORTER_WHATSAPP = "5511999999999";
+  const PREMIUM_SUPPORTER_WA_MESSAGE =
+    "Olá! Sou uma empresa Premium do Trabalhei Lá e preciso de suporte.";
+  const premiumSupporterWaUrl = `https://wa.me/${PREMIUM_SUPPORTER_WHATSAPP}?text=${encodeURIComponent(
+    PREMIUM_SUPPORTER_WA_MESSAGE
+  )}`;
+
+  // Status da empresa na Receita Federal (BrasilAPI via /api/cnpj-data).
+  const [receitaData, setReceitaData] = useState(null);
+  const [receitaLoading, setReceitaLoading] = useState(false);
+  const [receitaError, setReceitaError] = useState("");
+
+  // Selo Trabalhei Lá de Excelência (recalculado via /api/seal-status).
+  const [sealInfo, setSealInfo] = useState(null); // { hasSeal, averageScore, numberOfEvaluations, sealGrantedDate, thresholds }
+
   // Auth ready
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -202,6 +223,72 @@ export default function EmpresaDashboard() {
     }
     loadCompany(user);
   }, [authReady, user, loadCompany]);
+
+  // Busca status da Receita Federal via /api/cnpj-data assim que o CNPJ
+  // estiver disponível. Falhas não bloqueiam o resto do dashboard.
+  useEffect(() => {
+    const cnpjDigits = (company?.cnpj || "").toString().replace(/\D/g, "");
+    if (cnpjDigits.length !== 14) {
+      setReceitaData(null);
+      setReceitaError("");
+      return;
+    }
+    let cancelled = false;
+    setReceitaLoading(true);
+    setReceitaError("");
+    (async () => {
+      try {
+        const r = await fetch(`/api/cnpj-data?cnpj=${cnpjDigits}`);
+        const body = await r.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!r.ok) {
+          setReceitaError(body?.error || "Não foi possível consultar a Receita Federal.");
+          setReceitaData(null);
+        } else {
+          setReceitaData(body);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        setReceitaError("Falha de rede ao consultar a Receita Federal.");
+        setReceitaData(null);
+      } finally {
+        if (!cancelled) setReceitaLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [company?.cnpj]);
+
+  // Recalcula o "Selo Trabalhei Lá de Excelência" sempre que a lista de
+  // avaliações muda. O backend persiste hasSeal/sealGrantedDate em
+  // /companies/{cnpj}.
+  useEffect(() => {
+    const cnpjDigits = (company?.cnpj || "").toString().replace(/\D/g, "");
+    if (cnpjDigits.length !== 14) {
+      setSealInfo(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch("/api/seal-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cnpj: cnpjDigits }),
+        });
+        if (!r.ok) return;
+        const body = await r.json();
+        if (!cancelled) setSealInfo(body);
+      } catch {
+        /* silencioso — selo é opcional */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Recalcula quando o número de avaliações muda (criar/editar/excluir).
+  }, [company?.cnpj, reviews.length]);
 
   // Carrega avaliações da empresa.
   useEffect(() => {
@@ -545,6 +632,26 @@ export default function EmpresaDashboard() {
               <h1 className="mt-1 text-2xl font-bold text-slate-800 dark:text-slate-100 truncate">
                 {company.razaoSocial || "Empresa sem nome"}
               </h1>
+              {(sealInfo?.hasSeal || company?.hasSeal) && (
+                <button
+                  type="button"
+                  onClick={() => navigate("/selo-trabalheila")}
+                  title="Selo Trabalhei Lá de Excelência — clique para saber mais"
+                  aria-label="Selo Trabalhei Lá de Excelência — saber mais"
+                  className="group mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 text-xs font-bold hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
+                >
+                  <SealIcon className="h-5 w-5" />
+                  Selo Trabalhei Lá de Excelência
+                  {typeof sealInfo?.averageScore === "number" && (
+                    <span className="text-[11px] font-medium opacity-80">
+                      · {sealInfo.averageScore.toFixed(1)} ({sealInfo.numberOfEvaluations})
+                    </span>
+                  )}
+                  <span className="hidden group-hover:inline text-[10px] font-medium opacity-80">
+                    · saiba mais
+                  </span>
+                </button>
+              )}
               {isGPTWCompatible && (
                 <a
                   href={GPTW_INFO_URL}
@@ -600,6 +707,127 @@ export default function EmpresaDashboard() {
               </button>
             </div>
           </div>
+        </section>
+
+        {/* Status na Receita Federal (BrasilAPI) */}
+        <section
+          aria-label="Situação da empresa na Receita Federal"
+          className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-6"
+        >
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+              Situação na Receita Federal
+            </h2>
+            {receitaData?.atualizadoEm && (
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                Atualizado em {new Date(receitaData.atualizadoEm).toLocaleString("pt-BR")}
+              </span>
+            )}
+          </div>
+
+          {receitaLoading && (
+            <div className="mt-4 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" opacity="0.25" />
+                <path d="M22 12a10 10 0 0 1-10 10" />
+              </svg>
+              Consultando Receita Federal...
+            </div>
+          )}
+
+          {!receitaLoading && receitaError && (
+            <div
+              role="alert"
+              className="mt-4 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-200"
+            >
+              {receitaError}
+            </div>
+          )}
+
+          {!receitaLoading && !receitaError && receitaData && (
+            <div className="mt-4 space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <span
+                  className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold ${
+                    receitaData.hasFiscalIssues
+                      ? "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-200"
+                      : "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200"
+                  }`}
+                >
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      receitaData.hasFiscalIssues ? "bg-rose-500" : "bg-emerald-500"
+                    }`}
+                    aria-hidden="true"
+                  />
+                  {receitaData.situacaoCadastral || "—"}
+                </span>
+                {receitaData.dataSituacaoCadastral && (
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    desde {receitaData.dataSituacaoCadastral}
+                  </span>
+                )}
+              </div>
+
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                {receitaData.razaoSocial && (
+                  <div>
+                    <dt className="text-slate-400 dark:text-slate-500">Razão social</dt>
+                    <dd className="text-slate-700 dark:text-slate-200">{receitaData.razaoSocial}</dd>
+                  </div>
+                )}
+                {receitaData.nomeFantasia && (
+                  <div>
+                    <dt className="text-slate-400 dark:text-slate-500">Nome fantasia</dt>
+                    <dd className="text-slate-700 dark:text-slate-200">{receitaData.nomeFantasia}</dd>
+                  </div>
+                )}
+                {(receitaData.municipio || receitaData.uf) && (
+                  <div>
+                    <dt className="text-slate-400 dark:text-slate-500">Município / UF</dt>
+                    <dd className="text-slate-700 dark:text-slate-200">
+                      {[receitaData.municipio, receitaData.uf].filter(Boolean).join(" / ")}
+                    </dd>
+                  </div>
+                )}
+                {receitaData.porte && (
+                  <div>
+                    <dt className="text-slate-400 dark:text-slate-500">Porte</dt>
+                    <dd className="text-slate-700 dark:text-slate-200">{receitaData.porte}</dd>
+                  </div>
+                )}
+                {receitaData.naturezaJuridica && (
+                  <div>
+                    <dt className="text-slate-400 dark:text-slate-500">Natureza jurídica</dt>
+                    <dd className="text-slate-700 dark:text-slate-200">{receitaData.naturezaJuridica}</dd>
+                  </div>
+                )}
+                {receitaData.dataAbertura && (
+                  <div>
+                    <dt className="text-slate-400 dark:text-slate-500">Abertura</dt>
+                    <dd className="text-slate-700 dark:text-slate-200">{receitaData.dataAbertura}</dd>
+                  </div>
+                )}
+              </dl>
+
+              {receitaData.hasFiscalIssues && receitaData.issues?.length > 0 && (
+                <div className="rounded-lg border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-900/20 px-4 py-3">
+                  <div className="text-sm font-bold text-rose-800 dark:text-rose-200">
+                    Pendências detectadas
+                  </div>
+                  <ul className="mt-1 list-disc pl-5 text-sm text-rose-800 dark:text-rose-200 space-y-0.5">
+                    {receitaData.issues.map((iss, idx) => (
+                      <li key={idx}>{iss}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                Fonte: BrasilAPI · dados públicos da Receita Federal.
+              </p>
+            </div>
+          )}
         </section>
 
         {/* Avaliações */}
@@ -873,6 +1101,20 @@ export default function EmpresaDashboard() {
           )}
         </section>
 
+        {/* Gerenciar comentários (Premium) */}
+        <CompanyCommentsManager
+          isPremium={isPremium}
+          reviews={reviews}
+          criteria={CRITERIA}
+          replyDrafts={replyDrafts}
+          replyingId={replyingId}
+          onReplyChange={(reviewId, text) =>
+            setReplyDrafts((prev) => ({ ...prev, [reviewId]: text }))
+          }
+          onSubmitReply={handleSubmitReply}
+          onUpgradeClick={() => navigate("/escolha-perfil")}
+        />
+
         {/* Recursos Premium: respostas, apoio e profissionais compatíveis */}
         <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -1033,6 +1275,79 @@ export default function EmpresaDashboard() {
             </>
           )}
         </section>
+
+        {/* Linha Direta com Apoiadores Premium (somente Premium) */}
+        {isPremium && (
+          <section className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/40 dark:to-blue-950/40 rounded-2xl shadow-xl border border-indigo-200 dark:border-indigo-800 p-8">
+            <div className="flex items-start justify-between flex-wrap gap-4">
+              <div className="flex items-start gap-4">
+                <div className="shrink-0 w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-2xl" aria-hidden="true">
+                  💬
+                </div>
+                <div>
+                  <div className="inline-flex items-center gap-1.5 bg-indigo-700 text-white text-[11px] font-bold tracking-wider px-2.5 py-0.5 rounded-full">
+                    EXCLUSIVO PREMIUM
+                  </div>
+                  <h2 className="mt-2 text-xl font-bold text-slate-800 dark:text-slate-100">
+                    Linha Direta com Apoiadores Premium
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 max-w-2xl">
+                    Acesso prioritário a apoiadores especializados em cultura organizacional, RH e gestão de pessoas.
+                    Tire dúvidas, agende consultorias e receba orientações sob medida para sua empresa.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowHotlineModal(true)}
+                className="inline-flex items-center gap-2 h-11 px-5 rounded-lg font-bold text-white bg-emerald-600 hover:bg-emerald-700"
+              >
+                <span aria-hidden="true">💬</span>
+                Contactar Apoiador Premium via WhatsApp
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* Modal "Linha Direta com Apoiadores Premium" via WhatsApp */}
+        {isPremium && showHotlineModal && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Fale com um Apoiador Premium via WhatsApp"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowHotlineModal(false); }}
+          >
+            <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+                Fale com um Apoiador Premium via WhatsApp
+              </h3>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                Entre em contato diretamente com nossos apoiadores especializados para suas necessidades. Clique no
+                botão abaixo para iniciar uma conversa no WhatsApp.
+              </p>
+              <div className="mt-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowHotlineModal(false)}
+                  className="h-10 px-4 rounded-lg font-bold text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  Fechar
+                </button>
+                <a
+                  href={premiumSupporterWaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setShowHotlineModal(false)}
+                  className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg font-bold text-white bg-emerald-600 hover:bg-emerald-700"
+                >
+                  <span aria-hidden="true">💬</span>
+                  Iniciar Conversa no WhatsApp
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Modal "Solicitar apoio" */}
         {isPremium && showSupportModal && (
