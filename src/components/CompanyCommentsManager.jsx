@@ -104,40 +104,6 @@ export default function CompanyCommentsManager({
   const [openReplyId, setOpenReplyId] = useState(null);
 
   // -------------------------------------------------------------------------
-  // Premium gate
-  // -------------------------------------------------------------------------
-  if (!isPremium) {
-    return (
-      <section
-        aria-label="Gerenciar comentários (Premium)"
-        className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-amber-200 dark:border-amber-800 p-8"
-      >
-        <div className="flex items-start gap-4 flex-wrap">
-          <div className="flex-1 min-w-[260px]">
-            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-              Gerenciar comentários
-            </h2>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-              Filtros avançados por critério, período e palavra-chave; análise de sentimento;
-              palavras mais frequentes e resposta pública individual a cada avaliação. Disponível
-              exclusivamente no <strong>Plano Empresa Premium</strong>.
-            </p>
-          </div>
-          {onUpgradeClick && (
-            <button
-              type="button"
-              onClick={onUpgradeClick}
-              className="h-10 px-4 rounded-lg font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors"
-            >
-              Fazer upgrade para Premium
-            </button>
-          )}
-        </div>
-      </section>
-    );
-  }
-
-  // -------------------------------------------------------------------------
   // Filtros aplicados
   // -------------------------------------------------------------------------
   const filteredReviews = useMemo(() => {
@@ -213,6 +179,40 @@ export default function CompanyCommentsManager({
       negativeKeywords: topKeywords(filteredReviews, "negative"),
     };
   }, [filteredReviews, sentiment]);
+
+  // -------------------------------------------------------------------------
+  // Premium gate (após hooks para respeitar rules-of-hooks)
+  // -------------------------------------------------------------------------
+  if (!isPremium) {
+    return (
+      <section
+        aria-label="Gerenciar comentários (Premium)"
+        className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-amber-200 dark:border-amber-800 p-8"
+      >
+        <div className="flex items-start gap-4 flex-wrap">
+          <div className="flex-1 min-w-[260px]">
+            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+              Gerenciar comentários
+            </h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              Filtros avançados por critério, período e palavra-chave; análise de sentimento;
+              palavras mais frequentes e resposta pública individual a cada avaliação. Disponível
+              exclusivamente no <strong>Plano Empresa Premium</strong>.
+            </p>
+          </div>
+          {onUpgradeClick && (
+            <button
+              type="button"
+              onClick={onUpgradeClick}
+              className="h-10 px-4 rounded-lg font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors"
+            >
+              Fazer upgrade para Premium
+            </button>
+          )}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section
