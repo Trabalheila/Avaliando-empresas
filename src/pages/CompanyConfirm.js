@@ -33,9 +33,13 @@ export default function CompanyConfirm() {
 
         if (response.ok) {
           setStatus("success");
-          // Após confirmar, leva para a home onde o empresário pode fazer login
+          // Após confirmar, leva para a tela de login com a flag de confirmação
+          // e o destino final (dashboard da empresa) após o login.
           setTimeout(() => {
-            navigate("/?empresaConfirmada=1", { replace: true });
+            navigate(
+              "/?companyConfirmed=true&redirectAfterLogin=/empresa-dashboard",
+              { replace: true }
+            );
           }, 2500);
           return;
         }
@@ -93,7 +97,7 @@ export default function CompanyConfirm() {
           <h1 className="text-xl font-extrabold text-emerald-700 mb-2">Cadastro confirmado!</h1>
           <p className="text-slate-700 dark:text-slate-200 mb-4">
             Sua empresa foi ativada com sucesso.<br />
-            Faça login com sua conta para acessar o painel.
+            Você será redirecionado para a página de login. Após entrar, será levado(a) ao painel da empresa.
           </p>
         </>}
         {status === "invalid" && <>

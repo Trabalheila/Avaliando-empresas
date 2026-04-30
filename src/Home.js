@@ -124,6 +124,16 @@ function Home({ theme, toggleTheme }) {
   const LAUNCH_POPUP_DISMISSED_KEY = "trabalheiLa_launch_popup_dismissed";
   const navigate = useNavigate();
   const location = useLocation();
+  // Parâmetros vindos do fluxo de confirmação de empresa (CompanyConfirm).
+  // companyConfirmed=true → exibe banner de "cadastro confirmado, faça login".
+  // redirectAfterLogin=/rota → após login bem-sucedido, redireciona para esta rota.
+  const { companyConfirmed, redirectAfterLogin } = useMemo(() => {
+    const params = new URLSearchParams(location.search || "");
+    return {
+      companyConfirmed: params.get("companyConfirmed") === "true",
+      redirectAfterLogin: params.get("redirectAfterLogin") || "",
+    };
+  }, [location.search]);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [firebaseStatus, setFirebaseStatus] = useState("verificando...");
   // eslint-disable-next-line no-unused-vars
@@ -246,6 +256,14 @@ function Home({ theme, toggleTheme }) {
   const [responsibilityAccepted, setResponsibilityAccepted] = useState(false);
   const [pendingEvaluationData, setPendingEvaluationData] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Após login bem-sucedido, se houver um destino solicitado via query string
+  // (?redirectAfterLogin=/...), redireciona para essa rota.
+  useEffect(() => {
+    if (isAuthenticated && redirectAfterLogin) {
+      navigate(redirectAfterLogin, { replace: true });
+    }
+  }, [isAuthenticated, redirectAfterLogin, navigate]);
   const [showNewCompanyInput, setShowNewCompanyInput] = useState(false);
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [captchaConfirmed, setCaptchaConfirmed] = useState(false);
@@ -1582,6 +1600,26 @@ function Home({ theme, toggleTheme }) {
   return (
     <>
       {/* Banner de lançamento removido */}
+
+      {companyConfirmed && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            margin: "12px auto 0",
+            maxWidth: 720,
+            padding: "12px 16px",
+            borderRadius: 12,
+            backgroundColor: "#ecfdf5",
+            color: "#065f46",
+            border: "1px solid #a7f3d0",
+            fontWeight: 600,
+            textAlign: "center",
+          }}
+        >
+          ✅ Empresa confirmada com sucesso! Faça login para acessar o painel da empresa.
+        </div>
+      )}
 
       {showResponsibilityModal && (
         <div

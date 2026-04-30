@@ -15,6 +15,36 @@ import { auth, db } from "../firebase";
 const PREMIUM_PRICE_LABEL = "R$ 1.499,99/mês";
 const PREMIUM_AVAILABLE_AT = "01/08/2026";
 
+// URL externa de referência sobre o GPTW (Great Place to Work).
+const GPTW_INFO_URL = "https://greatplacetowork.com.br/o-que-e-gptw/";
+
+// Lista placeholder de profissionais de apoio sugeridos para empresas Premium.
+// Em produção, virá de uma coleção como `supportProfessionals` filtrada por
+// compatibilidade (CNAE, especialidade, região etc.).
+const SUPPORT_PROFESSIONALS_PLACEHOLDER = [
+  {
+    id: "sp-1",
+    name: "Ana Cardoso",
+    role: "Consultora de Cultura & Clima",
+    specialty: "Diagnóstico e plano de ação para pontos negativos",
+    contact: "ana.cardoso@trabalheila.example",
+  },
+  {
+    id: "sp-2",
+    name: "Bruno Lima",
+    role: "Especialista em Liderança",
+    specialty: "Mentoria para gestores e feedback estruturado",
+    contact: "bruno.lima@trabalheila.example",
+  },
+  {
+    id: "sp-3",
+    name: "Carla Mendes",
+    role: "Psicóloga Organizacional",
+    specialty: "Saúde mental no trabalho e prevenção de assédio",
+    contact: "carla.mendes@trabalheila.example",
+  },
+];
+
 // Critérios suportados nas avaliações (mesmos campos usados em Home.js).
 const CRITERIA = [
   { key: "rating", label: "Nota geral" },
@@ -81,6 +111,21 @@ export default function EmpresaDashboard() {
     publicProfile: true,
   });
 
+  // Quantidade de funcionários PJ / CLT (editável, persistido no Firestore).
+  const [employees, setEmployees] = useState({ pj: "", clt: "" });
+  const [savingEmployees, setSavingEmployees] = useState(false);
+  const [employeesSaved, setEmployeesSaved] = useState(false);
+
+  // Rascunhos de resposta da empresa por avaliação (apenas Premium).
+  const [replyDrafts, setReplyDrafts] = useState({});
+  const [replyingId, setReplyingId] = useState(null);
+
+  // Modal de "Solicitar apoio" (apenas Premium).
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [supportMessage, setSupportMessage] = useState("");
+  const [sendingSupport, setSendingSupport] = useState(false);
+  const [supportSent, setSupportSent] = useState(false);
+
   // Auth ready
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -123,6 +168,10 @@ export default function EmpresaDashboard() {
           notifyOnReview: data?.prefs?.notifyOnReview ?? prev.notifyOnReview,
           publicProfile: data?.prefs?.publicProfile ?? prev.publicProfile,
         }));
+        setEmployees({
+          pj: data?.funcionariosPJ != null ? String(data.funcionariosPJ) : "",
+          clt: data?.funcionariosCLT != null ? String(data.funcionariosCLT) : "",
+        });
       } else {
         setCompany(null);
       }
@@ -174,7 +223,9 @@ export default function EmpresaDashboard() {
   }, [company]);
 
   // Carrega comparativo do mesmo CNAE (apenas para Premium).
-  const isPremium = company?.plan === "premium";
+  // Aceita tanto o campo legado `plan === "premium"` quanto o novo `isPremium`.
+  const isPremium = company?.plan === "premium" || company?.isPremium === true;
+  const isGPTWCompatible = company?.isGPTWCompatible === true;
 
   useEffect(() => {
     async function fetchPeers() {
@@ -252,6 +303,17 @@ export default function EmpresaDashboard() {
     });
   }, [reviews]);
 
+  // Top pontos positivos (maiores médias) e negativos (menores médias),
+  // ignorando a "Nota geral" e critérios sem avaliações.
+  const { topPositivos, topNegativos } = useMemo(() => {
+    const evaluated = criteriaAverages.filter((c) => c.key !== "rating" && c.count > 0);
+    const sorted = [...evaluated].sort((a, b) => b.avg - a.avg);
+    return {
+      topPositivos: sorted.slice(0, 3),
+      topNegativos: sorted.slice(-3).reverse(),
+    };
+  }, [criteriaAverages]);
+
   const handleSavePrefs = async () => {
     if (!company?.id) return;
     setSavingPrefs(true);
@@ -266,6 +328,110 @@ export default function EmpresaDashboard() {
       alert("Não foi possível salvar as preferências.");
     } finally {
       setSavingPrefs(false);
+    }
+  };
+
+  // Salva a contagem de funcionários PJ/CLT no documento da empresa.
+  const handleSaveEmployees = async () => {
+    if (!company?.id) return;
+    const pj = employees.pj === "" ? null : Number(employees.pj);
+    const clt = employees.clt === "" ? null : Number(employees.clt);
+    if ((pj != null && (!Number.isFinite(pj) || pj < 0)) || (clt != null && (!Number.isFinite(clt) || clt < 0))) {
+      alert("Informe valores numéricos válidos (≥ 0) para PJ e CLT.");
+      return;
+    }
+    setSavingEmployees(true);
+    setEmployeesSaved(false);
+    try {
+      await setDoc(
+        doc(db, "companies", company.id),
+        {
+          funcionariosPJ: pj,
+          funcionariosCLT: clt,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      setCompany((prev) => (prev ? { ...prev, funcionariosPJ: pj, funcionariosCLT: clt } : prev));
+      setEmployeesSaved(true);
+    } catch (err) {
+      console.error("Erro ao salvar funcionários:", err);
+      alert("Não foi possível salvar a quantidade de funcionários.");
+    } finally {
+      setSavingEmployees(false);
+    }
+  };
+
+  // Salva a resposta da empresa a uma avaliação específica (Premium).
+  // Persistimos diretamente no documento da review em `companyResponse`,
+  // mantendo o mesmo padrão de acesso a Firestore usado no restante do dashboard.
+  const handleSubmitReply = async (reviewId) => {
+    if (!isPremium) return;
+    const text = (replyDrafts[reviewId] || "").trim();
+    if (!text) return;
+    setReplyingId(reviewId);
+    try {
+      await setDoc(
+        doc(db, "reviews", reviewId),
+        {
+          companyResponse: {
+            text,
+            respondedAt: serverTimestamp(),
+            respondedByUid: user?.uid || null,
+            respondedByCompanyId: company?.id || null,
+          },
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      setReviews((prev) =>
+        prev.map((r) =>
+          r.id === reviewId
+            ? {
+                ...r,
+                companyResponse: {
+                  text,
+                  respondedAt: new Date(),
+                  respondedByUid: user?.uid || null,
+                  respondedByCompanyId: company?.id || null,
+                },
+              }
+            : r
+        )
+      );
+      setReplyDrafts((prev) => ({ ...prev, [reviewId]: "" }));
+    } catch (err) {
+      console.error("Erro ao enviar resposta:", err);
+      alert("Não foi possível enviar a resposta. Tente novamente.");
+    } finally {
+      setReplyingId(null);
+    }
+  };
+
+  // Solicita apoio (Premium): cria um documento em `supportRequests`.
+  const handleRequestSupport = async () => {
+    if (!isPremium || !company?.id) return;
+    const message = supportMessage.trim();
+    setSendingSupport(true);
+    try {
+      const reqId = `${company.id}_${Date.now()}`;
+      await setDoc(doc(db, "supportRequests", reqId), {
+        companyId: company.id,
+        companyName: company.razaoSocial || "",
+        cnpj: company.cnpj || "",
+        requesterUid: user?.uid || null,
+        requesterEmail: user?.email || "",
+        message,
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
+      setSupportSent(true);
+      setSupportMessage("");
+    } catch (err) {
+      console.error("Erro ao solicitar apoio:", err);
+      alert("Não foi possível registrar sua solicitação. Tente novamente.");
+    } finally {
+      setSendingSupport(false);
     }
   };
 
@@ -339,6 +505,24 @@ export default function EmpresaDashboard() {
               <h1 className="mt-1 text-2xl font-bold text-slate-800 dark:text-slate-100 truncate">
                 {company.razaoSocial || "Empresa sem nome"}
               </h1>
+              {isGPTWCompatible && (
+                <a
+                  href={GPTW_INFO_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Esta empresa é GPTW compatível. Clique para saber o que é o Great Place to Work."
+                  aria-label="Selo GPTW compatível — saber mais sobre o Great Place to Work"
+                  className="group mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 2l2.39 4.84L20 7.27l-3.86 3.76.91 5.31L12 13.77l-5.05 2.57.91-5.31L4 7.27l5.61-.43L12 2z" />
+                  </svg>
+                  GPTW Compatível
+                  <span className="hidden group-hover:inline text-[10px] font-medium opacity-80">
+                    · saiba mais
+                  </span>
+                </a>
+              )}
               <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm text-slate-600 dark:text-slate-300">
                 <div><span className="text-slate-400 dark:text-slate-500">CNPJ:</span> {formatCnpj(company.cnpj)}</div>
                 <div><span className="text-slate-400 dark:text-slate-500">CNAE:</span> {cnaeCodigo || "—"}{cnaeDescricao ? ` · ${cnaeDescricao}` : ""}</div>
@@ -399,6 +583,132 @@ export default function EmpresaDashboard() {
               Ainda não há avaliações para esta empresa.
             </p>
           )}
+        </section>
+
+        {/* Resumo: pontos positivos e negativos */}
+        {reviews.length > 0 && (
+          <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
+            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Resumo das avaliações</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Total de {reviews.length} {reviews.length === 1 ? "avaliação" : "avaliações"} · Nota média {overallAvg.toFixed(1)}/5
+            </p>
+
+            <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-4">
+                <h3 className="text-sm font-extrabold text-emerald-800 dark:text-emerald-200 uppercase tracking-wider">
+                  Principais pontos positivos
+                </h3>
+                {topPositivos.length === 0 ? (
+                  <p className="mt-2 text-sm text-emerald-900/80 dark:text-emerald-100/80">Sem dados suficientes.</p>
+                ) : (
+                  <ul className="mt-3 space-y-1.5">
+                    {topPositivos.map((c) => (
+                      <li key={c.key} className="flex items-center justify-between text-sm">
+                        <span className="font-semibold text-emerald-900 dark:text-emerald-100">{c.label}</span>
+                        <span className="font-bold text-emerald-900 dark:text-emerald-100">{c.avg.toFixed(1)}/5</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 p-4">
+                <h3 className="text-sm font-extrabold text-rose-800 dark:text-rose-200 uppercase tracking-wider">
+                  Principais pontos a melhorar
+                </h3>
+                {topNegativos.length === 0 ? (
+                  <p className="mt-2 text-sm text-rose-900/80 dark:text-rose-100/80">Sem dados suficientes.</p>
+                ) : (
+                  <ul className="mt-3 space-y-1.5">
+                    {topNegativos.map((c) => (
+                      <li key={c.key} className="flex items-center justify-between text-sm">
+                        <span className="font-semibold text-rose-900 dark:text-rose-100">{c.label}</span>
+                        <span className="font-bold text-rose-900 dark:text-rose-100">{c.avg.toFixed(1)}/5</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Funcionários PJ / CLT */}
+        <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Quadro de funcionários</h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Informe a quantidade atual de profissionais contratados em cada modalidade. Esta informação ajuda a
+            contextualizar suas avaliações e o comparativo de setor.
+          </p>
+
+          <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="block">
+              <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">Funcionários PJ</span>
+              <input
+                type="number"
+                min="0"
+                inputMode="numeric"
+                value={employees.pj}
+                onChange={(e) => { setEmployees((p) => ({ ...p, pj: e.target.value })); setEmployeesSaved(false); }}
+                placeholder="Ex.: 12"
+                className="mt-1 w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </label>
+            <label className="block">
+              <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">Funcionários CLT</span>
+              <input
+                type="number"
+                min="0"
+                inputMode="numeric"
+                value={employees.clt}
+                onChange={(e) => { setEmployees((p) => ({ ...p, clt: e.target.value })); setEmployeesSaved(false); }}
+                placeholder="Ex.: 38"
+                className="mt-1 w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </label>
+          </div>
+
+          <div className="mt-4 flex items-center justify-end gap-3">
+            {employeesSaved && (
+              <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Salvo!</span>
+            )}
+            <button
+              type="button"
+              onClick={handleSaveEmployees}
+              disabled={savingEmployees}
+              style={{ backgroundColor: savingEmployees ? undefined : "#1a237e" }}
+              className={`h-11 px-5 rounded-lg font-bold text-white transition ${
+                savingEmployees ? "bg-slate-400 dark:bg-slate-700 opacity-70 cursor-not-allowed" : "hover:brightness-110"
+              }`}
+            >
+              {savingEmployees ? "Salvando..." : "Salvar quadro de funcionários"}
+            </button>
+          </div>
+        </section>
+
+        {/* Mensagens de conscientização e ética */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="rounded-2xl border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-900/20 p-6 shadow-sm">
+            <h3 className="text-base font-extrabold text-amber-900 dark:text-amber-200">
+              Ajuste os pontos negativos com responsabilidade
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-amber-900/90 dark:text-amber-100/90">
+              Ignorar críticas recorrentes pode custar caro: <strong>perda de clientes</strong>, <strong>fuga de bons
+              profissionais</strong> e <strong>processos judiciais</strong>. Use as avaliações como insumo concreto para
+              melhoria contínua — não como motivo para retaliação.
+            </p>
+          </div>
+          <div className="rounded-2xl border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 p-6 shadow-sm">
+            <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-200">
+              Avalie o profissional como uma vida
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-blue-900/90 dark:text-blue-100/90">
+              Decisões tomadas sobre pessoas afetam <strong>vidas inteiras</strong> — saúde, família, dignidade. Antes
+              de agir com base em opiniões individuais, verifique se a decisão está alinhada às <strong>políticas e à
+              visão pública da própria empresa</strong>. Coerência protege a marca empregadora e respeita quem trabalhou
+              com você.
+            </p>
+          </div>
         </section>
 
         {/* Comparativo CNAE (Premium) */}
@@ -508,6 +818,220 @@ export default function EmpresaDashboard() {
             </div>
           )}
         </section>
+
+        {/* Recursos Premium: respostas, apoio e profissionais compatíveis */}
+        <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Recursos Premium</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Responda às avaliações, solicite apoio especializado e conheça profissionais compatíveis com sua empresa.
+              </p>
+            </div>
+            {isPremium && (
+              <button
+                type="button"
+                onClick={() => { setShowSupportModal(true); setSupportSent(false); }}
+                style={{ backgroundColor: "#1a237e" }}
+                className="h-11 px-5 rounded-lg font-bold text-white hover:brightness-110"
+              >
+                Solicitar apoio
+              </button>
+            )}
+          </div>
+
+          {!isPremium ? (
+            <div className="mt-6 rounded-xl border border-dashed border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 p-6 text-center">
+              <div className="inline-flex items-center gap-1.5 bg-blue-700 text-white text-[11px] font-bold tracking-wider px-3 py-1 rounded-full">
+                PLANO PREMIUM EMPRESA
+              </div>
+              <h3 className="mt-3 text-lg font-bold text-slate-800 dark:text-slate-100">
+                Disponível apenas para assinantes Premium
+              </h3>
+              <ul className="mt-2 text-sm text-slate-600 dark:text-slate-300 space-y-1">
+                <li>✓ Responder publicamente às avaliações recebidas</li>
+                <li>✓ Solicitar apoio de consultores especializados</li>
+                <li>✓ Acesso à rede de profissionais compatíveis</li>
+              </ul>
+              <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                {PREMIUM_PRICE_LABEL} — Disponível a partir de {PREMIUM_AVAILABLE_AT}
+              </p>
+              <button
+                type="button"
+                disabled
+                className="mt-4 h-11 px-5 rounded-lg font-bold text-white bg-slate-400 dark:bg-slate-700 opacity-70 cursor-not-allowed"
+              >
+                Assinar Premium (em breve)
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Responder a comentários */}
+              <div className="mt-6">
+                <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
+                  Responder a comentários
+                </h3>
+                {reviews.length === 0 ? (
+                  <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                    Ainda não há avaliações para responder.
+                  </p>
+                ) : (
+                  <ul className="mt-3 space-y-4">
+                    {reviews.slice(0, 10).map((r) => {
+                      const draft = replyDrafts[r.id] || "";
+                      const submitting = replyingId === r.id;
+                      const existing = r.companyResponse?.text || "";
+                      return (
+                        <li
+                          key={r.id}
+                          className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-4"
+                        >
+                          <div className="flex items-center gap-2">
+                            <StarRow value={Number(r.rating) || 0} size="h-4 w-4" />
+                            <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                              {(Number(r.rating) || 0).toFixed(1)}
+                            </span>
+                            <span className="text-xs text-slate-400 dark:text-slate-500">
+                              · {r.pseudonimo || r.userName || "Avaliador anônimo"}
+                            </span>
+                          </div>
+                          {r.generalComment || r.comment ? (
+                            <p className="mt-2 text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap">
+                              {r.generalComment || r.comment}
+                            </p>
+                          ) : (
+                            <p className="mt-2 text-sm italic text-slate-400 dark:text-slate-500">
+                              (Sem comentário escrito.)
+                            </p>
+                          )}
+
+                          {existing ? (
+                            <div className="mt-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-3">
+                              <div className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-800 dark:text-emerald-200">
+                                Resposta da empresa
+                              </div>
+                              <p className="mt-1 text-sm text-emerald-900 dark:text-emerald-100 whitespace-pre-wrap">
+                                {existing}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="mt-3">
+                              <textarea
+                                rows={3}
+                                value={draft}
+                                onChange={(e) =>
+                                  setReplyDrafts((prev) => ({ ...prev, [r.id]: e.target.value }))
+                                }
+                                placeholder="Escreva uma resposta pública e respeitosa…"
+                                className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                              <div className="mt-2 flex justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => handleSubmitReply(r.id)}
+                                  disabled={submitting || !draft.trim()}
+                                  style={{ backgroundColor: submitting || !draft.trim() ? undefined : "#1a237e" }}
+                                  className={`h-10 px-4 rounded-lg font-bold text-white transition ${
+                                    submitting || !draft.trim()
+                                      ? "bg-slate-400 dark:bg-slate-700 opacity-70 cursor-not-allowed"
+                                      : "hover:brightness-110"
+                                  }`}
+                                >
+                                  {submitting ? "Enviando..." : "Enviar resposta"}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              {/* Profissionais de apoio compatíveis */}
+              <div className="mt-8">
+                <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
+                  Profissionais compatíveis
+                </h3>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  Especialistas selecionados que podem ajudar sua empresa a evoluir nos pontos críticos das avaliações.
+                </p>
+                <ul className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {SUPPORT_PROFESSIONALS_PLACEHOLDER.map((p) => (
+                    <li
+                      key={p.id}
+                      className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-4"
+                    >
+                      <div className="text-sm font-extrabold text-slate-800 dark:text-slate-100">{p.name}</div>
+                      <div className="text-xs font-semibold text-blue-700 dark:text-blue-300 mt-0.5">{p.role}</div>
+                      <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">{p.specialty}</p>
+                      <a
+                        href={`mailto:${p.contact}`}
+                        className="mt-3 inline-block text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline break-all"
+                      >
+                        {p.contact}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
+        </section>
+
+        {/* Modal "Solicitar apoio" */}
+        {isPremium && showSupportModal && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Solicitar apoio"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60"
+          >
+            <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Solicitar apoio</h3>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Conte brevemente em que sua empresa precisa de apoio. Nossa equipe entrará em contato pelo e-mail
+                cadastrado.
+              </p>
+              {supportSent ? (
+                <div className="mt-4 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-4 text-sm text-emerald-800 dark:text-emerald-200">
+                  ✅ Solicitação enviada! Em breve um especialista entrará em contato.
+                </div>
+              ) : (
+                <textarea
+                  rows={5}
+                  value={supportMessage}
+                  onChange={(e) => setSupportMessage(e.target.value)}
+                  placeholder="Ex.: Gostaríamos de apoio para melhorar comunicação interna após avaliações negativas neste critério."
+                  className="mt-3 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              )}
+              <div className="mt-4 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowSupportModal(false)}
+                  className="h-10 px-4 rounded-lg font-bold text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  {supportSent ? "Fechar" : "Cancelar"}
+                </button>
+                {!supportSent && (
+                  <button
+                    type="button"
+                    onClick={handleRequestSupport}
+                    disabled={sendingSupport}
+                    style={{ backgroundColor: sendingSupport ? undefined : "#1a237e" }}
+                    className={`h-10 px-4 rounded-lg font-bold text-white transition ${
+                      sendingSupport ? "bg-slate-400 dark:bg-slate-700 opacity-70 cursor-not-allowed" : "hover:brightness-110"
+                    }`}
+                  >
+                    {sendingSupport ? "Enviando..." : "Enviar solicitação"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Configurações */}
         <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
