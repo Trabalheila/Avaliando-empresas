@@ -481,7 +481,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
               <p className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
                 {isEmployerFreeWindowActive ? (
                   <>
-                    R$ 0<span className="text-sm font-medium text-slate-600 dark:text-slate-400"> ate {EMPLOYER_FREE_PERIOD_LABEL}</span>
+                    R$ 0<span className="text-sm font-medium text-slate-600 dark:text-slate-400"> até {EMPLOYER_FREE_PERIOD_LABEL}</span>
                   </>
                 ) : (
                   <>
@@ -490,16 +490,15 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 )}
               </p>
               <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">
-                <FeatureRow ok>Painel completo de avaliações por critério</FeatureRow>
-                <FeatureRow ok>Relatório de reputação da empresa</FeatureRow>
-                <FeatureRow ok>Ferramenta de resposta a avaliações</FeatureRow>
-                <FeatureRow ok>Direito de resposta pública às avaliações — responda comentários dos funcionários diretamente na página da empresa, com identificação de "Resposta oficial da empresa"</FeatureRow>
-                <FeatureRow ok>Acesso prioritário a recursos em desenvolvimento (comparação com concorrentes, benchmarks de setor)</FeatureRow>
-                <FeatureRow ok>Conexão com consultores empresariais parceiros para transformar dados em ação</FeatureRow>
+                <FeatureRow ok>Painel completo de avaliações por critério (salário, cultura, liderança, benefícios e mais)</FeatureRow>
+                <FeatureRow ok>Relatório de reputação da empresa com visão geral por área</FeatureRow>
+                <FeatureRow ok>Ferramenta de resposta pública a avaliações, identificada como “Resposta oficial da empresa”</FeatureRow>
+                <FeatureRow ok>Acesso prioritário aos próximos recursos (comparação com concorrentes, benchmarks de setor)</FeatureRow>
+                <FeatureRow ok>Conexão com consultores empresariais parceiros para transformar dados em plano de ação</FeatureRow>
               </ul>
               <p className="mt-3 text-xs text-indigo-700 dark:text-indigo-300 italic">
                 {isEmployerFreeWindowActive
-                  ? "Plano empresarial com gratuidade provisoria valida ate 31 de julho de 2026."
+                  ? "O Plano Fundador tem gratuidade provisória válida até 31 de julho de 2026. Depois dessa data, passa a R$ 1.499,90/mês — quem já estiver dentro mantém o preço de Fundador."
                   : "Quem entra agora garante o preço Fundador. Quando os recursos avançados forem lançados, você não paga a diferença."}
               </p>
             </div>
@@ -510,15 +509,34 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 COMPLETO
               </div>
               <h3 className="text-lg font-bold text-amber-700 dark:text-amber-400 mb-1">Empresa Premium</h3>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-2">
+                Tudo do Plano Fundador + recursos avançados de inteligência de mercado.
+              </p>
+              <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
                 R$ 3.499,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/ano</span>
               </p>
+              {isEmployerFreeWindowActive && (
+                <p className="mb-4 inline-flex items-center gap-1 text-xs font-bold text-amber-800 dark:text-amber-200 bg-amber-100 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 rounded-full px-2 py-1 self-start">
+                  Gratuito até 31 de julho de 2026 — depois R$ 3.499,90/ano
+                </p>
+              )}
               <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">
-                <FeatureRow ok>Compare sua empresa com concorrentes em tempo real</FeatureRow>
-                <FeatureRow ok>Identifique tendências e riscos do setor</FeatureRow>
-                <FeatureRow ok>Receba relatórios executivos com oportunidades e ameaças</FeatureRow>
+                <li className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                  Tudo do Plano Fundador, em versão avançada:
+                </li>
+                <FeatureRow ok>Painel de avaliações por critério com filtros, séries históricas e exportação</FeatureRow>
+                <FeatureRow ok>Relatórios de reputação avançados e comparativos (período, setor, concorrentes)</FeatureRow>
+                <FeatureRow ok>Ferramenta de resposta com análise de sentimento e sugestões de IA</FeatureRow>
+                <FeatureRow ok>Acesso antecipado a todos os recursos em desenvolvimento, sem custo adicional</FeatureRow>
+                <FeatureRow ok>Conexão prioritária com consultores empresariais parceiros</FeatureRow>
+                <li className="pt-2 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                  E mais, exclusivo do Premium:
+                </li>
+                <FeatureRow ok>Comparação em tempo real com concorrentes diretos do seu setor</FeatureRow>
+                <FeatureRow ok>Identificação automática de tendências e riscos do mercado</FeatureRow>
+                <FeatureRow ok>Relatórios executivos com oportunidades, ameaças e recomendações</FeatureRow>
                 <FeatureRow ok>Dashboard dinâmico para análise de desempenho e contratos</FeatureRow>
-                <FeatureRow ok>Acesso a benchmarks exclusivos e reputação de mercado</FeatureRow>
+                <FeatureRow ok>Benchmarks exclusivos e índice de reputação de mercado</FeatureRow>
               </ul>
               <button
                 type="button"
