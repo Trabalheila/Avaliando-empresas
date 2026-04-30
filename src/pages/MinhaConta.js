@@ -13,6 +13,7 @@ import {
 import { getUserRole, isPremium, isAdmin } from "../utils/rbac";
 import { resolveProfileId } from "../utils/profileIdentity";
 import AppHeader from "../components/AppHeader";
+import WorkerProfessionalContactSettings from "../components/WorkerProfessionalContactSettings";
 
 /* ════════════════════════════════════════════════
    MinhaConta — Página privada "Minha conta"
@@ -350,6 +351,13 @@ export default function MinhaConta({ theme, toggleTheme }) {
             </div>
           </div>
         </section>
+
+        {/* ══════ Contato por profissionais (Premium Trabalhador) ══════ */}
+        <WorkerProfessionalContactSettings
+          profileId={profile?.id}
+          isPremium={isPremium() && getUserRole() !== "admin_empresa"}
+          onUpgradeClick={() => navigate("/escolha-perfil?planos=1")}
+        />
 
         {/* ══════ Ações ══════ */}
         <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
