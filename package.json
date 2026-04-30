@@ -53,7 +53,9 @@
       "react-app/jest"
     ],
     "rules": {
-      "unicode-bom": "off"
+      "unicode-bom": "off",
+      "no-unused-vars": "off",
+      "no-loop-func": "off"
     }
   },
   "browserslist": {
