@@ -38,7 +38,6 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "vercel-build": "npm install --legacy-peer-deps && npm run build",
     "build:mobile": "npm run build && npx cap sync",
     "cap:sync": "npx cap sync",
     "cap:sync:android": "npx cap sync android",
