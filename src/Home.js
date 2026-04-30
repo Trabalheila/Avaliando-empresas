@@ -1624,6 +1624,36 @@ function Home({ theme, toggleTheme }) {
     <>
       {/* Banner de lançamento removido */}
 
+      {!isAuthenticated && (
+        <div
+          style={{
+            position: "fixed",
+            top: 12,
+            right: 12,
+            zIndex: 60,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            aria-label="Entrar"
+            style={{
+              backgroundColor: "#1a237e",
+              color: "#fff",
+              padding: "8px 14px",
+              borderRadius: 999,
+              fontWeight: 700,
+              fontSize: 13,
+              boxShadow: "0 4px 12px rgba(2, 6, 23, 0.18)",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            Entrar
+          </button>
+        </div>
+      )}
+
       {showResponsibilityModal && (
         <div
           role="dialog"

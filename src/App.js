@@ -27,6 +27,7 @@ import CompanyConfirm from './pages/CompanyConfirm';
 import CompanyRegisterAwait from './pages/CompanyRegisterAwait';
 import CompanyProfile from './pages/CompanyProfile';
 import EmpresaDashboard from './pages/EmpresaDashboard';
+import Login from './pages/Login';
 import AuthAction from './pages/AuthAction';
 
 // Função para aplicar o tema (dark/light)
@@ -177,6 +178,7 @@ function App() {
   const renderRoutes = (routeLocation) => (
     <Routes location={routeLocation}>
       <Route path="/" element={<Home theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/login" element={<Login theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/entrar" element={<Home theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/auth/linkedin" element={<AuthLinkedIn />} />
       <Route path="/pseudonym" element={<ChoosePseudonym theme={theme} toggleTheme={toggleTheme} />} />
