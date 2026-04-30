@@ -1,7 +1,5 @@
 ﻿import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { db } from "../firebase";
-import { doc, setDoc } from "firebase/firestore";
 
 const PERSONAL_EMAIL_DOMAINS = ["gmail.com", "hotmail.com", "yahoo.com", "yahoo.com.br", "outlook.com", "live.com", "icloud.com"];
 
@@ -106,37 +104,44 @@ export default function CompanyRegister() {
     setError("");
     setLoading(true);
     try {
-      // CNPJ sem máscara: usado tanto como ID do documento quanto como campo persistido.
+      // CNPJ sem máscara, usado como id da empresa em companies/{cnpjDigits}
+      // após a confirmação por e-mail.
       const cnpjDigits = cnpj.replace(/\D/g, "");
-      const empresaId = cnpjDigits;
-      await setDoc(doc(db, "companies", empresaId), {
-        cnpj: cnpjDigits,
-        razaoSocial,
-        cnae: cnae || null,
-        cnaeCodigo: cnae?.codigo || null,
-        cnaeDescricao: cnae?.descricao || null,
-        setor: cnae?.setor || null,
-        responsavel,
-        cargo,
-        email,
-        senha,
-        status: "pendente",
-        createdAt: Date.now(),
-      });
-      await fetch("/api/send-confirmation", {
+      const token = (window.crypto?.randomUUID
+        ? window.crypto.randomUUID()
+        : Math.random().toString(36).slice(2) + Date.now()
+      ).replace(/[^A-Za-z0-9_-]/g, "");
+
+      // Toda a persistência (incluindo senha) é feita no backend pelo
+      // Admin SDK em /api/send-confirmation. O cliente NÃO grava nada
+      // no Firestore aqui — assim a senha não vai parar em /companies
+      // em texto puro, e só é usada para criar o usuário no Firebase
+      // Auth depois que o e-mail for confirmado.
+      const resp = await fetch("/api/send-confirmation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          token,
           email,
+          password: senha,
           companyName: razaoSocial,
-          token: window.crypto?.randomUUID ? window.crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now()
-        })
+          cnpj: cnpjDigits,
+          cnaeCodigo: cnae?.codigo || null,
+          cnaeDescricao: cnae?.descricao || null,
+          setor: cnae?.setor || null,
+          responsavel,
+          cargo,
+        }),
       });
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}));
+        throw new Error(body?.error || "Falha ao enviar confirmação.");
+      }
       setLoading(false);
       setSubmitted(true);
     } catch (err) {
       console.error("Erro no cadastro:", err?.code, err?.message, err);
-      setError("Erro ao cadastrar empresa. Tente novamente.");
+      setError(err?.message || "Erro ao cadastrar empresa. Tente novamente.");
       setLoading(false);
     }
   }

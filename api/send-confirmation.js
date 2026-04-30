@@ -19,25 +19,61 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { email, companyName, token } = req.body;
+  const {
+    email,
+    companyName,
+    token,
+    password,
+    cnpj,
+    cnaeCodigo,
+    cnaeDescricao,
+    setor,
+    responsavel,
+    cargo,
+  } = req.body || {};
 
-  console.log('Requisição recebida para send-confirmation:', { email, companyName, token });
+  console.log('Requisição recebida para send-confirmation:', { email, companyName, token, cnpj });
 
-  if (!email || !companyName || !token) {
-    console.error('Dados incompletos na requisição:', { email, companyName, token });
+  if (!email || !companyName || !token || !password || !cnpj) {
+    console.error('Dados incompletos na requisição:', { email, companyName, token, hasPassword: !!password, cnpj });
     return res.status(400).json({ error: 'Dados incompletos' });
   }
 
+  // Validações básicas (defesa em profundidade — front também valida).
+  const cnpjDigits = String(cnpj).replace(/\D/g, '');
+  if (cnpjDigits.length !== 14) {
+    return res.status(400).json({ error: 'CNPJ inválido.' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'E-mail inválido.' });
+  }
+  if (typeof password !== 'string' || password.length < 8) {
+    return res.status(400).json({ error: 'Senha inválida.' });
+  }
+  if (!/^[A-Za-z0-9_-]{16,128}$/.test(token)) {
+    return res.status(400).json({ error: 'Token inválido.' });
+  }
+
   // --- 1. Salvar o token e os dados da empresa no Firestore ---
+  // A senha é guardada temporariamente no doc pendente (acessível
+  // apenas via Admin SDK, regras negam leitura ao cliente). Após a
+  // confirmação, /api/confirm-company cria o usuário no Firebase Auth
+  // e apaga este documento, removendo a senha do Firestore.
   try {
-    // Use getFirestore() para obter a instância do Firestore
-    const firestore = getFirestore(); // <--- ALTERE ESTA LINHA
+    const firestore = getFirestore();
     const companyRef = firestore.collection('pendingCompanyConfirmations').doc(token);
 
     const companyData = {
       email,
       companyName,
       token,
+      password,
+      cnpj: cnpjDigits,
+      cnaeCodigo: cnaeCodigo || null,
+      cnaeDescricao: cnaeDescricao || null,
+      setor: setor || null,
+      responsavel: responsavel || null,
+      cargo: cargo || null,
       status: 'pending',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),

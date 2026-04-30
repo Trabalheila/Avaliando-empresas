@@ -31,14 +31,15 @@ export default async function handler(req, res) {
   try {
     const firestore = getFirestore();
     const pendingRef = firestore.collection('pendingCompanyConfirmations').doc(token);
-    const companyRef = firestore.collection('companies').doc(token);
     const snap = await pendingRef.get();
 
     if (!snap.exists) {
-      // Idempotência: se o doc pendente já foi consumido mas a empresa existe
-      // em companies, considera a confirmação já realizada (sucesso).
-      const companySnap = await companyRef.get();
-      if (companySnap.exists) {
+      // Idempotência: se o doc pendente já foi consumido mas alguma
+      // empresa já foi gravada com este token como id (fluxo antigo)
+      // ou o usuário já existe no Auth, considera confirmado.
+      const legacyRef = firestore.collection('companies').doc(token);
+      const legacySnap = await legacyRef.get();
+      if (legacySnap.exists) {
         return res.status(200).json({
           success: true,
           alreadyConfirmed: true,
@@ -64,16 +65,62 @@ export default async function handler(req, res) {
       });
     }
 
-    // Migra para a coleção companies usando o mesmo token como ID
+    if (!data.email || !data.password || !data.cnpj) {
+      return res.status(400).json({
+        error: 'Dados de confirmação incompletos. Refaça o cadastro.',
+      });
+    }
+
+    const cnpjDigits = String(data.cnpj).replace(/\D/g, '');
+    if (cnpjDigits.length !== 14) {
+      return res.status(400).json({ error: 'CNPJ inválido no cadastro.' });
+    }
+
+    // 1) Cria o usuário no Firebase Auth (idempotente: se já existir,
+    //    reaproveita o uid existente — fluxo de re-confirmação).
+    let userRecord;
+    try {
+      userRecord = await admin.auth().createUser({
+        email: data.email,
+        password: data.password,
+        displayName: data.companyName || data.email,
+        emailVerified: true,
+      });
+    } catch (authErr) {
+      if (authErr?.code === 'auth/email-already-exists') {
+        userRecord = await admin.auth().getUserByEmail(data.email);
+        // Garante que a senha cadastrada agora seja a válida e o e-mail
+        // fique marcado como verificado.
+        await admin.auth().updateUser(userRecord.uid, {
+          password: data.password,
+          emailVerified: true,
+        });
+      } else {
+        console.error('ERRO ao criar usuário no Firebase Auth:', authErr);
+        return res.status(500).json({ error: 'Erro ao criar conta de acesso.' });
+      }
+    }
+
+    // 2) Grava a empresa em companies/{cnpjDigits} com ownerUid e SEM senha.
+    const companyRef = firestore.collection('companies').doc(cnpjDigits);
     await companyRef.set({
+      cnpj: cnpjDigits,
       email: data.email,
       companyName: data.companyName,
+      razaoSocial: data.companyName,
+      cnaeCodigo: data.cnaeCodigo ?? null,
+      cnaeDescricao: data.cnaeDescricao ?? null,
+      setor: data.setor ?? null,
+      responsavel: data.responsavel ?? null,
+      cargo: data.cargo ?? null,
+      ownerUid: userRecord.uid,
       verified: true,
       status: 'active',
       createdAt: data.createdAt ?? admin.firestore.FieldValue.serverTimestamp(),
       confirmedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    }, { merge: true });
 
+    // 3) Apaga o doc pendente (remove a senha do Firestore).
     await pendingRef.delete();
 
     return res.status(200).json({
