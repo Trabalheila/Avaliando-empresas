@@ -317,7 +317,7 @@ export default function RestrictableTextarea({
           Marcar trecho selecionado como restrito
         </button>
         <span className="text-[11px] text-slate-500 dark:text-slate-400">
-          Selecione o texto no campo acima e clique para ocultá-lo de não-apoiadores.
+          O texto integral fica visível apenas para <strong>Apoiadores</strong>. <strong>Trabalhadores Premium</strong> verão somente o assunto resumido. Demais usuários não verão o trecho.
         </span>
       </div>
 
@@ -328,14 +328,17 @@ export default function RestrictableTextarea({
       {pendingRange && (
         <div className="rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-900/20 p-3 space-y-2">
           <p className="text-xs font-semibold text-amber-900 dark:text-amber-200">
-            Trecho selecionado:
+            Trecho selecionado <span className="font-normal">(visível apenas para Apoiadores)</span>:
           </p>
           <p className="text-xs italic text-amber-900/90 dark:text-amber-100/90 break-words">
             "{previewText}"
           </p>
           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">
-            Resumo Curto (visível para Trabalhadores Premium)
+            Resumo Curto do assunto
           </label>
+          <p className="text-[11px] text-slate-600 dark:text-slate-300 -mt-1">
+            Este resumo é o que <strong>Trabalhadores Premium</strong> verão no lugar do trecho original. Apoiadores continuam vendo o texto integral.
+          </p>
           <input
             type="text"
             value={pendingSummary}
