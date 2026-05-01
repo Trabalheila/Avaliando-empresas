@@ -314,10 +314,10 @@ export default function RestrictableTextarea({
           className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-md bg-amber-100 hover:bg-amber-200 text-amber-900 dark:bg-amber-500/20 dark:hover:bg-amber-500/30 dark:text-amber-200 border border-amber-300 dark:border-amber-500/40 transition"
         >
           <span aria-hidden>🔒</span>
-          Marcar trecho selecionado como restrito
+          Ocultar trecho selecionado (opcional)
         </button>
         <span className="text-[11px] text-slate-500 dark:text-slate-400">
-          O texto integral fica visível apenas para <strong>Apoiadores</strong>. <strong>Trabalhadores Premium</strong> verão somente o assunto resumido. Demais usuários não verão o trecho.
+          Por padrão, seu comentário é <strong>visível para todos</strong>. Use este botão somente se quiser ocultar um trecho específico — nesse caso, o trecho marcado fica visível na íntegra apenas para <strong>Apoiadores</strong>, e <strong>Trabalhadores Premium</strong> veem só um resumo do assunto. O restante do texto continua público.
         </span>
       </div>
 
