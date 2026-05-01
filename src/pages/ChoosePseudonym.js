@@ -994,6 +994,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                   Acesse <strong>linkedin.com/in/seu-perfil → Mais → Salvar como PDF</strong> e faça upload do arquivo aqui.
                   O parsing desse PDF é mais estruturado e confiável.
                 </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
+                  Formatos suportados: <strong>PDF, DOCX, TXT, MD, RTF</strong>. Arquivos <strong>.doc</strong> (Word 97–2003) não são lidos automaticamente — abra no Word ou Google Docs e salve como <strong>.docx</strong> ou <strong>.pdf</strong>.
+                </p>
                 <input
                   type="file"
                   accept=".pdf,.docx,.txt,.md,.rtf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
@@ -1215,7 +1218,22 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                     Experiências adicionadas ({structuredExperiences.length})
                   </p>
                   <div className="space-y-2">
-                    {structuredExperiences.map((exp, idx) => (
+                    {structuredExperiences.map((exp, idx) => {
+                      const isLinkedInVerified = !!exp.verified;
+                      const isCrossReferenced = !!exp.crossReferencedInResume;
+                      let badgeLabel = "Não verificado";
+                      let badgeClass = "bg-slate-100 text-slate-500 border border-slate-200";
+                      let badgeTitle = "Experiência adicionada manualmente, sem confirmação externa.";
+                      if (isLinkedInVerified) {
+                        badgeLabel = "✓ Selo Autenticado";
+                        badgeClass = "bg-blue-50 text-blue-800 border border-blue-300";
+                        badgeTitle = "Vínculo profissional confirmado via login OAuth do LinkedIn.";
+                      } else if (isCrossReferenced) {
+                        badgeLabel = "✓ Vínculo Confirmado (currículo)";
+                        badgeClass = "bg-emerald-50 text-emerald-700 border border-emerald-200";
+                        badgeTitle = "O nome desta empresa foi localizado no currículo carregado, reforçando a procedência da experiência.";
+                      }
+                      return (
                       <div
                         key={`${idx}_${exp.company}_${exp.role}`}
                         className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-600 p-3"
@@ -1227,15 +1245,12 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                               : <span className="text-red-600">Empresa não identificada</span>}
                             {exp.role ? ` — ${exp.role}` : ""}
                           </div>
-                          <div className="flex items-center gap-2 mt-1">
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
                             <span
-                              className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${
-                                exp.verified
-                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                  : "bg-slate-100 text-slate-500 border border-slate-200"
-                              }`}
+                              className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${badgeClass}`}
+                              title={badgeTitle}
                             >
-                              {exp.verified ? "✓ Verificado" : "Não verificado"}
+                              {badgeLabel}
                             </span>
                             <span className="text-[11px] text-slate-400">via {exp.source || "manual"}</span>
                           </div>
@@ -1248,7 +1263,8 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                           Remover
                         </button>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
