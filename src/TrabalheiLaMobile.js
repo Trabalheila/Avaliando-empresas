@@ -67,6 +67,10 @@ function CommentTextarea({
         value={draftValue}
         onChange={(e) => setDraftValue(e.target.value)}
         onBlur={handleBlur}
+        spellCheck="true"
+        lang="pt-BR"
+        autoCorrect="on"
+        autoCapitalize="sentences"
       />
       {showWarning && (
         <p className="text-xs text-yellow-700 dark:text-yellow-300 bg-yellow-100/80 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-md px-2 py-1 mt-1">

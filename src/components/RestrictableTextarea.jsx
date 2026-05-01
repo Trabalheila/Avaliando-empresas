@@ -270,6 +270,10 @@ export default function RestrictableTextarea({
           onMouseUp={updateFloatingTrigger}
           maxLength={maxLength}
           disabled={disabled}
+          spellCheck="true"
+          lang="pt-BR"
+          autoCorrect="on"
+          autoCapitalize="sentences"
         />
         {sortedSegments.length > 0 && (
           <div className="mt-1 flex flex-wrap gap-1">
