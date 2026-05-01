@@ -5,6 +5,16 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import AppHeader from "../components/AppHeader";
 import PlanosApoiador from "../components/PlanosApoiador";
 
+/* Normalização para casar `tipo` (slug ou label) com `name` da profissão. */
+function normalizeProfKey(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
 const TIPO_LABELS = { consultor: "Consultor de RH", advogado: "Advogado Trabalhista", prestador: "Prestador de Serviços" };
 const TIPO_COLORS = {
   consultor: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
@@ -29,10 +39,12 @@ function StarDisplay({ rating, size = "w-4 h-4" }) {
 
 function ApoiadoresList({ theme, toggleTheme }) {
   const [apoiadores, setApoiadores] = useState([]);
+  const [professions, setProfessions] = useState([]);
   const [loading, setLoading] = useState(true);
 
   /* ── Filtros ── */
   const [filterTipo, setFilterTipo] = useState("");
+  const [filterCategoria, setFilterCategoria] = useState("");
   const [filterNicho, setFilterNicho] = useState("");
   const [filterMinRating, setFilterMinRating] = useState(0);
 
@@ -40,8 +52,12 @@ function ApoiadoresList({ theme, toggleTheme }) {
     (async () => {
       setLoading(true);
       try {
-        const snap = await getDocs(query(collection(db, "apoiadores"), where("status", "==", "ativo")));
-        setApoiadores(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        const [apSnap, profSnap] = await Promise.all([
+          getDocs(query(collection(db, "apoiadores"), where("status", "==", "ativo"))),
+          getDocs(collection(db, "professions")),
+        ]);
+        setApoiadores(apSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setProfessions(profSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
       } catch (err) {
         console.error("Erro ao carregar apoiadores:", err);
       }
@@ -49,9 +65,41 @@ function ApoiadoresList({ theme, toggleTheme }) {
     })();
   }, []);
 
+  /* Mapa de chave normalizada (tipo/slug ou label) → categoria da profissão. */
+  const tipoToCategoria = useMemo(() => {
+    const map = new Map();
+    professions.forEach((p) => {
+      if (!p?.category) return;
+      const keyByName = normalizeProfKey(p.name);
+      if (keyByName) map.set(keyByName, p.category);
+    });
+    return map;
+  }, [professions]);
+
+  /* Lista única e ordenada de categorias disponíveis. */
+  const categoriasDisponiveis = useMemo(() => {
+    const set = new Set();
+    professions.forEach((p) => {
+      const c = String(p?.category || "").trim();
+      if (c) set.add(c);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [professions]);
+
+  /* Resolve a categoria de um apoiador a partir do `categoria` direto ou do mapa. */
+  const getCategoriaApoiador = (a) => {
+    if (a?.categoria) return String(a.categoria).trim();
+    const k = normalizeProfKey(a?.tipo);
+    if (k && tipoToCategoria.has(k)) return tipoToCategoria.get(k);
+    const k2 = normalizeProfKey(a?.especialidade);
+    if (k2 && tipoToCategoria.has(k2)) return tipoToCategoria.get(k2);
+    return "";
+  };
+
   const filtered = useMemo(() => {
     let list = apoiadores;
     if (filterTipo) list = list.filter((a) => a.tipo === filterTipo);
+    if (filterCategoria) list = list.filter((a) => getCategoriaApoiador(a) === filterCategoria);
     if (filterNicho) {
       list = list.filter((a) => {
         const nichos = a.nichos || a.areas || a.segmentos || [];
@@ -70,7 +118,8 @@ function ApoiadoresList({ theme, toggleTheme }) {
     const freeUnrated = free.filter((a) => !(a.totalAvaliacoes > 0)).sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
 
     return [...premiumRated, ...premiumUnrated, ...freeRated, ...freeUnrated];
-  }, [apoiadores, filterTipo, filterNicho, filterMinRating]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apoiadores, filterTipo, filterCategoria, filterNicho, filterMinRating, tipoToCategoria]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900">
@@ -94,6 +143,12 @@ function ApoiadoresList({ theme, toggleTheme }) {
             className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
             <option value="">Todos os tipos</option>
             {Object.entries(TIPO_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          <select value={filterCategoria} onChange={(e) => setFilterCategoria(e.target.value)}
+            disabled={categoriasDisponiveis.length === 0}
+            className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200 disabled:opacity-50">
+            <option value="">Todas as categorias</option>
+            {categoriasDisponiveis.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
           <select value={filterNicho} onChange={(e) => setFilterNicho(e.target.value)}
             className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">

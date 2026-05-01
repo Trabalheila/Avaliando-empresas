@@ -15,6 +15,7 @@ import BusinessDashboard from './pages/BusinessDashboard';
 import AdminPanel from './pages/AdminPanel';
 import AdminSupportersDashboard from './pages/AdminSupportersDashboard';
 import AdminProfessionsManager from './pages/AdminProfessionsManager';
+import AdminDashboardPreview from './pages/AdminDashboardPreview';
 import ConsultorCadastro from './pages/ConsultorCadastro';
 import PrestadorCadastro from './pages/PrestadorCadastro';
 import ApoiadorCadastro from './pages/ApoiadorCadastro';
@@ -190,6 +191,7 @@ function App() {
       <Route path="/admin" element={<AdminPanel theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/admin/apoiadores" element={<AdminSupportersDashboard theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/admin/profissoes" element={<AdminProfessionsManager theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/admin/preview-apoiador" element={<AdminDashboardPreview theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/consultores/cadastro" element={<ConsultorCadastro theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/prestadores/cadastro" element={<PrestadorCadastro theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/apoiadores" element={<Apoiadores theme={theme} toggleTheme={toggleTheme} />} />
