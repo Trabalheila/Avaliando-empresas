@@ -786,7 +786,7 @@ function TrabalheiLaDesktop({
           </div>
 
           {/* COLUNA CENTRAL - FORMULÁRIO (ordem 2 no desktop) */}
-          <div className="w-full lg:basis-[60%] lg:min-w-[520px] xl:basis-[68%] lg:flex-none flex flex-col gap-6 order-2 lg:order-2">
+          <div className="w-full lg:basis-[58%] lg:min-w-[520px] xl:basis-[62%] lg:flex-none flex flex-col gap-6 order-2 lg:order-2">
 
             {/* FORMULÁRIO */}
             <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
@@ -1056,22 +1056,22 @@ function TrabalheiLaDesktop({
           </div>
 
           {/* COLUNA DIREITA - GRÁFICOS + COMO FUNCIONA (ordem 3 no desktop) */}
-          <div className="w-full lg:basis-[22%] lg:max-w-[22%] lg:min-w-[240px] xl:basis-[16%] xl:max-w-[16%] xl:min-w-[230px] lg:shrink-0 flex flex-col gap-6 order-3 lg:order-3 break-words">
+          <div className="w-full lg:basis-[24%] lg:max-w-[24%] lg:min-w-[260px] xl:basis-[22%] xl:max-w-[22%] xl:min-w-[280px] lg:shrink-0 flex flex-col gap-6 order-3 lg:order-3 break-words">
             <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
               <div className="mb-4 space-y-4">
                 <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
                   <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Classificação profissional da empresa</p>
                   <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(contractPieData)}</p>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col items-center gap-3">
                     <div
                       className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square"
                       style={{ background: `conic-gradient(${contractPieData.chart})` }}
                     />
-                    <div className="space-y-1 text-xs">
+                    <div className="w-full grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                       {contractPieData.items.map((item) => (
-                        <p key={`company_contract_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                          {item.label}: {item.percent.toFixed(0)}%
+                        <p key={`company_contract_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200 break-words">
+                          <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                          <span className="flex-1">{item.label}: {item.percent.toFixed(0)}%</span>
                         </p>
                       ))}
                     </div>
@@ -1081,16 +1081,16 @@ function TrabalheiLaDesktop({
                 <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
                   <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Classificação profissional geral</p>
                   <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(globalContractPieData)}</p>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col items-center gap-3">
                     <div
                       className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square"
                       style={{ background: `conic-gradient(${globalContractPieData.chart})` }}
                     />
-                    <div className="space-y-1 text-xs">
+                    <div className="w-full grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                       {globalContractPieData.items.map((item) => (
-                        <p key={`global_contract_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                          {item.label}: {item.percent.toFixed(0)}%
+                        <p key={`global_contract_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200 break-words">
+                          <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                          <span className="flex-1">{item.label}: {item.percent.toFixed(0)}%</span>
                         </p>
                       ))}
                     </div>
@@ -1100,16 +1100,16 @@ function TrabalheiLaDesktop({
                 <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
                   <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Modelo de trabalho geral</p>
                   <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(globalWorkModelPieData)}</p>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col items-center gap-3">
                     <div
                       className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square"
                       style={{ background: `conic-gradient(${globalWorkModelPieData.chart})` }}
                     />
-                    <div className="space-y-1 text-xs">
+                    <div className="w-full grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                       {globalWorkModelPieData.items.map((item) => (
-                        <p key={`global_work_model_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                          {item.label}: {item.percent.toFixed(0)}%
+                        <p key={`global_work_model_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200 break-words">
+                          <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                          <span className="flex-1">{item.label}: {item.percent.toFixed(0)}%</span>
                         </p>
                       ))}
                     </div>
@@ -1119,16 +1119,16 @@ function TrabalheiLaDesktop({
                 <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
                   <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Formas de entrada na empresa</p>
                   <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(sourcePieData)}</p>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col items-center gap-3">
                     <div
                       className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square"
                       style={{ background: `conic-gradient(${sourcePieData.chart})` }}
                     />
-                    <div className="space-y-1 text-xs">
+                    <div className="w-full grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                       {sourcePieData.items.map((item) => (
-                        <p key={`source_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                          {item.label}: {item.percent.toFixed(0)}%
+                        <p key={`source_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200 break-words">
+                          <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                          <span className="flex-1">{item.label}: {item.percent.toFixed(0)}%</span>
                         </p>
                       ))}
                     </div>
@@ -1138,16 +1138,16 @@ function TrabalheiLaDesktop({
                 <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
                   <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Modelo de trabalho na empresa</p>
                   <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(workModelPieData)}</p>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col items-center gap-3">
                     <div
                       className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square"
                       style={{ background: `conic-gradient(${workModelPieData.chart})` }}
                     />
-                    <div className="space-y-1 text-xs">
+                    <div className="w-full grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                       {workModelPieData.items.map((item) => (
-                        <p key={`company_work_model_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                          {item.label}: {item.percent.toFixed(0)}%
+                        <p key={`company_work_model_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200 break-words">
+                          <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                          <span className="flex-1">{item.label}: {item.percent.toFixed(0)}%</span>
                         </p>
                       ))}
                     </div>
