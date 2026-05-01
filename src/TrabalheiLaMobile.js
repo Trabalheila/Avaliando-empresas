@@ -7,6 +7,7 @@ import {
 import {
   FiMessageCircle, FiDollarSign, FiCompass, FiCalendar, FiUsers,
   FiBriefcase, FiShield, FiHeart, FiRepeat, FiAward, FiTrendingUp, FiAlertCircle,
+  FiClock, FiArrowUpCircle,
 } from "react-icons/fi";
 import Select from "react-select";
 import LoginLinkedInButton from "./LoginLinkedInButton";
@@ -135,6 +136,9 @@ function TrabalheiLaMobile({
   inovacao, setInovacao,
   lideranca, setLideranca,
   diversidade, setDiversidade,
+  discriminacao, setDiscriminacao,
+  cargaHoraria, setCargaHoraria,
+  crescimento, setCrescimento,
   ambiente, setAmbiente,
   equilibrio, setEquilibrio,
   reconhecimento, setReconhecimento,
@@ -153,6 +157,9 @@ function TrabalheiLaMobile({
   commentInovacao, setCommentInovacao,
   commentLideranca, setCommentLideranca,
   commentDiversidade, setCommentDiversidade,
+  commentDiscriminacao, setCommentDiscriminacao,
+  commentCargaHoraria, setCommentCargaHoraria,
+  commentCrescimento, setCommentCrescimento,
   commentAmbiente, setCommentAmbiente,
   commentEquilibrio, setCommentEquilibrio,
   commentReconhecimento, setCommentReconhecimento,
@@ -371,6 +378,57 @@ function TrabalheiLaMobile({
     </div>
   );
 
+  const renderYesNo = (value, setValue, commentValue, setCommentValue, label) => {
+    const isRequired = value === "sim";
+    const showError = isRequired && !commentValue.trim();
+    return (
+      <div className="flex flex-col w-full mt-2">
+        <div className="flex items-center gap-3 mb-2" role="radiogroup" aria-label={label}>
+          {[
+            { v: "sim", l: "Sim" },
+            { v: "nao", l: "Não" },
+          ].map((opt) => (
+            <button
+              key={opt.v}
+              type="button"
+              role="radio"
+              aria-checked={value === opt.v}
+              onClick={() => setValue(opt.v)}
+              className={`px-4 py-2 rounded-lg border text-sm font-semibold transition ${
+                value === opt.v
+                  ? (opt.v === "sim"
+                      ? "bg-rose-600 text-white border-rose-600"
+                      : "bg-emerald-600 text-white border-emerald-600")
+                  : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-gray-300 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"
+              }`}
+            >
+              {opt.l}
+            </button>
+          ))}
+        </div>
+        {isRequired && (
+          <p className="text-xs text-rose-600 dark:text-rose-400 mb-1">
+            * Comentário obrigatório ao informar "Sim".
+          </p>
+        )}
+        <CommentTextarea
+          guidanceText={COMMENT_GUIDANCE_TEXT}
+          warningText={COMMENT_WARNING_TEXT}
+          containsPossiblePersonName={containsPossiblePersonName}
+          className={`w-full p-2 border rounded-lg text-sm text-slate-700 dark:text-slate-100 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 mt-1 ${
+            showError
+              ? "border-rose-500 focus:ring-rose-500"
+              : "border-gray-300 dark:border-slate-700 focus:ring-blue-500"
+          }`}
+          placeholder={`Comentário sobre ${label.toLowerCase()}${isRequired ? " (obrigatório)" : " (opcional)"}`}
+          rows={3}
+          value={commentValue}
+          onValueChange={setCommentValue}
+        />
+      </div>
+    );
+  };
+
   const campos = [
     { label: "Processo de Recrutamento", icon: <FiMessageCircle className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao },
     { label: "Proposta salarial e benefícios", icon: <FiDollarSign className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200", value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica },
@@ -379,7 +437,10 @@ function TrabalheiLaMobile({
     { label: "Acessibilidade e respeito da liderança", icon: <FiUsers className="text-violet-700" />, iconBg: "from-violet-50 to-indigo-100 border-violet-200", value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca },
     { label: "Condições de trabalho", icon: <FiBriefcase className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao },
     { label: "Estímulo ao respeito", icon: <FiUsers className="text-teal-700" />, iconBg: "from-teal-50 to-emerald-100 border-teal-200", value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente },
-    { label: "sofreu discriminação?", icon: <FiAlertCircle className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade },
+    { type: "yesno", label: "Sofreu discriminação?", icon: <FiAlertCircle className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: discriminacao, set: setDiscriminacao, comment: commentDiscriminacao, setComment: setCommentDiscriminacao },
+    { label: "Diversidade e Inclusão", icon: <FiUsers className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade },
+    { label: "Carga Horária / Jornada de Trabalho", icon: <FiClock className="text-indigo-700" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200", value: cargaHoraria, set: setCargaHoraria, comment: commentCargaHoraria, setComment: setCommentCargaHoraria },
+    { label: "Oportunidades de Desenvolvimento / Crescimento", icon: <FiArrowUpCircle className="text-emerald-700" />, iconBg: "from-emerald-50 to-teal-100 border-emerald-200", value: crescimento, set: setCrescimento, comment: commentCrescimento, setComment: setCommentCrescimento },
     { label: "Segurança e integridade", icon: <FiShield className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating },
     { label: "Preocupação com o bem estar", icon: <FiHeart className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200", value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar },
     { label: "Rotatividade", subtitle: "(Demite com facilidade?)", icon: <FiRepeat className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio },
@@ -1056,7 +1117,9 @@ function TrabalheiLaMobile({
                       {campo.subtitle && <span className="block text-xs text-slate-500 dark:text-blue-300">{campo.subtitle}</span>}
                     </span>
                   </label>
-                  {renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label)}
+                  {campo.type === "yesno"
+                    ? renderYesNo(campo.value, campo.set, campo.comment, campo.setComment, campo.label)
+                    : renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label)}
                 </div>
               ))}
             </div>

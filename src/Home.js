@@ -234,6 +234,12 @@ function Home({ theme, toggleTheme }) {
   const [commentLideranca, setCommentLideranca] = useState("");
   const [diversidade, setDiversidade] = useState(0);
   const [commentDiversidade, setCommentDiversidade] = useState("");
+  const [discriminacao, setDiscriminacao] = useState("");
+  const [commentDiscriminacao, setCommentDiscriminacao] = useState("");
+  const [cargaHoraria, setCargaHoraria] = useState(0);
+  const [commentCargaHoraria, setCommentCargaHoraria] = useState("");
+  const [crescimento, setCrescimento] = useState(0);
+  const [commentCrescimento, setCommentCrescimento] = useState("");
   const [ambiente, setAmbiente] = useState(0);
   const [commentAmbiente, setCommentAmbiente] = useState("");
   const [equilibrio, setEquilibrio] = useState(0);
@@ -610,6 +616,12 @@ function Home({ theme, toggleTheme }) {
       if (typeof draft?.commentLideranca === "string") setCommentLideranca(draft.commentLideranca);
       if (typeof draft?.diversidade === "number") setDiversidade(draft.diversidade);
       if (typeof draft?.commentDiversidade === "string") setCommentDiversidade(draft.commentDiversidade);
+      if (typeof draft?.discriminacao === "string") setDiscriminacao(draft.discriminacao);
+      if (typeof draft?.commentDiscriminacao === "string") setCommentDiscriminacao(draft.commentDiscriminacao);
+      if (typeof draft?.cargaHoraria === "number") setCargaHoraria(draft.cargaHoraria);
+      if (typeof draft?.commentCargaHoraria === "string") setCommentCargaHoraria(draft.commentCargaHoraria);
+      if (typeof draft?.crescimento === "number") setCrescimento(draft.crescimento);
+      if (typeof draft?.commentCrescimento === "string") setCommentCrescimento(draft.commentCrescimento);
       if (typeof draft?.ambiente === "number") setAmbiente(draft.ambiente);
       if (typeof draft?.commentAmbiente === "string") setCommentAmbiente(draft.commentAmbiente);
       if (typeof draft?.equilibrio === "number") setEquilibrio(draft.equilibrio);
@@ -665,6 +677,12 @@ function Home({ theme, toggleTheme }) {
       commentLideranca,
       diversidade,
       commentDiversidade,
+      discriminacao,
+      commentDiscriminacao,
+      cargaHoraria,
+      commentCargaHoraria,
+      crescimento,
+      commentCrescimento,
       ambiente,
       commentAmbiente,
       equilibrio,
@@ -716,6 +734,12 @@ function Home({ theme, toggleTheme }) {
     commentLideranca,
     diversidade,
     commentDiversidade,
+    discriminacao,
+    commentDiscriminacao,
+    cargaHoraria,
+    commentCargaHoraria,
+    crescimento,
+    commentCrescimento,
     ambiente,
     commentAmbiente,
     equilibrio,
@@ -1004,6 +1028,9 @@ function Home({ theme, toggleTheme }) {
       rating, commentRating, salario, commentSalario, beneficios, commentBeneficios,
       cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao,
       lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente,
+      discriminacao, commentDiscriminacao,
+      cargaHoraria, commentCargaHoraria,
+      crescimento, commentCrescimento,
       equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao,
       etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar,
       impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao,
@@ -1023,7 +1050,7 @@ function Home({ theme, toggleTheme }) {
       timestamp: new Date().toISOString(),
       ...termsData,
     };
-  }, [company, userProfile, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment, generalCommentRestrictedSegments, entrySource, contractType, workModel]);
+  }, [company, userProfile, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment, generalCommentRestrictedSegments, entrySource, contractType, workModel, discriminacao, commentDiscriminacao, cargaHoraria, commentCargaHoraria, crescimento, commentCrescimento]);
 
   const submitEvaluation = useCallback(async (evaluationData) => {
     const pseudonym = evaluationData?.pseudonym;
@@ -1141,6 +1168,11 @@ function Home({ theme, toggleTheme }) {
       return;
     }
 
+    if (discriminacao === "sim" && !commentDiscriminacao.trim()) {
+      setError("Você indicou que sofreu discriminação. Por favor, descreva a situação no comentário.");
+      return;
+    }
+
     const pseudonym = localStorage.getItem("userPseudonym");
     if (!pseudonym) {
       setError("Por favor, defina um pseudônimo antes de avaliar.");
@@ -1151,7 +1183,7 @@ function Home({ theme, toggleTheme }) {
     setResponsibilityAccepted(false);
     setPendingEvaluationData(buildEvaluationData());
     setShowResponsibilityModal(true);
-  }, [captchaConfirmed, isAuthenticated, company, entrySource, contractType, workModel, buildEvaluationData]);
+  }, [captchaConfirmed, isAuthenticated, company, entrySource, contractType, workModel, discriminacao, commentDiscriminacao, buildEvaluationData]);
 
   const handleCancelResponsibility = useCallback(() => {
     setShowResponsibilityModal(false);
@@ -1606,6 +1638,9 @@ function Home({ theme, toggleTheme }) {
     cultura, setCultura, commentCultura, setCommentCultura, oportunidades, setOportunidades, commentOportunidades, setCommentOportunidades,
     inovacao, setInovacao, commentInovacao, setCommentInovacao, lideranca, setLideranca, commentLideranca, setCommentLideranca,
     diversidade, setDiversidade, commentDiversidade, setCommentDiversidade, ambiente, setAmbiente, commentAmbiente, setCommentAmbiente,
+    discriminacao, setDiscriminacao, commentDiscriminacao, setCommentDiscriminacao,
+    cargaHoraria, setCargaHoraria, commentCargaHoraria, setCommentCargaHoraria,
+    crescimento, setCrescimento, commentCrescimento, setCommentCrescimento,
     equilibrio, setEquilibrio, commentEquilibrio, setCommentEquilibrio, reconhecimento, setReconhecimento, commentReconhecimento, setCommentReconhecimento,
     comunicacao, setComunicacao, commentComunicacao, setCommentComunicacao, etica, setEtica, commentEtica, setCommentEtica,
     desenvolvimento, setDesenvolvimento, commentDesenvolvimento, setCommentDesenvolvimento, saudeBemEstar, setSaudeBemEstar, commentSaudeBemEstar, setCommentSaudeBemEstar,
