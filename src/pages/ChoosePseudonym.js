@@ -997,6 +997,15 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
                   Formatos suportados: <strong>PDF, DOCX, TXT, MD, RTF</strong>. Arquivos <strong>.doc</strong> (Word 97–2003) não são lidos automaticamente — abra no Word ou Google Docs e salve como <strong>.docx</strong> ou <strong>.pdf</strong>.
                 </p>
+                <div className="mb-3 p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                  <p className="text-[11px] text-emerald-800 dark:text-emerald-200 leading-snug">
+                    <strong>Como confirmamos seu vínculo sem o LinkedIn:</strong> ao digitar o nome de uma empresa,
+                    cruzamos esse nome com o texto do currículo carregado. Se encontrarmos uma correspondência,
+                    a experiência recebe o selo <span className="font-semibold">✓ Vínculo Confirmado (currículo)</span> —
+                    uma evidência documental do vínculo profissional. O <span className="font-semibold">Selo Autenticado</span> (mais forte)
+                    continua exclusivo para quem usa o login via LinkedIn.
+                  </p>
+                </div>
                 <input
                   type="file"
                   accept=".pdf,.docx,.txt,.md,.rtf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
