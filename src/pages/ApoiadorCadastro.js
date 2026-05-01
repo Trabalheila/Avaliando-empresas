@@ -5,6 +5,7 @@ import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { signInAnonymously } from "firebase/auth";
 import AppHeader from "../components/AppHeader";
 import { isAdmin } from "../utils/rbac";
+import { buildDeclarationText } from "../components/ConflictDeclarationGate";
 
 /* ── Opções por tipo (lista abrangente de profissões) ── */
 const TIPOS = [
@@ -87,6 +88,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
   const [arquivos, setArquivos] = useState([]);
   const [foto, setFoto] = useState(null);
   const [termosAceitos, setTermosAceitos] = useState(TERMOS.map(() => false));
+  const [conflictDeclarationAccepted, setConflictDeclarationAccepted] = useState(false);
   const [nichos, setNichos] = useState([]);
 
   /* ── Estado consultor ── */
@@ -233,6 +235,10 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
     }
 
     if (!allTermosAceitos) { setError("Aceite todos os termos obrigatórios."); return; }
+    if (!conflictDeclarationAccepted) {
+      setError("É obrigatório aceitar a Declaração de Ausência de Conflito de Interesses.");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -281,6 +287,8 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
           proof: credentialProof, // { name, size, type, url(base64) }
         },
         verificationStatus: "pending",
+        hasAgreedConflictDeclaration: true,
+        conflictDeclarationAgreedAt: serverTimestamp(),
       };
 
       /* CNPJ / site / segmentos são opcionais e válidos para qualquer profissão */
@@ -295,7 +303,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
       setError("Ocorreu um erro ao enviar o cadastro. Tente novamente.");
     }
     setSubmitting(false);
-  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, arquivos, allTermosAceitos, cnpj, segmentos, site, portfolio, nichos, credentialNumber, credentialStateOrRegion, credentialPortfolioUrl, credentialCertifications, credentialProof]);
+  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, arquivos, allTermosAceitos, conflictDeclarationAccepted, cnpj, segmentos, site, portfolio, nichos, credentialNumber, credentialStateOrRegion, credentialPortfolioUrl, credentialCertifications, credentialProof]);
 
   /* ═══ Tela de sucesso ═══ */
   if (success) {
@@ -627,8 +635,29 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                 ))}
               </div>
 
+              {/* ── Declaração de Ausência de Conflito de Interesses ── */}
+              <div className="mb-6 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-3">
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                  Declaração de Ausência de Conflito de Interesses
+                </p>
+                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                  {buildDeclarationText()}
+                </p>
+                <label className="flex items-start gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={conflictDeclarationAccepted}
+                    onChange={(e) => setConflictDeclarationAccepted(e.target.checked)}
+                    className="mt-0.5 shrink-0"
+                  />
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                    Li e concordo com a declaração acima.
+                  </span>
+                </label>
+              </div>
+
               {/* ── Botão enviar ── */}
-              <button type="submit" disabled={submitting || !allTermosAceitos}
+              <button type="submit" disabled={submitting || !allTermosAceitos || !conflictDeclarationAccepted}
                 className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
                 {submitting ? "Enviando…" : "Enviar cadastro"}
               </button>

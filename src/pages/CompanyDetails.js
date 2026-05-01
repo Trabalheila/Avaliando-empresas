@@ -9,6 +9,7 @@ import { listCompanies, enrichCompanyWithBrasilAPI } from "../services/companies
 import { getUserRole, isPremium, isAdmin } from "../utils/rbac";
 import { handleCheckout } from "../services/billing";
 import AppHeader from "../components/AppHeader";
+import ConflictDeclarationGate from "../components/ConflictDeclarationGate";
 // import PremiumPieCard from "../components/PremiumPieCard"; // removido pois não é mais usado
 // ...existing code...
 
@@ -1730,6 +1731,7 @@ function CompanyDetails({ theme, toggleTheme }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
+      <ConflictDeclarationGate companyName={company?.company} />
       <AppHeader theme={theme} toggleTheme={toggleTheme} />
 
       {/* ═══ LINHA 2 — Logo empresa + nome ═══ */}
