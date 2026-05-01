@@ -618,7 +618,7 @@ function TrabalheiLaDesktop({
               </div>
             </div>
 
-            <div className="flex w-[110px] flex-col items-center gap-3">
+            <div className="flex flex-col items-center gap-2">
               <button
                 type="button"
                 onClick={toggleTheme}
@@ -627,6 +627,16 @@ function TrabalheiLaDesktop({
               >
                 {theme === "dark" ? "🌙 Tema" : "☀️ Tema"}
               </button>
+              {!isAuthenticated && (
+                <button
+                  type="button"
+                  onClick={() => navigate("/login")}
+                  aria-label="Entrar"
+                  className="px-4 py-2 rounded-full bg-blue-700 hover:bg-blue-800 text-white font-bold text-sm shadow-md whitespace-nowrap transition dark:bg-blue-600 dark:hover:bg-blue-700"
+                >
+                  Entrar
+                </button>
+              )}
             </div>
           </div>
         </header>

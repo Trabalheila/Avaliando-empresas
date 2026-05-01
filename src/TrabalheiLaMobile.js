@@ -588,6 +588,17 @@ function TrabalheiLaMobile({
           >
             {theme === "dark" ? "🌙" : "☀️"}
           </button>
+          {!isAuthenticated && (
+            <button
+              type="button"
+              onClick={() => navigate("/login")}
+              aria-label="Entrar"
+              className="ml-2 px-3 py-1 rounded-full bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs shadow-md whitespace-nowrap transition dark:bg-blue-600 dark:hover:bg-blue-700"
+              style={{ flexShrink: 0 }}
+            >
+              Entrar
+            </button>
+          )}
         </div>
         <div className="w-20 h-0.5 mx-auto rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
 
