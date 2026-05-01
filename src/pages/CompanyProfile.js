@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import RestrictedComment from "../components/RestrictedComment";
+import WorkPeriodBadge from "../components/WorkPeriodBadge";
 import { useNavigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -538,11 +539,12 @@ export default function CompanyProfile() {
               return (
                 <li key={r.id} className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 bg-slate-50 dark:bg-slate-800/40">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-sm text-slate-800 dark:text-slate-100">
                         {r.pseudonym || r.author || "Anônimo"}
                       </span>
                       <StarRow value={rating} size="h-4 w-4" />
+                      <WorkPeriodBadge workPeriod={r.workPeriod} />
                     </div>
                     <span className="text-xs text-slate-400 dark:text-slate-500">
                       {r.createdAt ? new Date(toMillis(r.createdAt)).toLocaleDateString("pt-BR") : ""}

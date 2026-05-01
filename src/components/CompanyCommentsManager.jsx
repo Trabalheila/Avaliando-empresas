@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import RestrictedComment from "./RestrictedComment";
+import WorkPeriodBadge from "./WorkPeriodBadge";
 
 /**
  * CompanyCommentsManager
@@ -383,13 +384,14 @@ export default function CompanyCommentsManager({
                   className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 bg-slate-50 dark:bg-slate-800/40"
                 >
                   <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <div className="text-sm">
+                    <div className="text-sm flex items-center gap-2 flex-wrap">
                       <strong className="text-slate-800 dark:text-slate-100">
                         {r.pseudonym || "Anônimo"}
                       </strong>
-                      <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
                         {formatDate(r.createdAt)}
                       </span>
+                      <WorkPeriodBadge workPeriod={r.workPeriod} />
                     </div>
                     <div className="flex items-center gap-2">
                       <SentimentTag value={sentimentTag} />
