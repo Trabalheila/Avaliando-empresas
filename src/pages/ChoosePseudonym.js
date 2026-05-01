@@ -1031,22 +1031,25 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                       return (
                       <div
                         key={`pending_${idx}`}
-                        className="rounded-xl border border-amber-200 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-900/10 p-3"
+                        className="rounded-xl border border-amber-200 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-900/10 p-4 space-y-3"
                       >
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="space-y-3">
                           <div>
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                              Empresa
+                            </label>
                             <div className="relative">
                               <input
                                 value={exp.company}
                                 onChange={(e) => handleUpdatePendingResumeExperience(idx, "company", e.target.value)}
-                                placeholder="Empresa"
+                                placeholder="Digite ou selecione a empresa"
                                 list="known-companies-datalist"
                                 autoComplete="off"
-                                className="w-full p-2 pr-9 text-sm border border-amber-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+                                className="w-full px-3 py-2.5 pr-10 text-sm border border-amber-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
                               />
                               {hasCompanyValue && resumeFullText && (
                                 <span
-                                  className="absolute right-2 top-1/2 -translate-y-1/2 text-base leading-none"
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-lg leading-none"
                                   title={
                                     inResume
                                       ? "Verificado no PDF: o nome desta empresa foi encontrado no currículo carregado."
@@ -1063,25 +1066,30 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                               )}
                             </div>
                             {hasCompanyValue && resumeFullText && (
-                              <p className={`text-[10px] mt-1 ${inResume ? "text-emerald-700 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                              <p className={`text-xs mt-1.5 leading-snug ${inResume ? "text-emerald-700 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
                                 {inResume
-                                  ? "Confiança extra: nome encontrado no PDF do currículo."
-                                  : "Não localizado no PDF — confirme se o nome está correto."}
+                                  ? "Confiança extra: nome encontrado no currículo carregado."
+                                  : "Nome não localizado no currículo — confirme se está correto."}
                               </p>
                             )}
                           </div>
-                          <input
-                            value={exp.role}
-                            onChange={(e) => handleUpdatePendingResumeExperience(idx, "role", e.target.value)}
-                            placeholder="Cargo"
-                            className="w-full p-2 text-sm border border-amber-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
-                          />
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                              Cargo
+                            </label>
+                            <input
+                              value={exp.role}
+                              onChange={(e) => handleUpdatePendingResumeExperience(idx, "role", e.target.value)}
+                              placeholder="Ex.: Projetista, Analista, Gerente"
+                              className="w-full px-3 py-2.5 text-sm border border-amber-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                            />
+                          </div>
                         </div>
-                        <div className="mt-2 flex items-center justify-between gap-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-1 border-t border-amber-200/60 dark:border-amber-700/60">
                           <button
                             type="button"
                             onClick={() => handleDiscardPendingResumeExperience(idx)}
-                            className="text-xs text-slate-500 hover:text-red-600 hover:underline"
+                            className="text-xs text-slate-500 hover:text-red-600 hover:underline self-start"
                           >
                             Descartar
                           </button>
@@ -1089,12 +1097,12 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                             <button
                               type="button"
                               onClick={() => handleConfirmPendingResumeExperience(idx)}
-                              className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 transition"
+                              className="px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition w-full sm:w-auto"
                             >
                               Confirmar experiência
                             </button>
                           ) : (
-                            <span className="text-[11px] text-amber-700 dark:text-amber-300 italic">
+                            <span className="text-xs text-amber-700 dark:text-amber-300 italic">
                               Revise os campos para liberar a confirmação
                             </span>
                           )}
