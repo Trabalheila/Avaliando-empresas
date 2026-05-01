@@ -86,6 +86,7 @@ export default function RestrictedComment({
           title={`Conteúdo restrito — Resumo: ${seg.summary}`}
           className="bg-yellow-200/80 dark:bg-yellow-500/30 text-slate-900 dark:text-yellow-100 px-1 rounded ring-1 ring-yellow-400/60 dark:ring-yellow-500/50"
         >
+          <span aria-hidden="true" className="mr-0.5">🔒</span>
           {text.slice(seg.start, seg.end)}
         </mark>
       );
@@ -96,6 +97,7 @@ export default function RestrictedComment({
           title="Resumo de conteúdo restrito (acesso Trabalhador Premium)"
           className="inline italic text-blue-800 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded px-1"
         >
+          <span aria-hidden="true" className="mr-0.5">🔒</span>
           [{seg.summary}]
         </span>
       );
@@ -105,6 +107,7 @@ export default function RestrictedComment({
           key={`seg-${idx}`}
           className="inline italic text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1"
         >
+          <span aria-hidden="true" className="mr-0.5">🔒</span>
           {FREE_PLACEHOLDER}
         </span>
       );
