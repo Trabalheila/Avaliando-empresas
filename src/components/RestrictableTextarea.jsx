@@ -79,6 +79,10 @@ export default function RestrictableTextarea({
   const [pendingSummary, setPendingSummary] = useState("");
   const [feedback, setFeedback] = useState("");
 
+  // Estado do botão flutuante de marcação (sobre seleção ativa).
+  const [floatingTrigger, setFloatingTrigger] = useState(null); // { top, left, start, end }
+  const containerRef = useRef(null);
+
   // Sincroniza valor externo → interno.
   useEffect(() => {
     const next = typeof value === "string" ? value : "";
@@ -151,7 +155,52 @@ export default function RestrictableTextarea({
     }
     setPendingRange({ start, end });
     setPendingSummary("");
+    setFloatingTrigger(null);
   }, [segments]);
+
+  // Atualiza posição do botão flutuante conforme a seleção do textarea.
+  const updateFloatingTrigger = useCallback(() => {
+    const el = textareaRef.current;
+    const container = containerRef.current;
+    if (!el || !container) return;
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    if (end <= start || disabled) {
+      setFloatingTrigger(null);
+      return;
+    }
+    // Sobreposição com segmento existente → não oferecer marcação.
+    const overlaps = (segments || []).some(
+      (s) => !(end <= s.start || start >= s.end)
+    );
+    if (overlaps) {
+      setFloatingTrigger(null);
+      return;
+    }
+    const taRect = el.getBoundingClientRect();
+    const cRect = container.getBoundingClientRect();
+    setFloatingTrigger({
+      top: taRect.top - cRect.top - 36,
+      left: Math.min(taRect.right - cRect.left - 220, taRect.left - cRect.left + 12),
+      start,
+      end,
+    });
+  }, [segments, disabled]);
+
+  useEffect(() => {
+    if (pendingRange) setFloatingTrigger(null);
+  }, [pendingRange]);
+
+  useEffect(() => {
+    const onDocSelectionChange = () => {
+      const active = document.activeElement;
+      if (active && active === textareaRef.current) {
+        updateFloatingTrigger();
+      }
+    };
+    document.addEventListener("selectionchange", onDocSelectionChange);
+    return () => document.removeEventListener("selectionchange", onDocSelectionChange);
+  }, [updateFloatingTrigger]);
 
   const confirmPending = useCallback(() => {
     if (!pendingRange) return;
@@ -202,22 +251,54 @@ export default function RestrictableTextarea({
   );
 
   return (
-    <div className="space-y-2">
+    <div ref={containerRef} className="relative space-y-2">
       {guidanceText && (
         <p className="text-xs text-slate-500 dark:text-slate-400">{guidanceText}</p>
       )}
 
-      <textarea
-        ref={textareaRef}
-        className={className}
-        placeholder={placeholder}
-        rows={rows}
-        value={draftValue}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        maxLength={maxLength}
-        disabled={disabled}
-      />
+      <div className="relative">
+        <textarea
+          ref={textareaRef}
+          className={className}
+          placeholder={placeholder}
+          rows={rows}
+          value={draftValue}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          onSelect={updateFloatingTrigger}
+          onKeyUp={updateFloatingTrigger}
+          onMouseUp={updateFloatingTrigger}
+          maxLength={maxLength}
+          disabled={disabled}
+        />
+        {sortedSegments.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {sortedSegments.map((seg) => (
+              <span
+                key={`badge-${seg.start}-${seg.end}`}
+                title={`Resumo: ${seg.summary}`}
+                className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-200 border border-dashed border-amber-400 dark:border-amber-500/50"
+              >
+                <span aria-hidden>🔒</span>
+                <span className="max-w-[140px] truncate">{draftValue.slice(seg.start, seg.end)}</span>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {floatingTrigger && (
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={startMarkSelection}
+          style={{ top: floatingTrigger.top, left: Math.max(0, floatingTrigger.left) }}
+          className="absolute z-20 inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-md bg-amber-500 hover:bg-amber-600 text-white shadow-lg border border-amber-700"
+        >
+          <span aria-hidden>🔒</span>
+          Marcar como restrito
+        </button>
+      )}
 
       {showWarning && warningText && (
         <p className="text-xs text-yellow-700 dark:text-yellow-300 bg-yellow-100/80 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-md px-2 py-1">

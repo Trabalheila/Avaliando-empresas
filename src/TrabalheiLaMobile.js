@@ -173,6 +173,7 @@ function TrabalheiLaMobile({
   entrySource, setEntrySource, contractType, setContractType, workModel, setWorkModel,
   generalComment, setGeneralComment,
   generalCommentRestrictedSegments, setGeneralCommentRestrictedSegments,
+  criterionRestrictedSegments, setSegmentsForCriterion,
   handleSubmit, isLoading,
   empresas, top3,
   showNewCompanyInput, setShowNewCompanyInput,
@@ -357,7 +358,7 @@ function TrabalheiLaMobile({
     }),
   };
 
-  const renderStars = (value, setValue, commentValue, setCommentValue, label) => (
+  const renderStars = (value, setValue, commentValue, setCommentValue, label, restrictKey) => (
     <div className="flex flex-col items-end w-full mt-2">
       <div className="flex items-center space-x-1 mb-2">
         {[...Array(5)].map((_, i) => (
@@ -365,7 +366,21 @@ function TrabalheiLaMobile({
         ))}
         <span className="ml-2 text-slate-700 dark:text-blue-200 font-medium">{value}/5</span>
       </div>
-      <CommentTextarea
+      {restrictKey ? (
+        <RestrictableTextarea
+          guidanceText={COMMENT_GUIDANCE_TEXT}
+          warningText={COMMENT_WARNING_TEXT}
+          containsPossiblePersonName={containsPossiblePersonName}
+          className="w-full p-2 border border-gray-300 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-100 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 mt-2"
+          placeholder={`Comentário sobre ${label.toLowerCase()} (opcional). Selecione trechos para marcar como restritos.`}
+          rows={3}
+          value={commentValue}
+          onValueChange={setCommentValue}
+          segments={(criterionRestrictedSegments && criterionRestrictedSegments[restrictKey]) || []}
+          onSegmentsChange={(segs) => setSegmentsForCriterion?.(restrictKey, segs)}
+        />
+      ) : (
+        <CommentTextarea
         guidanceText={COMMENT_GUIDANCE_TEXT}
         warningText={COMMENT_WARNING_TEXT}
         containsPossiblePersonName={containsPossiblePersonName}
@@ -375,6 +390,7 @@ function TrabalheiLaMobile({
         value={commentValue}
         onValueChange={setCommentValue}
       />
+      )}
     </div>
   );
 
@@ -430,22 +446,22 @@ function TrabalheiLaMobile({
   };
 
   const campos = [
-    { label: "Processo de Recrutamento", icon: <FiMessageCircle className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao },
-    { label: "Proposta salarial e benefícios", icon: <FiDollarSign className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200", value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica },
-    { label: "Visão e valores da empresa", icon: <FiCompass className="text-slate-700" />, iconBg: "from-slate-50 to-slate-100 border-slate-300", value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura },
-    { label: "Data do Pagamento", icon: <FiCalendar className="text-rose-600" />, iconBg: "from-rose-50 to-red-100 border-rose-200", value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario },
-    { label: "Acessibilidade e respeito da liderança", icon: <FiUsers className="text-violet-700" />, iconBg: "from-violet-50 to-indigo-100 border-violet-200", value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca },
-    { label: "Condições de trabalho", icon: <FiBriefcase className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao },
-    { label: "Estímulo ao respeito", icon: <FiUsers className="text-teal-700" />, iconBg: "from-teal-50 to-emerald-100 border-teal-200", value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente },
+    { restrictKey: "comunicacao", label: "Processo de Recrutamento", icon: <FiMessageCircle className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao },
+    { restrictKey: "etica", label: "Proposta salarial e benefícios", icon: <FiDollarSign className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200", value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica },
+    { restrictKey: "cultura", label: "Visão e valores da empresa", icon: <FiCompass className="text-slate-700" />, iconBg: "from-slate-50 to-slate-100 border-slate-300", value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura },
+    { restrictKey: "salario", label: "Data do Pagamento", icon: <FiCalendar className="text-rose-600" />, iconBg: "from-rose-50 to-red-100 border-rose-200", value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario },
+    { restrictKey: "lideranca", label: "Acessibilidade e respeito da liderança", icon: <FiUsers className="text-violet-700" />, iconBg: "from-violet-50 to-indigo-100 border-violet-200", value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca },
+    { restrictKey: "estimacaoOrganizacao", label: "Condições de trabalho", icon: <FiBriefcase className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao },
+    { restrictKey: "ambiente", label: "Estímulo ao respeito", icon: <FiUsers className="text-teal-700" />, iconBg: "from-teal-50 to-emerald-100 border-teal-200", value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente },
     { type: "yesno", label: "Sofreu discriminação?", icon: <FiAlertCircle className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: discriminacao, set: setDiscriminacao, comment: commentDiscriminacao, setComment: setCommentDiscriminacao },
-    { label: "Diversidade e Inclusão", icon: <FiUsers className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade },
-    { label: "Carga Horária / Jornada de Trabalho", icon: <FiClock className="text-indigo-700" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200", value: cargaHoraria, set: setCargaHoraria, comment: commentCargaHoraria, setComment: setCommentCargaHoraria },
-    { label: "Oportunidades de Desenvolvimento / Crescimento", icon: <FiArrowUpCircle className="text-emerald-700" />, iconBg: "from-emerald-50 to-teal-100 border-emerald-200", value: crescimento, set: setCrescimento, comment: commentCrescimento, setComment: setCommentCrescimento },
-    { label: "Segurança e integridade", icon: <FiShield className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating },
-    { label: "Preocupação com o bem estar", icon: <FiHeart className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200", value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar },
-    { label: "Rotatividade", subtitle: "(Demite com facilidade?)", icon: <FiRepeat className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio },
-    { label: "Reconhecimento", icon: <FiAward className="text-amber-600" />, iconBg: "from-amber-50 to-orange-100 border-amber-200", value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento },
-    { label: "Planos de cargos e salários", icon: <FiTrendingUp className="text-fuchsia-700" />, iconBg: "from-fuchsia-50 to-pink-100 border-fuchsia-200", value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento },
+    { restrictKey: "diversidade", label: "Diversidade e Inclusão", icon: <FiUsers className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade },
+    { restrictKey: "cargaHoraria", label: "Carga Horária / Jornada de Trabalho", icon: <FiClock className="text-indigo-700" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200", value: cargaHoraria, set: setCargaHoraria, comment: commentCargaHoraria, setComment: setCommentCargaHoraria },
+    { restrictKey: "crescimento", label: "Oportunidades de Desenvolvimento / Crescimento", icon: <FiArrowUpCircle className="text-emerald-700" />, iconBg: "from-emerald-50 to-teal-100 border-emerald-200", value: crescimento, set: setCrescimento, comment: commentCrescimento, setComment: setCommentCrescimento },
+    { restrictKey: "rating", label: "Segurança e integridade", icon: <FiShield className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating },
+    { restrictKey: "saudeBemEstar", label: "Preocupação com o bem estar", icon: <FiHeart className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200", value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar },
+    { restrictKey: "equilibrio", label: "Rotatividade", subtitle: "(Demite com facilidade?)", icon: <FiRepeat className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio },
+    { restrictKey: "reconhecimento", label: "Reconhecimento", icon: <FiAward className="text-amber-600" />, iconBg: "from-amber-50 to-orange-100 border-amber-200", value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento },
+    { restrictKey: "desenvolvimento", label: "Planos de cargos e salários", icon: <FiTrendingUp className="text-fuchsia-700" />, iconBg: "from-fuchsia-50 to-pink-100 border-fuchsia-200", value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento },
   ];
 
   // Progress bar: IntersectionObserver para critérios
@@ -1119,7 +1135,7 @@ function TrabalheiLaMobile({
                   </label>
                   {campo.type === "yesno"
                     ? renderYesNo(campo.value, campo.set, campo.comment, campo.setComment, campo.label)
-                    : renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label)}
+                    : renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label, campo.restrictKey)}
                 </div>
               ))}
             </div>

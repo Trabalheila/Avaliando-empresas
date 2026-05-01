@@ -262,6 +262,19 @@ function Home({ theme, toggleTheme }) {
   const [commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao] = useState("");
   const [generalComment, setGeneralComment] = useState("");
   const [generalCommentRestrictedSegments, setGeneralCommentRestrictedSegments] = useState([]);
+  // Trechos restritos por critério: { [criterionKey]: [{start,end,summary}] }
+  const [criterionRestrictedSegments, setCriterionRestrictedSegments] = useState({});
+  const setSegmentsForCriterion = useCallback((key, segs) => {
+    setCriterionRestrictedSegments((prev) => {
+      const next = { ...prev };
+      if (!segs || segs.length === 0) {
+        delete next[key];
+      } else {
+        next[key] = segs;
+      }
+      return next;
+    });
+  }, []);
   const [entrySource, setEntrySource] = useState("");
   const [contractType, setContractType] = useState("");
   const [workModel, setWorkModel] = useState("");
@@ -646,6 +659,9 @@ function Home({ theme, toggleTheme }) {
       if (Array.isArray(draft?.generalCommentRestrictedSegments)) {
         setGeneralCommentRestrictedSegments(draft.generalCommentRestrictedSegments);
       }
+      if (draft?.criterionRestrictedSegments && typeof draft.criterionRestrictedSegments === "object") {
+        setCriterionRestrictedSegments(draft.criterionRestrictedSegments);
+      }
       if (typeof draft?.entrySource === "string") setEntrySource(draft.entrySource);
       if (typeof draft?.contractType === "string") setContractType(draft.contractType);
       if (typeof draft?.workModel === "string") setWorkModel(draft.workModel);
@@ -705,6 +721,7 @@ function Home({ theme, toggleTheme }) {
       commentEstimacaoOrganizacao,
       generalComment,
       generalCommentRestrictedSegments,
+      criterionRestrictedSegments,
       entrySource,
       contractType,
       workModel,
@@ -762,6 +779,7 @@ function Home({ theme, toggleTheme }) {
     commentEstimacaoOrganizacao,
     generalComment,
     generalCommentRestrictedSegments,
+    criterionRestrictedSegments,
     entrySource,
     contractType,
     workModel,
@@ -1044,13 +1062,27 @@ function Home({ theme, toggleTheme }) {
               summary: s.summary.trim().slice(0, 80),
             }))
         : [],
+      criterionRestrictedSegments: Object.fromEntries(
+        Object.entries(criterionRestrictedSegments || {})
+          .map(([key, segs]) => [
+            key,
+            (Array.isArray(segs) ? segs : [])
+              .filter((s) => s && typeof s.summary === "string" && s.summary.trim())
+              .map((s) => ({
+                start: Number(s.start) || 0,
+                end: Number(s.end) || 0,
+                summary: s.summary.trim().slice(0, 80),
+              })),
+          ])
+          .filter(([, segs]) => segs.length > 0)
+      ),
       entrySource,
       contractType,
       workModel,
       timestamp: new Date().toISOString(),
       ...termsData,
     };
-  }, [company, userProfile, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment, generalCommentRestrictedSegments, entrySource, contractType, workModel, discriminacao, commentDiscriminacao, cargaHoraria, commentCargaHoraria, crescimento, commentCrescimento]);
+  }, [company, userProfile, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment, generalCommentRestrictedSegments, entrySource, contractType, workModel, discriminacao, commentDiscriminacao, cargaHoraria, commentCargaHoraria, crescimento, commentCrescimento, criterionRestrictedSegments]);
 
   const submitEvaluation = useCallback(async (evaluationData) => {
     const pseudonym = evaluationData?.pseudonym;
@@ -1649,6 +1681,7 @@ function Home({ theme, toggleTheme }) {
     entrySource, setEntrySource, contractType, setContractType, workModel, setWorkModel,
     generalComment, setGeneralComment,
     generalCommentRestrictedSegments, setGeneralCommentRestrictedSegments,
+    criterionRestrictedSegments, setSegmentsForCriterion,
     handleSubmit, isLoading, empresas, top3,
     sectorFilter, setSectorFilter, setoresList,
     segmentFilter, setSegmentFilter, segmentosList,

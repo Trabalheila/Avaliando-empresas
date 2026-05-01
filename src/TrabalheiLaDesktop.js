@@ -93,6 +93,7 @@ function TrabalheiLaDesktop({
   entrySource, setEntrySource, contractType, setContractType, workModel, setWorkModel,
   generalComment, setGeneralComment,
   generalCommentRestrictedSegments, setGeneralCommentRestrictedSegments,
+  criterionRestrictedSegments, setSegmentsForCriterion,
   handleSubmit, isLoading, empresas, top3,
   handleSaibaMais,
   showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany, handleConfirmNewCompany, pendingCompanyData, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
@@ -209,7 +210,7 @@ function TrabalheiLaDesktop({
     };
     void legacyMetricsBridge;
 
-  const renderStars = (value, setValue, comment, setComment, label) => (
+  const renderStars = (value, setValue, comment, setComment, label, restrictKey) => (
     <div className="flex flex-col w-full md:w-2/3 gap-2">
       <div className="flex gap-1">
         {[1, 2, 3, 4, 5].map((star) => (
@@ -218,7 +219,21 @@ function TrabalheiLaDesktop({
           </button>
         ))}
       </div>
-      <CommentTextarea
+      {restrictKey ? (
+        <RestrictableTextarea
+          guidanceText={COMMENT_GUIDANCE_TEXT}
+          warningText={COMMENT_WARNING_TEXT}
+          containsPossiblePersonName={containsPossiblePersonName}
+          rows={3}
+          placeholder={`Comentário sobre ${label.toLowerCase()} (opcional). Selecione trechos para marcar como restritos.`}
+          value={comment}
+          onValueChange={setComment}
+          segments={(criterionRestrictedSegments && criterionRestrictedSegments[restrictKey]) || []}
+          onSegmentsChange={(segs) => setSegmentsForCriterion?.(restrictKey, segs)}
+          className="w-full p-2 text-sm border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100"
+        />
+      ) : (
+        <CommentTextarea
         guidanceText={COMMENT_GUIDANCE_TEXT}
         warningText={COMMENT_WARNING_TEXT}
         containsPossiblePersonName={containsPossiblePersonName}
@@ -228,6 +243,7 @@ function TrabalheiLaDesktop({
         onValueChange={setComment}
         className="w-full p-2 text-sm border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100"
       />
+      )}
     </div>
   );
 
@@ -281,22 +297,22 @@ function TrabalheiLaDesktop({
   };
 
   const campos = [
-    { label: t('Processo de Recrutamento'), value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao, icon: <FiMessageCircle className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200" },
-    { label: t('Proposta salarial e benefícios'), value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica, icon: <FiDollarSign className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200" },
-    { label: t('Visão e valores da empresa'), value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura, icon: <FiCompass className="text-blue-700" />, iconBg: "from-blue-50 to-sky-100 border-blue-200" },
-    { label: t('Data do Pagamento'), value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario, icon: <FiCalendar className="text-rose-600" />, iconBg: "from-rose-50 to-red-100 border-rose-200" },
-    { label: t('Acessibilidade e respeito da liderança'), value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca, icon: <FiUsers className="text-indigo-600" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200" },
-    { label: t('Condições de trabalho'), value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao, icon: <FiBriefcase className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200" },
-    { label: t('Estímulo ao respeito'), value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente, icon: <FiUsers className="text-violet-600" />, iconBg: "from-violet-50 to-fuchsia-100 border-violet-200" },
+    { restrictKey: "comunicacao", label: t('Processo de Recrutamento'), value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao, icon: <FiMessageCircle className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200" },
+    { restrictKey: "etica", label: t('Proposta salarial e benefícios'), value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica, icon: <FiDollarSign className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200" },
+    { restrictKey: "cultura", label: t('Visão e valores da empresa'), value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura, icon: <FiCompass className="text-blue-700" />, iconBg: "from-blue-50 to-sky-100 border-blue-200" },
+    { restrictKey: "salario", label: t('Data do Pagamento'), value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario, icon: <FiCalendar className="text-rose-600" />, iconBg: "from-rose-50 to-red-100 border-rose-200" },
+    { restrictKey: "lideranca", label: t('Acessibilidade e respeito da liderança'), value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca, icon: <FiUsers className="text-indigo-600" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200" },
+    { restrictKey: "estimacaoOrganizacao", label: t('Condições de trabalho'), value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao, icon: <FiBriefcase className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200" },
+    { restrictKey: "ambiente", label: t('Estímulo ao respeito'), value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente, icon: <FiUsers className="text-violet-600" />, iconBg: "from-violet-50 to-fuchsia-100 border-violet-200" },
     { type: "yesno", label: t('Sofreu discriminação?'), value: discriminacao, set: setDiscriminacao, comment: commentDiscriminacao, setComment: setCommentDiscriminacao, icon: <FiAlertCircle className="text-teal-600" />, iconBg: "from-teal-50 to-cyan-100 border-teal-200" },
-    { label: t('Diversidade e Inclusão'), value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade, icon: <FiUsers className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200" },
-    { label: t('Carga Horária / Jornada de Trabalho'), value: cargaHoraria, set: setCargaHoraria, comment: commentCargaHoraria, setComment: setCommentCargaHoraria, icon: <FiClock className="text-indigo-700" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200" },
-    { label: t('Oportunidades de Desenvolvimento / Crescimento'), value: crescimento, set: setCrescimento, comment: commentCrescimento, setComment: setCommentCrescimento, icon: <FiArrowUpCircle className="text-emerald-700" />, iconBg: "from-emerald-50 to-teal-100 border-emerald-200" },
-    { label: t('Segurança e integridade'), value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FiShield className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200" },
-    { label: t('Preocupação com o bem estar'), value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar, icon: <FiHeart className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200" },
-    { label: t('Rotatividade'), subtitle: t('(Demite com facilidade?)'), value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio, icon: <FiRepeat className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300" },
-    { label: t('Reconhecimento'), value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento, icon: <FiAward className="text-amber-700" />, iconBg: "from-amber-50 to-orange-100 border-amber-200" },
-    { label: t('Planos de cargos e salários'), value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento, icon: <FiTrendingUp className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200" },
+    { restrictKey: "diversidade", label: t('Diversidade e Inclusão'), value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade, icon: <FiUsers className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200" },
+    { restrictKey: "cargaHoraria", label: t('Carga Horária / Jornada de Trabalho'), value: cargaHoraria, set: setCargaHoraria, comment: commentCargaHoraria, setComment: setCommentCargaHoraria, icon: <FiClock className="text-indigo-700" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200" },
+    { restrictKey: "crescimento", label: t('Oportunidades de Desenvolvimento / Crescimento'), value: crescimento, set: setCrescimento, comment: commentCrescimento, setComment: setCommentCrescimento, icon: <FiArrowUpCircle className="text-emerald-700" />, iconBg: "from-emerald-50 to-teal-100 border-emerald-200" },
+    { restrictKey: "rating", label: t('Segurança e integridade'), value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FiShield className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200" },
+    { restrictKey: "saudeBemEstar", label: t('Preocupação com o bem estar'), value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar, icon: <FiHeart className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200" },
+    { restrictKey: "equilibrio", label: t('Rotatividade'), subtitle: t('(Demite com facilidade?)'), value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio, icon: <FiRepeat className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300" },
+    { restrictKey: "reconhecimento", label: t('Reconhecimento'), value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento, icon: <FiAward className="text-amber-700" />, iconBg: "from-amber-50 to-orange-100 border-amber-200" },
+    { restrictKey: "desenvolvimento", label: t('Planos de cargos e salários'), value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento, icon: <FiTrendingUp className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200" },
   ];
 
   const companyNote = selectedCompanyData ? calcularMedia(selectedCompanyData) : "--";
@@ -409,9 +425,9 @@ function TrabalheiLaDesktop({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-6">
-      <div className="w-full max-w-6xl">
+      <div className="w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[1480px]">
         {/* HEADER */}
-        <header ref={headerRef} className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-b-3xl shadow-2xl px-3 py-1.5 border-2 border-blue-200 dark:border-slate-700">
+        <header ref={headerRef} className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl xl:max-w-7xl 2xl:max-w-[1480px] bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-b-3xl shadow-2xl px-3 py-1.5 border-2 border-blue-200 dark:border-slate-700">
           <div className="flex items-start justify-between gap-3">
             <div className="flex w-[110px] flex-col items-center">
 
@@ -621,7 +637,7 @@ function TrabalheiLaDesktop({
         <div className="flex flex-col lg:flex-row lg:flex-nowrap gap-6 mb-8">
 
           {/* COLUNA ESQUERDA - LOGIN + RANKING (flex-col ordem 1) */}
-          <div className="w-full lg:basis-[20%] lg:max-w-[20%] lg:min-w-[220px] lg:shrink-0 flex flex-col gap-6 order-1 lg:order-1">
+          <div className="w-full lg:basis-[18%] lg:max-w-[18%] lg:min-w-[200px] xl:basis-[16%] xl:max-w-[16%] xl:min-w-[210px] lg:shrink-0 flex flex-col gap-6 order-1 lg:order-1 break-words">
 
             {/* LOGIN ATUALIZADO (Sem Google, LinkedIn Corrigido) */}
             <section
@@ -770,7 +786,7 @@ function TrabalheiLaDesktop({
           </div>
 
           {/* COLUNA CENTRAL - FORMULÁRIO (ordem 2 no desktop) */}
-          <div className="w-full lg:basis-[55%] lg:min-w-[500px] lg:flex-none flex flex-col gap-6 order-2 lg:order-2">
+          <div className="w-full lg:basis-[60%] lg:min-w-[520px] xl:basis-[68%] lg:flex-none flex flex-col gap-6 order-2 lg:order-2">
 
             {/* FORMULÁRIO */}
             <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
@@ -976,7 +992,7 @@ function TrabalheiLaDesktop({
                     </label>
                     {campo.type === "yesno"
                       ? renderYesNo(campo.value, campo.set, campo.comment, campo.setComment, campo.label)
-                      : renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label)}
+                      : renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label, campo.restrictKey)}
                   </div>
                 ))}
 
@@ -1040,7 +1056,7 @@ function TrabalheiLaDesktop({
           </div>
 
           {/* COLUNA DIREITA - GRÁFICOS + COMO FUNCIONA (ordem 3 no desktop) */}
-          <div className="w-full lg:basis-[25%] lg:max-w-[25%] lg:min-w-[280px] lg:shrink-0 flex flex-col gap-6 order-3 lg:order-3">
+          <div className="w-full lg:basis-[22%] lg:max-w-[22%] lg:min-w-[240px] xl:basis-[16%] xl:max-w-[16%] xl:min-w-[230px] lg:shrink-0 flex flex-col gap-6 order-3 lg:order-3 break-words">
             <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
               <div className="mb-4 space-y-4">
                 <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
