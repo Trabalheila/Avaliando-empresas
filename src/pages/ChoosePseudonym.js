@@ -1045,16 +1045,15 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                   LinkedIn (verificado automaticamente)
                 </p>
                 <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
-                  {isLinkedInLogin
-                    ? "Experiências importadas via login LinkedIn recebem selo de autenticidade."
-                    : "Clique para entrar com LinkedIn e importar suas experiências com selo de autenticidade."}
+                  Experiências importadas diretamente via login LinkedIn recebem o selo de autenticidade, confirmando seu vínculo profissional.
+                  {isLinkedInLogin ? " Sua sessão do LinkedIn foi detectada — clique para verificar e importar." : ""}
                 </p>
                 <button
                   type="button"
                   onClick={handleFillFromLinkedIn}
                   className="w-full py-2.5 rounded-xl border border-blue-200 text-blue-700 font-semibold hover:bg-blue-50 transition"
                 >
-                  {isLinkedInLogin ? "Importar do LinkedIn" : "Entrar com LinkedIn e importar"}
+                  Verificar Autenticidade via LinkedIn
                 </button>
                 {isLinkedInLogin && (
                   <p className="text-xs text-emerald-700 mt-2">Login LinkedIn detectado.</p>

@@ -34,6 +34,21 @@ const DATE_RANGE_PATTERN =
 const NOISE_LINE_PATTERN =
   /(linkedin\.com|github\.com|@|email|e-mail|telefone|celular|whatsapp|cpf|rg\b|endereco|rua\b|avenida\b|bairro|cep\b|contato)/i;
 
+// Linhas que parecem fragmentos de frases descritivas ao invés de nomes de empresa/cargo.
+// Ex.: "softwares com", "atualização das", "responsável por". Esses padrões são usados
+// para rejeitar candidatos a empresa/cargo extraídos do PDF do LinkedIn.
+const FRAGMENT_END_PATTERN =
+  /\b(com|sem|de|da|do|das|dos|na|no|nas|nos|em|entre|para|por|a|o|e|ou|que|pela|pelo|pelas|pelos|sobre|ate|até)\s*[.,;:]?$/i;
+const FRAGMENT_START_PATTERN =
+  /^(responsavel|atualizacao|desenvolvimento|implementacao|criacao|elaboracao|gestao|coordenacao|operacao|softwares?|sistemas?|projetos?|atividades?|principais|realizei|executei|atuei|atuacao|liderei|particip(?:ei|acao)|apoio|suporte|manuten[cs]ao|gerenciamento)\b/i;
+const LINKEDIN_DELIM = /\s[·•|]\s/; // "Empresa · Tempo integral" / "Empresa • Full-time"
+const PT_LOWERCASE_STARTERS = new Set([
+  "a", "o", "e", "de", "da", "do", "das", "dos", "em", "na", "no", "para", "por",
+  "com", "sobre", "que", "se", "como", "mais", "muito", "todo", "toda", "todos",
+]);
+const NOT_IDENTIFIED_COMPANY = "Empresa não identificada";
+const NOT_IDENTIFIED_ROLE = "Cargo não identificado";
+
 // Padrões de dados sensíveis inline que podem aparecer dentro de linhas de texto livre.
 const INLINE_CPF_PATTERN = /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g;
 const INLINE_PHONE_PATTERN = /\(?\d{2}\)?[\s-]?\d{4,5}[-\s]?\d{4}/g;
@@ -67,6 +82,33 @@ function isNoiseLine(line) {
   if (!cleaned) return true;
   if (cleaned.length < 2) return true;
   if (NOISE_LINE_PATTERN.test(cleaned)) return true;
+  return false;
+}
+
+// Heurística para descartar fragmentos de frases descritivas (ex: "softwares com",
+// "atualização das") que o parser pode capturar dentro do bloco de experiência.
+function looksLikeFragment(line) {
+  const cleaned = cleanLine(line);
+  if (!cleaned) return true;
+  if (cleaned.length < 3) return true;
+
+  const normalized = normalizeText(cleaned);
+
+  // Termina em conector/preposição
+  if (FRAGMENT_END_PATTERN.test(normalized)) return true;
+  // Começa com verbo/substantivo genérico de descrição
+  if (FRAGMENT_START_PATTERN.test(normalized)) return true;
+
+  // Começa com palavra comum em minúsculo (ex: "com", "de", "para")
+  const firstWord = normalized.split(/\s+/)[0] || "";
+  const firstChar = cleaned[0];
+  const startsLower = firstChar && firstChar === firstChar.toLowerCase() && firstChar !== firstChar.toUpperCase();
+  if (startsLower && PT_LOWERCASE_STARTERS.has(firstWord)) return true;
+
+  // Frase muito longa (> 8 palavras) raramente é nome de empresa ou cargo.
+  const wordCount = cleaned.split(/\s+/).filter(Boolean).length;
+  if (wordCount > 8) return true;
+
   return false;
 }
 
@@ -158,22 +200,50 @@ function parseExperienceBlock(lines, knownCompaniesMap) {
   const periodLine = filtered.find((line) => DATE_RANGE_PATTERN.test(line)) || "";
   const knownCompany = findKnownCompany(filtered, knownCompaniesMap);
 
-  const companyLine =
+  // 1) Detecção estilo LinkedIn: linha contém " · " separando nome da empresa
+  // do tipo de emprego (ex.: "Empresa X · Tempo integral").
+  let linkedInCompany = "";
+  let linkedInRole = "";
+  for (const line of filtered) {
+    if (DATE_RANGE_PATTERN.test(line)) continue;
+    if (LINKEDIN_DELIM.test(line)) {
+      const [first, second = ""] = line.split(LINKEDIN_DELIM).map((s) => s.trim());
+      const tail = normalizeText(second);
+      // Padrão clássico: "Empresa · Tempo integral|Meio período|Estagio|Freelance|Full-time|Part-time"
+      if (/(tempo integral|meio periodo|meio per[ií]odo|estagi|freelance|aut[oó]nomo|full[-\s]time|part[-\s]time|contrato|temporario|terceirizado)/.test(tail)) {
+        if (!linkedInCompany && !looksLikeFragment(first)) {
+          linkedInCompany = first;
+        }
+      } else if (!linkedInRole && !looksLikeFragment(first) && ROLE_HINT_PATTERN.test(line)) {
+        linkedInRole = first;
+      }
+    }
+    if (linkedInCompany && linkedInRole) break;
+  }
+
+  const candidateCompany =
     knownCompany ||
+    linkedInCompany ||
     filtered.find((line) => {
       if (line === periodLine) return false;
       if (ROLE_HINT_PATTERN.test(line)) return false;
       if (DATE_RANGE_PATTERN.test(line)) return false;
+      if (looksLikeFragment(line)) return false;
       return COMPANY_HINT_PATTERN.test(line) || line.split(" ").length >= 2;
     }) ||
     "";
 
-  const roleLine =
+  const candidateRole =
+    linkedInRole ||
     filtered.find((line) => {
-      if (line === companyLine || line === periodLine) return false;
+      if (line === candidateCompany || line === periodLine) return false;
+      if (looksLikeFragment(line)) return false;
       return ROLE_HINT_PATTERN.test(line);
     }) ||
-    "Nao identificado";
+    "";
+
+  const companyLine = candidateCompany && !looksLikeFragment(candidateCompany) ? candidateCompany : "";
+  const roleLine = candidateRole && !looksLikeFragment(candidateRole) ? candidateRole : "";
 
   const rawDetails = filtered
     .filter((line) => line !== companyLine && line !== roleLine && line !== periodLine)
@@ -183,17 +253,17 @@ function parseExperienceBlock(lines, knownCompaniesMap) {
 
   let confidence = 0;
   if (companyLine) confidence += 0.45;
-  if (roleLine && roleLine !== "Nao identificado") confidence += 0.25;
+  if (roleLine) confidence += 0.25;
   if (periodLine) confidence += 0.2;
   if (details) confidence += 0.1;
 
   const confidenceLevel = confidence >= 0.75 ? "alta" : confidence >= 0.5 ? "media" : "baixa";
 
-  if (!companyLine && roleLine === "Nao identificado" && !periodLine) return null;
+  if (!companyLine && !roleLine && !periodLine) return null;
 
   return {
-    company: companyLine || "Nao identificado",
-    role: roleLine,
+    company: companyLine || NOT_IDENTIFIED_COMPANY,
+    role: roleLine || NOT_IDENTIFIED_ROLE,
     period: periodLine,
     periodNormalized: normalizePeriod(periodLine),
     details,
@@ -269,7 +339,11 @@ function extractExperiences(rawText, knownCompanies = []) {
 
   const experiencesStructured = deduplicateExperiences(parsed);
   const experiences = Array.from(
-    new Set(experiencesStructured.map((item) => item.company).filter((value) => value && value !== "Nao identificado"))
+    new Set(
+      experiencesStructured
+        .map((item) => item.company)
+        .filter((value) => value && value !== NOT_IDENTIFIED_COMPANY)
+    )
   );
 
   return {
