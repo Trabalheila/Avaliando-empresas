@@ -44,6 +44,43 @@ export function isPremium() {
   return Boolean(profile?.is_premium) || getUserRole() === "admin_empresa" || isAdmin();
 }
 
+/** Retorna true se o usuário é um Apoiador autenticado (acesso completo a conteúdo restrito). */
+export function isSupporter() {
+  const profile = getStoredProfile();
+  const role = (profile?.role || "").toString().toLowerCase().trim();
+  return (
+    Boolean(profile?.is_supporter) ||
+    Boolean(profile?.apoiadorId) ||
+    role === "apoiador" ||
+    role === "supporter" ||
+    isAdmin()
+  );
+}
+
+/** Retorna true se o usuário é Trabalhador Premium (vê resumos de conteúdo restrito). */
+export function isPremiumWorker() {
+  const profile = getStoredProfile();
+  const role = (profile?.role || "").toString().toLowerCase().trim();
+  return (
+    Boolean(profile?.is_premium_worker) ||
+    role === "premium_worker" ||
+    role === "trabalhador_premium" ||
+    isSupporter()
+  );
+}
+
+/**
+ * Retorna a "camada de visibilidade" do leitor para conteúdo restrito.
+ *   "supporter"     — vê o texto completo com destaque visual
+ *   "premium_worker"— vê apenas o resumo curto entre colchetes
+ *   "free"          — vê apenas o aviso de conteúdo sensível
+ */
+export function getRestrictedContentTier() {
+  if (isSupporter()) return "supporter";
+  if (isPremiumWorker()) return "premium_worker";
+  return "free";
+}
+
 /**
  * Persiste o papel e is_premium no perfil local.
  * Útil para testes ou quando um admin_empresa faz login.

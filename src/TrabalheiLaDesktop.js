@@ -10,6 +10,7 @@ import {
 } from "react-icons/fi";
 import LoginLinkedInButton from "./LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
+import RestrictableTextarea from "./components/RestrictableTextarea";
 
 function CommentTextarea({
   value,
@@ -86,7 +87,9 @@ function TrabalheiLaDesktop({
   impactoSocial, setImpactoSocial, commentImpactoSocial, setCommentImpactoSocial, reputacao, setReputacao, commentReputacao, setCommentReputacao,
   estimacaoOrganizacao, setEstimacaoOrganizacao, commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao,
   entrySource, setEntrySource, contractType, setContractType, workModel, setWorkModel,
-  generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
+  generalComment, setGeneralComment,
+  generalCommentRestrictedSegments, setGeneralCommentRestrictedSegments,
+  handleSubmit, isLoading, empresas, top3,
   handleSaibaMais,
   showNewCompanyInput, setShowNewCompanyInput, handleAddNewCompany, handleConfirmNewCompany, pendingCompanyData, newCompanyCnpj, setNewCompanyCnpj, cnpjError,
   sectorFilter, setSectorFilter, setoresList,
@@ -921,7 +924,7 @@ function TrabalheiLaDesktop({
 
                 <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
                   <label className="text-slate-700 dark:text-slate-100 font-semibold text-lg block mb-2">Algo que queira acrescentar?</label>
-                  <CommentTextarea
+                  <RestrictableTextarea
                     guidanceText={COMMENT_GUIDANCE_TEXT}
                     warningText={COMMENT_WARNING_TEXT}
                     containsPossiblePersonName={containsPossiblePersonName}
@@ -930,6 +933,8 @@ function TrabalheiLaDesktop({
                     rows={3}
                     value={generalComment}
                     onValueChange={setGeneralComment}
+                    segments={generalCommentRestrictedSegments}
+                    onSegmentsChange={setGeneralCommentRestrictedSegments}
                   />
                 </div>
 

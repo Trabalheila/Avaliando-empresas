@@ -11,6 +11,7 @@ import {
 import Select from "react-select";
 import LoginLinkedInButton from "./LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
+import RestrictableTextarea from "./components/RestrictableTextarea";
 import { getCompanyLogoCandidates } from "./utils/getCompanyLogo";
 
 function CommentTextarea({
@@ -164,6 +165,7 @@ function TrabalheiLaMobile({
   commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao,
   entrySource, setEntrySource, contractType, setContractType, workModel, setWorkModel,
   generalComment, setGeneralComment,
+  generalCommentRestrictedSegments, setGeneralCommentRestrictedSegments,
   handleSubmit, isLoading,
   empresas, top3,
   showNewCompanyInput, setShowNewCompanyInput,
@@ -1061,7 +1063,7 @@ function TrabalheiLaMobile({
 
             <div className="bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border border-gray-200 dark:border-slate-700">
               <label className="text-slate-700 dark:text-blue-200 font-semibold text-sm block mb-2">Algo que queira acrescentar?</label>
-              <CommentTextarea
+              <RestrictableTextarea
                 guidanceText={COMMENT_GUIDANCE_TEXT}
                 warningText={COMMENT_WARNING_TEXT}
                 containsPossiblePersonName={containsPossiblePersonName}
@@ -1070,6 +1072,8 @@ function TrabalheiLaMobile({
                 rows={3}
                 value={generalComment}
                 onValueChange={setGeneralComment}
+                segments={generalCommentRestrictedSegments}
+                onSegmentsChange={setGeneralCommentRestrictedSegments}
               />
             </div>
 

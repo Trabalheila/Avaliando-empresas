@@ -255,6 +255,7 @@ function Home({ theme, toggleTheme }) {
   const [estimacaoOrganizacao, setEstimacaoOrganizacao] = useState(0);
   const [commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao] = useState("");
   const [generalComment, setGeneralComment] = useState("");
+  const [generalCommentRestrictedSegments, setGeneralCommentRestrictedSegments] = useState([]);
   const [entrySource, setEntrySource] = useState("");
   const [contractType, setContractType] = useState("");
   const [workModel, setWorkModel] = useState("");
@@ -630,6 +631,9 @@ function Home({ theme, toggleTheme }) {
       if (typeof draft?.estimacaoOrganizacao === "number") setEstimacaoOrganizacao(draft.estimacaoOrganizacao);
       if (typeof draft?.commentEstimacaoOrganizacao === "string") setCommentEstimacaoOrganizacao(draft.commentEstimacaoOrganizacao);
       if (typeof draft?.generalComment === "string") setGeneralComment(draft.generalComment);
+      if (Array.isArray(draft?.generalCommentRestrictedSegments)) {
+        setGeneralCommentRestrictedSegments(draft.generalCommentRestrictedSegments);
+      }
       if (typeof draft?.entrySource === "string") setEntrySource(draft.entrySource);
       if (typeof draft?.contractType === "string") setContractType(draft.contractType);
       if (typeof draft?.workModel === "string") setWorkModel(draft.workModel);
@@ -682,6 +686,7 @@ function Home({ theme, toggleTheme }) {
       estimacaoOrganizacao,
       commentEstimacaoOrganizacao,
       generalComment,
+      generalCommentRestrictedSegments,
       entrySource,
       contractType,
       workModel,
@@ -732,6 +737,7 @@ function Home({ theme, toggleTheme }) {
     estimacaoOrganizacao,
     commentEstimacaoOrganizacao,
     generalComment,
+    generalCommentRestrictedSegments,
     entrySource,
     contractType,
     workModel,
@@ -1002,13 +1008,22 @@ function Home({ theme, toggleTheme }) {
       etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar,
       impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao,
       generalComment,
+      restrictedSegments: Array.isArray(generalCommentRestrictedSegments)
+        ? generalCommentRestrictedSegments
+            .filter((s) => s && typeof s.summary === "string" && s.summary.trim())
+            .map((s) => ({
+              start: Number(s.start) || 0,
+              end: Number(s.end) || 0,
+              summary: s.summary.trim().slice(0, 80),
+            }))
+        : [],
       entrySource,
       contractType,
       workModel,
       timestamp: new Date().toISOString(),
       ...termsData,
     };
-  }, [company, userProfile, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment, entrySource, contractType, workModel]);
+  }, [company, userProfile, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment, generalCommentRestrictedSegments, entrySource, contractType, workModel]);
 
   const submitEvaluation = useCallback(async (evaluationData) => {
     const pseudonym = evaluationData?.pseudonym;
@@ -1597,7 +1612,9 @@ function Home({ theme, toggleTheme }) {
     impactoSocial, setImpactoSocial, commentImpactoSocial, setCommentImpactoSocial, reputacao, setReputacao, commentReputacao, setCommentReputacao,
     estimacaoOrganizacao, setEstimacaoOrganizacao, commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao,
     entrySource, setEntrySource, contractType, setContractType, workModel, setWorkModel,
-    generalComment, setGeneralComment, handleSubmit, isLoading, empresas, top3,
+    generalComment, setGeneralComment,
+    generalCommentRestrictedSegments, setGeneralCommentRestrictedSegments,
+    handleSubmit, isLoading, empresas, top3,
     sectorFilter, setSectorFilter, setoresList,
     segmentFilter, setSegmentFilter, segmentosList,
     newCompanyCnpj, setNewCompanyCnpj, cnpjError,

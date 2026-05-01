@@ -36,6 +36,7 @@ const PREMIUM_WORKER_BENEFITS = [
   "Avaliações reais com tendências de mercado",
   "Relatórios executivos com pontos fortes e riscos",
   "Dashboard detalhado de ambiente e cultura",
+  "Acesso ao resumo de trechos sensíveis em avaliações restritas",
   "Acesso à Assessoria Jurídica Trabalhista — advogados parceiros com primeira consulta gratuita",
   "Selo de perfil verificado com maior visibilidade",
 ];

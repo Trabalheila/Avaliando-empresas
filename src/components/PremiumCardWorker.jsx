@@ -19,6 +19,7 @@ const PremiumCardWorker = () => (
       <li>Veja avaliações reais e tendências do mercado</li>
       <li>Receba relatórios executivos com pontos fortes e riscos</li>
       <li>Dashboard detalhado para análise de ambiente e cultura</li>
+      <li>Acesso ao resumo de trechos sensíveis em avaliações restritas</li>
       <li>Mais segurança e transparência na sua decisão</li>
     </ul>
     <div className="bg-blue-100 rounded-xl p-3 mb-3 text-blue-900 text-sm font-medium shadow-inner">

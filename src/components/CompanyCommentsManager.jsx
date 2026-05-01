@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import RestrictedComment from "./RestrictedComment";
 
 /**
  * CompanyCommentsManager
@@ -403,10 +404,12 @@ export default function CompanyCommentsManager({
                     </div>
                   </div>
 
-                  {r.comment ? (
-                    <p className="mt-2 text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap">
-                      {r.comment}
-                    </p>
+                  {(r.generalComment || r.comment) ? (
+                    <RestrictedComment
+                      comment={r.generalComment || r.comment}
+                      restrictedSegments={r.restrictedSegments}
+                      className="mt-2 text-sm text-slate-700 dark:text-slate-200"
+                    />
                   ) : (
                     <p className="mt-2 text-sm text-slate-400 italic">Sem texto.</p>
                   )}

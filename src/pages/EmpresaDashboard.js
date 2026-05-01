@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import RestrictedComment from "../components/RestrictedComment";
 import { useNavigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -1192,9 +1193,11 @@ export default function EmpresaDashboard() {
                             </span>
                           </div>
                           {r.generalComment || r.comment ? (
-                            <p className="mt-2 text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap">
-                              {r.generalComment || r.comment}
-                            </p>
+                            <RestrictedComment
+                              comment={r.generalComment || r.comment}
+                              restrictedSegments={r.restrictedSegments}
+                              className="mt-2 text-sm text-slate-700 dark:text-slate-200"
+                            />
                           ) : (
                             <p className="mt-2 text-sm italic text-slate-400 dark:text-slate-500">
                               (Sem comentário escrito.)

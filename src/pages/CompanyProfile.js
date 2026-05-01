@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import RestrictedComment from "../components/RestrictedComment";
 import { useNavigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -547,8 +548,12 @@ export default function CompanyProfile() {
                       {r.createdAt ? new Date(toMillis(r.createdAt)).toLocaleDateString("pt-BR") : ""}
                     </span>
                   </div>
-                  {r.comment && (
-                    <p className="mt-2 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{r.comment}</p>
+                  {(r.generalComment || r.comment) && (
+                    <RestrictedComment
+                      comment={r.generalComment || r.comment}
+                      restrictedSegments={r.restrictedSegments}
+                      className="mt-2 text-sm text-slate-700 dark:text-slate-300 leading-relaxed"
+                    />
                   )}
 
                   {reply?.text ? (
