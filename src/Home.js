@@ -278,6 +278,14 @@ function Home({ theme, toggleTheme }) {
   const [entrySource, setEntrySource] = useState("");
   const [contractType, setContractType] = useState("");
   const [workModel, setWorkModel] = useState("");
+  // Período em que o trabalhador esteve na empresa.
+  // Visível apenas para Apoiadores da plataforma — gravado no Firestore com a
+  // flag `workPeriodVisibility: "supporter"` para reforçar a regra no back-end.
+  const [workPeriodStartMonth, setWorkPeriodStartMonth] = useState("");
+  const [workPeriodStartYear, setWorkPeriodStartYear] = useState("");
+  const [workPeriodEndMonth, setWorkPeriodEndMonth] = useState("");
+  const [workPeriodEndYear, setWorkPeriodEndYear] = useState("");
+  const [workPeriodStillWorking, setWorkPeriodStillWorking] = useState(false);
   const didHydrateDraftRef = React.useRef(false);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -310,6 +318,9 @@ function Home({ theme, toggleTheme }) {
   const [showNewCompanyInput, setShowNewCompanyInput] = useState(false);
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [captchaConfirmed, setCaptchaConfirmed] = useState(false);
+  // Sinaliza que o usuário clicou em "Enviar Avaliação" e está aguardando
+  // o captcha — após confirmá-lo, o fluxo deve continuar automaticamente.
+  const pendingSubmitAfterCaptchaRef = React.useRef(false);
   const [userProfile, setUserProfile] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("userProfile") || "{}");
@@ -1079,10 +1090,18 @@ function Home({ theme, toggleTheme }) {
       entrySource,
       contractType,
       workModel,
+      workPeriod: {
+        startMonth: workPeriodStartMonth || "",
+        startYear: workPeriodStartYear || "",
+        endMonth: workPeriodStillWorking ? "" : workPeriodEndMonth || "",
+        endYear: workPeriodStillWorking ? "" : workPeriodEndYear || "",
+        stillWorking: Boolean(workPeriodStillWorking),
+      },
+      workPeriodVisibility: "supporter",
       timestamp: new Date().toISOString(),
       ...termsData,
     };
-  }, [company, userProfile, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment, generalCommentRestrictedSegments, entrySource, contractType, workModel, discriminacao, commentDiscriminacao, cargaHoraria, commentCargaHoraria, crescimento, commentCrescimento, criterionRestrictedSegments]);
+  }, [company, userProfile, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment, generalCommentRestrictedSegments, entrySource, contractType, workModel, discriminacao, commentDiscriminacao, cargaHoraria, commentCargaHoraria, crescimento, commentCrescimento, criterionRestrictedSegments, workPeriodStartMonth, workPeriodStartYear, workPeriodEndMonth, workPeriodEndYear, workPeriodStillWorking]);
 
   const submitEvaluation = useCallback(async (evaluationData) => {
     const pseudonym = evaluationData?.pseudonym;
@@ -1168,14 +1187,11 @@ function Home({ theme, toggleTheme }) {
     navigate(`/empresa?name=${encodeURIComponent(evaluationData.company)}`);
   }, [navigate]);
 
-  const handleSubmit = useCallback((e) => {
-    e.preventDefault();
-
-    if (!captchaConfirmed) {
-      setShowCaptcha(true);
-      return;
-    }
-
+  // Roda as validações e abre o modal de Termo de Responsabilidade.
+  // Compartilhado entre o clique inicial em "Enviar Avaliação" (quando o
+  // captcha já está confirmado) e a confirmação do captcha (que continua o
+  // fluxo automaticamente, sem exigir um segundo clique do usuário).
+  const runSubmissionValidationsAndOpenResponsibility = useCallback(() => {
     if (!isAuthenticated) {
       setError("Por favor, faça login para enviar sua avaliação.");
       return;
@@ -1215,7 +1231,37 @@ function Home({ theme, toggleTheme }) {
     setResponsibilityAccepted(false);
     setPendingEvaluationData(buildEvaluationData());
     setShowResponsibilityModal(true);
-  }, [captchaConfirmed, isAuthenticated, company, entrySource, contractType, workModel, discriminacao, commentDiscriminacao, buildEvaluationData]);
+  }, [isAuthenticated, company, entrySource, contractType, workModel, discriminacao, commentDiscriminacao, buildEvaluationData]);
+
+  const handleSubmit = useCallback((e) => {
+    e.preventDefault();
+
+    if (!captchaConfirmed) {
+      // Marca que a confirmação do captcha deve disparar a continuação
+      // imediata do envio, sem que o usuário precise clicar novamente.
+      pendingSubmitAfterCaptchaRef.current = true;
+      setShowCaptcha(true);
+      return;
+    }
+
+    runSubmissionValidationsAndOpenResponsibility();
+  }, [captchaConfirmed, runSubmissionValidationsAndOpenResponsibility]);
+
+  // Chamado pelo CaptchaModal ao confirmar. Fecha o captcha e — se houver
+  // um envio pendente — encadeia automaticamente o próximo modal de
+  // confirmação (Termo de Responsabilidade).
+  const handleCaptchaConfirmed = useCallback(() => {
+    setCaptchaConfirmed(true);
+    setShowCaptcha(false);
+    if (pendingSubmitAfterCaptchaRef.current) {
+      pendingSubmitAfterCaptchaRef.current = false;
+      // Aguarda o próximo tick para garantir que o estado foi propagado
+      // antes de validar o restante do formulário.
+      setTimeout(() => {
+        runSubmissionValidationsAndOpenResponsibility();
+      }, 0);
+    }
+  }, [runSubmissionValidationsAndOpenResponsibility]);
 
   const handleCancelResponsibility = useCallback(() => {
     setShowResponsibilityModal(false);
@@ -1679,6 +1725,9 @@ function Home({ theme, toggleTheme }) {
     impactoSocial, setImpactoSocial, commentImpactoSocial, setCommentImpactoSocial, reputacao, setReputacao, commentReputacao, setCommentReputacao,
     estimacaoOrganizacao, setEstimacaoOrganizacao, commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao,
     entrySource, setEntrySource, contractType, setContractType, workModel, setWorkModel,
+    workPeriodStartMonth, setWorkPeriodStartMonth, workPeriodStartYear, setWorkPeriodStartYear,
+    workPeriodEndMonth, setWorkPeriodEndMonth, workPeriodEndYear, setWorkPeriodEndYear,
+    workPeriodStillWorking, setWorkPeriodStillWorking,
     generalComment, setGeneralComment,
     generalCommentRestrictedSegments, setGeneralCommentRestrictedSegments,
     criterionRestrictedSegments, setSegmentsForCriterion,
@@ -1695,7 +1744,7 @@ function Home({ theme, toggleTheme }) {
     handleAddCompanyWithoutCnpj,
     handleConfirmNewCompany, pendingCompanyData,
     linkedInClientId, linkedInRedirectUri, error, setError, isAuthenticated, setIsAuthenticated, handleLogout,
-    showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
+    showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed, handleCaptchaConfirmed,
     theme, toggleTheme,
     firebaseStatus,
     userProfile, userPseudonym,

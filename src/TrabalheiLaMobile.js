@@ -13,6 +13,7 @@ import Select from "react-select";
 import LoginLinkedInButton from "./LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
 import RestrictableTextarea from "./components/RestrictableTextarea";
+import WorkPeriodPicker from "./components/WorkPeriodPicker";
 import { getCompanyLogoCandidates } from "./utils/getCompanyLogo";
 import { handleAutoCorrectChange } from "./utils/ptBrAutoCorrect";
 
@@ -176,6 +177,9 @@ function TrabalheiLaMobile({
   commentReputacao, setCommentReputacao,
   commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao,
   entrySource, setEntrySource, contractType, setContractType, workModel, setWorkModel,
+  workPeriodStartMonth, setWorkPeriodStartMonth, workPeriodStartYear, setWorkPeriodStartYear,
+  workPeriodEndMonth, setWorkPeriodEndMonth, workPeriodEndYear, setWorkPeriodEndYear,
+  workPeriodStillWorking, setWorkPeriodStillWorking,
   generalComment, setGeneralComment,
   generalCommentRestrictedSegments, setGeneralCommentRestrictedSegments,
   criterionRestrictedSegments, setSegmentsForCriterion,
@@ -196,6 +200,7 @@ function TrabalheiLaMobile({
   onGoogleLogin,
   selectedCompanyData,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
+  handleCaptchaConfirmed,
 }) {
   // const { t } = useTranslation();
   const navigate = useNavigate();
@@ -1066,6 +1071,20 @@ function TrabalheiLaMobile({
                     ))}
                   </div>
                 </div>
+
+                <WorkPeriodPicker
+                  idPrefix="wp-mobile"
+                  startMonth={workPeriodStartMonth}
+                  setStartMonth={setWorkPeriodStartMonth}
+                  startYear={workPeriodStartYear}
+                  setStartYear={setWorkPeriodStartYear}
+                  endMonth={workPeriodEndMonth}
+                  setEndMonth={setWorkPeriodEndMonth}
+                  endYear={workPeriodEndYear}
+                  setEndYear={setWorkPeriodEndYear}
+                  stillWorking={workPeriodStillWorking}
+                  setStillWorking={setWorkPeriodStillWorking}
+                />
               </div>
 
               {selectedCompanyData && (
@@ -1286,8 +1305,12 @@ function TrabalheiLaMobile({
         checked={captchaConfirmed}
         onChange={setCaptchaConfirmed}
         onConfirm={() => {
-          setCaptchaConfirmed(true);
-          setShowCaptcha(false);
+          if (typeof handleCaptchaConfirmed === "function") {
+            handleCaptchaConfirmed();
+          } else {
+            setCaptchaConfirmed(true);
+            setShowCaptcha(false);
+          }
         }}
       />
 

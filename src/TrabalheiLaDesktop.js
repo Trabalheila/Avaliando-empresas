@@ -12,6 +12,7 @@ import {
 import LoginLinkedInButton from "./LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
 import RestrictableTextarea from "./components/RestrictableTextarea";
+import WorkPeriodPicker from "./components/WorkPeriodPicker";
 import { handleAutoCorrectChange } from "./utils/ptBrAutoCorrect";
 
 function CommentTextarea({
@@ -96,6 +97,9 @@ function TrabalheiLaDesktop({
   impactoSocial, setImpactoSocial, commentImpactoSocial, setCommentImpactoSocial, reputacao, setReputacao, commentReputacao, setCommentReputacao,
   estimacaoOrganizacao, setEstimacaoOrganizacao, commentEstimacaoOrganizacao, setCommentEstimacaoOrganizacao,
   entrySource, setEntrySource, contractType, setContractType, workModel, setWorkModel,
+  workPeriodStartMonth, setWorkPeriodStartMonth, workPeriodStartYear, setWorkPeriodStartYear,
+  workPeriodEndMonth, setWorkPeriodEndMonth, workPeriodEndYear, setWorkPeriodEndYear,
+  workPeriodStillWorking, setWorkPeriodStillWorking,
   generalComment, setGeneralComment,
   generalCommentRestrictedSegments, setGeneralCommentRestrictedSegments,
   criterionRestrictedSegments, setSegmentsForCriterion,
@@ -114,7 +118,8 @@ function TrabalheiLaDesktop({
   globalContractStats,
   globalWorkModelStats,
   getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
-  showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed
+  showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
+  handleCaptchaConfirmed,
 }) {
 
   const { t } = useTranslation();
@@ -976,6 +981,20 @@ function TrabalheiLaDesktop({
                     ))}
                   </div>
                 </div>
+
+                <WorkPeriodPicker
+                  idPrefix="wp-desktop"
+                  startMonth={workPeriodStartMonth}
+                  setStartMonth={setWorkPeriodStartMonth}
+                  startYear={workPeriodStartYear}
+                  setStartYear={setWorkPeriodStartYear}
+                  endMonth={workPeriodEndMonth}
+                  setEndMonth={setWorkPeriodEndMonth}
+                  endYear={workPeriodEndYear}
+                  setEndYear={setWorkPeriodEndYear}
+                  stillWorking={workPeriodStillWorking}
+                  setStillWorking={setWorkPeriodStillWorking}
+                />
                 </div>
 
                 {/* Barra de progresso dos critérios */}
@@ -1212,8 +1231,12 @@ function TrabalheiLaDesktop({
           checked={captchaConfirmed}
           onChange={setCaptchaConfirmed}
           onConfirm={() => {
-            setCaptchaConfirmed(true);
-            setShowCaptcha(false);
+            if (typeof handleCaptchaConfirmed === "function") {
+              handleCaptchaConfirmed();
+            } else {
+              setCaptchaConfirmed(true);
+              setShowCaptcha(false);
+            }
           }}
         />
 
