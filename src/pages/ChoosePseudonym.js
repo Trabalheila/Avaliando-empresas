@@ -1,8 +1,9 @@
-import React, { useCallback, useState, useEffect, useRef } from "react";
+import React, { useCallback, useState, useEffect, useRef, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getUserProfile, getUserProfileByCpf, saveUserProfile, findUnifiedProfile } from "../services/users";
 import { normalizeEmail, resolveProfileId } from "../utils/profileIdentity";
 import { extractResumeText, parseResumeText } from "../utils/resumeParser";
+import { listCompanies } from "../services/companies";
 import AppHeader from "../components/AppHeader";
 import { getLinkedInRedirectUri } from "../utils/linkedinAuth";
 import { buildApiUrl } from "../utils/apiBase";
@@ -70,6 +71,10 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   const [resumePreviewUrl, setResumePreviewUrl] = useState(null);
   // Experiências extraídas do currículo aguardando revisão do usuário (apenas empresa + cargo).
   const [pendingResumeExperiences, setPendingResumeExperiences] = useState([]);
+  // Texto bruto do currículo carregado, usado para verificação cruzada de empresa.
+  const [resumeFullText, setResumeFullText] = useState("");
+  // Lista de empresas conhecidas para autocompletar (carregada do Firestore).
+  const [knownCompanies, setKnownCompanies] = useState([]);
   const [isCertifiedProfile, setIsCertifiedProfile] = useState(false);
   const [isVerificationPending, setIsVerificationPending] = useState(false);
   const [verifiedCompany, setVerifiedCompany] = useState("");
@@ -200,6 +205,29 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     }
   }, []);
 
+  // Carrega lista de empresas conhecidas para autocompletar nos cards de revisão.
+  useEffect(() => {
+    let cancelled = false;
+    listCompanies(300)
+      .then((rows) => {
+        if (cancelled) return;
+        const names = Array.from(
+          new Set(
+            (rows || [])
+              .map((r) => (r?.company || r?.name || "").toString().trim())
+              .filter(Boolean)
+          )
+        ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+        setKnownCompanies(names);
+      })
+      .catch(() => {
+        if (!cancelled) setKnownCompanies([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     const profile = localStorage.getItem("userProfile");
     if (!profile) {
@@ -319,6 +347,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
 
     try {
       const text = await extractResumeText(file);
+      setResumeFullText(text || "");
       const parsed = parseResumeText(text, []);
       // Foco exclusivo em empresa + cargo. Demais campos (datas, descrições, endereços) são descartados.
       const imported = (parsed.experiencesStructured || [])
@@ -551,6 +580,43 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     );
   };
 
+  // Normaliza string para comparação difusa (lowercase, sem acento, sem pontuação).
+  const normalizeForMatch = useCallback((value) => {
+    return (value || "")
+      .toString()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }, []);
+
+  // Verifica se o nome da empresa aparece no texto bruto do PDF do currículo.
+  // Exige token significativo (>= 3 caracteres) e considera variantes simples.
+  const resumeTextNormalized = useMemo(
+    () => normalizeForMatch(resumeFullText),
+    [resumeFullText, normalizeForMatch]
+  );
+
+  const isCompanyInResumeText = useCallback(
+    (companyName) => {
+      const norm = normalizeForMatch(companyName);
+      if (!norm || !resumeTextNormalized) return false;
+      if (norm.length < 3) return false;
+      // Match direto
+      if (resumeTextNormalized.includes(norm)) return true;
+      // Match por token: pelo menos um token >= 4 chars (ignora suffixos comuns)
+      const stop = new Set(["ltda", "sa", "eireli", "mei", "me", "grupo", "group", "the", "do", "da", "de"]);
+      const tokens = norm
+        .split(" ")
+        .filter((t) => t.length >= 4 && !stop.has(t));
+      if (!tokens.length) return false;
+      return tokens.every((t) => resumeTextNormalized.includes(t));
+    },
+    [resumeTextNormalized, normalizeForMatch]
+  );
+
   // Confirma uma experiência pendente, movendo-a para a lista oficial.
   const handleConfirmPendingResumeExperience = (idx) => {
     setError(null);
@@ -566,7 +632,13 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       setStructuredExperiences((curr) =>
         dedupeExperiences([
           ...curr,
-          { company, role, source: "curriculo", verified: false },
+          {
+            company,
+            role,
+            source: "curriculo",
+            verified: false,
+            crossReferencedInResume: isCompanyInResumeText(company),
+          },
         ])
       );
       setInfo("Experiência confirmada e adicionada ao perfil.");
@@ -938,18 +1010,63 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                     <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
                       Revise as experiências extraídas ({pendingResumeExperiences.length}). Corrija empresa e cargo se necessário e confirme cada uma.
                     </p>
-                    {pendingResumeExperiences.map((exp, idx) => (
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                      <span className="inline-block px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold mr-1">Selo Autenticado</span>
+                      é concedido apenas para experiências verificadas via login OAuth do LinkedIn.
+                      Quando o nome da empresa que você digita aqui também aparece no PDF do currículo,
+                      adicionamos um nível extra de <span className="text-emerald-700 dark:text-emerald-400 font-semibold">confiança</span> à experiência —
+                      isso não substitui o selo completo, mas reforça a procedência da informação.
+                    </p>
+                    <datalist id="known-companies-datalist">
+                      {knownCompanies.map((name) => (
+                        <option key={name} value={name} />
+                      ))}
+                    </datalist>
+                    {pendingResumeExperiences.map((exp, idx) => {
+                      const inResume = isCompanyInResumeText(exp.company);
+                      const hasCompanyValue = !!(exp.company || "").trim();
+                      return (
                       <div
                         key={`pending_${idx}`}
                         className="rounded-xl border border-amber-200 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-900/10 p-3"
                       >
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          <input
-                            value={exp.company}
-                            onChange={(e) => handleUpdatePendingResumeExperience(idx, "company", e.target.value)}
-                            placeholder="Empresa"
-                            className="w-full p-2 text-sm border border-amber-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
-                          />
+                          <div>
+                            <div className="relative">
+                              <input
+                                value={exp.company}
+                                onChange={(e) => handleUpdatePendingResumeExperience(idx, "company", e.target.value)}
+                                placeholder="Empresa"
+                                list="known-companies-datalist"
+                                autoComplete="off"
+                                className="w-full p-2 pr-9 text-sm border border-amber-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+                              />
+                              {hasCompanyValue && resumeFullText && (
+                                <span
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 text-base leading-none"
+                                  title={
+                                    inResume
+                                      ? "Verificado no PDF: o nome desta empresa foi encontrado no currículo carregado."
+                                      : "Não verificado no PDF: o nome desta empresa não foi localizado no texto do currículo."
+                                  }
+                                  aria-label={inResume ? "Verificado no PDF" : "Não verificado no PDF"}
+                                >
+                                  {inResume ? (
+                                    <span className="text-emerald-600">✓</span>
+                                  ) : (
+                                    <span className="text-red-500">⚠</span>
+                                  )}
+                                </span>
+                              )}
+                            </div>
+                            {hasCompanyValue && resumeFullText && (
+                              <p className={`text-[10px] mt-1 ${inResume ? "text-emerald-700 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                                {inResume
+                                  ? "Confiança extra: nome encontrado no PDF do currículo."
+                                  : "Não localizado no PDF — confirme se o nome está correto."}
+                              </p>
+                            )}
+                          </div>
                           <input
                             value={exp.role}
                             onChange={(e) => handleUpdatePendingResumeExperience(idx, "role", e.target.value)}
@@ -980,7 +1097,8 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                           )}
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
 
