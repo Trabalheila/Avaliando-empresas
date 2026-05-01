@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sanitizeSegments } from "./RestrictedComment";
+import { applyAutoCorrect } from "../utils/ptBrAutoCorrect";
 
 /**
  * RestrictableTextarea
@@ -108,8 +109,22 @@ export default function RestrictableTextarea({
 
   const handleChange = useCallback(
     (e) => {
-      const next = e.target.value;
+      const el = e.target;
+      const typed = el.value;
+      const caret = el.selectionStart;
       const oldText = draftValue;
+      // Tenta autocorreção pt-BR; se aplicar, usa o texto corrigido.
+      const ac = applyAutoCorrect(oldText, typed, caret);
+      const next = ac ? ac.value : typed;
+      if (ac) {
+        requestAnimationFrame(() => {
+          try {
+            el.setSelectionRange(ac.caret, ac.caret);
+          } catch {
+            /* noop */
+          }
+        });
+      }
       setDraftValue(next);
       if (Array.isArray(segments) && segments.length > 0) {
         const shifted = shiftSegmentsOnChange(segments, oldText, next);

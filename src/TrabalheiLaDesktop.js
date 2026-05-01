@@ -12,6 +12,7 @@ import {
 import LoginLinkedInButton from "./LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
 import RestrictableTextarea from "./components/RestrictableTextarea";
+import { handleAutoCorrectChange } from "./utils/ptBrAutoCorrect";
 
 function CommentTextarea({
   value,
@@ -62,7 +63,7 @@ function CommentTextarea({
         rows={rows}
         placeholder={placeholder}
         value={draftValue}
-        onChange={(e) => setDraftValue(e.target.value)}
+        onChange={(e) => handleAutoCorrectChange(e, draftValue, setDraftValue)}
         onBlur={handleBlur}
         className={className}
         spellCheck="true"
