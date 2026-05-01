@@ -657,7 +657,7 @@ function TrabalheiLaDesktop({
         <div className="flex flex-col lg:flex-row lg:flex-nowrap gap-6 mb-8">
 
           {/* COLUNA ESQUERDA - LOGIN + RANKING (flex-col ordem 1) */}
-          <div className="w-full lg:basis-[18%] lg:max-w-[18%] lg:min-w-[200px] xl:basis-[16%] xl:max-w-[16%] xl:min-w-[210px] lg:shrink-0 flex flex-col gap-6 order-1 lg:order-1 break-words">
+          <div className="w-full lg:basis-[16%] lg:max-w-[16%] lg:min-w-[180px] xl:basis-[14%] xl:max-w-[14%] xl:min-w-[190px] lg:shrink-0 flex flex-col gap-6 order-1 lg:order-1 break-words">
 
             {/* LOGIN ATUALIZADO (Sem Google, LinkedIn Corrigido) */}
             <section
@@ -806,7 +806,7 @@ function TrabalheiLaDesktop({
           </div>
 
           {/* COLUNA CENTRAL - FORMULÁRIO (ordem 2 no desktop) */}
-          <div className="w-full lg:basis-[58%] lg:min-w-[520px] xl:basis-[62%] lg:flex-none flex flex-col gap-6 order-2 lg:order-2">
+          <div className="w-full lg:basis-[62%] lg:min-w-[560px] xl:basis-[68%] xl:min-w-[640px] lg:flex-none flex flex-col gap-6 order-2 lg:order-2">
 
             {/* FORMULÁRIO */}
             <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
@@ -1090,7 +1090,7 @@ function TrabalheiLaDesktop({
           </div>
 
           {/* COLUNA DIREITA - GRÁFICOS + COMO FUNCIONA (ordem 3 no desktop) */}
-          <div className="w-full lg:basis-[24%] lg:max-w-[24%] lg:min-w-[260px] xl:basis-[22%] xl:max-w-[22%] xl:min-w-[280px] lg:shrink-0 flex flex-col gap-6 order-3 lg:order-3 break-words">
+          <div className="w-full lg:basis-[22%] lg:max-w-[22%] lg:min-w-[240px] xl:basis-[18%] xl:max-w-[18%] xl:min-w-[240px] lg:shrink-0 flex flex-col gap-6 order-3 lg:order-3 break-words">
             <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
               <div className="mb-4 space-y-4">
                 <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">

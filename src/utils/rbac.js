@@ -57,6 +57,21 @@ export function isSupporter() {
   );
 }
 
+/**
+ * Retorna true se o usuário é um Apoiador no plano PREMIUM.
+ * Habilita recursos exclusivos como o botão "Solicitar contato" com avaliadores.
+ */
+export function isPremiumSupporter() {
+  if (!isSupporter()) return false;
+  const profile = getStoredProfile();
+  const plano = (profile?.apoiadorPlano || profile?.plano || "").toString().toLowerCase().trim();
+  return (
+    Boolean(profile?.is_premium_supporter) ||
+    plano === "premium" ||
+    isAdmin()
+  );
+}
+
 /** Retorna true se o usuário é Trabalhador Premium (vê resumos de conteúdo restrito). */
 export function isPremiumWorker() {
   const profile = getStoredProfile();
