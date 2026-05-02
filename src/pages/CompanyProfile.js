@@ -22,6 +22,48 @@ const PREMIUM_PRICE_LABEL = "R$ 1.499,99/mês";
 const PREMIUM_AVAILABLE_AT = "01/08/2026";
 const FREE_REPLY_LIMIT = 3;
 
+// Ramos de atividade usados nos benchmarks de setor. O dropdown na pagina
+// de edicao da empresa permite ao empresario classificar a empresa em um
+// dos ramos abaixo, garantindo consistencia nos relatorios comparativos.
+const RAMOS_DISPONIVEIS = [
+  "Administração e Negócios",
+  "Agronegócio",
+  "Alimentos e Bebidas",
+  "Arquitetura e Engenharia",
+  "Arte, Cultura e Entretenimento",
+  "Bancos e Serviços Financeiros",
+  "Comércio Varejista",
+  "Comércio Atacadista",
+  "Construção Civil",
+  "Consultoria",
+  "Cosméticos e Beleza",
+  "E-commerce",
+  "Educação",
+  "Energia e Utilities",
+  "Esportes e Lazer",
+  "Farmacêutica",
+  "Hotelaria e Turismo",
+  "Imobiliário",
+  "Indústria",
+  "Jurídico",
+  "Logística e Transporte",
+  "Manufatura",
+  "Marketing e Publicidade",
+  "Mídia e Comunicação",
+  "Mineração",
+  "Moda e Vestuário",
+  "ONG e Terceiro Setor",
+  "Petróleo e Gás",
+  "Recursos Humanos",
+  "Saúde",
+  "Seguros",
+  "Serviços Públicos",
+  "Tecnologia da Informação",
+  "Telecomunicações",
+  "Transporte de Passageiros",
+  "Outro",
+];
+
 const LOCKED_METRICS = [
   {
     title: "Comparativo com concorrentes",
@@ -153,6 +195,11 @@ export default function CompanyProfile() {
   const [editForm, setEditForm] = useState(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
+  // Logo pendente: o usuário selecionou um arquivo mas ainda não confirmou
+  // o salvamento. Usamos `pendingLogoFile` (File) e `pendingLogoPreview`
+  // (string dataURL) para mostrar a prévia e habilitar o botão "Salvar Imagem".
+  const [pendingLogoFile, setPendingLogoFile] = useState(null);
+  const [pendingLogoPreview, setPendingLogoPreview] = useState("");
   const [waitlistEmail, setWaitlistEmail] = useState("");
   const [waitlistStatus, setWaitlistStatus] = useState("idle");
 
@@ -441,6 +488,63 @@ export default function CompanyProfile() {
     }
   };
 
+  // Fluxo "selecionar -> Salvar Imagem" usado na pagina de edicao dedicada.
+  // Guarda o arquivo em estado e mostra preview, sem persistir ate o
+  // usuario clicar no botao "Salvar Imagem".
+  const handleSelectPendingLogo = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPendingLogoFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setPendingLogoPreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleSavePendingLogo = async () => {
+    if (!pendingLogoFile || !user) return;
+    setLogoUploading(true);
+    try {
+      const targetId = company?.id || user.uid;
+      let logoUrl = "";
+      try {
+        const safeName = (pendingLogoFile.name || "logo").replace(/[^\w.\-]+/g, "_");
+        const path = `companyLogos/${targetId}/${Date.now()}-${safeName}`;
+        const sRef = storageRef(storage, path);
+        await uploadBytes(sRef, pendingLogoFile, {
+          contentType: pendingLogoFile.type || "image/*",
+        });
+        logoUrl = await getDownloadURL(sRef);
+      } catch (storageErr) {
+        console.warn("[CompanyProfile] falha no Storage; usando dataURL", storageErr);
+        const reader = new FileReader();
+        logoUrl = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(pendingLogoFile);
+        });
+      }
+      const ref = doc(db, "companies", targetId);
+      await setDoc(
+        ref,
+        { ownerUid: company?.ownerUid || user.uid, logoUrl, updatedAt: serverTimestamp() },
+        { merge: true }
+      );
+      setCompany((prev) => ({ ...(prev || {}), logoUrl }));
+      setPendingLogoFile(null);
+      setPendingLogoPreview("");
+    } catch (err) {
+      console.error("Erro ao salvar imagem:", err);
+      alert("Falha ao salvar a imagem.");
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleDiscardPendingLogo = () => {
+    setPendingLogoFile(null);
+    setPendingLogoPreview("");
+  };
+
   const handleReply = async (reviewId) => {
     const text = (replies[reviewId] || "").trim();
     if (!text || !user) return;
@@ -598,7 +702,9 @@ export default function CompanyProfile() {
               <label className={labelClass}>Logo da empresa</label>
               <div className="flex items-start gap-5 flex-wrap">
                 <label className="relative block w-32 h-32 rounded-2xl overflow-hidden border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 cursor-pointer group">
-                  {company?.logoUrl ? (
+                  {pendingLogoPreview ? (
+                    <img src={pendingLogoPreview} alt="Pré-visualização do logo" className="w-full h-full object-cover" />
+                  ) : company?.logoUrl ? (
                     <img src={company.logoUrl} alt="Logo atual" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
@@ -614,7 +720,7 @@ export default function CompanyProfile() {
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={handleLogoUpload}
+                    onChange={handleSelectPendingLogo}
                     disabled={logoUploading}
                   />
                   {logoUploading && (
@@ -623,16 +729,42 @@ export default function CompanyProfile() {
                     </div>
                   )}
                   <div className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[11px] font-medium text-center py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {company?.logoUrl ? "Trocar imagem" : "Enviar imagem"}
+                    {pendingLogoPreview ? "Trocar arquivo" : (company?.logoUrl ? "Trocar imagem" : "Enviar imagem")}
                   </div>
                 </label>
-                <div className="flex-1 min-w-[200px]">
+                <div className="flex-1 min-w-[220px]">
                   <p className="text-sm text-slate-600 dark:text-slate-300">
                     Clique na imagem ao lado para selecionar um arquivo. PNG, JPG ou SVG. Recomendado: 256×256px.
                   </p>
-                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                    A logo é salva automaticamente assim que você seleciona o arquivo.
-                  </p>
+                  <div className="mt-3 flex items-center gap-3 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={handleSavePendingLogo}
+                      disabled={!pendingLogoFile || logoUploading}
+                      style={{ backgroundColor: !pendingLogoFile || logoUploading ? undefined : "#1a237e" }}
+                      className={`h-10 px-4 rounded-lg font-bold text-white transition ${
+                        !pendingLogoFile || logoUploading
+                          ? "bg-slate-400 dark:bg-slate-700 opacity-70 cursor-not-allowed"
+                          : "hover:brightness-110"
+                      }`}
+                    >
+                      {logoUploading ? "Salvando..." : "Salvar Imagem"}
+                    </button>
+                    {pendingLogoFile && !logoUploading && (
+                      <button
+                        type="button"
+                        onClick={handleDiscardPendingLogo}
+                        className="h-10 px-4 rounded-lg font-bold text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        Descartar
+                      </button>
+                    )}
+                  </div>
+                  {pendingLogoFile && (
+                    <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+                      Imagem selecionada: <b>{pendingLogoFile.name}</b>. Clique em <b>Salvar Imagem</b> para aplicá-la.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -659,12 +791,24 @@ export default function CompanyProfile() {
               </div>
               <div>
                 <label className={labelClass}>Ramo de atuação</label>
-                <input
-                  type="text"
-                  value={editForm.ramo}
+                <select
+                  value={editForm.ramo || ""}
                   onChange={(e) => setEditForm({ ...editForm, ramo: e.target.value })}
                   className={inputClass}
-                />
+                >
+                  <option value="">Selecione um ramo...</option>
+                  {RAMOS_DISPONIVEIS.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                  {/* Preserva valor legado caso a empresa ja tenha um ramo
+                      gravado que nao esta na lista padrao. */}
+                  {editForm.ramo && !RAMOS_DISPONIVEIS.includes(editForm.ramo) && (
+                    <option value={editForm.ramo}>{editForm.ramo} (atual)</option>
+                  )}
+                </select>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Usado nos comparativos de benchmark de setor.
+                </p>
               </div>
               <div className="sm:col-span-2">
                 <label className={labelClass}>Localização</label>
