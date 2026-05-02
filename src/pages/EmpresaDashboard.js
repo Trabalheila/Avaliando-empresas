@@ -18,6 +18,51 @@ import CompanyCommentsManager from "../components/CompanyCommentsManager";
 const PREMIUM_PRICE_LABEL = "R$ 1.499,99/mês";
 const PREMIUM_AVAILABLE_AT = "01/08/2026";
 
+// Duração do trial gratuito do Plano Premium Empresa.
+const PREMIUM_TRIAL_DAYS = 7;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+// Recursos Premium descritos para a seção "Desbloqueie o Potencial".
+// Substitui os antigos blocos borrados por descrições detalhadas e claras.
+const PREMIUM_FEATURES_SHOWCASE = [
+  {
+    icon: "📊",
+    title: "Comparativo com empresas do mesmo CNAE",
+    description:
+      "Veja como sua nota geral se posiciona frente à média de empresas do mesmo setor (CNAE). Identifique gaps competitivos e priorize ações que tirem sua empresa da média.",
+  },
+  {
+    icon: "📈",
+    title: "Relatório executivo mensal",
+    description:
+      "Síntese pronta para apresentação à diretoria, com tendências do mês, top 3 forças, top 3 oportunidades por critério, benchmark de setor e recomendações priorizadas de ação.",
+  },
+  {
+    icon: "💬",
+    title: "Gerenciar e responder comentários",
+    description:
+      "Responda publicamente às avaliações recebidas, mostre o lado da empresa e demonstre maturidade institucional. Gerencie todas as respostas em um único painel.",
+  },
+  {
+    icon: "🤝",
+    title: "Rede de profissionais compatíveis",
+    description:
+      "Acesso a consultores, psicólogos organizacionais e especialistas em liderança selecionados conforme o perfil e os pontos críticos da sua empresa.",
+  },
+  {
+    icon: "☎️",
+    title: "Linha Direta com Apoiadores Premium",
+    description:
+      "Atendimento prioritário via WhatsApp com apoiadores especializados em cultura organizacional, RH e gestão de pessoas. Tire dúvidas e agende consultorias.",
+  },
+  {
+    icon: "🆘",
+    title: "Solicitar apoio especializado",
+    description:
+      "Acione nossa equipe quando precisar reagir a avaliações negativas, planejar mudanças culturais ou estruturar políticas de pessoas baseadas em dados.",
+  },
+];
+
 // URL externa de referência sobre o GPTW (Great Place to Work).
 const GPTW_INFO_URL = "https://greatplacetowork.com.br/o-que-e-gptw/";
 
@@ -329,9 +374,93 @@ export default function EmpresaDashboard() {
   const isPremium = company?.plan === "premium" || company?.isPremium === true;
   const isGPTWCompatible = company?.isGPTWCompatible === true;
 
+  // ----- Trial gratuito do Plano Premium Empresa -----
+  const trialEndMs = useMemo(() => {
+    const v = company?.premiumTrialEndDate;
+    if (!v) return 0;
+    if (typeof v?.toDate === "function") return v.toDate().getTime();
+    const ms = new Date(v).getTime();
+    return Number.isFinite(ms) ? ms : 0;
+  }, [company?.premiumTrialEndDate]);
+
+  // Atualiza um "now" a cada 6h para o contador regressivo permanecer correto
+  // sem provocar re-renderizações excessivas.
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 6 * 60 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const trialActive = !!company?.isPremiumTrialActive && trialEndMs > nowMs;
+  const trialUsed =
+    !!company?.premiumTrialUsed ||
+    (!!company?.premiumTrialEndDate && !trialActive);
+  const trialDaysLeft = trialActive
+    ? Math.max(0, Math.ceil((trialEndMs - nowMs) / MS_PER_DAY))
+    : 0;
+  // Acesso efetivo aos recursos Premium = assinante Premium OU trial ativo.
+  const effectivePremium = isPremium || trialActive;
+
+  const [startingTrial, setStartingTrial] = useState(false);
+  const handleStartTrial = useCallback(async () => {
+    if (!company?.id || trialUsed || isPremium || startingTrial) return;
+    setStartingTrial(true);
+    try {
+      const end = new Date(Date.now() + PREMIUM_TRIAL_DAYS * MS_PER_DAY);
+      const start = new Date();
+      await setDoc(
+        doc(db, "companies", company.id),
+        {
+          isPremiumTrialActive: true,
+          premiumTrialStartDate: start,
+          premiumTrialEndDate: end,
+          premiumTrialUsed: true,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      setCompany((prev) =>
+        prev
+          ? {
+              ...prev,
+              isPremiumTrialActive: true,
+              premiumTrialStartDate: start,
+              premiumTrialEndDate: end,
+              premiumTrialUsed: true,
+            }
+          : prev
+      );
+    } catch (err) {
+      console.error("Erro ao iniciar trial Premium:", err);
+      alert("Não foi possível iniciar o trial Premium. Tente novamente.");
+    } finally {
+      setStartingTrial(false);
+    }
+  }, [company?.id, trialUsed, isPremium, startingTrial]);
+
+  // Encerra automaticamente o trial expirado no Firestore (uma única vez).
+  useEffect(() => {
+    if (
+      company?.id &&
+      company?.isPremiumTrialActive === true &&
+      trialEndMs > 0 &&
+      trialEndMs <= nowMs &&
+      !isPremium
+    ) {
+      setDoc(
+        doc(db, "companies", company.id),
+        { isPremiumTrialActive: false, updatedAt: serverTimestamp() },
+        { merge: true }
+      ).catch(() => {});
+      setCompany((prev) =>
+        prev ? { ...prev, isPremiumTrialActive: false } : prev
+      );
+    }
+  }, [company?.id, company?.isPremiumTrialActive, trialEndMs, nowMs, isPremium]);
+
   useEffect(() => {
     async function fetchPeers() {
-      if (!isPremium || !company) return;
+      if (!effectivePremium || !company) return;
       const cnaeKey = company?.cnaeCodigo || company?.cnae?.codigo || company?.setor;
       if (!cnaeKey) return;
       try {
@@ -387,7 +516,7 @@ export default function EmpresaDashboard() {
       }
     }
     fetchPeers();
-  }, [isPremium, company]);
+  }, [effectivePremium, company]);
 
   const overallAvg = useMemo(() => {
     if (!reviews.length) return 0;
@@ -468,7 +597,7 @@ export default function EmpresaDashboard() {
   // Persistimos diretamente no documento da review em `companyResponse`,
   // mantendo o mesmo padrão de acesso a Firestore usado no restante do dashboard.
   const handleSubmitReply = async (reviewId) => {
-    if (!isPremium) return;
+    if (!effectivePremium) return;
     const text = (replyDrafts[reviewId] || "").trim();
     if (!text) return;
     setReplyingId(reviewId);
@@ -512,7 +641,7 @@ export default function EmpresaDashboard() {
 
   // Solicita apoio (Premium): cria um documento em `supportRequests`.
   const handleRequestSupport = async () => {
-    if (!isPremium || !company?.id) return;
+    if (!effectivePremium || !company?.id) return;
     const message = supportMessage.trim();
     setSendingSupport(true);
     try {
@@ -623,6 +752,106 @@ export default function EmpresaDashboard() {
           </div>
         )}
 
+        {/* CTA Trial gratuito do Plano Premium Empresa (apenas para Free e não usado) */}
+        {!isPremium && !trialActive && !trialUsed && (
+          <section
+            aria-label="Experimente o Plano Premium Empresa grátis"
+            className="rounded-2xl border border-amber-300 dark:border-amber-700 bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 dark:from-amber-900/20 dark:via-yellow-900/20 dark:to-amber-900/20 p-5 shadow-sm"
+          >
+            <div className="flex items-start justify-between flex-wrap gap-4">
+              <div className="flex items-start gap-3 min-w-0">
+                <span className="text-3xl leading-none" aria-hidden="true">✨</span>
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                    Oferta exclusiva
+                  </div>
+                  <h2 className="mt-0.5 text-lg sm:text-xl font-extrabold text-amber-900 dark:text-amber-100">
+                    Experimente o Plano Premium Grátis por {PREMIUM_TRIAL_DAYS} dias!
+                  </h2>
+                  <p className="mt-1 text-sm text-amber-900/90 dark:text-amber-100/90 max-w-2xl">
+                    Desbloqueie comparativo de setor, relatório executivo, gerenciamento de comentários e a Linha
+                    Direta com Apoiadores Premium. Sem cobrança, sem cartão de crédito.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleStartTrial}
+                disabled={startingTrial}
+                className={`h-11 px-5 rounded-lg font-bold text-white transition shrink-0 ${
+                  startingTrial
+                    ? "bg-slate-400 dark:bg-slate-700 opacity-70 cursor-not-allowed"
+                    : "bg-amber-600 hover:bg-amber-700"
+                }`}
+              >
+                {startingTrial ? "Ativando..." : `Ativar trial de ${PREMIUM_TRIAL_DAYS} dias`}
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* Contador regressivo do trial ativo */}
+        {trialActive && !isPremium && (
+          <section
+            aria-label="Status do trial Premium"
+            className="rounded-2xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 px-5 py-4 shadow-sm"
+          >
+            <div className="flex items-start justify-between flex-wrap gap-3">
+              <div className="flex items-start gap-3 min-w-0">
+                <span className="text-2xl leading-none" aria-hidden="true">⏳</span>
+                <div className="min-w-0">
+                  <div className="text-sm font-extrabold text-emerald-900 dark:text-emerald-100">
+                    Seu trial Premium está ativo
+                  </div>
+                  <p className="mt-0.5 text-sm text-emerald-900/90 dark:text-emerald-100/90">
+                    Termina em <strong>{trialDaysLeft} {trialDaysLeft === 1 ? "dia" : "dias"}</strong>
+                    {trialEndMs > 0 && (
+                      <> ({new Date(trialEndMs).toLocaleDateString("pt-BR")})</>
+                    )}. Aproveite todos os recursos Premium liberados.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate("/escolha-perfil")}
+                className="h-10 px-4 rounded-lg font-bold text-emerald-800 dark:text-emerald-100 border border-emerald-600 dark:border-emerald-400 bg-transparent hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors shrink-0"
+              >
+                Assinar agora
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* Aviso de trial expirado */}
+        {trialUsed && !trialActive && !isPremium && (
+          <section
+            aria-label="Trial Premium encerrado"
+            className="rounded-2xl border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 px-5 py-4 shadow-sm"
+          >
+            <div className="flex items-start justify-between flex-wrap gap-3">
+              <div className="flex items-start gap-3 min-w-0">
+                <span className="text-2xl leading-none" aria-hidden="true">🔒</span>
+                <div className="min-w-0">
+                  <div className="text-sm font-extrabold text-blue-900 dark:text-blue-100">
+                    Seu trial Premium terminou
+                  </div>
+                  <p className="mt-0.5 text-sm text-blue-900/90 dark:text-blue-100/90">
+                    Os recursos Premium foram bloqueados novamente. Assine o Plano Premium para mantê-los liberados.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate("/escolha-perfil")}
+                style={{ backgroundColor: "#1a237e" }}
+                className="h-10 px-4 rounded-lg font-bold text-white hover:brightness-110 transition shrink-0"
+              >
+                Fazer Upgrade
+              </button>
+            </div>
+          </section>
+        )}
+
         {/* Header / Resumo */}
         <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
           <div className="flex items-start justify-between flex-wrap gap-4">
@@ -679,9 +908,15 @@ export default function EmpresaDashboard() {
                   <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-bold ${
                     isPremium
                       ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                      : trialActive
+                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
                       : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
                   }`}>
-                    {isPremium ? "Premium" : "Free"}
+                    {isPremium
+                      ? "Premium"
+                      : trialActive
+                      ? `Trial Premium · ${trialDaysLeft} ${trialDaysLeft === 1 ? "dia" : "dias"} restantes`
+                      : "Free"}
                   </span>
                 </div>
               </div>
@@ -916,7 +1151,40 @@ export default function EmpresaDashboard() {
           </section>
         )}
 
-        {/* Funcionários PJ / CLT */}
+        {/* Seção 2: Dicas e Boas Práticas para sua Empresa (Gratuito) */}
+        <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+            Dicas e Boas Práticas para sua Empresa
+          </h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Orientações para transformar avaliações em ações concretas e proteger a marca empregadora.
+          </p>
+          <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-2xl border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-900/20 p-6 shadow-sm">
+              <h3 className="text-base font-extrabold text-amber-900 dark:text-amber-200">
+                Ajuste os pontos negativos com responsabilidade
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-amber-900/90 dark:text-amber-100/90">
+                Ignorar críticas recorrentes pode custar caro: <strong>perda de clientes</strong>, <strong>fuga de bons
+                profissionais</strong> e <strong>processos judiciais</strong>. Use as avaliações como insumo concreto
+                para melhoria contínua — não como motivo para retaliação.
+              </p>
+            </div>
+            <div className="rounded-2xl border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 p-6 shadow-sm">
+              <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-200">
+                Avalie o profissional como uma vida
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-blue-900/90 dark:text-blue-100/90">
+                Decisões tomadas sobre pessoas afetam <strong>vidas inteiras</strong> — saúde, família, dignidade.
+                Antes de agir com base em opiniões individuais, verifique se a decisão está alinhada às <strong>políticas
+                e à visão pública da própria empresa</strong>. Coerência protege a marca empregadora e respeita quem
+                trabalhou com você.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Seção 3: Quadro de funcionários (Gratuito) */}
         <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
           <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Quadro de funcionários</h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -969,32 +1237,103 @@ export default function EmpresaDashboard() {
           </div>
         </section>
 
-        {/* Mensagens de conscientização e ética */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="rounded-2xl border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-900/20 p-6 shadow-sm">
-            <h3 className="text-base font-extrabold text-amber-900 dark:text-amber-200">
-              Ajuste os pontos negativos com responsabilidade
-            </h3>
-            <p className="mt-2 text-sm leading-relaxed text-amber-900/90 dark:text-amber-100/90">
-              Ignorar críticas recorrentes pode custar caro: <strong>perda de clientes</strong>, <strong>fuga de bons
-              profissionais</strong> e <strong>processos judiciais</strong>. Use as avaliações como insumo concreto para
-              melhoria contínua — não como motivo para retaliação.
-            </p>
+        {/* Seção 4: Desbloqueie o Potencial da Sua Empresa (Premium) */}
+        <section
+          aria-label="Recursos do Plano Premium Empresa"
+          className="bg-gradient-to-br from-blue-50 via-white to-amber-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 rounded-2xl border border-blue-200 dark:border-blue-800 shadow-xl p-8"
+        >
+          <div className="flex items-start gap-3 flex-wrap">
+            <span className="text-3xl leading-none" aria-hidden="true">🚀</span>
+            <div className="min-w-0">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">
+                {effectivePremium ? "Recursos liberados" : "Plano Premium Empresa"}
+              </div>
+              <h2 className="mt-0.5 text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-slate-100">
+                Desbloqueie o Potencial da Sua Empresa com o Plano Premium
+              </h2>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 max-w-3xl">
+                Ferramentas avançadas para transformar avaliações em decisões estratégicas, comparar sua empresa com
+                pares de mercado e fortalecer a marca empregadora.
+              </p>
+            </div>
           </div>
-          <div className="rounded-2xl border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 p-6 shadow-sm">
-            <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-200">
-              Avalie o profissional como uma vida
-            </h3>
-            <p className="mt-2 text-sm leading-relaxed text-blue-900/90 dark:text-blue-100/90">
-              Decisões tomadas sobre pessoas afetam <strong>vidas inteiras</strong> — saúde, família, dignidade. Antes
-              de agir com base em opiniões individuais, verifique se a decisão está alinhada às <strong>políticas e à
-              visão pública da própria empresa</strong>. Coerência protege a marca empregadora e respeita quem trabalhou
-              com você.
-            </p>
-          </div>
+
+          {!effectivePremium && (
+            <>
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {PREMIUM_FEATURES_SHOWCASE.map((f) => (
+                  <div
+                    key={f.title}
+                    className="rounded-2xl border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 p-5 shadow-sm"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl leading-none" aria-hidden="true">{f.icon}</span>
+                      <div className="min-w-0">
+                        <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100">
+                          {f.title}
+                        </h3>
+                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                          {f.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-900 p-6 text-center">
+                <div className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">
+                  {PREMIUM_PRICE_LABEL}
+                </div>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Disponível a partir de {PREMIUM_AVAILABLE_AT}
+                </p>
+                <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+                  {!trialUsed ? (
+                    <button
+                      type="button"
+                      onClick={handleStartTrial}
+                      disabled={startingTrial}
+                      className={`h-12 px-6 rounded-lg font-bold text-white transition w-full sm:w-auto ${
+                        startingTrial
+                          ? "bg-slate-400 dark:bg-slate-700 opacity-70 cursor-not-allowed"
+                          : "bg-amber-600 hover:bg-amber-700"
+                      }`}
+                    >
+                      {startingTrial
+                        ? "Ativando..."
+                        : `Experimentar Grátis por ${PREMIUM_TRIAL_DAYS} dias`}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => navigate("/escolha-perfil")}
+                      style={{ backgroundColor: "#1a237e" }}
+                      className="h-12 px-6 rounded-lg font-bold text-white hover:brightness-110 transition w-full sm:w-auto"
+                    >
+                      Assinar Plano Premium
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => navigate("/escolha-perfil")}
+                    className="h-12 px-6 rounded-lg font-bold text-blue-700 dark:text-blue-300 border border-blue-700 dark:border-blue-300 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/30 transition w-full sm:w-auto"
+                  >
+                    Ver detalhes do plano
+                  </button>
+                </div>
+                {!trialUsed && (
+                  <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                    Sem cobrança · Sem cartão de crédito · Cancele quando quiser
+                  </p>
+                )}
+              </div>
+            </>
+          )}
         </section>
 
         {/* Comparativo CNAE (Premium) */}
+        {effectivePremium && (
         <section className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8 overflow-hidden">
           <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">
             Comparativo com empresas do mesmo CNAE
@@ -1003,7 +1342,7 @@ export default function EmpresaDashboard() {
             Como sua nota geral se compara à média do setor {cnaeDescricao ? `“${cnaeDescricao}”` : `(CNAE ${cnaeCodigo || "—"})`}.
           </p>
 
-          <div className={`mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 ${isPremium ? "" : "blur-sm select-none pointer-events-none"}`}>
+          <div className={`mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 ${effectivePremium ? "" : "blur-sm select-none pointer-events-none"}`}>
             <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-4">
               <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">Sua média</div>
               <div className="mt-2 text-3xl font-extrabold text-slate-800 dark:text-slate-100">{overallAvg.toFixed(1)}</div>
@@ -1029,7 +1368,7 @@ export default function EmpresaDashboard() {
             </div>
           </div>
 
-          {!isPremium && (
+          {!effectivePremium && (
             <div className="absolute inset-0 flex items-center justify-center p-6">
               <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-blue-200 dark:border-blue-800 p-6 text-center">
                 <div className="inline-flex items-center gap-1.5 bg-blue-700 text-white text-[11px] font-bold tracking-wider px-3 py-1 rounded-full">
@@ -1052,22 +1391,24 @@ export default function EmpresaDashboard() {
             </div>
           )}
         </section>
+        )}
 
         {/* Relatório executivo (Premium) */}
+        {effectivePremium && (
         <section className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8 overflow-hidden">
           <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Relatório executivo</h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Síntese mensal pronta para apresentação à diretoria, com pontos fortes, oportunidades e plano de ação.
           </p>
 
-          <div className={`mt-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-6 ${isPremium ? "" : "blur-sm select-none pointer-events-none"}`}>
+          <div className={`mt-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-6 ${effectivePremium ? "" : "blur-sm select-none pointer-events-none"}`}>
             <ul className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
               <li>• Resumo de avaliações e tendências do mês</li>
               <li>• Top 3 forças e top 3 oportunidades por critério</li>
               <li>• Benchmark vs. setor (CNAE) e porte da empresa</li>
               <li>• Recomendações priorizadas de ação</li>
             </ul>
-            {isPremium && (
+            {effectivePremium && (
               <button
                 type="button"
                 style={{ backgroundColor: "#1a237e" }}
@@ -1078,7 +1419,7 @@ export default function EmpresaDashboard() {
             )}
           </div>
 
-          {!isPremium && (
+          {!effectivePremium && (
             <div className="absolute inset-0 flex items-center justify-center p-6">
               <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-blue-200 dark:border-blue-800 p-6 text-center">
                 <div className="inline-flex items-center gap-1.5 bg-blue-700 text-white text-[11px] font-bold tracking-wider px-3 py-1 rounded-full">
@@ -1101,10 +1442,12 @@ export default function EmpresaDashboard() {
             </div>
           )}
         </section>
+        )}
 
         {/* Gerenciar comentários (Premium) */}
+        {effectivePremium && (
         <CompanyCommentsManager
-          isPremium={isPremium}
+          isPremium={effectivePremium}
           reviews={reviews}
           criteria={CRITERIA}
           replyDrafts={replyDrafts}
@@ -1115,8 +1458,10 @@ export default function EmpresaDashboard() {
           onSubmitReply={handleSubmitReply}
           onUpgradeClick={() => navigate("/escolha-perfil")}
         />
+        )}
 
         {/* Recursos Premium: respostas, apoio e profissionais compatíveis */}
+        {effectivePremium && (
         <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
@@ -1125,7 +1470,7 @@ export default function EmpresaDashboard() {
                 Responda às avaliações, solicite apoio especializado e conheça profissionais compatíveis com sua empresa.
               </p>
             </div>
-            {isPremium && (
+            {effectivePremium && (
               <button
                 type="button"
                 onClick={() => { setShowSupportModal(true); setSupportSent(false); }}
@@ -1137,7 +1482,7 @@ export default function EmpresaDashboard() {
             )}
           </div>
 
-          {!isPremium ? (
+          {!effectivePremium ? (
             <div className="mt-6 rounded-xl border border-dashed border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 p-6 text-center">
               <div className="inline-flex items-center gap-1.5 bg-blue-700 text-white text-[11px] font-bold tracking-wider px-3 py-1 rounded-full">
                 PLANO PREMIUM EMPRESA
@@ -1278,9 +1623,10 @@ export default function EmpresaDashboard() {
             </>
           )}
         </section>
+        )}
 
         {/* Linha Direta com Apoiadores Premium (somente Premium) */}
-        {isPremium && (
+        {effectivePremium && (
           <section className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/40 dark:to-blue-950/40 rounded-2xl shadow-xl border border-indigo-200 dark:border-indigo-800 p-8">
             <div className="flex items-start justify-between flex-wrap gap-4">
               <div className="flex items-start gap-4">
@@ -1313,7 +1659,7 @@ export default function EmpresaDashboard() {
         )}
 
         {/* Modal "Linha Direta com Apoiadores Premium" via WhatsApp */}
-        {isPremium && showHotlineModal && (
+        {effectivePremium && showHotlineModal && (
           <div
             role="dialog"
             aria-modal="true"
@@ -1353,7 +1699,7 @@ export default function EmpresaDashboard() {
         )}
 
         {/* Modal "Solicitar apoio" */}
-        {isPremium && showSupportModal && (
+        {effectivePremium && showSupportModal && (
           <div
             role="dialog"
             aria-modal="true"
