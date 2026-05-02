@@ -713,13 +713,23 @@ function TrabalheiLaMobile({
                   </p>
                 )}
                 <div className="flex flex-wrap items-center gap-1 mt-0.5">
-                  <a
-                    href="/pseudonym"
-                    className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-300 text-emerald-900 text-[11px] font-medium hover:bg-emerald-400 shadow-sm transition"
-                  >
-                    <FaUserEdit className="mr-1 text-[10px]" />
-                    {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
-                  </a>
+                  {(() => {
+                    // Esconde "Crie seu perfil" / "Editar perfil" para empresários
+                    // (role admin_empresa) — esse botão cria o perfil de avaliador.
+                    try {
+                      const { getUserRole } = require("./utils/rbac");
+                      if (getUserRole() === "admin_empresa") return null;
+                    } catch { /* segue */ }
+                    return (
+                      <a
+                        href="/pseudonym"
+                        className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-300 text-emerald-900 text-[11px] font-medium hover:bg-emerald-400 shadow-sm transition"
+                      >
+                        <FaUserEdit className="mr-1 text-[10px]" />
+                        {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
+                      </a>
+                    );
+                  })()}
                   <a
                     href="/minha-conta"
                     className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-200 text-blue-900 text-[11px] font-medium hover:bg-blue-300 shadow-sm transition"

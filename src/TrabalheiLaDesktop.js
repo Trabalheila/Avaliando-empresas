@@ -551,13 +551,23 @@ function TrabalheiLaDesktop({
                           ✓ Certificado
                         </p>
                       )}
-                      <a
-                        href="/pseudonym"
-                        className="inline-flex items-center mt-1 px-3 py-1.5 rounded-full bg-emerald-300 text-emerald-900 text-xs font-medium tracking-normal hover:bg-emerald-400 shadow-md transition"
-                      >
-                        <FaUserEdit className="mr-1 text-[11px]" />
-                        {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
-                      </a>
+                      {(() => {
+                        // Esconde "Crie seu perfil" / "Editar perfil" para empresários
+                        // (role admin_empresa) — esse botão cria o perfil de avaliador.
+                        try {
+                          const { getUserRole } = require("./utils/rbac");
+                          if (getUserRole() === "admin_empresa") return null;
+                        } catch { /* segue */ }
+                        return (
+                          <a
+                            href="/pseudonym"
+                            className="inline-flex items-center mt-1 px-3 py-1.5 rounded-full bg-emerald-300 text-emerald-900 text-xs font-medium tracking-normal hover:bg-emerald-400 shadow-md transition"
+                          >
+                            <FaUserEdit className="mr-1 text-[11px]" />
+                            {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
+                          </a>
+                        );
+                      })()}
                       {(() => {
                         try {
                           const { getUserRole, isPremium, isAdmin } = require("./utils/rbac");
