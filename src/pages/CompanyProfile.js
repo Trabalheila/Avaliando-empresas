@@ -126,6 +126,17 @@ export default function CompanyProfile() {
       return "";
     }
   }, [location.search]);
+  // Flag `?edit=1` abre automaticamente o modal de edição quando o usuário
+  // chega do Dashboard da Empresa via botão "Editar Perfil da Empresa".
+  const editRequestedFromUrl = useMemo(() => {
+    try {
+      const sp = new URLSearchParams(location.search);
+      const v = (sp.get("edit") || "").trim().toLowerCase();
+      return v === "1" || v === "true";
+    } catch {
+      return false;
+    }
+  }, [location.search]);
   console.log("[CompanyProfile] render", {
     cidFromUrl: companyIdFromUrl,
     pathname: location.pathname,
@@ -341,8 +352,20 @@ export default function CompanyProfile() {
     };
     console.log("[CompanyProfile] openEdit — pre-preenchendo formulário com", initial);
     setEditForm(initial);
-    setEditOpen(true);
-  };
+    setEditOpen(true);  };
+
+  // Auto-abre o modal quando navegamos do Dashboard com `?edit=1`.
+  // Só dispara depois que `company` e `user` estiverem carregados e o
+  // usuário corrente for o dono da empresa.
+  useEffect(() => {
+    if (!editRequestedFromUrl) return;
+    if (!company || !user) return;
+    const owner = company.ownerUid === user.uid || company.email === user.email;
+    if (!owner) return;
+    if (editOpen) return;
+    openEdit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editRequestedFromUrl, company, user]);
 
   const handleSaveEdit = async () => {
     if (!user || !editForm) return;
@@ -640,19 +663,9 @@ export default function CompanyProfile() {
               </div>
 
               <div className="mt-5">
-                {isOwner && (
-                  <button
-                    type="button"
-                    onClick={openEdit}
-                    className="inline-flex items-center gap-2 px-4 h-10 rounded-lg font-bold text-blue-700 dark:text-blue-300 border border-blue-700 dark:border-blue-300 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
-                  >
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                    Editar informações da empresa
-                  </button>
-                )}
+                {/* Edição centralizada no Dashboard da Empresa
+                    (botão "Editar Perfil da Empresa"). O modal de edição
+                    permanece neste componente e é aberto via `?edit=1`. */}
               </div>
             </div>
           </div>
