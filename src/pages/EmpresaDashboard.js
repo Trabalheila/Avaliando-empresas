@@ -223,36 +223,65 @@ export default function EmpresaDashboard() {
       uid: currentUser?.uid,
       email: currentUser?.email,
     });
-    try {
-      let data = null;
-      let docId = null;
 
-      // 1) tenta por ownerUid (caso já tenha sido vinculado).
+    // Heurística de "qualidade" do doc: priorizamos o doc com mais campos
+    // cadastrais preenchidos (cnpj, razaoSocial, cnaeCodigo, setor). Isso
+    // evita que um stub criado acidentalmente em `companies/{uid}` mascare
+    // o doc real em `companies/{cnpjDigits}` gravado por confirm-company.js.
+    const scoreDoc = (d) => {
+      if (!d) return -1;
+      let s = 0;
+      if (d.cnpj) s += 4;
+      if (d.razaoSocial || d.companyName) s += 3;
+      if (d.cnaeCodigo || d.cnae?.codigo) s += 2;
+      if (d.setor) s += 1;
+      if (d.email) s += 1;
+      return s;
+    };
+    const pickBest = (docs) => {
+      if (!docs || !docs.length) return null;
+      return [...docs].sort((a, b) => scoreDoc(b.data) - scoreDoc(a.data))[0];
+    };
+
+    try {
+      const collected = []; // { id, data, source }
+
+      // 1) por ownerUid (todos os matches; pode haver mais de um).
       try {
         const snap = await getDocs(query(collection(db, "companies"), where("ownerUid", "==", currentUser.uid)));
-        if (!snap.empty) {
-          data = snap.docs[0].data();
-          docId = snap.docs[0].id;
-          console.log("[EmpresaDashboard] empresa carregada por ownerUid", { docId });
-        }
+        snap.docs.forEach((d) => collected.push({ id: d.id, data: d.data(), source: "ownerUid" }));
       } catch (err) {
         console.warn("[EmpresaDashboard] erro ao buscar por ownerUid", err);
       }
 
-      // 2) fallback por e-mail (que é como o cadastro original grava).
-      if (!data && currentUser.email) {
-        const snap = await getDocs(query(collection(db, "companies"), where("email", "==", currentUser.email)));
-        if (!snap.empty) {
-          data = snap.docs[0].data();
-          docId = snap.docs[0].id;
-          console.log("[EmpresaDashboard] empresa carregada por email", { docId });
+      // 2) por e-mail (que é como o cadastro original grava).
+      if (currentUser.email) {
+        try {
+          const snap = await getDocs(query(collection(db, "companies"), where("email", "==", currentUser.email)));
+          snap.docs.forEach((d) => {
+            if (!collected.some((c) => c.id === d.id)) {
+              collected.push({ id: d.id, data: d.data(), source: "email" });
+            }
+          });
+        } catch (err) {
+          console.warn("[EmpresaDashboard] erro ao buscar por email", err);
         }
       }
 
-      if (data) {
-        const merged = { id: docId, ...data };
-        console.log("[EmpresaDashboard] dados da empresa", {
-          id: docId,
+      console.log("[EmpresaDashboard] candidatos encontrados", collected.map((c) => ({
+        id: c.id,
+        source: c.source,
+        score: scoreDoc(c.data),
+        razaoSocial: c.data?.razaoSocial,
+        cnpj: c.data?.cnpj,
+      })));
+
+      const best = pickBest(collected);
+      if (best) {
+        const merged = { id: best.id, ...best.data };
+        console.log("[EmpresaDashboard] doc escolhido", {
+          id: best.id,
+          source: best.source,
           razaoSocial: merged.razaoSocial,
           cnpj: merged.cnpj,
           cnaeCodigo: merged.cnaeCodigo || merged.cnae?.codigo,
@@ -263,12 +292,12 @@ export default function EmpresaDashboard() {
         });
         setCompany(merged);
         setPrefs((prev) => ({
-          notifyOnReview: data?.prefs?.notifyOnReview ?? prev.notifyOnReview,
-          publicProfile: data?.prefs?.publicProfile ?? prev.publicProfile,
+          notifyOnReview: best.data?.prefs?.notifyOnReview ?? prev.notifyOnReview,
+          publicProfile: best.data?.prefs?.publicProfile ?? prev.publicProfile,
         }));
         setEmployees({
-          pj: data?.funcionariosPJ != null ? String(data.funcionariosPJ) : "",
-          clt: data?.funcionariosCLT != null ? String(data.funcionariosCLT) : "",
+          pj: best.data?.funcionariosPJ != null ? String(best.data.funcionariosPJ) : "",
+          clt: best.data?.funcionariosCLT != null ? String(best.data.funcionariosCLT) : "",
         });
       } else {
         console.warn("[EmpresaDashboard] nenhuma empresa encontrada para este usuário");

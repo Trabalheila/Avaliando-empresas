@@ -155,12 +155,29 @@ export default function CompanyProfile() {
 
   // Carrega empresa: prioridade =>
   //   1) `?cid=<docId>` na URL (vindo do Dashboard "Ver perfil público")
-  //   2) busca por `ownerUid == user.uid`
-  //   3) busca por `email == user.email`
-  //   4) cria placeholder em memória (uid)
+  //   2) busca por `ownerUid == user.uid` (escolhendo o doc mais completo)
+  //   3) busca por `email == user.email` (escolhendo o doc mais completo)
+  //   4) sem registro → retorna null (sem criar stub no Firestore)
   const loadCompany = useCallback(async (currentUser) => {
     if (!currentUser && !companyIdFromUrl) return null;
     setLoading(true);
+
+    // Mesma heurística do EmpresaDashboard: prioriza doc com cnpj/razaoSocial.
+    const scoreDoc = (d) => {
+      if (!d) return -1;
+      let s = 0;
+      if (d.cnpj) s += 4;
+      if (d.razaoSocial || d.companyName) s += 3;
+      if (d.cnaeCodigo || d.cnae?.codigo) s += 2;
+      if (d.setor) s += 1;
+      if (d.email) s += 1;
+      return s;
+    };
+    const pickBest = (docs) => {
+      if (!docs || !docs.length) return null;
+      return [...docs].sort((a, b) => scoreDoc(b.data) - scoreDoc(a.data))[0];
+    };
+
     try {
       console.log("[CompanyProfile] loadCompany start", {
         cid: companyIdFromUrl,
@@ -186,29 +203,41 @@ export default function CompanyProfile() {
         }
       }
 
-      const byUidRef = currentUser ? doc(db, "companies", currentUser.uid) : null;
-
-      // 2) ownerUid
-      if (!data && currentUser?.uid) {
-        try {
-          const snap = await getDocs(query(collection(db, "companies"), where("ownerUid", "==", currentUser.uid)));
-          if (!snap.empty) {
-            data = snap.docs[0].data();
-            docId = snap.docs[0].id;
-            console.log("[CompanyProfile] empresa carregada por ownerUid", { docId });
+      // 2) ownerUid + 3) email — coleta todos e escolhe o melhor.
+      if (!data && currentUser) {
+        const collected = [];
+        if (currentUser.uid) {
+          try {
+            const snap = await getDocs(query(collection(db, "companies"), where("ownerUid", "==", currentUser.uid)));
+            snap.docs.forEach((d) => collected.push({ id: d.id, data: d.data(), source: "ownerUid" }));
+          } catch {
+            // ignora
           }
-        } catch {
-          // ignora
         }
-      }
-
-      // 3) email
-      if (!data && currentUser?.email) {
-        const snap = await getDocs(query(collection(db, "companies"), where("email", "==", currentUser.email)));
-        if (!snap.empty) {
-          data = snap.docs[0].data();
-          docId = snap.docs[0].id;
-          console.log("[CompanyProfile] empresa carregada por email", { docId });
+        if (currentUser.email) {
+          try {
+            const snap = await getDocs(query(collection(db, "companies"), where("email", "==", currentUser.email)));
+            snap.docs.forEach((d) => {
+              if (!collected.some((c) => c.id === d.id)) {
+                collected.push({ id: d.id, data: d.data(), source: "email" });
+              }
+            });
+          } catch {
+            // ignora
+          }
+        }
+        console.log("[CompanyProfile] candidatos", collected.map((c) => ({
+          id: c.id,
+          source: c.source,
+          score: scoreDoc(c.data),
+          razaoSocial: c.data?.razaoSocial,
+          cnpj: c.data?.cnpj,
+        })));
+        const best = pickBest(collected);
+        if (best) {
+          data = best.data;
+          docId = best.id;
+          console.log("[CompanyProfile] doc escolhido", { docId, source: best.source });
         }
       }
 
@@ -216,25 +245,10 @@ export default function CompanyProfile() {
         setCompany({ id: docId, ...data });
         return { id: docId, ...data };
       }
-      // 4) Sem registro: cria placeholder em memória usando uid
-      if (byUidRef) {
-        console.log("[CompanyProfile] nenhum doc encontrado — criando placeholder");
-        setCompany({
-          id: byUidRef.id,
-          ownerUid: currentUser.uid,
-          email: currentUser.email || "",
-          razaoSocial: "",
-          cnpj: "",
-          ramo: "",
-          location: "",
-          site: "",
-          socials: { linkedin: "", instagram: "" },
-          logoUrl: "",
-          verified: !!currentUser.emailVerified,
-          plan: "free",
-          repliesUsedThisMonth: 0,
-        });
-      }
+      // 4) Sem registro — não criamos stub no Firestore. Apenas retornamos null;
+      // a UI exibirá "Empresa não encontrada" e o usuário deverá concluir o cadastro.
+      console.warn("[CompanyProfile] nenhum doc de empresa encontrado para este usuário");
+      setCompany(null);
       return null;
     } finally {
       setLoading(false);
