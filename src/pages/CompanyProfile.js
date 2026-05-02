@@ -566,6 +566,177 @@ export default function CompanyProfile() {
   const inputClass =
     "w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition";
 
+  // Modo edição inline: quando o usuário chega via "Editar Perfil da Empresa"
+  // (?edit=1) e é o dono, renderizamos uma página dedicada de edição com
+  // todos os campos editáveis e um único botão Salvar.
+  const editMode = editRequestedFromUrl && isOwner;
+  if (editMode && editForm) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 px-4 py-10">
+        <div className="max-w-3xl mx-auto space-y-6">
+          <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <div className="text-sm font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">
+                  Editar Perfil da Empresa
+                </div>
+                <h1 className="mt-1 text-2xl font-bold text-slate-800 dark:text-slate-100">
+                  {company?.razaoSocial || "Sua empresa"}
+                </h1>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate("/empresa-dashboard")}
+                className="h-10 px-4 rounded-lg font-bold text-blue-700 dark:text-blue-300 border border-blue-700 dark:border-blue-300 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+              >
+                Voltar ao Dashboard
+              </button>
+            </div>
+
+            {/* Logo */}
+            <div className="mt-8">
+              <label className={labelClass}>Logo da empresa</label>
+              <div className="flex items-start gap-5 flex-wrap">
+                <label className="relative block w-32 h-32 rounded-2xl overflow-hidden border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 cursor-pointer group">
+                  {company?.logoUrl ? (
+                    <img src={company.logoUrl} alt="Logo atual" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
+                      <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14" />
+                        <circle cx="9" cy="9" r="2" />
+                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                      </svg>
+                      <span className="text-[11px] mt-1">Clique para enviar</span>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleLogoUpload}
+                    disabled={logoUploading}
+                  />
+                  {logoUploading && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <div className="w-7 h-7 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    </div>
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[11px] font-medium text-center py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {company?.logoUrl ? "Trocar imagem" : "Enviar imagem"}
+                  </div>
+                </label>
+                <div className="flex-1 min-w-[200px]">
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    Clique na imagem ao lado para selecionar um arquivo. PNG, JPG ou SVG. Recomendado: 256×256px.
+                  </p>
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    A logo é salva automaticamente assim que você seleciona o arquivo.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Campos de texto editáveis inline */}
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="sm:col-span-2">
+                <label className={labelClass}>Razão Social</label>
+                <input
+                  type="text"
+                  value={editForm.razaoSocial}
+                  onChange={(e) => setEditForm({ ...editForm, razaoSocial: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>CNPJ</label>
+                <input
+                  type="text"
+                  value={editForm.cnpj}
+                  onChange={(e) => setEditForm({ ...editForm, cnpj: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Ramo de atuação</label>
+                <input
+                  type="text"
+                  value={editForm.ramo}
+                  onChange={(e) => setEditForm({ ...editForm, ramo: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={labelClass}>Localização</label>
+                <input
+                  type="text"
+                  value={editForm.location}
+                  onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                  placeholder="Cidade, Estado"
+                  className={inputClass}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={labelClass}>Site</label>
+                <input
+                  type="url"
+                  value={editForm.site}
+                  onChange={(e) => setEditForm({ ...editForm, site: e.target.value })}
+                  placeholder="https://..."
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>LinkedIn</label>
+                <input
+                  type="url"
+                  value={editForm.linkedin}
+                  onChange={(e) => setEditForm({ ...editForm, linkedin: e.target.value })}
+                  placeholder="https://linkedin.com/company/..."
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Instagram</label>
+                <input
+                  type="url"
+                  value={editForm.instagram}
+                  onChange={(e) => setEditForm({ ...editForm, instagram: e.target.value })}
+                  placeholder="https://instagram.com/..."
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            <div className="mt-8 flex items-center justify-end gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={() => navigate("/empresa-dashboard")}
+                className="h-11 px-4 rounded-lg font-bold text-blue-700 dark:text-blue-300 border border-blue-700 dark:border-blue-300 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleSaveEdit();
+                  navigate("/empresa-dashboard");
+                }}
+                disabled={savingEdit}
+                style={{ backgroundColor: savingEdit ? undefined : "#1a237e" }}
+                className={`h-11 px-6 rounded-lg font-bold text-white transition ${
+                  savingEdit ? "bg-slate-400 dark:bg-slate-700 opacity-70 cursor-not-allowed" : "hover:brightness-110"
+                }`}
+              >
+                {savingEdit ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 px-4 py-10">
       <div className="max-w-5xl mx-auto space-y-6">
