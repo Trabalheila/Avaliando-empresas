@@ -127,6 +127,12 @@ export function getCompanyLogoCandidates(companyName, options = {}) {
   const domains = buildDomainCandidates(companyName, websiteDomain, mappedDomain);
 
   const candidates = [];
+
+  // Maior prioridade: logo cadastrada pela própria empresa (Firestore/Storage).
+  if (options.logoUrl && typeof options.logoUrl === "string") {
+    candidates.push(options.logoUrl);
+  }
+
   if (localLogoOverride) {
     candidates.push(localLogoOverride);
   }

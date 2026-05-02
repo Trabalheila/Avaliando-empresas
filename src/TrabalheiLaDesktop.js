@@ -425,13 +425,14 @@ function TrabalheiLaDesktop({
   const logoCandidates = getCompanyLogoCandidates(companyNameForLogo, {
     size: 128,
     website: selectedCompanyData?.website,
+    logoUrl: selectedCompanyData?.logoUrl,
   });
   const [logoIndex, setLogoIndex] = React.useState(0);
   const logoUrl = logoCandidates[logoIndex] || null;
 
   React.useEffect(() => {
     setLogoIndex(0);
-  }, [companyNameForLogo, selectedCompanyData?.website]);
+  }, [companyNameForLogo, selectedCompanyData?.website, selectedCompanyData?.logoUrl]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-6">

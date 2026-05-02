@@ -435,6 +435,7 @@ function Home({ theme, toggleTheme }) {
                 segmento: rc?.segmento || null,
                 cnae_principal: rc?.cnae_principal || null,
                 website: rc?.website || null,
+                logoUrl: rc?.logoUrl || null,
                 sourceStats: rc?.sourceStats || null,
                 contractStats: rc?.contractStats || null,
                 workModelStats: rc?.workModelStats || null,
@@ -453,6 +454,7 @@ function Home({ theme, toggleTheme }) {
                 segmento: rc?.segmento || current?.segmento || null,
                 cnae_principal: rc?.cnae_principal || current?.cnae_principal || null,
                 website: rc?.website || current?.website || null,
+                logoUrl: rc?.logoUrl || current?.logoUrl || null,
                 cnaeCode: rc?.cnaeCode || current?.cnaeCode || null,
                 cnaeDescricao: rc?.cnaeDescricao || current?.cnaeDescricao || null,
               });

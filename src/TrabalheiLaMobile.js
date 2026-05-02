@@ -285,6 +285,7 @@ function TrabalheiLaMobile({
     ? getCompanyLogoCandidates(selectedCompanyData.company, {
       size: 128,
       website: selectedCompanyData.website,
+      logoUrl: selectedCompanyData.logoUrl,
     })
     : [];
   const [logoIndex, setLogoIndex] = React.useState(0);
@@ -292,7 +293,7 @@ function TrabalheiLaMobile({
 
   React.useEffect(() => {
     setLogoIndex(0);
-  }, [selectedCompanyData?.company, selectedCompanyData?.website]);
+  }, [selectedCompanyData?.company, selectedCompanyData?.website, selectedCompanyData?.logoUrl]);
   const companyAverage = selectedCompanyData ? calcularMedia(selectedCompanyData) : "--";
   const companyAverageValue = Number.parseFloat(companyAverage);
   const isCompanyRecommended = companyAverage !== "--" && Number.isFinite(companyAverageValue) && companyAverageValue >= 3;
