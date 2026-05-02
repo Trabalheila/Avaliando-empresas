@@ -213,6 +213,27 @@ export default function EmpresaDashboard() {
   // Auth ready
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
+      // Logs de depuração do estado de autenticação no Dashboard.
+      let storedProfile = null;
+      try {
+        storedProfile = JSON.parse(localStorage.getItem("userProfile") || "null");
+      } catch {
+        storedProfile = null;
+      }
+      console.log("[EmpresaDashboard] onAuthStateChanged", {
+        hasFirebaseUser: !!u,
+        uid: u?.uid || null,
+        email: u?.email || null,
+        emailVerified: u?.emailVerified || false,
+        storedProfile: storedProfile
+          ? {
+              role: storedProfile.role,
+              userType: storedProfile.userType,
+              managedCompanyId: storedProfile.managedCompanyId,
+              isEmployer: storedProfile.isEmployer,
+            }
+          : null,
+      });
       setUser(u);
       setAuthReady(true);
     });
@@ -813,18 +834,64 @@ export default function EmpresaDashboard() {
   }
 
   if (!user) {
+    // Tenta detectar um perfil local (localStorage) — caso o usuário tenha
+    // "logado" via fluxo que não sincroniza com Firebase Auth, ou cuja
+    // sessão Firebase expirou. Nesse caso, oferecemos "Entrar" com retorno
+    // para o próprio dashboard, em vez de bloquear como "Acesso restrito"
+    // definitivo.
+    let localProfile = null;
+    try {
+      localProfile = JSON.parse(localStorage.getItem("userProfile") || "null");
+    } catch {
+      localProfile = null;
+    }
+    const role = (localProfile?.role || "").toString().toLowerCase().trim();
+    const userType = (localProfile?.userType || "").toString().toLowerCase().trim();
+    const looksLikeEmployer =
+      role === "admin_empresa" ||
+      userType === "empresario" ||
+      userType === "empres\u00e1rio" ||
+      localProfile?.isEmployer === true ||
+      Boolean(localProfile?.managedCompanyId);
+
+    console.log("[EmpresaDashboard] sem firebase user", {
+      hasLocalProfile: !!localProfile,
+      role,
+      userType,
+      managedCompanyId: localProfile?.managedCompanyId || null,
+      looksLikeEmployer,
+    });
+
+    const titulo = looksLikeEmployer
+      ? "Sess\u00e3o expirada"
+      : "Acesso restrito";
+    const subtitulo = looksLikeEmployer
+      ? "Sua sess\u00e3o expirou. Entre novamente para acessar o dashboard da sua empresa."
+      : "Fa\u00e7a login com a conta da sua empresa para acessar o dashboard.";
+    const labelBtn = looksLikeEmployer ? "Entrar novamente" : "Entrar";
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-[480px] bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-10 text-center">
           <div className="text-2xl font-extrabold text-blue-700 dark:text-blue-300 tracking-tight">Trabalhei Lá</div>
-          <h1 className="mt-6 text-xl font-bold text-slate-800 dark:text-slate-100">Acesso restrito</h1>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-            Faça login com a conta da sua empresa para acessar o dashboard.
-          </p>
+          <h1 className="mt-6 text-xl font-bold text-slate-800 dark:text-slate-100">{titulo}</h1>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{subtitulo}</p>
+          <button
+            type="button"
+            onClick={() =>
+              navigate(
+                "/login?redirectAfterLogin=" + encodeURIComponent("/empresa-dashboard")
+              )
+            }
+            style={{ backgroundColor: "#1a237e" }}
+            className="mt-6 w-full h-12 rounded-lg font-bold text-white hover:brightness-110"
+          >
+            {labelBtn}
+          </button>
           <button
             type="button"
             onClick={() => navigate("/")}
-            className="mt-6 w-full h-12 rounded-lg font-bold text-blue-700 dark:text-blue-300 border border-blue-700 dark:border-blue-300 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+            className="mt-3 w-full h-12 rounded-lg font-bold text-blue-700 dark:text-blue-300 border border-blue-700 dark:border-blue-300 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
           >
             Voltar para a página inicial
           </button>
