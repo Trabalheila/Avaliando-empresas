@@ -382,6 +382,35 @@ export default function EmpresaDashboard() {
           logoUrl: merged.logoUrl ? "(presente)" : "(ausente)",
         });
         setCompany(merged);
+        // Garante que o `userProfile` em localStorage reflita o status de
+        // empresário do usuário atual. Sem isso, ao clicar em "Página inicial"
+        // a Home renderiza com cache antigo (sem managedCompanyId/role), o
+        // botão "Painel Empresa" some e "Crie seu perfil" aparece até que
+        // o effect onAuthStateChanged da Home termine de re-popular o perfil.
+        try {
+          let existing = {};
+          try {
+            existing = JSON.parse(localStorage.getItem("userProfile") || "{}");
+          } catch {
+            existing = {};
+          }
+          const refreshed = {
+            ...existing,
+            uid: existing.uid || currentUser?.uid,
+            id: existing.id || currentUser?.uid,
+            email: existing.email || currentUser?.email || "",
+            role: existing.role || fullUser?.role || "admin_empresa",
+            userType: existing.userType || fullUser?.userType || "empresario",
+            isEmployer: true,
+            managedCompanyId: best.id || fullUser?.managedCompanyId || existing.managedCompanyId || null,
+            managedCompanyName:
+              merged.razaoSocial || merged.name || existing.managedCompanyName || null,
+          };
+          localStorage.setItem("userProfile", JSON.stringify(refreshed));
+          window.dispatchEvent(new Event("trabalheiLa_user_updated"));
+        } catch (err) {
+          console.warn("[EmpresaDashboard] falha ao sincronizar userProfile no localStorage", err);
+        }
         setPrefs((prev) => ({
           notifyOnReview: best.data?.prefs?.notifyOnReview ?? prev.notifyOnReview,
           publicProfile: best.data?.prefs?.publicProfile ?? prev.publicProfile,
