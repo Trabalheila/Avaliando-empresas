@@ -145,7 +145,10 @@ function Home({ theme, toggleTheme }) {
     }
   }, [location.search]);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [firebaseStatus, setFirebaseStatus] = useState("verificando...");
+  // firebaseStatus é renderizado apenas como aviso de erro (texto em vermelho).
+  // Inicia vazio para não exibir um placeholder ("verificando...") enquanto o
+  // ping de conexão está em andamento. Só será preenchido se o ping falhar.
+  const [firebaseStatus, setFirebaseStatus] = useState("");
   // eslint-disable-next-line no-unused-vars
   const [isLaunchPopupVisible, setIsLaunchPopupVisible] = useState(() => {
     try {
