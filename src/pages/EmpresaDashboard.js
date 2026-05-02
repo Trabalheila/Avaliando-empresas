@@ -219,6 +219,10 @@ export default function EmpresaDashboard() {
   // Carrega o documento da empresa do Firestore (sem recadastrar CNPJ).
   const loadCompany = useCallback(async (currentUser) => {
     setLoading(true);
+    console.log("[EmpresaDashboard] loadCompany start", {
+      uid: currentUser?.uid,
+      email: currentUser?.email,
+    });
     try {
       let data = null;
       let docId = null;
@@ -229,9 +233,10 @@ export default function EmpresaDashboard() {
         if (!snap.empty) {
           data = snap.docs[0].data();
           docId = snap.docs[0].id;
+          console.log("[EmpresaDashboard] empresa carregada por ownerUid", { docId });
         }
-      } catch {
-        /* segue */
+      } catch (err) {
+        console.warn("[EmpresaDashboard] erro ao buscar por ownerUid", err);
       }
 
       // 2) fallback por e-mail (que é como o cadastro original grava).
@@ -240,11 +245,23 @@ export default function EmpresaDashboard() {
         if (!snap.empty) {
           data = snap.docs[0].data();
           docId = snap.docs[0].id;
+          console.log("[EmpresaDashboard] empresa carregada por email", { docId });
         }
       }
 
       if (data) {
-        setCompany({ id: docId, ...data });
+        const merged = { id: docId, ...data };
+        console.log("[EmpresaDashboard] dados da empresa", {
+          id: docId,
+          razaoSocial: merged.razaoSocial,
+          cnpj: merged.cnpj,
+          cnaeCodigo: merged.cnaeCodigo || merged.cnae?.codigo,
+          cnaeDescricao: merged.cnaeDescricao || merged.cnae?.descricao,
+          setor: merged.setor,
+          situacaoCadastral: merged.situacaoCadastral,
+          logoUrl: merged.logoUrl ? "(presente)" : "(ausente)",
+        });
+        setCompany(merged);
         setPrefs((prev) => ({
           notifyOnReview: data?.prefs?.notifyOnReview ?? prev.notifyOnReview,
           publicProfile: data?.prefs?.publicProfile ?? prev.publicProfile,
@@ -254,6 +271,7 @@ export default function EmpresaDashboard() {
           clt: data?.funcionariosCLT != null ? String(data.funcionariosCLT) : "",
         });
       } else {
+        console.warn("[EmpresaDashboard] nenhuma empresa encontrada para este usuário");
         setCompany(null);
       }
     } finally {

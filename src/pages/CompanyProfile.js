@@ -125,6 +125,11 @@ export default function CompanyProfile() {
       return "";
     }
   }, [location.search]);
+  console.log("[CompanyProfile] render", {
+    cidFromUrl: companyIdFromUrl,
+    pathname: location.pathname,
+    search: location.search,
+  });
   const [user, setUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -444,14 +449,17 @@ export default function CompanyProfile() {
     );
   }
 
-  if (!user) {
+  // Perfil público: acessível a qualquer visitante quando houver `?cid=` na URL.
+  // Só exibimos a tela "Acesso restrito" quando não há cid na URL E não há usuário
+  // logado (ou seja, não há nenhuma forma de identificar qual empresa carregar).
+  if (!user && !companyIdFromUrl) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-[480px] bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-10 text-center">
           <div className="text-2xl font-extrabold text-blue-700 dark:text-blue-300 tracking-tight">Trabalhei Lá</div>
-          <h1 className="mt-6 text-xl font-bold text-slate-800 dark:text-slate-100">Acesso restrito</h1>
+          <h1 className="mt-6 text-xl font-bold text-slate-800 dark:text-slate-100">Selecione uma empresa</h1>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-            Faça login com a conta da sua empresa para ver o perfil.
+            Para ver um perfil público, abra-o a partir do dashboard ou da lista de empresas.
           </p>
           <button
             type="button"
@@ -465,6 +473,30 @@ export default function CompanyProfile() {
     );
   }
 
+  if (!company) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center px-4 py-10">
+        <div className="w-full max-w-[480px] bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-10 text-center">
+          <div className="text-2xl font-extrabold text-blue-700 dark:text-blue-300 tracking-tight">Trabalhei Lá</div>
+          <h1 className="mt-6 text-xl font-bold text-slate-800 dark:text-slate-100">Empresa não encontrada</h1>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            Não foi possível localizar os dados desta empresa.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="mt-6 w-full h-12 rounded-lg font-bold text-blue-700 dark:text-blue-300 border border-blue-700 dark:border-blue-300 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+          >
+            Voltar para a página inicial
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Visitantes (não logados ou logados que não são donos) não podem editar nem responder.
+  const isOwner = !!user && (company?.ownerUid === user.uid || company?.email === user.email);
+
   const labelClass = "block mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-200";
   const inputClass =
     "w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition";
@@ -477,32 +509,49 @@ export default function CompanyProfile() {
           <div className="flex flex-col sm:flex-row gap-6 items-start">
             {/* Logo + upload */}
             <div className="shrink-0">
-              <label className="relative block w-28 h-28 rounded-2xl overflow-hidden border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 cursor-pointer group">
-                {company?.logoUrl ? (
-                  <img src={company.logoUrl} alt="Logo da empresa" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
-                    <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14" />
-                      <circle cx="9" cy="9" r="2" />
-                      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-                    </svg>
-                    <span className="text-[11px] mt-1">Adicionar logo</span>
-                  </div>
-                )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleLogoUpload}
-                  disabled={logoUploading}
-                />
-                {logoUploading && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <div className="w-6 h-6 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                  </div>
-                )}
-              </label>
+              {isOwner ? (
+                <label className="relative block w-28 h-28 rounded-2xl overflow-hidden border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 cursor-pointer group">
+                  {company?.logoUrl ? (
+                    <img src={company.logoUrl} alt="Logo da empresa" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
+                      <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14" />
+                        <circle cx="9" cy="9" r="2" />
+                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                      </svg>
+                      <span className="text-[11px] mt-1">Adicionar logo</span>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleLogoUpload}
+                    disabled={logoUploading}
+                  />
+                  {logoUploading && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    </div>
+                  )}
+                </label>
+              ) : (
+                <div className="relative block w-28 h-28 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+                  {company?.logoUrl ? (
+                    <img src={company.logoUrl} alt={`Logo de ${company?.razaoSocial || "empresa"}`} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
+                      <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14" />
+                        <circle cx="9" cy="9" r="2" />
+                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                      </svg>
+                      <span className="text-[11px] mt-1">Sem logo</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Infos */}
@@ -549,17 +598,19 @@ export default function CompanyProfile() {
               </div>
 
               <div className="mt-5">
-                <button
-                  type="button"
-                  onClick={openEdit}
-                  className="inline-flex items-center gap-2 px-4 h-10 rounded-lg font-bold text-blue-700 dark:text-blue-300 border border-blue-700 dark:border-blue-300 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                  Editar informações da empresa
-                </button>
+                {isOwner && (
+                  <button
+                    type="button"
+                    onClick={openEdit}
+                    className="inline-flex items-center gap-2 px-4 h-10 rounded-lg font-bold text-blue-700 dark:text-blue-300 border border-blue-700 dark:border-blue-300 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                    Editar informações da empresa
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -618,7 +669,7 @@ export default function CompanyProfile() {
                       <div className="text-[11px] font-bold text-blue-700 dark:text-blue-300 tracking-wider">RESPOSTA DA EMPRESA</div>
                       <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">{reply.text}</p>
                     </div>
-                  ) : (
+                  ) : isOwner ? (
                     <div className="mt-3">
                       <textarea
                         rows={2}
@@ -649,7 +700,7 @@ export default function CompanyProfile() {
                         </button>
                       </div>
                     </div>
-                  )}
+                  ) : null}
                 </li>
               );
             })}
