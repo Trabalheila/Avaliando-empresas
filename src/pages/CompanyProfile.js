@@ -299,6 +299,19 @@ export default function CompanyProfile() {
   }, [company]);
 
   const isPremium = company?.plan === "premium";
+  // Trial Premium ativo: empresário com `isPremiumTrialActive=true` e
+  // `premiumTrialEndDate` ainda no futuro deve ter o mesmo acesso de
+  // métricas avançadas que um Premium pago.
+  const trialEndMs = useMemo(() => {
+    const v = company?.premiumTrialEndDate;
+    if (!v) return 0;
+    if (typeof v?.toMillis === "function") return v.toMillis();
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? 0 : d.getTime();
+  }, [company?.premiumTrialEndDate]);
+  const trialActive =
+    !!company?.isPremiumTrialActive && trialEndMs > Date.now();
+  const effectivePremium = isPremium || trialActive;
   const isVerified = !!company?.verified || !!user?.emailVerified;
 
   const visibleReviews = useMemo(() => {
@@ -749,7 +762,7 @@ export default function CompanyProfile() {
             Indicadores estratégicos para sua gestão de pessoas e reputação.
           </p>
 
-          <div className={`mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 ${isPremium ? "" : "blur-sm select-none pointer-events-none"}`}>
+          <div className={`mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 ${effectivePremium ? "" : "blur-sm select-none pointer-events-none"}`}>
             {LOCKED_METRICS.map((m, i) => (
               <div key={i} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-4">
                 <div className="flex items-center gap-3">
@@ -763,7 +776,7 @@ export default function CompanyProfile() {
             ))}
           </div>
 
-          {!isPremium && (
+          {!effectivePremium && (
             <div className="absolute inset-0 flex items-center justify-center p-6">
               <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-blue-200 dark:border-blue-800 p-6 text-center">
                 <div className="inline-flex items-center gap-1.5 bg-blue-700 text-white text-[11px] font-bold tracking-wider px-3 py-1 rounded-full">
