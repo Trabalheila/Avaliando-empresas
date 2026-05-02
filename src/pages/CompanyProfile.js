@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import RestrictedComment from "../components/RestrictedComment";
 import WorkPeriodBadge from "../components/WorkPeriodBadge";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import {
   collection,
   query,
   where,
   getDocs,
+  getDoc,
   doc,
   setDoc,
   updateDoc,
@@ -114,6 +115,16 @@ function StarRow({ value = 0, size = "h-5 w-5" }) {
 
 export default function CompanyProfile() {
   const navigate = useNavigate();
+  const location = useLocation();
+  // companyId pode vir via query string (?cid=...) ao navegar do Dashboard.
+  const companyIdFromUrl = useMemo(() => {
+    try {
+      const sp = new URLSearchParams(location.search);
+      return (sp.get("cid") || sp.get("companyId") || "").trim();
+    } catch {
+      return "";
+    }
+  }, [location.search]);
   const [user, setUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -137,31 +148,62 @@ export default function CompanyProfile() {
     return () => unsub();
   }, []);
 
-  // Carrega empresa: tenta por UID; cai para busca por e-mail.
+  // Carrega empresa: prioridade =>
+  //   1) `?cid=<docId>` na URL (vindo do Dashboard "Ver perfil público")
+  //   2) busca por `ownerUid == user.uid`
+  //   3) busca por `email == user.email`
+  //   4) cria placeholder em memória (uid)
   const loadCompany = useCallback(async (currentUser) => {
-    if (!currentUser) return null;
+    if (!currentUser && !companyIdFromUrl) return null;
     setLoading(true);
     try {
-      const byUidRef = doc(db, "companies", currentUser.uid);
-      // Buscamos via query para evitar getDoc adicional caso a doc não exista
+      console.log("[CompanyProfile] loadCompany start", {
+        cid: companyIdFromUrl,
+        uid: currentUser?.uid,
+        email: currentUser?.email,
+      });
       let data = null;
       let docId = null;
 
-      try {
-        const snap = await getDocs(query(collection(db, "companies"), where("ownerUid", "==", currentUser.uid)));
-        if (!snap.empty) {
-          data = snap.docs[0].data();
-          docId = snap.docs[0].id;
+      // 1) carregar pelo companyId da URL.
+      if (companyIdFromUrl) {
+        try {
+          const snap = await getDoc(doc(db, "companies", companyIdFromUrl));
+          if (snap.exists()) {
+            data = snap.data();
+            docId = snap.id;
+            console.log("[CompanyProfile] empresa carregada por cid", { docId, data });
+          } else {
+            console.warn("[CompanyProfile] cid não encontrado em /companies", companyIdFromUrl);
+          }
+        } catch (err) {
+          console.warn("[CompanyProfile] erro ao buscar por cid", err);
         }
-      } catch {
-        // ignora
       }
 
-      if (!data && currentUser.email) {
+      const byUidRef = currentUser ? doc(db, "companies", currentUser.uid) : null;
+
+      // 2) ownerUid
+      if (!data && currentUser?.uid) {
+        try {
+          const snap = await getDocs(query(collection(db, "companies"), where("ownerUid", "==", currentUser.uid)));
+          if (!snap.empty) {
+            data = snap.docs[0].data();
+            docId = snap.docs[0].id;
+            console.log("[CompanyProfile] empresa carregada por ownerUid", { docId });
+          }
+        } catch {
+          // ignora
+        }
+      }
+
+      // 3) email
+      if (!data && currentUser?.email) {
         const snap = await getDocs(query(collection(db, "companies"), where("email", "==", currentUser.email)));
         if (!snap.empty) {
           data = snap.docs[0].data();
           docId = snap.docs[0].id;
+          console.log("[CompanyProfile] empresa carregada por email", { docId });
         }
       }
 
@@ -169,36 +211,39 @@ export default function CompanyProfile() {
         setCompany({ id: docId, ...data });
         return { id: docId, ...data };
       }
-      // Sem registro: cria placeholder em memória usando uid
-      setCompany({
-        id: byUidRef.id,
-        ownerUid: currentUser.uid,
-        email: currentUser.email || "",
-        razaoSocial: "",
-        cnpj: "",
-        ramo: "",
-        location: "",
-        site: "",
-        socials: { linkedin: "", instagram: "" },
-        logoUrl: "",
-        verified: !!currentUser.emailVerified,
-        plan: "free",
-        repliesUsedThisMonth: 0,
-      });
+      // 4) Sem registro: cria placeholder em memória usando uid
+      if (byUidRef) {
+        console.log("[CompanyProfile] nenhum doc encontrado — criando placeholder");
+        setCompany({
+          id: byUidRef.id,
+          ownerUid: currentUser.uid,
+          email: currentUser.email || "",
+          razaoSocial: "",
+          cnpj: "",
+          ramo: "",
+          location: "",
+          site: "",
+          socials: { linkedin: "", instagram: "" },
+          logoUrl: "",
+          verified: !!currentUser.emailVerified,
+          plan: "free",
+          repliesUsedThisMonth: 0,
+        });
+      }
       return null;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [companyIdFromUrl]);
 
   useEffect(() => {
     if (!authReady) return;
-    if (!user) {
+    if (!user && !companyIdFromUrl) {
       setLoading(false);
       return;
     }
     loadCompany(user);
-  }, [authReady, user, loadCompany]);
+  }, [authReady, user, companyIdFromUrl, loadCompany]);
 
   // Carrega comentários públicos referentes à empresa
   useEffect(() => {
@@ -252,7 +297,7 @@ export default function CompanyProfile() {
 
   const openEdit = () => {
     if (!company) return;
-    setEditForm({
+    const initial = {
       razaoSocial: company.razaoSocial || "",
       cnpj: company.cnpj || "",
       ramo: company.ramo || "",
@@ -260,7 +305,9 @@ export default function CompanyProfile() {
       site: company.site || "",
       linkedin: company.socials?.linkedin || "",
       instagram: company.socials?.instagram || "",
-    });
+    };
+    console.log("[CompanyProfile] openEdit — pre-preenchendo formulário com", initial);
+    setEditForm(initial);
     setEditOpen(true);
   };
 
@@ -268,9 +315,11 @@ export default function CompanyProfile() {
     if (!user || !editForm) return;
     setSavingEdit(true);
     try {
-      const ref = doc(db, "companies", user.uid);
+      // Usa o id real do doc da empresa quando disponível; senão cai para o uid.
+      const targetId = company?.id || user.uid;
+      const ref = doc(db, "companies", targetId);
       const payload = {
-        ownerUid: user.uid,
+        ownerUid: company?.ownerUid || user.uid,
         email: user.email || company?.email || "",
         razaoSocial: editForm.razaoSocial.trim(),
         cnpj: (editForm.cnpj || "").replace(/\D/g, ""),
@@ -283,8 +332,9 @@ export default function CompanyProfile() {
         },
         updatedAt: serverTimestamp(),
       };
+      console.log("[CompanyProfile] salvando edição", { targetId, payload });
       await setDoc(ref, payload, { merge: true });
-      setCompany((prev) => ({ ...(prev || {}), ...payload, id: user.uid }));
+      setCompany((prev) => ({ ...(prev || {}), ...payload, id: targetId }));
       setEditOpen(false);
     } catch (err) {
       console.error("Erro ao salvar empresa:", err);
@@ -305,8 +355,13 @@ export default function CompanyProfile() {
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
-      const ref = doc(db, "companies", user.uid);
-      await setDoc(ref, { ownerUid: user.uid, logoUrl: dataUrl, updatedAt: serverTimestamp() }, { merge: true });
+      const targetId = company?.id || user.uid;
+      const ref = doc(db, "companies", targetId);
+      await setDoc(
+        ref,
+        { ownerUid: company?.ownerUid || user.uid, logoUrl: dataUrl, updatedAt: serverTimestamp() },
+        { merge: true }
+      );
       setCompany((prev) => ({ ...(prev || {}), logoUrl: dataUrl }));
     } catch (err) {
       console.error("Erro no upload do logo:", err);

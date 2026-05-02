@@ -936,7 +936,11 @@ export default function EmpresaDashboard() {
               </button>
               <button
                 type="button"
-                onClick={() => navigate("/empresa/perfil")}
+                onClick={() => navigate(
+                  company?.id
+                    ? `/empresa/perfil?cid=${encodeURIComponent(company.id)}`
+                    : "/empresa/perfil"
+                )}
                 className="h-10 px-4 rounded-lg font-bold text-blue-700 dark:text-blue-300 border border-blue-700 dark:border-blue-300 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
               >
                 Ver perfil público
@@ -1789,7 +1793,11 @@ export default function EmpresaDashboard() {
           <div className="mt-5 flex items-center justify-end gap-3">
             <button
               type="button"
-              onClick={() => navigate("/empresa/perfil")}
+              onClick={() => navigate(
+                company?.id
+                  ? `/empresa/perfil?cid=${encodeURIComponent(company.id)}`
+                  : "/empresa/perfil"
+              )}
               className="h-11 px-4 rounded-lg font-bold text-blue-700 dark:text-blue-300 border border-blue-700 dark:border-blue-300 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
             >
               Editar perfil público
