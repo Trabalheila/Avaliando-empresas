@@ -715,12 +715,11 @@ function TrabalheiLaMobile({
                 )}
                 <div className="flex flex-wrap items-center gap-1 mt-0.5">
                   {(() => {
-                    // Esconde "Crie seu perfil" / "Editar perfil" para empresários
-                    // (role admin_empresa) — esse botão cria o perfil de avaliador.
-                    try {
-                      const { getUserRole } = require("./utils/rbac");
-                      if (getUserRole() === "admin_empresa") return null;
-                    } catch { /* segue */ }
+                    // Regra: empresário vê apenas "Painel Empresa";
+                    // demais usuários vêem apenas "Crie seu perfil".
+                    const role = (userProfile?.role || "").toString().toLowerCase().trim();
+                    const isEmployer = role === "admin_empresa";
+                    if (isEmployer) return null;
                     return (
                       <a
                         href="/pseudonym"
@@ -739,21 +738,17 @@ function TrabalheiLaMobile({
                   </a>
                 </div>
                 {(() => {
-                  try {
-                    const { getUserRole, isPremium, isAdmin } = require("./utils/rbac");
-                    const role = getUserRole();
-                    if (role === "admin_empresa" || isPremium() || isAdmin()) {
-                      return (
-                        <a
-                          href="https://www.trabalheila.com.br/empresa-dashboard"
-                          className="inline-flex items-center mt-0.5 px-2.5 py-1 rounded-full bg-amber-400 text-amber-900 text-[11px] font-bold hover:bg-amber-500 shadow-sm transition"
-                        >
-                          Painel Empresa
-                        </a>
-                      );
-                    }
-                  } catch { /* silencioso */ }
-                  return null;
+                  const role = (userProfile?.role || "").toString().toLowerCase().trim();
+                  const isEmployer = role === "admin_empresa";
+                  if (!isEmployer) return null;
+                  return (
+                    <a
+                      href="https://www.trabalheila.com.br/empresa-dashboard"
+                      className="inline-flex items-center mt-0.5 px-2.5 py-1 rounded-full bg-amber-400 text-amber-900 text-[11px] font-bold hover:bg-amber-500 shadow-sm transition"
+                    >
+                      Painel Empresa
+                    </a>
+                  );
                 })()}
                 {(() => {
                   try {
