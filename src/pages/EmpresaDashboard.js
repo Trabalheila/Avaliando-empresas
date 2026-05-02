@@ -335,6 +335,30 @@ export default function EmpresaDashboard() {
         }
       }
 
+      // 1a-bis) fallback: managedCompanyId guardado em localStorage.userProfile
+      // (gravado por loadCompany após primeira carga bem-sucedida ou pelo
+      // effect de enriquecimento na Home). Cobre o caso em que /users/{uid}
+      // ainda não tem o vínculo.
+      if (!collected.length) {
+        try {
+          const stored = JSON.parse(localStorage.getItem("userProfile") || "null");
+          const lsId = stored?.managedCompanyId;
+          if (lsId && lsId !== managedCompanyId) {
+            console.log("Fallback localStorage managedCompanyId:", lsId);
+            const cSnap = await getDoc(doc(db, "companies", lsId));
+            if (cSnap.exists()) {
+              collected.push({
+                id: cSnap.id,
+                data: cSnap.data(),
+                source: "managedCompanyId-localStorage",
+              });
+            }
+          }
+        } catch (err) {
+          console.warn("[EmpresaDashboard] erro ao usar fallback localStorage", err);
+        }
+      }
+
       // 1) por ownerUid (todos os matches; pode haver mais de um).
       try {
         const snap = await getDocs(query(collection(db, "companies"), where("ownerUid", "==", currentUser.uid)));
@@ -430,13 +454,25 @@ export default function EmpresaDashboard() {
         setCompany(null);
         setLoadError(queryErrors[0]?.err || new Error("Falha ao carregar dados."));
       } else {
-        console.warn("[EmpresaDashboard] nenhuma empresa encontrada para este usuário");
-        setCompany(null);
+        // Sem candidatos e sem erros: pode ser propagação lenta de token /
+        // race com onAuthStateChanged. Na 1a tentativa sinalizamos como erro
+        // recuperável para acionar o auto-retry, antes de mostrar
+        // "Empresa não encontrada" definitivamente.
+        if (reloadKey === 0) {
+          console.warn(
+            "[EmpresaDashboard] nenhuma empresa na 1a tentativa — agendando retry"
+          );
+          setCompany(null);
+          setLoadError(new Error("Nenhuma empresa encontrada (1a tentativa)."));
+        } else {
+          console.warn("[EmpresaDashboard] nenhuma empresa encontrada para este usuário");
+          setCompany(null);
+        }
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [reloadKey]);
 
   // Auto-retry uma vez quando houve erro de carregamento (mitiga
   // intermitências de propagação de token / rede logo após login).

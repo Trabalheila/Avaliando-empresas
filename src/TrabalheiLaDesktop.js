@@ -590,12 +590,13 @@ function TrabalheiLaDesktop({
                           Boolean(userProfile?.managedCompanyId);
                         if (!isEmployer) return null;
                         return (
-                          <a
-                            href="/empresa-dashboard"
+                          <button
+                            type="button"
+                            onClick={() => navigate("/empresa-dashboard")}
                             className="inline-flex items-center mt-1 px-3 py-1.5 rounded-full bg-amber-400 text-amber-900 text-xs font-bold tracking-normal hover:bg-amber-500 shadow-md transition"
                           >
                             Painel Empresa
-                          </a>
+                          </button>
                         );
                       })()}
                       {(() => {

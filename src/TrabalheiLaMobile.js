@@ -752,12 +752,13 @@ function TrabalheiLaMobile({
                     Boolean(userProfile?.managedCompanyId);
                   if (!isEmployer) return null;
                   return (
-                    <a
-                      href="/empresa-dashboard"
+                    <button
+                      type="button"
+                      onClick={() => navigate("/empresa-dashboard")}
                       className="inline-flex items-center mt-0.5 px-2.5 py-1 rounded-full bg-amber-400 text-amber-900 text-[11px] font-bold hover:bg-amber-500 shadow-sm transition"
                     >
                       Painel Empresa
-                    </a>
+                    </button>
                   );
                 })()}
                 {(() => {
