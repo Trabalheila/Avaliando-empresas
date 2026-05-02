@@ -8,7 +8,8 @@ import { saveCompany, listCompanies, enrichCompanyWithBrasilAPI } from "./servic
 import { getUserProfile, saveUserProfile, findUnifiedProfile } from "./services/users";
 import { auth, db } from "./firebase";
 import { signInAnonymously, signInWithPopup, signOut } from "firebase/auth";
-import { doc, setDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
 import { googleProvider } from "./firebase";
 import { isAdmin, getUserRole } from "./utils/rbac";
 import {
@@ -510,6 +511,30 @@ function Home({ theme, toggleTheme }) {
             next.workModelStats = bucket.workModelStats;
 
             map.set(companyName, next);
+          }
+
+          // Pós-processo: propaga logoUrl/razaoSocial entre empresas que
+          // compartilham o mesmo CNPJ. Casos comuns: o doc da empresa criado
+          // pelo empresário (com `razaoSocial` e `logoUrl`) tem nome diferente
+          // do registro pré-existente em `empresas` (nome fantasia/cadastro
+          // antigo). Sem esta etapa, o logo nunca aparece para esse cliente.
+          const cnpjLogoMap = new Map();
+          for (const rc of remoteCompanies) {
+            const cnpjDigits = String(rc?.cnpj || "").replace(/\D/g, "");
+            if (!cnpjDigits || cnpjDigits.length < 8) continue;
+            if (rc?.logoUrl && !cnpjLogoMap.has(cnpjDigits)) {
+              cnpjLogoMap.set(cnpjDigits, rc.logoUrl);
+            }
+          }
+          if (cnpjLogoMap.size > 0) {
+            for (const [k, emp] of map.entries()) {
+              const cnpjDigits = String(emp?.cnpj || "").replace(/\D/g, "");
+              if (!cnpjDigits) continue;
+              const logoUrl = cnpjLogoMap.get(cnpjDigits);
+              if (logoUrl && !emp.logoUrl) {
+                map.set(k, { ...emp, logoUrl });
+              }
+            }
           }
 
           return sortCompaniesAlphabetically(
@@ -1420,6 +1445,93 @@ function Home({ theme, toggleTheme }) {
       window.removeEventListener("trabalheiLa_user_updated", updateFromStorage);
       window.removeEventListener("focus", updateFromStorage);
     };
+  }, []);
+
+  // Enriquecimento do userProfile via /users/{uid} no Firestore.
+  // Sem isso, role/userType/managedCompanyId/isEmployer ficam ausentes em
+  // localStorage para empresários que cadastraram via fluxos que não
+  // gravam essas chaves localmente — o que faz o botão "Painel Empresa"
+  // sumir e "Crie seu perfil" aparecer indevidamente.
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (!u) return;
+      try {
+        const snap = await getDoc(doc(db, "users", u.uid));
+        if (!snap.exists()) return;
+        const data = snap.data() || {};
+        let existing = {};
+        try {
+          existing = JSON.parse(localStorage.getItem("userProfile") || "{}");
+        } catch {
+          existing = {};
+        }
+        const merged = {
+          ...existing,
+          uid: existing.uid || u.uid,
+          id: existing.id || u.uid,
+          email: existing.email || u.email || "",
+          name: existing.name || u.displayName || data.name || "",
+          // Campos do perfil usados para detectar empresário:
+          role: data.role || existing.role || "",
+          userType: data.userType || existing.userType || "",
+          isEmployer:
+            data.isEmployer === true ||
+            existing.isEmployer === true ||
+            data.role === "admin_empresa" ||
+            existing.role === "admin_empresa",
+          managedCompanyId:
+            data.managedCompanyId || existing.managedCompanyId || null,
+          managedCompanyName:
+            data.managedCompanyName || existing.managedCompanyName || null,
+        };
+        localStorage.setItem("userProfile", JSON.stringify(merged));
+        window.dispatchEvent(new Event("trabalheiLa_user_updated"));
+
+        // Propaga o logoUrl da empresa do usuário para o estado `empresas`,
+        // garantindo que o card da home exiba a logo cadastrada mesmo quando
+        // o doc não foi retornado por listCompanies (sem createdAt, paginação,
+        // diferença de nome entre o cadastro antigo e o atual etc.).
+        try {
+          const candidates = [];
+          if (merged.managedCompanyId) {
+            const cSnap = await getDoc(doc(db, "companies", merged.managedCompanyId));
+            if (cSnap.exists()) candidates.push({ id: cSnap.id, ...cSnap.data() });
+          }
+          if (!candidates.length) {
+            const qs = await getDocs(
+              query(collection(db, "companies"), where("ownerUid", "==", u.uid))
+            );
+            qs.docs.forEach((d) => candidates.push({ id: d.id, ...d.data() }));
+          }
+          const ownCompany = candidates.find((c) => c?.logoUrl) || candidates[0];
+          if (ownCompany?.logoUrl) {
+            const ownCnpj = String(ownCompany.cnpj || "").replace(/\D/g, "");
+            const ownRazao = (ownCompany.razaoSocial || ownCompany.name || "")
+              .toString()
+              .toLowerCase();
+            setEmpresas((prev) =>
+              prev.map((emp) => {
+                const empCnpj = String(emp.cnpj || "").replace(/\D/g, "");
+                const empName = (emp.company || "").toString().toLowerCase();
+                const matchByCnpj =
+                  ownCnpj && empCnpj && empCnpj === ownCnpj;
+                const matchByName =
+                  ownRazao && empName && (empName.includes(ownRazao) || ownRazao.includes(empName));
+                if ((matchByCnpj || matchByName) && !emp.logoUrl) {
+                  return { ...emp, logoUrl: ownCompany.logoUrl };
+                }
+                return emp;
+              })
+            );
+          }
+        } catch (err) {
+          console.warn("[Home] falha ao propagar logo da empresa do usuário", err);
+        }
+      } catch (err) {
+        console.warn("[Home] falha ao enriquecer userProfile com /users/{uid}", err);
+      }
+    });
+    return () => unsub();
   }, []);
 
   const handleLogout = useCallback(async () => {

@@ -715,10 +715,14 @@ function TrabalheiLaMobile({
                 )}
                 <div className="flex flex-wrap items-center gap-1 mt-0.5">
                   {(() => {
-                    // Regra: empresário vê apenas "Painel Empresa";
-                    // demais usuários vêem apenas "Crie seu perfil".
                     const role = (userProfile?.role || "").toString().toLowerCase().trim();
-                    const isEmployer = role === "admin_empresa";
+                    const userType = (userProfile?.userType || "").toString().toLowerCase().trim();
+                    const isEmployer =
+                      role === "admin_empresa" ||
+                      userType === "empresario" ||
+                      userType === "empres\u00e1rio" ||
+                      userProfile?.isEmployer === true ||
+                      Boolean(userProfile?.managedCompanyId);
                     if (isEmployer) return null;
                     return (
                       <a
@@ -739,11 +743,17 @@ function TrabalheiLaMobile({
                 </div>
                 {(() => {
                   const role = (userProfile?.role || "").toString().toLowerCase().trim();
-                  const isEmployer = role === "admin_empresa";
+                  const userType = (userProfile?.userType || "").toString().toLowerCase().trim();
+                  const isEmployer =
+                    role === "admin_empresa" ||
+                    userType === "empresario" ||
+                    userType === "empres\u00e1rio" ||
+                    userProfile?.isEmployer === true ||
+                    Boolean(userProfile?.managedCompanyId);
                   if (!isEmployer) return null;
                   return (
                     <a
-                      href="https://www.trabalheila.com.br/empresa-dashboard"
+                      href="/empresa-dashboard"
                       className="inline-flex items-center mt-0.5 px-2.5 py-1 rounded-full bg-amber-400 text-amber-900 text-[11px] font-bold hover:bg-amber-500 shadow-sm transition"
                     >
                       Painel Empresa

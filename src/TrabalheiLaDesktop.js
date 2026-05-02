@@ -554,11 +554,20 @@ function TrabalheiLaDesktop({
                       )}
                       {(() => {
                         // Regra de negócio:
-                        //  - empresário (role === "admin_empresa") => apenas "Painel Empresa".
-                        //  - trabalhador (qualquer outra role) => apenas "Crie seu perfil".
+                        //  - empresário => apenas "Painel Empresa".
+                        //  - trabalhador => apenas "Crie seu perfil".
                         //  - não logado => bloco não é renderizado (envolvido por isAuthenticated).
+                        // Detecção de empresário aceita múltiplos sinais para evitar
+                        // dependência exclusiva de role === "admin_empresa" (que pode
+                        // não ter sido sincronizado em todos os fluxos de cadastro).
                         const role = (userProfile?.role || "").toString().toLowerCase().trim();
-                        const isEmployer = role === "admin_empresa";
+                        const userType = (userProfile?.userType || "").toString().toLowerCase().trim();
+                        const isEmployer =
+                          role === "admin_empresa" ||
+                          userType === "empresario" ||
+                          userType === "empres\u00e1rio" ||
+                          userProfile?.isEmployer === true ||
+                          Boolean(userProfile?.managedCompanyId);
                         if (isEmployer) return null;
                         return (
                           <a
@@ -572,11 +581,17 @@ function TrabalheiLaDesktop({
                       })()}
                       {(() => {
                         const role = (userProfile?.role || "").toString().toLowerCase().trim();
-                        const isEmployer = role === "admin_empresa";
+                        const userType = (userProfile?.userType || "").toString().toLowerCase().trim();
+                        const isEmployer =
+                          role === "admin_empresa" ||
+                          userType === "empresario" ||
+                          userType === "empres\u00e1rio" ||
+                          userProfile?.isEmployer === true ||
+                          Boolean(userProfile?.managedCompanyId);
                         if (!isEmployer) return null;
                         return (
                           <a
-                            href="https://www.trabalheila.com.br/empresa-dashboard"
+                            href="/empresa-dashboard"
                             className="inline-flex items-center mt-1 px-3 py-1.5 rounded-full bg-amber-400 text-amber-900 text-xs font-bold tracking-normal hover:bg-amber-500 shadow-md transition"
                           >
                             Painel Empresa
