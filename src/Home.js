@@ -8,9 +8,9 @@ import { saveCompany, listCompanies, enrichCompanyWithBrasilAPI } from "./servic
 import { getUserProfile, saveUserProfile, findUnifiedProfile } from "./services/users";
 import { auth, db } from "./firebase";
 import { signInAnonymously, signInWithPopup, signOut } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
 import { googleProvider } from "./firebase";
-import { isAdmin } from "./utils/rbac";
+import { isAdmin, getUserRole } from "./utils/rbac";
 import {
   clearStoredProfileId,
   isProfileAuthenticated,
@@ -1191,7 +1191,7 @@ function Home({ theme, toggleTheme }) {
   // Compartilhado entre o clique inicial em "Enviar Avaliação" (quando o
   // captcha já está confirmado) e a confirmação do captcha (que continua o
   // fluxo automaticamente, sem exigir um segundo clique do usuário).
-  const runSubmissionValidationsAndOpenResponsibility = useCallback(() => {
+  const runSubmissionValidationsAndOpenResponsibility = useCallback(async () => {
     if (!isAuthenticated) {
       setError("Por favor, faça login para enviar sua avaliação.");
       return;
@@ -1199,6 +1199,76 @@ function Home({ theme, toggleTheme }) {
     if (!company) {
       setError("Por favor, selecione uma empresa para avaliar.");
       return;
+    }
+
+    // Bloqueia empresários (role admin_empresa) de avaliar a própria empresa
+    // que gerenciam, garantindo a imparcialidade das avaliações.
+    try {
+      if (getUserRole() === "admin_empresa") {
+        const selected = (company?.value || "").toString().trim().toLowerCase();
+        const norm = (v) => (v || "").toString().trim().toLowerCase();
+        const selectedCnpj = norm(company?.cnpj).replace(/\D/g, "");
+
+        // 1) Compara contra campos já presentes no perfil local.
+        const profileNames = [
+          userProfile?.managedCompanyName,
+          userProfile?.companyName,
+          userProfile?.empresaNome,
+          userProfile?.razaoSocial,
+        ].map(norm).filter(Boolean);
+        const profileCnpjs = [
+          userProfile?.managedCompanyCnpj,
+          userProfile?.companyCnpj,
+          userProfile?.cnpj,
+        ]
+          .map((v) => (v || "").toString().replace(/\D/g, ""))
+          .filter(Boolean);
+
+        let isOwnCompany =
+          (selected && profileNames.includes(selected)) ||
+          (selectedCnpj && profileCnpjs.includes(selectedCnpj));
+
+        // 2) Fallback: consulta Firestore por ownerUid/email do usuário.
+        if (!isOwnCompany) {
+          const uid = (userProfile?.uid || userProfile?.id || auth?.currentUser?.uid || "").toString();
+          const email = (userProfile?.email || auth?.currentUser?.email || "").toString();
+          const matches = [];
+          try {
+            if (uid) {
+              const snap = await getDocs(
+                query(collection(db, "companies"), where("ownerUid", "==", uid))
+              );
+              snap.forEach((d) => matches.push(d.data() || {}));
+            }
+          } catch { /* segue */ }
+          try {
+            if (email && matches.length === 0) {
+              const snap = await getDocs(
+                query(collection(db, "companies"), where("email", "==", email))
+              );
+              snap.forEach((d) => matches.push(d.data() || {}));
+            }
+          } catch { /* segue */ }
+
+          isOwnCompany = matches.some((c) => {
+            const name = norm(c?.razaoSocial) || norm(c?.nomeFantasia) || norm(c?.name);
+            const cnpj = (c?.cnpj || "").toString().replace(/\D/g, "");
+            return (
+              (selected && name && name === selected) ||
+              (selectedCnpj && cnpj && cnpj === selectedCnpj)
+            );
+          });
+        }
+
+        if (isOwnCompany) {
+          setError(
+            "Você não pode avaliar a própria empresa que gerencia. Por favor, avalie outras empresas."
+          );
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn("Falha na verificação de auto-avaliação:", err);
     }
 
     if (!entrySource) {
@@ -1231,7 +1301,7 @@ function Home({ theme, toggleTheme }) {
     setResponsibilityAccepted(false);
     setPendingEvaluationData(buildEvaluationData());
     setShowResponsibilityModal(true);
-  }, [isAuthenticated, company, entrySource, contractType, workModel, discriminacao, commentDiscriminacao, buildEvaluationData]);
+  }, [isAuthenticated, company, userProfile, entrySource, contractType, workModel, discriminacao, commentDiscriminacao, buildEvaluationData]);
 
   const handleSubmit = useCallback((e) => {
     e.preventDefault();
