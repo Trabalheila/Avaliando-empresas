@@ -15,7 +15,8 @@ import {
   addDoc,
   serverTimestamp,
 } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import { auth, db, storage } from "../firebase";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const PREMIUM_PRICE_LABEL = "R$ 1.499,99/mês";
 const PREMIUM_AVAILABLE_AT = "01/08/2026";
@@ -368,20 +369,34 @@ export default function CompanyProfile() {
     if (!file || !user) return;
     setLogoUploading(true);
     try {
-      const reader = new FileReader();
-      const dataUrl = await new Promise((resolve, reject) => {
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
       const targetId = company?.id || user.uid;
+
+      // Preferimos Firebase Storage para evitar inflar o doc do Firestore
+      // com base64. Em caso de falha (regras/CORS), caimos para dataURL.
+      let logoUrl = "";
+      try {
+        const safeName = (file.name || "logo").replace(/[^\w.\-]+/g, "_");
+        const path = `companyLogos/${targetId}/${Date.now()}-${safeName}`;
+        const sRef = storageRef(storage, path);
+        await uploadBytes(sRef, file, { contentType: file.type || "image/*" });
+        logoUrl = await getDownloadURL(sRef);
+      } catch (storageErr) {
+        console.warn("[CompanyProfile] falha no Storage; usando dataURL", storageErr);
+        const reader = new FileReader();
+        logoUrl = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
       const ref = doc(db, "companies", targetId);
       await setDoc(
         ref,
-        { ownerUid: company?.ownerUid || user.uid, logoUrl: dataUrl, updatedAt: serverTimestamp() },
+        { ownerUid: company?.ownerUid || user.uid, logoUrl, updatedAt: serverTimestamp() },
         { merge: true }
       );
-      setCompany((prev) => ({ ...(prev || {}), logoUrl: dataUrl }));
+      setCompany((prev) => ({ ...(prev || {}), logoUrl }));
     } catch (err) {
       console.error("Erro no upload do logo:", err);
       alert("Falha ao enviar o logo.");
@@ -842,6 +857,39 @@ export default function CompanyProfile() {
             </div>
 
             <div className="mt-5 space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+              <div>
+                <label className={labelClass}>Logo da empresa</label>
+                <div className="flex items-center gap-4">
+                  <div className="w-20 h-20 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                    {company?.logoUrl ? (
+                      <img
+                        src={company.logoUrl}
+                        alt="Logo atual"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 text-center px-1">
+                        Sem logo
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <label className="inline-flex items-center gap-2 px-4 h-10 rounded-lg font-bold text-blue-700 dark:text-blue-300 border border-blue-700 dark:border-blue-300 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors cursor-pointer">
+                      {logoUploading ? "Enviando..." : (company?.logoUrl ? "Trocar logo" : "Enviar logo")}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleLogoUpload}
+                        disabled={logoUploading}
+                      />
+                    </label>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      PNG, JPG ou SVG. Recomendado: 256×256px.
+                    </p>
+                  </div>
+                </div>
+              </div>
               <div>
                 <label className={labelClass}>Razão Social</label>
                 <input

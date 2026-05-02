@@ -6,6 +6,7 @@ import {
   collection,
   query,
   where,
+  getDoc,
   getDocs,
   doc,
   setDoc,
@@ -151,6 +152,8 @@ export default function EmpresaDashboard() {
   const [authReady, setAuthReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [company, setCompany] = useState(null);
+  const [loadError, setLoadError] = useState(null); // erro real ao consultar Firestore
+  const [reloadKey, setReloadKey] = useState(0); // incrementar dispara nova tentativa
   const [reviews, setReviews] = useState([]);
   const [peerStats, setPeerStats] = useState(null); // { count, avg }
 
@@ -219,10 +222,49 @@ export default function EmpresaDashboard() {
   // Carrega o documento da empresa do Firestore (sem recadastrar CNPJ).
   const loadCompany = useCallback(async (currentUser) => {
     setLoading(true);
+    setLoadError(null);
     console.log("[EmpresaDashboard] loadCompany start", {
       uid: currentUser?.uid,
       email: currentUser?.email,
     });
+
+    // Força o ID token a estar pronto antes de qualquer query no Firestore.
+    // Sem isso, a primeira leitura logo após onAuthStateChanged pode falhar
+    // com permission-denied de forma intermitente, fazendo o dashboard cair
+    // em "Empresa não encontrada" mesmo havendo empresa cadastrada.
+    try {
+      await currentUser.getIdToken();
+    } catch (err) {
+      console.warn("[EmpresaDashboard] falha ao obter ID token", err);
+    }
+
+    // Acumulador de erros de queries — se qualquer leitura falhar, não
+    // podemos concluir com segurança que "não existe empresa".
+    const queryErrors = [];
+
+    // 0) Carrega o doc do usuário em /users/{uid} para obter o vínculo
+    //    explícito com a empresa (managedCompanyId / isEmployer). Esse é
+    //    o caminho preferencial: se existir, evitamos heurísticas e
+    //    buscamos diretamente o documento da empresa correspondente.
+    let userDocData = null;
+    try {
+      const userSnap = await getDoc(doc(db, "users", currentUser.uid));
+      userDocData = userSnap.exists() ? userSnap.data() : null;
+    } catch (err) {
+      console.warn("[EmpresaDashboard] erro ao carregar /users/{uid}", err);
+      queryErrors.push({ step: "users/{uid}", err });
+    }
+    const fullUser = {
+      uid: currentUser.uid,
+      email: currentUser.email,
+      displayName: currentUser.displayName,
+      ...(userDocData || {}),
+    };
+    console.log("Usuário logado:", fullUser);
+    console.log(
+      "ID da empresa gerenciada pelo usuário (managedCompanyId):",
+      fullUser?.managedCompanyId
+    );
 
     // Heurística de "qualidade" do doc: priorizamos o doc com mais campos
     // cadastrais preenchidos (cnpj, razaoSocial, cnaeCodigo, setor). Isso
@@ -246,12 +288,39 @@ export default function EmpresaDashboard() {
     try {
       const collected = []; // { id, data, source }
 
+      // 1a) preferencial: managedCompanyId apontando para companies/{id}.
+      const managedCompanyId = fullUser?.managedCompanyId;
+      if (managedCompanyId) {
+        console.log("Buscando empresa com ID:", managedCompanyId);
+        try {
+          const cSnap = await getDoc(doc(db, "companies", managedCompanyId));
+          const dadosDaEmpresa = cSnap.exists()
+            ? { id: cSnap.id, ...cSnap.data() }
+            : null;
+          console.log("Resultado da busca da empresa:", dadosDaEmpresa);
+          if (cSnap.exists()) {
+            collected.push({
+              id: cSnap.id,
+              data: cSnap.data(),
+              source: "managedCompanyId",
+            });
+          }
+        } catch (err) {
+          console.warn(
+            "[EmpresaDashboard] erro ao buscar companies/{managedCompanyId}",
+            err
+          );
+          queryErrors.push({ step: "companies/{managedCompanyId}", err });
+        }
+      }
+
       // 1) por ownerUid (todos os matches; pode haver mais de um).
       try {
         const snap = await getDocs(query(collection(db, "companies"), where("ownerUid", "==", currentUser.uid)));
         snap.docs.forEach((d) => collected.push({ id: d.id, data: d.data(), source: "ownerUid" }));
       } catch (err) {
         console.warn("[EmpresaDashboard] erro ao buscar por ownerUid", err);
+        queryErrors.push({ step: "ownerUid", err });
       }
 
       // 2) por e-mail (que é como o cadastro original grava).
@@ -265,6 +334,7 @@ export default function EmpresaDashboard() {
           });
         } catch (err) {
           console.warn("[EmpresaDashboard] erro ao buscar por email", err);
+          queryErrors.push({ step: "email", err });
         }
       }
 
@@ -299,6 +369,16 @@ export default function EmpresaDashboard() {
           pj: best.data?.funcionariosPJ != null ? String(best.data.funcionariosPJ) : "",
           clt: best.data?.funcionariosCLT != null ? String(best.data.funcionariosCLT) : "",
         });
+      } else if (queryErrors.length > 0) {
+        // Houve falhas de leitura — não podemos afirmar que a empresa não
+        // existe. Marca erro para a UI mostrar "Tentar novamente" em vez
+        // de "Empresa não encontrada".
+        console.warn(
+          "[EmpresaDashboard] carregamento incompleto por erros de query",
+          queryErrors
+        );
+        setCompany(null);
+        setLoadError(queryErrors[0]?.err || new Error("Falha ao carregar dados."));
       } else {
         console.warn("[EmpresaDashboard] nenhuma empresa encontrada para este usuário");
         setCompany(null);
@@ -308,6 +388,15 @@ export default function EmpresaDashboard() {
     }
   }, []);
 
+  // Auto-retry uma vez quando houve erro de carregamento (mitiga
+  // intermitências de propagação de token / rede logo após login).
+  useEffect(() => {
+    if (!loadError) return;
+    if (reloadKey > 0) return; // só 1 retry automático
+    const t = setTimeout(() => setReloadKey((k) => k + 1), 1500);
+    return () => clearTimeout(t);
+  }, [loadError, reloadKey]);
+
   useEffect(() => {
     if (!authReady) return;
     if (!user) {
@@ -315,7 +404,7 @@ export default function EmpresaDashboard() {
       return;
     }
     loadCompany(user);
-  }, [authReady, user, loadCompany]);
+  }, [authReady, user, loadCompany, reloadKey]);
 
   // Busca status da Receita Federal via /api/cnpj-data assim que o CNPJ
   // estiver disponível. Falhas não bloqueiam o resto do dashboard.
@@ -745,6 +834,44 @@ export default function EmpresaDashboard() {
   }
 
   if (!company) {
+    // Se houve erro de leitura no Firestore, NÃO afirmamos que a empresa
+    // não existe — oferecemos retry, evitando o flicker entre "carregou" e
+    // "não encontrada" causado por falhas intermitentes (token, rede, regras).
+    if (loadError) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center px-4 py-10">
+          <div className="w-full max-w-[480px] bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-10 text-center">
+            <div className="text-2xl font-extrabold text-blue-700 dark:text-blue-300 tracking-tight">Trabalhei Lá</div>
+            <h1 className="mt-6 text-xl font-bold text-slate-800 dark:text-slate-100">
+              Não foi possível carregar o dashboard
+            </h1>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              Houve uma falha ao consultar os dados da sua empresa. Verifique
+              sua conexão e tente novamente.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setLoadError(null);
+                setReloadKey((k) => k + 1);
+              }}
+              style={{ backgroundColor: "#1a237e" }}
+              className="mt-6 w-full h-12 rounded-lg font-bold text-white hover:brightness-110"
+            >
+              Tentar novamente
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="mt-3 w-full h-12 rounded-lg font-bold text-blue-700 dark:text-blue-300 border border-blue-700 dark:border-blue-300 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+            >
+              Voltar para a página inicial
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-[480px] bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-10 text-center">
@@ -760,6 +887,13 @@ export default function EmpresaDashboard() {
             className="mt-6 w-full h-12 rounded-lg font-bold text-white hover:brightness-110"
           >
             Cadastrar empresa
+          </button>
+          <button
+            type="button"
+            onClick={() => setReloadKey((k) => k + 1)}
+            className="mt-3 w-full h-12 rounded-lg font-bold text-blue-700 dark:text-blue-300 border border-blue-700 dark:border-blue-300 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+          >
+            Tentar novamente
           </button>
         </div>
       </div>
@@ -902,7 +1036,34 @@ export default function EmpresaDashboard() {
         {/* Header / Resumo */}
         <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
           <div className="flex items-start justify-between flex-wrap gap-4">
-            <div className="min-w-0">
+            <div className="flex items-start gap-4 min-w-0">
+              {/* Logo da empresa (se houver) */}
+              <div className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
+                {company.logoUrl ? (
+                  <img
+                    src={company.logoUrl}
+                    alt={`Logo de ${company.razaoSocial || "empresa"}`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <svg
+                    className="h-7 w-7 text-slate-400 dark:text-slate-500"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14" />
+                    <circle cx="9" cy="9" r="2" />
+                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                  </svg>
+                )}
+              </div>
+
+              <div className="min-w-0">
               <div className="text-sm font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">
                 Dashboard da empresa
               </div>
@@ -966,6 +1127,7 @@ export default function EmpresaDashboard() {
                       : "Free"}
                   </span>
                 </div>
+              </div>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
