@@ -442,90 +442,18 @@ function TrabalheiLaDesktop({
         <header ref={headerRef} className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl xl:max-w-7xl 2xl:max-w-[1480px] bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-b-3xl shadow-2xl px-3 py-1.5 border-2 border-blue-200 dark:border-slate-700">
           <div className="flex items-start justify-between gap-3">
             <div className="flex w-[110px] flex-col items-center">
-
-              {/* ÁREA DA LOGO ATUALIZADA */}
-              <div className={`w-20 h-20 rounded-2xl flex items-center justify-center border-2 overflow-hidden ${logoUrl ? 'bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-slate-600' : 'bg-blue-900 border-blue-700'}`}>
-                {logoUrl ? (
-                  <img
-                    src={logoUrl}
-                    alt={`Logo ${companyNameForLogo}`}
-                    className="w-full h-full object-contain p-1"
-                    onError={(e) => {
-                      if (logoIndex < logoCandidates.length - 1) {
-                        setLogoIndex((prev) => prev + 1);
-                      } else {
-                        const initials = (companyNameForLogo || "")
-                          .split(/\s+/).filter(Boolean).slice(0, 2)
-                          .map((w) => w[0]).join("").toUpperCase() || "?";
-                        e.target.onerror = null;
-                        e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=1a237e&color=fff&size=128&bold=true`;
-                      }
-                    }}
-                  />
-                ) : (
-                  <span className="text-white font-black text-3xl tracking-tight">TL</span>
-                )}
-              </div>
-              <span className="text-xs mt-2 text-blue-500 dark:text-slate-300 text-center max-w-[100px] truncate" title={companyNameForLogo}>
-                {companyNameForLogo}
-              </span>
-
-              <div className={`mt-2 rounded-xl px-3 py-1 text-center shadow-lg ${isCompanyUnrated ? "bg-slate-500 dark:bg-slate-600" : "bg-blue-700 dark:bg-blue-800"}`}>
-                <p className="text-xl font-extrabold text-white">{isCompanyUnrated ? "--" : `${companyNote}/5`}</p>
-                <p className={`text-xs ${isCompanyUnrated ? "text-slate-200" : "text-blue-200"}`}>NOTA</p>
-              </div>
-              {!isCompanyUnrated && (
-                <p
-                  className={`mt-2 text-[11px] font-bold px-2 py-1 rounded-lg border ${
-                    isCompanyRecommended
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                      : "bg-red-50 text-red-700 border-red-200"
-                  }`}
-                >
-                  {isCompanyRecommended ? "✓ Acima da média" : "X Abaixo da média"}
-                </p>
-              )}
+              {/* ...existing code... */}
             </div>
-
             <div className="flex-1 flex items-center px-4 overflow-visible min-h-[72px]">
-              <h1
-                className="font-extrabold text-blue-800 dark:text-blue-300 drop-shadow-[0_3px_0_rgba(30,64,175,0.25)] dark:drop-shadow-[0_3px_0_rgba(15,23,42,0.6)] tracking-[0.05em] mb-0.5 logo-syne"
-                style={{
-                  fontSize: '2rem',
-                  fontWeight: 800,
-                  whiteSpace: 'nowrap',
-                  overflow: 'visible',
-                  flexShrink: 0,
-                  lineHeight: 1.2,
-                  color: '#FFFFFF'
-                }}
-              >
-                TRABALHEI LÁ
-              </h1>
-              <div className="flex-1" />
-              {isAuthenticated && (
-                <div className="flex items-center gap-4 mr-2">
-                  <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-slate-700 flex items-center justify-center text-4xl border-2 border-blue-700 dark:border-blue-400">
-                    {userProfile?.avatar ? (
-                      typeof userProfile.avatar === "string" && (userProfile.avatar.startsWith("data:") || userProfile.avatar.startsWith("http")) ? (
-                        <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
-                      ) : (
-                        <span>{userProfile.avatar}</span>
-                      )
-                    ) : (
-                      <span className="text-blue-600">👤</span>
-                    )}
-                  </div>
-                  <span className="text-xl font-bold text-blue-800 dark:text-blue-200 whitespace-nowrap">
-                    {userPseudonym || userProfile?.name || "Usuário"}
-                  </span>
-                </div>
-              )}
+              {/* ...existing code... */}
             </div>
             <div className="w-32 h-1 mx-auto rounded-full bg-gradient-to-r from-blue-300 via-blue-700 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500 mb-1.5" />
             <p className="text-blue-700 dark:text-blue-200 text-base font-extrabold leading-tight mb-2">
               {t('Evoluindo o mercado de trabalho')}
             </p>
+          </div>
+        </header>
+        {/* ...existing code... */}
 
               {/* Badges (Anônimo / Verificado / Confiável) — quando autenticado,
                   são renderizadas ao lado direito do card de perfil (abaixo).
@@ -693,63 +621,60 @@ function TrabalheiLaDesktop({
           </div>
         </header>
 
-        <div style={{ height: headerSpacerHeight + 32 }} />
+        <div>
+          <div style={{ height: headerSpacerHeight + 32 }} />
 
-        {/* CONTEÚDO - 3 COLUNAS NO DESKTOP (>1024px), 2 COLUNAS NO MOBILE (<1024px) */}
-        <div className="flex flex-col lg:flex-row lg:flex-nowrap gap-6 mb-8">
+          {/* CONTEÚDO - 3 COLUNAS NO DESKTOP (>1024px), 2 COLUNAS NO MOBILE (<1024px) */}
+          <div className="flex flex-col lg:flex-row lg:flex-nowrap gap-6 mb-8">
+            {/* COLUNA ESQUERDA - LOGIN + RANKING (flex-col ordem 1) */}
+            <div className="w-full lg:basis-[16%] lg:max-w-[16%] lg:min-w-[180px] xl:basis-[14%] xl:max-w-[14%] xl:min-w-[190px] lg:shrink-0 flex flex-col gap-6 order-1 lg:order-1 break-words">
+              {/* ...coluna esquerda... */}
+            </div>
+            {/* COLUNA CENTRAL - FORMULÁRIO (ordem 2 no desktop) */}
+            <div className="w-full lg:basis-[62%] lg:min-w-[560px] xl:basis-[68%] xl:min-w-[640px] lg:flex-none flex flex-col gap-6 order-2 lg:order-2">
+              {/* ...coluna central... */}
+            </div>
+            {/* COLUNA DIREITA - OUTROS (ordem 3 no desktop) */}
+            <div className="w-full lg:basis-[22%] lg:max-w-[22%] lg:min-w-[240px] xl:basis-[18%] xl:max-w-[18%] xl:min-w-[240px] lg:shrink-0 flex flex-col gap-6 order-3 lg:order-3 break-words">
+              {/* ...coluna direita... */}
+            </div>
+          </div>
 
-          {/* COLUNA ESQUERDA - LOGIN + RANKING (flex-col ordem 1) */}
-          <div className="w-full lg:basis-[16%] lg:max-w-[16%] lg:min-w-[180px] xl:basis-[14%] xl:max-w-[14%] xl:min-w-[190px] lg:shrink-0 flex flex-col gap-6 order-1 lg:order-1 break-words">
+          <footer className="w-full px-6 py-8 text-center">
+            <div className="bg-white/70 dark:bg-slate-900/80 backdrop-blur-lg rounded-2xl p-5 border border-blue-100 dark:border-slate-700">
+              <p className="text-slate-700 dark:text-slate-200 text-sm">
+                <Link to="/termos-de-uso" className="text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-200 font-extrabold underline">
+                  Termos de Uso
+                </Link>
+                {" • "}
+                <a href="/politica-de-privacidade" className="text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-200 font-extrabold underline">
+                  Política de Privacidade
+                </a>
+                {" • "}
+                <Link to="/purpose" className="text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-200 font-extrabold underline">
+                  Qual o nosso propósito?
+                </Link>
+                {" • "}
+                <span>© 2026 Trabalhei Lá - Todos os direitos reservados</span>
+              </p>
+            </div>
+          </footer>
 
-            {/* LOGIN ATUALIZADO (Sem Google, LinkedIn Corrigido) */}
-            <section
-              className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 mb-6 border border-blue-100 dark:border-slate-700"
-              style={{ animation: "homeLoginSectionIn 700ms ease-out both" }}
-            >
-              <style>{`
-                @keyframes homeLoginSectionIn {
-                  from { opacity: 0; transform: translateY(18px); }
-                  to { opacity: 1; transform: translateY(0); }
-                }
-                @keyframes homeCalloutIn {
-                  from { opacity: 0; transform: translateX(-18px); }
-                  to { opacity: 1; transform: translateX(0); }
-                }
-              `}</style>
-              <h2 className="text-3xl font-extrabold text-blue-900 dark:text-blue-200 text-center mb-2 tracking-wide font-azonix">Login para Avaliar</h2>
-              <div className="w-28 h-1 mx-auto mb-5 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
-              <div className="flex flex-col items-center space-y-4">
-                <div className="w-full max-w-xs -ml-3">
-                  <LoginLinkedInButton
-                    clientId={linkedInClientId}
-                    redirectUri={linkedInRedirectUri}
-                    onLoginSuccess={onLoginSuccess}
-                    onLoginFailure={(err) => setError(err?.message || String(err))}
-                    disabled={isLoading}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={onGoogleLogin}
-                  disabled={isLoading}
-                  className="w-full max-w-xs -ml-3 flex items-center justify-center gap-3 bg-white dark:bg-slate-900 border border-blue-200 dark:border-slate-700 text-blue-800 dark:text-blue-200 font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors text-sm md:text-base disabled:opacity-60"
-                >
-                  <FaGoogle className="text-lg" /> Cadastrar com Google
-                </button>
-                <p className="text-xs text-slate-500 dark:text-slate-300 text-center">
-                  Sem LinkedIn: entre com Google e complete seu perfil manualmente na próxima etapa.
-                </p>
-
-                {/* Bloco neutro de cadastro por perfil */}
-                <div className="w-full pt-4 mt-2 border-t border-blue-100 dark:border-slate-700">
-                  <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-100 text-center">
-                    Crie sua conta
-                  </h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 text-center mt-1 mb-3">
-                    Escolha seu perfil e comece a usar a plataforma!
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    <Link
+          <CaptchaModal
+            open={showCaptcha}
+            onClose={() => setShowCaptcha(false)}
+            checked={captchaConfirmed}
+            onChange={setCaptchaConfirmed}
+            onConfirm={() => {
+              if (typeof handleCaptchaConfirmed === "function") {
+                handleCaptchaConfirmed();
+              } else {
+                setCaptchaConfirmed(true);
+                setShowCaptcha(false);
+              }
+            }}
+          />
+        </div>
                       to="/pseudonym"
                       className="w-full text-center py-2 px-3 rounded-lg bg-lime-400 hover:bg-lime-500 text-emerald-950 text-sm font-bold shadow transition"
                     >
