@@ -6,7 +6,7 @@
     "api/create-checkout-session.js": {
       "maxDuration": 30
     },
-    "api/admin-reviews.js": {
+    "api/admin.js": {
       "maxDuration": 30
     },
     "api/cnpj.js": {
