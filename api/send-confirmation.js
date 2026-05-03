@@ -15,12 +15,31 @@ function ensureAdmin() {
       'Configuração do Firebase Admin incompleta no servidor (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY).'
     );
   }
+  // Normaliza a chave privada: remove BOM, aspas envoltas, \r e converte
+  // \n literais em quebras reais. Vercel costuma armazenar a chave com
+  // \n escapado e, às vezes, com aspas duplas no começo/fim.
+  let privateKey = privateKeyRaw
+    .replace(/^\uFEFF/, '')
+    .trim();
+  if (
+    (privateKey.startsWith('"') && privateKey.endsWith('"')) ||
+    (privateKey.startsWith("'") && privateKey.endsWith("'"))
+  ) {
+    privateKey = privateKey.slice(1, -1);
+  }
+  privateKey = privateKey.replace(/\\n/g, '\n').replace(/\r/g, '');
+
+  if (
+    !privateKey.includes('BEGIN PRIVATE KEY') ||
+    !privateKey.includes('END PRIVATE KEY')
+  ) {
+    throw new Error(
+      'FIREBASE_PRIVATE_KEY mal formatada: faltam os delimitadores "-----BEGIN PRIVATE KEY-----" / "-----END PRIVATE KEY-----". Reconfigure a variável de ambiente na Vercel.'
+    );
+  }
+
   admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId,
-      clientEmail,
-      privateKey: privateKeyRaw.replace(/\\n/g, '\n'),
-    }),
+    credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
   });
 }
 
