@@ -72,6 +72,40 @@ function isValidCpfDigits(input) {
   return d2 === Number(c[10]);
 }
 
+// Normalização para comparação case + accent insensitive (ex.: "Camargo Corrêa" → "camargo correa").
+// Compactamos espaços e descartamos pontuação para reduzir falsos negativos.
+function normalizeForCompanyMatch(value) {
+  return (value || "")
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Procura, no texto fornecido, a primeira empresa cadastrada cujo nome
+// (case + accent insensitive) aparece como substring. Retorna o nome
+// canônico (como está cadastrado) ou null. Empresas com nome muito curto
+// (< 3 caracteres normalizados) são ignoradas para evitar falsos positivos.
+function findCompanyInText(text, registeredCompanies) {
+  const normalizedText = normalizeForCompanyMatch(text);
+  if (!normalizedText) return null;
+  const list = Array.isArray(registeredCompanies) ? registeredCompanies : [];
+  // Ordena por tamanho desc para preferir matches mais específicos
+  // (ex.: "Banco do Brasil S.A." antes de "Banco do Brasil").
+  const sorted = [...list].sort(
+    (a, b) => normalizeForCompanyMatch(b).length - normalizeForCompanyMatch(a).length
+  );
+  for (const companyName of sorted) {
+    const normalized = normalizeForCompanyMatch(companyName);
+    if (!normalized || normalized.length < 3) continue;
+    if (normalizedText.includes(normalized)) return companyName;
+  }
+  return null;
+}
+
 function ChoosePseudonym({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const [pseudonym, setPseudonym] = useState("");
@@ -85,6 +119,10 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   const [cpfNotice, setCpfNotice] = useState("");
   const [cpfVerified, setCpfVerified] = useState(false);
   const [email, setEmail] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [verifiedEmailValue, setVerifiedEmailValue] = useState("");
+  const [sendingVerification, setSendingVerification] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState("");
   const [phone, setPhone] = useState("");
   const [educationLevel, setEducationLevel] = useState("");
   const [structuredExperiences, setStructuredExperiences] = useState([]);
@@ -221,6 +259,10 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       if (profile?.cpf) setCpf(maskCpf(profile.cpf));
       if (profile?.nomeReal || profile?.fullName) setFullName(profile.nomeReal || profile.fullName);
       if (profile?.email) setEmail(profile.email);
+      if (profile?.emailVerified) {
+        setEmailVerified(true);
+        setVerifiedEmailValue((profile.email || "").toString().trim().toLowerCase());
+      }
       if (profile?.phone) setPhone(profile.phone);
       if (profile?.educationLevel) setEducationLevel(profile.educationLevel);
     }
@@ -313,6 +355,99 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       reader.readAsDataURL(file);
     });
 
+  // Dispara o envio do e-mail de verificação para o endereço informado.
+  // Usa o profileId atual como userId. Atualiza estado de loading/feedback.
+  const sendVerificationEmail = useCallback(
+    async (targetEmail) => {
+      const normalized = (targetEmail || "").toString().trim().toLowerCase();
+      if (!normalized || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+        setVerificationStatus("E-mail inválido para verificação.");
+        return false;
+      }
+      let profileId = "";
+      try {
+        const stored = JSON.parse(localStorage.getItem("userProfile") || "{}");
+        profileId = resolveProfileId(stored) || stored?.profileId || stored?.id || "";
+      } catch {
+        // ignore
+      }
+      if (!profileId) {
+        setVerificationStatus("Salve o perfil antes de enviar o e-mail de verificação.");
+        return false;
+      }
+      setSendingVerification(true);
+      setVerificationStatus("");
+      try {
+        const resp = await fetch("/api/send-verification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: profileId, email: normalized }),
+          cache: "no-store",
+        });
+        const data = await resp.json().catch(() => null);
+        if (!resp.ok || !data?.ok) {
+          setVerificationStatus(data?.error || "Não foi possível enviar o e-mail de verificação.");
+          return false;
+        }
+        setVerificationStatus(`E-mail de verificação enviado para ${normalized}. Verifique sua caixa de entrada.`);
+        return true;
+      } catch (err) {
+        console.warn("Falha ao solicitar envio de verificação:", err);
+        setVerificationStatus("Falha de rede ao enviar e-mail de verificação.");
+        return false;
+      } finally {
+        setSendingVerification(false);
+      }
+    },
+    []
+  );
+
+  // Detecta retorno de /api/verify-email (?verified=1 ou ?verified=0&reason=...).
+  // Atualiza o profile local e exibe mensagem ao usuário.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const verified = params.get("verified");
+    if (verified === null) return;
+
+    if (verified === "1") {
+      setEmailVerified(true);
+      setVerifiedEmailValue((email || "").toString().trim().toLowerCase());
+      setInfo("E-mail verificado com sucesso!");
+      try {
+        const stored = JSON.parse(localStorage.getItem("userProfile") || "{}");
+        localStorage.setItem(
+          "userProfile",
+          JSON.stringify({ ...stored, emailVerified: true })
+        );
+      } catch {
+        // ignore
+      }
+    } else {
+      const reason = params.get("reason") || "";
+      const messages = {
+        expired: "O link de verificação expirou. Solicite um novo e-mail.",
+        invalid_token: "Link de verificação inválido.",
+        invalid_payload: "Link de verificação inválido.",
+        missing_token: "Link de verificação inválido.",
+        server_misconfigured: "Falha de configuração do servidor de verificação.",
+        persist_failed: "Não foi possível registrar a verificação. Tente novamente.",
+      };
+      setError(messages[reason] || "Não foi possível verificar o e-mail.");
+    }
+
+    // Limpa os parâmetros da URL para não repetir o feedback ao recarregar.
+    try {
+      params.delete("verified");
+      params.delete("reason");
+      const next = window.location.pathname + (params.toString() ? `?${params.toString()}` : "");
+      window.history.replaceState({}, "", next);
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleAvatarUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) {
@@ -365,6 +500,30 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     }
   }, [avatar]);
 
+  // Busca a lista de empresas cadastradas no Firestore. Se já estiver em cache
+  // (knownCompanies), reusa para evitar uma chamada extra. Caso contrário,
+  // consulta listCompanies sob demanda — útil quando o usuário sobe o
+  // currículo antes do useEffect inicial concluir.
+  const fetchRegisteredCompanies = useCallback(async () => {
+    if (Array.isArray(knownCompanies) && knownCompanies.length > 0) {
+      return knownCompanies;
+    }
+    try {
+      const rows = await listCompanies(300);
+      const names = Array.from(
+        new Set(
+          (rows || [])
+            .map((r) => (r?.company || r?.name || "").toString().trim())
+            .filter(Boolean)
+        )
+      ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+      setKnownCompanies(names);
+      return names;
+    } catch {
+      return [];
+    }
+  }, [knownCompanies]);
+
   const handleResumeUpload = useCallback(async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -382,18 +541,66 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       const text = await extractResumeText(file);
       setResumeFullText(text || "");
       const parsed = parseResumeText(text, []);
-      // Foco exclusivo em empresa + cargo. Demais campos (datas, descrições, endereços) são descartados.
+
+      // Carrega (ou reusa cache) a lista de empresas cadastradas para
+      // associar cada experiência extraída ao nome canônico.
+      const registered = await fetchRegisteredCompanies();
+
+      // 1) Para cada experiência identificada pelo parser, tenta encontrar
+      //    uma empresa cadastrada correspondente. Se achar, normaliza o
+      //    campo `company` para o nome canônico (ex.: "CAMARGO CORREA" →
+      //    "Camargo Corrêa") e marca `matchedCompany`.
       const imported = (parsed.experiencesStructured || [])
-        .map((item) => ({
-          company: (item?.company || "").toString().trim(),
-          role: (item?.role || "").toString().trim(),
-          touched: false,
-        }))
+        .map((item) => {
+          const rawCompany = (item?.company || "").toString().trim();
+          const role = (item?.role || "").toString().trim();
+          const matched = findCompanyInText(rawCompany, registered);
+          return {
+            company: matched || rawCompany,
+            role,
+            matchedCompany: matched || null,
+            touched: false,
+          };
+        })
         .filter((item) => item.company || item.role);
 
-      if (imported.length > 0) {
-        setPendingResumeExperiences((prev) => [...prev, ...imported]);
-        setInfo(`Encontramos ${imported.length} experiência(s) no currículo. Revise empresa e cargo de cada uma e confirme abaixo.`);
+      // 2) Varre o texto completo: empresas cadastradas que aparecem no
+      //    currículo mas que o parser não capturou viram experiências
+      //    extras (com cargo vazio para o usuário preencher).
+      const alreadyMatchedNorm = new Set(
+        imported
+          .map((it) => normalizeForCompanyMatch(it.matchedCompany || it.company))
+          .filter(Boolean)
+      );
+      const normalizedFullText = normalizeForCompanyMatch(text || "");
+      const extras = [];
+      for (const companyName of registered) {
+        const norm = normalizeForCompanyMatch(companyName);
+        if (!norm || norm.length < 3) continue;
+        if (alreadyMatchedNorm.has(norm)) continue;
+        if (normalizedFullText.includes(norm)) {
+          extras.push({
+            company: companyName,
+            role: "",
+            matchedCompany: companyName,
+            touched: false,
+          });
+          alreadyMatchedNorm.add(norm);
+        }
+      }
+
+      const allImported = [...imported, ...extras];
+
+      if (allImported.length > 0) {
+        setPendingResumeExperiences((prev) => [...prev, ...allImported]);
+        const matchedCount = allImported.filter((x) => x.matchedCompany).length;
+        const matchedSuffix =
+          matchedCount > 0
+            ? ` ${matchedCount} associada(s) a empresas cadastradas.`
+            : "";
+        setInfo(
+          `Encontramos ${allImported.length} experiência(s) no currículo.${matchedSuffix} Revise empresa e cargo de cada uma e confirme abaixo.`
+        );
       } else {
         setInfo("Não encontramos experiências no currículo. Tente adicionar manualmente.");
       }
@@ -403,7 +610,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       setIsParsingResume(false);
       e.target.value = "";
     }
-  }, [resumePreviewUrl]);
+  }, [resumePreviewUrl, fetchRegisteredCompanies]);
 
   const handleFillFromLinkedIn = useCallback(async () => {
     try {
@@ -605,11 +812,17 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   };
 
   // Atualiza o campo de uma experiência pendente (revisão do currículo) e marca como tocada.
+  // Quando o campo "company" muda, recalcula o match com a lista de empresas cadastradas.
   const handleUpdatePendingResumeExperience = (idx, field, value) => {
     setPendingResumeExperiences((prev) =>
-      prev.map((item, i) =>
-        i === idx ? { ...item, [field]: value, touched: true } : item
-      )
+      prev.map((item, i) => {
+        if (i !== idx) return item;
+        const next = { ...item, [field]: value, touched: true };
+        if (field === "company") {
+          next.matchedCompany = findCompanyInText(value, knownCompanies);
+        }
+        return next;
+      })
     );
   };
 
@@ -710,7 +923,12 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       const timeout = setTimeout(() => ctrl.abort(), 12000);
       const qs = new URLSearchParams({ cpf: digits });
       if (birthdate) qs.set("birthdate", birthdate);
-      const resp = await fetch(`/api/consulta-cpf?${qs.toString()}`, { signal: ctrl.signal });
+      qs.set("_t", Date.now().toString());
+      const resp = await fetch(`/api/consulta-cpf?${qs.toString()}`, {
+        signal: ctrl.signal,
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      });
       clearTimeout(timeout);
       const data = await resp.json().catch(() => null);
       if (!resp.ok || !data?.valid) {
@@ -725,13 +943,29 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       } else if (data?.reason === "birthdate_required") {
         setCpfNotice("Informe a data de nascimento acima para verificar o CPF automaticamente.");
         setCpfVerified(false);
+      } else if (data?.reason === "lookup_unavailable") {
+        setCpfNotice(
+          "CPF válido. Serviço de autocompletar indisponível no momento — preencha o nome manualmente."
+        );
+        setCpfVerified(false);
+      } else if (data?.reason === "not_found") {
+        const errs = Array.isArray(data?.providerErrors) ? data.providerErrors.join("; ") : "";
+        const extra = errs
+          ? ` (${errs})`
+          : data?.providerMessage
+          ? ` (${data.providerMessage})`
+          : "";
+        setCpfNotice(
+          `CPF válido, mas não foi possível localizar o nome na Receita${extra}. Confira a data de nascimento e preencha o nome manualmente se necessário.`
+        );
+        setCpfVerified(false);
       } else {
         setCpfNotice("CPF válido. Preencha o nome manualmente.");
         setCpfVerified(false);
       }
     } catch (err) {
       console.warn("Falha na consulta de CPF:", err);
-      setCpfNotice("CPF válido. Preencha o nome manualmente.");
+      setCpfNotice("CPF válido. Não foi possível consultar agora — preencha o nome manualmente.");
       setCpfVerified(false);
     } finally {
       setCpfLoading(false);
@@ -837,6 +1071,11 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         // usa o ID gerado normalmente
       }
 
+      const trimmedEmail = (email || "").trim().toLowerCase();
+      const previouslyVerifiedFor = (existingProfile?.email || "").toString().trim().toLowerCase();
+      // E-mail é considerado verificado apenas se já era verificado E não mudou.
+      const keepVerified = Boolean(existingProfile?.emailVerified) && trimmedEmail && trimmedEmail === previouslyVerifiedFor;
+
       const nextProfile = {
         ...existingProfile,
         profileId: unifiedId,
@@ -847,6 +1086,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         nomeReal: fullName.trim() || undefined,
         cpf: cpfNumbers || undefined,
         email: email.trim() || undefined,
+        emailVerified: keepVerified,
         phone: phone.trim() || undefined,
         educationLevel: educationLevel.trim() || undefined,
         avatar,
@@ -878,6 +1118,17 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         console.warn("Falha ao salvar perfil no Firebase:", err);
       }
 
+      // Se o e-mail mudou (ou ainda não foi verificado), envia automaticamente
+      // o e-mail de confirmação. Falhas aqui não bloqueiam o cadastro — o usuário
+      // pode usar o botão "Reenviar" depois.
+      if (trimmedEmail && !keepVerified) {
+        try {
+          await sendVerificationEmail(trimmedEmail);
+        } catch (err) {
+          console.warn("Falha ao enviar e-mail de verificação:", err);
+        }
+      }
+
       window.dispatchEvent(new Event("trabalheiLa_user_updated"));
       navigate("/");
     },
@@ -897,6 +1148,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       verifiedCompany,
       isVerificationPending,
       verificationSource,
+      sendVerificationEmail,
     ]
   );
 
@@ -1100,16 +1352,49 @@ function ChoosePseudonym({ theme, toggleTheme }) {
 
             {/* E-mail */}
             <div ref={(el) => assignSectionRef(el, 1)}>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">E-mail</label>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                <span>E-mail</span>
+                {email && emailVerified && verifiedEmailValue === email.trim().toLowerCase() ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 text-[10px] font-semibold">
+                    <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    E-mail verificado
+                  </span>
+                ) : email ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 px-2 py-0.5 text-[10px] font-semibold">
+                    E-mail não verificado
+                  </span>
+                ) : null}
+              </label>
               <input
                 value={email}
                 onChange={(e) => {
                   setError(null);
                   setEmail(e.target.value);
+                  setVerificationStatus("");
+                  // Se o usuário trocou o e-mail, o status verificado deixa de valer
+                  // visualmente até salvar e reenviar a confirmação.
+                  if (emailVerified && e.target.value.trim().toLowerCase() !== verifiedEmailValue) {
+                    setEmailVerified(false);
+                  }
                 }}
                 placeholder="seuemail@dominio.com"
                 className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
               />
+              {email && !(emailVerified && verifiedEmailValue === email.trim().toLowerCase()) && (
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => sendVerificationEmail(email)}
+                    disabled={sendingVerification}
+                    className="text-xs font-semibold text-blue-700 dark:text-blue-300 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {sendingVerification ? "Enviando..." : "Reenviar e-mail de verificação"}
+                  </button>
+                  {verificationStatus && (
+                    <span className="text-xs text-slate-600 dark:text-slate-300">{verificationStatus}</span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* CPF — vem ANTES do nome completo. Ao sair do campo, consulta
@@ -1307,6 +1592,19 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                                 {inResume
                                   ? "Confiança extra: nome encontrado no currículo carregado."
                                   : "Nome não localizado no currículo — confirme se está correto."}
+                              </p>
+                            )}
+                            {hasCompanyValue && (
+                              <p className="text-xs mt-1 leading-snug">
+                                {exp.matchedCompany ? (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-2 py-0.5 font-semibold">
+                                    Empresa identificada: {exp.matchedCompany}
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-2 py-0.5 font-semibold">
+                                    Empresa não identificada
+                                  </span>
+                                )}
                               </p>
                             )}
                           </div>

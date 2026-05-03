@@ -131,7 +131,12 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
       const t = setTimeout(() => ctrl.abort(), 12000);
       const qs = new URLSearchParams({ cpf: digits });
       if (birthdate) qs.set("birthdate", birthdate);
-      const resp = await fetch(`/api/consulta-cpf?${qs.toString()}`, { signal: ctrl.signal });
+      qs.set("_t", Date.now().toString());
+      const resp = await fetch(`/api/consulta-cpf?${qs.toString()}`, {
+        signal: ctrl.signal,
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      });
       clearTimeout(t);
       const data = await resp.json().catch(() => null);
       if (!resp.ok || !data?.valid) {
@@ -145,12 +150,28 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
       } else if (data?.reason === "birthdate_required") {
         setCpfNotice("Informe a data de nascimento abaixo para verificar o CPF automaticamente.");
         setCpfVerified(false);
+      } else if (data?.reason === "lookup_unavailable") {
+        setCpfNotice(
+          "CPF v\u00e1lido. Servi\u00e7o de autocompletar indispon\u00edvel no momento \u2014 preencha o nome manualmente."
+        );
+        setCpfVerified(false);
+      } else if (data?.reason === "not_found") {
+        const errs = Array.isArray(data?.providerErrors) ? data.providerErrors.join("; ") : "";
+        const extra = errs
+          ? ` (${errs})`
+          : data?.providerMessage
+          ? ` (${data.providerMessage})`
+          : "";
+        setCpfNotice(
+          `CPF v\u00e1lido, mas n\u00e3o foi poss\u00edvel localizar o nome na Receita${extra}. Confira a data de nascimento e preencha o nome manualmente se necess\u00e1rio.`
+        );
+        setCpfVerified(false);
       } else {
-        setCpfNotice("CPF válido. Preencha o nome manualmente.");
+        setCpfNotice("CPF v\u00e1lido. Preencha o nome manualmente.");
         setCpfVerified(false);
       }
     } catch {
-      setCpfNotice("CPF válido. Preencha o nome manualmente.");
+      setCpfNotice("CPF v\u00e1lido. N\u00e3o foi poss\u00edvel consultar agora \u2014 preencha o nome manualmente.");
       setCpfVerified(false);
     } finally {
       setCpfLoading(false);

@@ -87,10 +87,15 @@ async function fetchInfoSimples({ url, token, cpf, birthdate }) {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), 15000);
   try {
+    // InfoSimples v2 espera application/x-www-form-urlencoded.
+    const body = new URLSearchParams({ token, cpf, birthdate }).toString();
     return await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ token, cpf, birthdate }),
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+      },
+      body,
       signal: controller.signal,
     });
   } finally {
@@ -115,6 +120,11 @@ async function fetchGeneric({ url, token, cpf }) {
 }
 
 export default async function handler(req, res) {
+  // Impede cache (navegador/CDN) para que cada consulta sempre execute o handler.
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ valid: false, error: 'Método não permitido' });
   }
@@ -133,7 +143,13 @@ export default async function handler(req, res) {
   const apiToken = process.env.CPF_API_TOKEN;
 
   if (!apiUrl) {
-    return res.status(200).json({ valid: true, fullName: null, reason: 'lookup_unavailable' });
+    console.warn('[consulta-cpf] CPF_API_URL ausente — autocomplete desativado');
+    return res.status(200).json({
+      valid: true,
+      fullName: null,
+      reason: 'lookup_unavailable',
+      detail: 'provider_not_configured',
+    });
   }
 
   const isInfoSimples = /infosimples\.com/i.test(apiUrl);
@@ -145,22 +161,53 @@ export default async function handler(req, res) {
     }
     if (!apiToken) {
       console.warn('[consulta-cpf] CPF_API_TOKEN ausente para InfoSimples');
-      return res.status(200).json({ valid: true, fullName: null, reason: 'lookup_unavailable' });
+      return res.status(200).json({
+        valid: true,
+        fullName: null,
+        reason: 'lookup_unavailable',
+        detail: 'token_missing',
+      });
     }
 
     try {
+      console.info(
+        '[consulta-cpf] InfoSimples request',
+        JSON.stringify({
+          cpfMasked: cpf.slice(0, 3) + '*****' + cpf.slice(-2),
+          birthdate, // DD/MM/YYYY
+        })
+      );
       const upstream = await fetchInfoSimples({ url: apiUrl, token: apiToken, cpf, birthdate });
 
       if (!upstream.ok) {
         console.warn('[consulta-cpf] InfoSimples HTTP', upstream.status);
-        return res.status(200).json({ valid: true, fullName: null, reason: 'lookup_unavailable' });
+        return res.status(200).json({
+          valid: true,
+          fullName: null,
+          reason: 'lookup_unavailable',
+          detail: `http_${upstream.status}`,
+        });
       }
 
       const json = await upstream.json().catch(() => null);
       const ok = json && (json.code === 200 || json.code === '200');
       if (!ok) {
-        console.warn('[consulta-cpf] InfoSimples code', json?.code, json?.code_message || '');
-        return res.status(200).json({ valid: true, fullName: null, reason: 'not_found' });
+        const codeMsg = json?.code_message || '';
+        const providerErrors = Array.isArray(json?.errors) ? json.errors : [];
+        console.warn(
+          '[consulta-cpf] InfoSimples code',
+          json?.code,
+          codeMsg,
+          providerErrors.length ? `errors=${JSON.stringify(providerErrors)}` : ''
+        );
+        return res.status(200).json({
+          valid: true,
+          fullName: null,
+          reason: 'not_found',
+          providerCode: json?.code ?? null,
+          providerMessage: codeMsg || null,
+          providerErrors: providerErrors.length ? providerErrors : undefined,
+        });
       }
 
       const fullName = pickNameFromProvider(json);
@@ -170,7 +217,12 @@ export default async function handler(req, res) {
       return res.status(200).json({ valid: true, fullName });
     } catch (err) {
       console.error('[consulta-cpf] InfoSimples erro:', err?.message || err);
-      return res.status(200).json({ valid: true, fullName: null, reason: 'lookup_unavailable' });
+      return res.status(200).json({
+        valid: true,
+        fullName: null,
+        reason: 'lookup_unavailable',
+        detail: 'fetch_error',
+      });
     }
   }
 
