@@ -681,7 +681,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     setTrendError("");
     try {
       const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
-      const res = await fetch("/api/admin-reviews", {
+      const res = await fetch("/api/admin?op=reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

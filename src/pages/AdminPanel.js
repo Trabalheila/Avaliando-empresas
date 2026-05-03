@@ -151,14 +151,14 @@ function AdminPanel({ theme, toggleTheme }) {
     const uid = getAdminUid();
     console.log("[AdminPanel] adminDeleteDoc chamado:", { collectionName, docId, uid: uid ? uid.slice(0, 8) + "..." : "VAZIO" });
     try {
-      const res = await fetch(buildApiUrl("/api/admin-delete"), {
+      const res = await fetch(buildApiUrl("/api/admin?op=delete"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uid, collectionName, docId }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        console.warn("[AdminPanel] API admin-delete falhou:", res.status, data);
+        console.warn("[AdminPanel] API admin?op=delete falhou:", res.status, data);
         // Fallback: tentar excluir diretamente pelo client SDK
         console.log("[AdminPanel] Tentando fallback com deleteDoc client-side...");
         await deleteDoc(doc(db, collectionName, docId));
