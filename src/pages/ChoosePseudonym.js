@@ -690,8 +690,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   const handleCpfBlur = useCallback(async () => {
     const digits = cpf.replace(/\D/g, "");
     setCpfError("");
-    setCpfNotice("");
-    if (digits.length === 0) {
+    setCpfNotice("");    if (digits.length === 0) {
       setCpfVerified(false);
       return;
     }
@@ -709,7 +708,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     try {
       const ctrl = new AbortController();
       const timeout = setTimeout(() => ctrl.abort(), 12000);
-      const resp = await fetch(`/api/consulta-cpf?cpf=${digits}`, { signal: ctrl.signal });
+      const qs = new URLSearchParams({ cpf: digits });
+      if (birthdate) qs.set("birthdate", birthdate);
+      const resp = await fetch(`/api/consulta-cpf?${qs.toString()}`, { signal: ctrl.signal });
       clearTimeout(timeout);
       const data = await resp.json().catch(() => null);
       if (!resp.ok || !data?.valid) {
@@ -721,9 +722,10 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         setFullName(data.fullName);
         setCpfVerified(true);
         setCpfError("");
+      } else if (data?.reason === "birthdate_required") {
+        setCpfNotice("Informe a data de nascimento acima para verificar o CPF automaticamente.");
+        setCpfVerified(false);
       } else {
-        // CPF é válido (dígitos verificadores OK), apenas o provedor externo
-        // não retornou o nome — não bloqueia, apenas pede para preencher manualmente.
         setCpfNotice("CPF válido. Preencha o nome manualmente.");
         setCpfVerified(false);
       }
@@ -734,7 +736,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     } finally {
       setCpfLoading(false);
     }
-  }, [cpf]);
+  }, [cpf, birthdate]);
 
   const handleSubmit = useCallback(
     async (e) => {
@@ -1075,6 +1077,11 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                     setBirthdateError("É necessário ter pelo menos 18 anos.");
                   } else {
                     setBirthdateError("");
+                    // Reconsulta CPF se já estiver preenchido — InfoSimples exige a data.
+                    const digits = cpf.replace(/\D/g, "");
+                    if (digits.length === 11 && isValidCpfDigits(digits)) {
+                      handleCpfBlur();
+                    }
                   }
                 }}
                 className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"

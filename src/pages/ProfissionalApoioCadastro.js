@@ -69,6 +69,8 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
   const navigate = useNavigate();
 
   const [cpf, setCpf] = useState("");
+  const [birthdate, setBirthdate] = useState("");
+  const [birthdateError, setBirthdateError] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -96,6 +98,8 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
 
   const formValido =
     cpfCompleto &&
+    /^\d{4}-\d{2}-\d{2}$/.test(birthdate) &&
+    !birthdateError &&
     fullName.trim().length >= 3 &&
     emailValido &&
     senhaValida &&
@@ -125,7 +129,9 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
     try {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 12000);
-      const resp = await fetch(`/api/consulta-cpf?cpf=${digits}`, { signal: ctrl.signal });
+      const qs = new URLSearchParams({ cpf: digits });
+      if (birthdate) qs.set("birthdate", birthdate);
+      const resp = await fetch(`/api/consulta-cpf?${qs.toString()}`, { signal: ctrl.signal });
       clearTimeout(t);
       const data = await resp.json().catch(() => null);
       if (!resp.ok || !data?.valid) {
@@ -136,9 +142,10 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
       if (data?.fullName) {
         setFullName(data.fullName);
         setCpfVerified(true);
+      } else if (data?.reason === "birthdate_required") {
+        setCpfNotice("Informe a data de nascimento abaixo para verificar o CPF automaticamente.");
+        setCpfVerified(false);
       } else {
-        // CPF é válido (dígitos verificadores OK), apenas o provedor externo
-        // não retornou o nome — não bloqueia, apenas pede para preencher manualmente.
         setCpfNotice("CPF válido. Preencha o nome manualmente.");
         setCpfVerified(false);
       }
@@ -148,7 +155,7 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
     } finally {
       setCpfLoading(false);
     }
-  }, [cpf]);
+  }, [cpf, birthdate]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -167,6 +174,7 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
         userType: "supportProfessional",
         fullName: fullName.trim(),
         cpf: cpfDigits,
+        birthdate: birthdate || null,
         email: email.trim().toLowerCase(),
         specialties: specialties.map((s) => ({ value: s.value, label: s.label })),
         bio: bio.trim(),
@@ -289,6 +297,61 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
               )}
               {!cpfError && cpfNotice && (
                 <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">{cpfNotice}</p>
+              )}
+            </div>
+
+            {/* Data de nascimento (necessária para validação de CPF via Receita Federal). */}
+            <div>
+              <label htmlFor="prof-birthdate" className={labelClass}>
+                Data de Nascimento <span className="text-rose-600">*</span>
+              </label>
+              <input
+                id="prof-birthdate"
+                type="date"
+                value={birthdate}
+                max={new Date().toISOString().slice(0, 10)}
+                required
+                onChange={(e) => {
+                  setBirthdateError("");
+                  setBirthdate(e.target.value);
+                }}
+                onBlur={() => {
+                  const v = (birthdate || "").trim();
+                  if (!v) {
+                    setBirthdateError("");
+                    return;
+                  }
+                  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                    setBirthdateError("Data inválida.");
+                    return;
+                  }
+                  const bd = new Date(v + "T00:00:00");
+                  if (isNaN(bd.getTime())) {
+                    setBirthdateError("Data inválida.");
+                    return;
+                  }
+                  const today = new Date();
+                  let age = today.getFullYear() - bd.getFullYear();
+                  const m = today.getMonth() - bd.getMonth();
+                  if (m < 0 || (m === 0 && today.getDate() < bd.getDate())) age--;
+                  if (age < 18) {
+                    setBirthdateError("É necessário ter pelo menos 18 anos.");
+                  } else {
+                    setBirthdateError("");
+                    // Reconsulta CPF se já estiver válido para tentar preencher o nome.
+                    if (cpfDigits.length === 11 && isValidCpfDigits(cpfDigits)) {
+                      handleCpfBlur();
+                    }
+                  }
+                }}
+                className={inputClass}
+              />
+              {birthdateError ? (
+                <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{birthdateError}</p>
+              ) : (
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Necessária para validação automática do CPF na Receita Federal.
+                </p>
               )}
             </div>
 

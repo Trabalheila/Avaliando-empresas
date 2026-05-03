@@ -1,15 +1,29 @@
 // api/consulta-cpf.js
 //
 // Validação de CPF + busca opcional do nome via provedor externo.
-// O nome só é retornado se as variáveis de ambiente CPF_API_URL e
-// (opcionalmente) CPF_API_TOKEN estiverem configuradas. Caso contrário,
-// o endpoint apenas valida os dígitos verificadores.
+//
+// Suporta dois modos de provedor:
+//   1) InfoSimples (detectado pela URL contendo "infosimples.com"):
+//      - POST com body { token, cpf, birthdate } para o endpoint v2
+//        (ex.: https://api.infosimples.com/api/v2/consultas/receita-federal/cpf).
+//      - Usa CPF_API_TOKEN como `token` no body.
+//      - Exige `birthdate` (YYYY-MM-DD) recebido do cliente — convertido
+//        para DD/MM/YYYY antes de enviar.
+//
+//   2) Genérico (qualquer outra URL):
+//      - GET, com Authorization: Bearer <CPF_API_TOKEN> se definido.
+//      - Substitui {cpf} no template ou anexa como query string.
+//
+// Variáveis de ambiente:
+//   CPF_API_URL    - URL do provedor (com {cpf} se aplicável).
+//   CPF_API_TOKEN  - Token de autenticação (Bearer ou body, conforme provedor).
 //
 // Resposta:
-//   200 { valid: true,  fullName: "JOSE DA SILVA"  }  → nome encontrado
-//   200 { valid: true,  fullName: null, reason: "lookup_unavailable" | "not_found" }
+//   200 { valid: true,  fullName: "JOSE DA SILVA" }                  → nome encontrado
+//   200 { valid: true,  fullName: null, reason: "lookup_unavailable" }
+//   200 { valid: true,  fullName: null, reason: "not_found" }
+//   200 { valid: true,  fullName: null, reason: "birthdate_required" } → InfoSimples sem data
 //   400 { valid: false, error: "CPF inválido" }
-//   500 { valid: false, error: "..." }
 
 function isValidCPF(input) {
   const c = String(input || '').replace(/\D/g, '');
@@ -26,10 +40,20 @@ function isValidCPF(input) {
   return d2 === Number(c[10]);
 }
 
-// Tenta extrair o nome de uma resposta JSON em formatos comuns
-// (InfoSimples, ApiBrasil, DirectData, etc.).
 function pickNameFromProvider(json) {
   if (!json || typeof json !== 'object') return null;
+
+  // InfoSimples v2: { code: 200, data: [ { nome: "..." } ] }
+  if (Array.isArray(json?.data) && json.data.length > 0) {
+    const first = json.data[0];
+    const fromArr =
+      first?.nome ||
+      first?.nome_completo ||
+      first?.name ||
+      first?.fullName;
+    if (typeof fromArr === 'string' && fromArr.trim()) return fromArr.trim();
+  }
+
   const candidates = [
     json?.nome,
     json?.name,
@@ -52,13 +76,53 @@ function pickNameFromProvider(json) {
   return null;
 }
 
+// Converte birthdate "YYYY-MM-DD" para "DD/MM/YYYY" (formato esperado pela InfoSimples).
+function toBrDate(yyyyMmDd) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(yyyyMmDd || '').trim());
+  if (!m) return '';
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
+
+async function fetchInfoSimples({ url, token, cpf, birthdate }) {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), 15000);
+  try {
+    return await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ token, cpf, birthdate }),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function fetchGeneric({ url, token, cpf }) {
+  const finalUrl = url.includes('{cpf}')
+    ? url.replace('{cpf}', encodeURIComponent(cpf))
+    : `${url}${url.includes('?') ? '&' : '?'}cpf=${encodeURIComponent(cpf)}`;
+
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), 15000);
+  try {
+    const headers = { Accept: 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    return await fetch(finalUrl, { headers, signal: controller.signal });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ valid: false, error: 'Método não permitido' });
   }
 
-  const cpfRaw =
-    (req.method === 'GET' ? req.query?.cpf : req.body?.cpf) ?? '';
+  const params = req.method === 'GET' ? req.query : req.body;
+  const cpfRaw = params?.cpf ?? '';
+  const birthdateRaw = params?.birthdate ?? '';
+
   const cpf = String(cpfRaw).replace(/\D/g, '');
 
   if (!isValidCPF(cpf)) {
@@ -69,56 +133,65 @@ export default async function handler(req, res) {
   const apiToken = process.env.CPF_API_TOKEN;
 
   if (!apiUrl) {
-    // Provedor não configurado — devolve apenas a validação dos dígitos.
-    return res.status(200).json({
-      valid: true,
-      fullName: null,
-      reason: 'lookup_unavailable',
-    });
+    return res.status(200).json({ valid: true, fullName: null, reason: 'lookup_unavailable' });
   }
 
-  // Substitui {cpf} no template, ou anexa como query string padrão.
-  const finalUrl = apiUrl.includes('{cpf}')
-    ? apiUrl.replace('{cpf}', encodeURIComponent(cpf))
-    : `${apiUrl}${apiUrl.includes('?') ? '&' : '?'}cpf=${encodeURIComponent(cpf)}`;
+  const isInfoSimples = /infosimples\.com/i.test(apiUrl);
 
+  if (isInfoSimples) {
+    const birthdate = toBrDate(birthdateRaw);
+    if (!birthdate) {
+      return res.status(200).json({ valid: true, fullName: null, reason: 'birthdate_required' });
+    }
+    if (!apiToken) {
+      console.warn('[consulta-cpf] CPF_API_TOKEN ausente para InfoSimples');
+      return res.status(200).json({ valid: true, fullName: null, reason: 'lookup_unavailable' });
+    }
+
+    try {
+      const upstream = await fetchInfoSimples({ url: apiUrl, token: apiToken, cpf, birthdate });
+
+      if (!upstream.ok) {
+        console.warn('[consulta-cpf] InfoSimples HTTP', upstream.status);
+        return res.status(200).json({ valid: true, fullName: null, reason: 'lookup_unavailable' });
+      }
+
+      const json = await upstream.json().catch(() => null);
+      const ok = json && (json.code === 200 || json.code === '200');
+      if (!ok) {
+        console.warn('[consulta-cpf] InfoSimples code', json?.code, json?.code_message || '');
+        return res.status(200).json({ valid: true, fullName: null, reason: 'not_found' });
+      }
+
+      const fullName = pickNameFromProvider(json);
+      if (!fullName) {
+        return res.status(200).json({ valid: true, fullName: null, reason: 'not_found' });
+      }
+      return res.status(200).json({ valid: true, fullName });
+    } catch (err) {
+      console.error('[consulta-cpf] InfoSimples erro:', err?.message || err);
+      return res.status(200).json({ valid: true, fullName: null, reason: 'lookup_unavailable' });
+    }
+  }
+
+  // Provedor genérico (GET + Bearer).
   try {
-    const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), 10000);
-
-    const headers = { Accept: 'application/json' };
-    if (apiToken) headers.Authorization = `Bearer ${apiToken}`;
-
-    const upstream = await fetch(finalUrl, { headers, signal: controller.signal });
-    clearTimeout(t);
+    const upstream = await fetchGeneric({ url: apiUrl, token: apiToken, cpf });
 
     if (!upstream.ok) {
       console.warn('[consulta-cpf] upstream status', upstream.status);
-      return res.status(200).json({
-        valid: true,
-        fullName: null,
-        reason: 'lookup_unavailable',
-      });
+      return res.status(200).json({ valid: true, fullName: null, reason: 'lookup_unavailable' });
     }
 
     const json = await upstream.json().catch(() => null);
     const fullName = pickNameFromProvider(json);
 
     if (!fullName) {
-      return res.status(200).json({
-        valid: true,
-        fullName: null,
-        reason: 'not_found',
-      });
+      return res.status(200).json({ valid: true, fullName: null, reason: 'not_found' });
     }
-
     return res.status(200).json({ valid: true, fullName });
   } catch (err) {
     console.error('[consulta-cpf] erro:', err?.message || err);
-    return res.status(200).json({
-      valid: true,
-      fullName: null,
-      reason: 'lookup_unavailable',
-    });
+    return res.status(200).json({ valid: true, fullName: null, reason: 'lookup_unavailable' });
   }
 }
