@@ -534,19 +534,8 @@ function TrabalheiLaDesktop({
 
               {isAuthenticated && (
                 <div className="mb-2 mx-auto flex max-w-3xl items-center justify-center gap-3 bg-blue-50/70 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-600 rounded-2xl px-3 py-2">
-                  <div className="flex items-center justify-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-slate-700 flex items-center justify-center text-xl">
-                      {userProfile?.avatar ? (
-                        typeof userProfile.avatar === "string" && (userProfile.avatar.startsWith("data:") || userProfile.avatar.startsWith("http")) ? (
-                          <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
-                        ) : (
-                          <span>{userProfile.avatar}</span>
-                        )
-                      ) : (
-                        <span className="text-blue-600">👤</span>
-                      )}
-                    </div>
-                    <div className="text-left">
+                  <div className="flex items-center justify-center gap-4">
+                    <div className="text-right">
                       <p className="text-sm font-semibold text-blue-800 dark:text-blue-200">{userPseudonym || userProfile?.name || "Usuário"}</p>
                       {userProfile?.verification?.certified && (
                         <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
@@ -573,7 +562,7 @@ function TrabalheiLaDesktop({
                         return (
                           <a
                             href="/pseudonym"
-                            className="inline-flex items-center mt-1 px-3 py-1.5 rounded-full bg-emerald-300 text-emerald-900 text-xs font-medium tracking-normal hover:bg-emerald-400 shadow-md transition"
+                            className="inline-flex items-center mt-1 px-3 py-1.5 border-2 border-blue-700 text-blue-700 text-sm font-bold rounded-md hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
                           >
                             <FaUserEdit className="mr-1 text-[11px]" />
                             {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
@@ -616,6 +605,17 @@ function TrabalheiLaDesktop({
                         } catch { /* silencioso */ }
                         return null;
                       })()}
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-slate-700 flex items-center justify-center text-xl">
+                      {userProfile?.avatar ? (
+                        typeof userProfile.avatar === "string" && (userProfile.avatar.startsWith("data:") || userProfile.avatar.startsWith("http")) ? (
+                          <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+                        ) : (
+                          <span>{userProfile.avatar}</span>
+                        )
+                      ) : (
+                        <span className="text-blue-600">👤</span>
+                      )}
                     </div>
                     <button
                       type="button"
