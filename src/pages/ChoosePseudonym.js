@@ -80,6 +80,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   // Estado da consulta automática de CPF (Receita / provedor externo).
   const [cpfLoading, setCpfLoading] = useState(false);
   const [cpfError, setCpfError] = useState("");
+  const [cpfNotice, setCpfNotice] = useState("");
   const [cpfVerified, setCpfVerified] = useState(false);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -686,6 +687,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   const handleCpfBlur = useCallback(async () => {
     const digits = cpf.replace(/\D/g, "");
     setCpfError("");
+    setCpfNotice("");
     if (digits.length === 0) {
       setCpfVerified(false);
       return;
@@ -717,12 +719,14 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         setCpfVerified(true);
         setCpfError("");
       } else {
-        setCpfError("Não foi possível verificar o CPF. Preencha o nome manualmente.");
+        // CPF é válido (dígitos verificadores OK), apenas o provedor externo
+        // não retornou o nome — não bloqueia, apenas pede para preencher manualmente.
+        setCpfNotice("CPF válido. Preencha o nome manualmente.");
         setCpfVerified(false);
       }
     } catch (err) {
       console.warn("Falha na consulta de CPF:", err);
-      setCpfError("Não foi possível verificar o CPF agora. Preencha o nome manualmente.");
+      setCpfNotice("CPF válido. Preencha o nome manualmente.");
       setCpfVerified(false);
     } finally {
       setCpfLoading(false);
@@ -1036,6 +1040,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                   onChange={(e) => {
                     setError(null);
                     setCpfError("");
+                    setCpfNotice("");
                     setCpfVerified(false);
                     setCpf(maskCpf(e.target.value));
                   }}
@@ -1064,6 +1069,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
               </div>
               {cpfError && (
                 <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{cpfError}</p>
+              )}
+              {!cpfError && cpfNotice && (
+                <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">{cpfNotice}</p>
               )}
             </div>
 

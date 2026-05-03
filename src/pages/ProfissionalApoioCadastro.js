@@ -79,6 +79,7 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
 
   const [cpfLoading, setCpfLoading] = useState(false);
   const [cpfError, setCpfError] = useState("");
+  const [cpfNotice, setCpfNotice] = useState("");
   const [cpfVerified, setCpfVerified] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
@@ -105,6 +106,7 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
   const handleCpfBlur = useCallback(async () => {
     const digits = cpf.replace(/\D/g, "");
     setCpfError("");
+    setCpfNotice("");
     if (!digits) {
       setCpfVerified(false);
       return;
@@ -135,11 +137,13 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
         setFullName(data.fullName);
         setCpfVerified(true);
       } else {
-        setCpfError("Não foi possível verificar o CPF. Preencha o nome manualmente.");
+        // CPF é válido (dígitos verificadores OK), apenas o provedor externo
+        // não retornou o nome — não bloqueia, apenas pede para preencher manualmente.
+        setCpfNotice("CPF válido. Preencha o nome manualmente.");
         setCpfVerified(false);
       }
     } catch {
-      setCpfError("Não foi possível verificar o CPF agora. Preencha o nome manualmente.");
+      setCpfNotice("CPF válido. Preencha o nome manualmente.");
       setCpfVerified(false);
     } finally {
       setCpfLoading(false);
@@ -257,6 +261,7 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
                   onChange={(e) => {
                     setCpf(maskCpf(e.target.value));
                     setCpfError("");
+                    setCpfNotice("");
                     setCpfVerified(false);
                   }}
                   onBlur={handleCpfBlur}
@@ -281,6 +286,9 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
               </div>
               {cpfError && (
                 <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{cpfError}</p>
+              )}
+              {!cpfError && cpfNotice && (
+                <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">{cpfNotice}</p>
               )}
             </div>
 
