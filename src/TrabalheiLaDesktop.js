@@ -533,27 +533,27 @@ function TrabalheiLaDesktop({
               </div>
 
               {isAuthenticated && (
-                <div className="mb-2 mx-auto flex max-w-3xl flex-col items-center justify-center gap-3 bg-blue-50/70 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-600 rounded-2xl px-3 py-3">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 text-center">{userPseudonym || userProfile?.name || "Usuário"}</p>
-                    {userProfile?.verification?.certified && (
-                      <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 text-center">
-                        ✓ Certificado
-                      </p>
-                    )}
-                    <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-slate-700 flex items-center justify-center text-2xl">
-                      {userProfile?.avatar ? (
-                        typeof userProfile.avatar === "string" && (userProfile.avatar.startsWith("data:") || userProfile.avatar.startsWith("http")) ? (
-                          <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
-                        ) : (
-                          <span>{userProfile.avatar}</span>
-                        )
+                <div className="mb-2 mx-auto flex max-w-3xl flex-col items-center justify-center gap-4 bg-blue-50/70 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-600 rounded-2xl px-3 py-4">
+                  <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 text-center w-full">
+                    {userPseudonym || userProfile?.name || "Usuário"}
+                  </p>
+                  {userProfile?.verification?.certified && (
+                    <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 text-center w-full -mt-2">
+                      ✓ Certificado
+                    </p>
+                  )}
+                  <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-slate-700 flex items-center justify-center text-2xl mx-auto">
+                    {userProfile?.avatar ? (
+                      typeof userProfile.avatar === "string" && (userProfile.avatar.startsWith("data:") || userProfile.avatar.startsWith("http")) ? (
+                        <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
                       ) : (
-                        <span className="text-blue-600">👤</span>
-                      )}
-                    </div>
+                        <span>{userProfile.avatar}</span>
+                      )
+                    ) : (
+                      <span className="text-blue-600">👤</span>
+                    )}
                   </div>
-                  <div className="flex flex-wrap items-center justify-center gap-3">
+                  <div className="flex flex-wrap items-center justify-center gap-[10px] w-full">
                     {(() => {
                       // Regra de negócio:
                       //  - empresário => apenas "Painel Empresa".
@@ -571,7 +571,7 @@ function TrabalheiLaDesktop({
                       return (
                         <a
                           href="/pseudonym"
-                          className="inline-flex items-center px-3 py-1.5 border-2 border-blue-700 text-blue-700 text-sm font-bold rounded-md hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
+                          className="inline-flex items-center px-3 py-1.5 border border-blue-700 text-blue-700 text-sm font-bold rounded-md bg-transparent hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
                         >
                           <FaUserEdit className="mr-1 text-[11px]" />
                           {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
@@ -592,7 +592,7 @@ function TrabalheiLaDesktop({
                         <button
                           type="button"
                           onClick={() => navigate("/empresa-dashboard")}
-                          className="inline-flex items-center px-3 py-1.5 border-2 border-blue-700 text-blue-700 text-sm font-bold rounded-md hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
+                          className="inline-flex items-center px-3 py-1.5 border border-blue-700 text-blue-700 text-sm font-bold rounded-md bg-transparent hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
                         >
                           Painel Empresa
                         </button>
@@ -610,14 +610,14 @@ function TrabalheiLaDesktop({
                           navigate("/minha-conta");
                         }
                       }}
-                      className="inline-flex items-center px-3 py-1.5 border-2 border-blue-700 text-blue-700 text-sm font-bold rounded-md hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
+                      className="inline-flex items-center px-3 py-1.5 border border-blue-700 text-blue-700 text-sm font-bold rounded-md bg-transparent hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
                     >
                       Ver meu perfil
                     </button>
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="inline-flex items-center px-3 py-1.5 border-2 border-blue-700 text-blue-700 text-sm font-bold rounded-md hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
+                      className="inline-flex items-center px-3 py-1.5 border border-blue-700 text-blue-700 text-sm font-bold rounded-md bg-transparent hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
                     >
                       Sair
                     </button>
