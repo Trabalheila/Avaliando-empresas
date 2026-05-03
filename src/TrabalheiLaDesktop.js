@@ -487,7 +487,7 @@ function TrabalheiLaDesktop({
               )}
             </div>
 
-            <div className="flex-1 text-center px-4 overflow-visible">
+            <div className="flex-1 flex items-center px-4 overflow-visible min-h-[72px]">
               <h1
                 className="font-extrabold text-blue-800 dark:text-blue-300 drop-shadow-[0_3px_0_rgba(30,64,175,0.25)] dark:drop-shadow-[0_3px_0_rgba(15,23,42,0.6)] tracking-[0.05em] mb-0.5 logo-syne"
                 style={{
@@ -502,10 +502,30 @@ function TrabalheiLaDesktop({
               >
                 TRABALHEI LÁ
               </h1>
-              <div className="w-32 h-1 mx-auto rounded-full bg-gradient-to-r from-blue-300 via-blue-700 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500 mb-1.5" />
-              <p className="text-blue-700 dark:text-blue-200 text-base font-extrabold leading-tight">
-                {t('Evoluindo o mercado de trabalho')}
-              </p>
+              <div className="flex-1" />
+              {isAuthenticated && (
+                <div className="flex items-center gap-4 mr-2">
+                  <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-slate-700 flex items-center justify-center text-4xl border-2 border-blue-700 dark:border-blue-400">
+                    {userProfile?.avatar ? (
+                      typeof userProfile.avatar === "string" && (userProfile.avatar.startsWith("data:") || userProfile.avatar.startsWith("http")) ? (
+                        <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+                      ) : (
+                        <span>{userProfile.avatar}</span>
+                      )
+                    ) : (
+                      <span className="text-blue-600">👤</span>
+                    )}
+                  </div>
+                  <span className="text-xl font-bold text-blue-800 dark:text-blue-200 whitespace-nowrap">
+                    {userPseudonym || userProfile?.name || "Usuário"}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="w-32 h-1 mx-auto rounded-full bg-gradient-to-r from-blue-300 via-blue-700 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500 mb-1.5" />
+            <p className="text-blue-700 dark:text-blue-200 text-base font-extrabold leading-tight mb-2">
+              {t('Evoluindo o mercado de trabalho')}
+            </p>
 
               {/* Badges (Anônimo / Verificado / Confiável) — quando autenticado,
                   são renderizadas ao lado direito do card de perfil (abaixo).
@@ -537,27 +557,7 @@ function TrabalheiLaDesktop({
               )}
 
               {isAuthenticated && (
-                <div className="mt-2 mx-auto flex flex-wrap items-start justify-center gap-3">
-                <div className="flex max-w-md flex-col items-center justify-center gap-3 bg-blue-50/70 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-600 rounded-2xl px-4 py-4">
-                  <p className="text-2xl font-bold text-blue-800 dark:text-blue-200 text-center w-full leading-tight">
-                    {userPseudonym || userProfile?.name || "Usuário"}
-                  </p>
-                  {userProfile?.verification?.certified && (
-                    <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 text-center w-full -mt-1">
-                      ✓ Certificado
-                    </p>
-                  )}
-                  <div className="w-24 h-24 rounded-full bg-blue-50 dark:bg-slate-700 flex items-center justify-center text-5xl mx-auto">
-                    {userProfile?.avatar ? (
-                      typeof userProfile.avatar === "string" && (userProfile.avatar.startsWith("data:") || userProfile.avatar.startsWith("http")) ? (
-                        <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
-                      ) : (
-                        <span>{userProfile.avatar}</span>
-                      )
-                    ) : (
-                      <span className="text-blue-600">👤</span>
-                    )}
-                  </div>
+                <div className="mt-2 mx-auto flex flex-col items-center justify-center gap-3">
                   <div className="flex flex-wrap items-center justify-center gap-[10px] w-full">
                     {(() => {
                       // Regra de negócio:
@@ -643,32 +643,6 @@ function TrabalheiLaDesktop({
                       return null;
                     })()}
                   </div>
-
-                </div>
-                {/* Badges ao lado do card quando autenticado (vertical) */}
-                <div className="flex flex-col items-start justify-center gap-2 self-center">
-                  <span
-                    title="Sua identidade é mantida em sigilo: avaliações são publicadas sob pseudônimo."
-                    className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
-                  >
-                    <FaUserSecret className="text-[11px]" aria-hidden="true" />
-                    Anônimo
-                  </span>
-                  <span
-                    title="Conta verificada via login LinkedIn ou Google."
-                    className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
-                  >
-                    <FaCheckCircle className="text-[11px]" aria-hidden="true" />
-                    Verificado
-                  </span>
-                  <span
-                    title="Plataforma com regras anti-fraude e moderação de avaliações."
-                    className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
-                  >
-                    <FaShieldAlt className="text-[11px]" aria-hidden="true" />
-                    Confiável
-                  </span>
-                </div>
                 </div>
               )}
               {firebaseStatus && <p className="text-xs text-red-500 dark:text-red-400 mb-4">{firebaseStatus}</p>}
