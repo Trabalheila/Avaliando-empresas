@@ -75,6 +75,8 @@ function isValidCpfDigits(input) {
 function ChoosePseudonym({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const [pseudonym, setPseudonym] = useState("");
+  const [birthdate, setBirthdate] = useState("");
+  const [birthdateError, setBirthdateError] = useState("");
   const [cpf, setCpf] = useState("");
   const [fullName, setFullName] = useState("");
   // Estado da consulta automática de CPF (Receita / provedor externo).
@@ -215,6 +217,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
 
     if (isInitialLoad) {
       if (profile?.pseudonimo || profile?.name) setPseudonym(profile.pseudonimo || profile.name);
+      if (profile?.birthdate && /^\d{4}-\d{2}-\d{2}$/.test(profile.birthdate)) setBirthdate(profile.birthdate);
       if (profile?.cpf) setCpf(maskCpf(profile.cpf));
       if (profile?.nomeReal || profile?.fullName) setFullName(profile.nomeReal || profile.fullName);
       if (profile?.email) setEmail(profile.email);
@@ -747,6 +750,28 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         return;
       }
 
+      // Validação de data de nascimento (opcional, mas se preenchida deve ser válida e >= 18 anos).
+      const birthdateTrimmed = (birthdate || "").trim();
+      if (birthdateTrimmed) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(birthdateTrimmed)) {
+          setError("Data de nascimento inválida.");
+          return;
+        }
+        const bd = new Date(birthdateTrimmed + "T00:00:00");
+        if (isNaN(bd.getTime())) {
+          setError("Data de nascimento inválida.");
+          return;
+        }
+        const today = new Date();
+        let age = today.getFullYear() - bd.getFullYear();
+        const m = today.getMonth() - bd.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < bd.getDate())) age--;
+        if (age < 18) {
+          setError("Você precisa ter pelo menos 18 anos para se cadastrar.");
+          return;
+        }
+      }
+
       const cpfNumbers = cpf.replace(/\D/g, "");
       if (!cpfNumbers) {
         setError("CPF é obrigatório.");
@@ -815,6 +840,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         profileId: unifiedId,
         name: trimmed,
         pseudonimo: trimmed,
+        birthdate: birthdateTrimmed || existingProfile?.birthdate || undefined,
         fullName: fullName.trim() || undefined,
         nomeReal: fullName.trim() || undefined,
         cpf: cpfNumbers || undefined,
@@ -856,6 +882,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     [
       navigate,
       pseudonym,
+      birthdate,
       cpf,
       fullName,
       email,
@@ -1008,6 +1035,57 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 placeholder="Ex.: Profissional Anônimo, Engenheiro Discreto"
                 className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
               />
+            </div>
+
+            {/* Data de nascimento (opcional, mas se preenchida exige >= 18 anos). */}
+            <div>
+              <label htmlFor="cp-birthdate" className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                Data de Nascimento
+              </label>
+              <input
+                id="cp-birthdate"
+                type="date"
+                value={birthdate}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => {
+                  setError(null);
+                  setBirthdateError("");
+                  setBirthdate(e.target.value);
+                }}
+                onBlur={() => {
+                  const v = (birthdate || "").trim();
+                  if (!v) {
+                    setBirthdateError("");
+                    return;
+                  }
+                  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                    setBirthdateError("Data inválida.");
+                    return;
+                  }
+                  const bd = new Date(v + "T00:00:00");
+                  if (isNaN(bd.getTime())) {
+                    setBirthdateError("Data inválida.");
+                    return;
+                  }
+                  const today = new Date();
+                  let age = today.getFullYear() - bd.getFullYear();
+                  const m = today.getMonth() - bd.getMonth();
+                  if (m < 0 || (m === 0 && today.getDate() < bd.getDate())) age--;
+                  if (age < 18) {
+                    setBirthdateError("É necessário ter pelo menos 18 anos.");
+                  } else {
+                    setBirthdateError("");
+                  }
+                }}
+                className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+              />
+              {birthdateError ? (
+                <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{birthdateError}</p>
+              ) : (
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Necessário para validação de CPF e para garantir a autenticidade das avaliações.
+                </p>
+              )}
             </div>
 
             {/* E-mail e Nome completo lado a lado em md+ */}
