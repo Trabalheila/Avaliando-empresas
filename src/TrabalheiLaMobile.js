@@ -7,7 +7,7 @@ import {
 import {
   FiMessageCircle, FiDollarSign, FiCompass, FiCalendar, FiUsers,
   FiBriefcase, FiShield, FiHeart, FiRepeat, FiAward, FiTrendingUp, FiAlertCircle,
-  FiClock, FiArrowUpCircle,
+  FiClock, FiArrowUpCircle, FiInfo,
 } from "react-icons/fi";
 import Select from "react-select";
 import LoginLinkedInButton from "./LoginLinkedInButton";
@@ -464,7 +464,7 @@ function TrabalheiLaMobile({
     { restrictKey: "lideranca", label: "Acessibilidade e respeito da liderança", icon: <FiUsers className="text-violet-700" />, iconBg: "from-violet-50 to-indigo-100 border-violet-200", value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca },
     { restrictKey: "estimacaoOrganizacao", label: "Condições de trabalho", icon: <FiBriefcase className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao },
     { restrictKey: "ambiente", label: "Estímulo ao respeito", icon: <FiUsers className="text-teal-700" />, iconBg: "from-teal-50 to-emerald-100 border-teal-200", value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente },
-    { type: "yesno", label: "Sofreu discriminação?", icon: <FiAlertCircle className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: discriminacao, set: setDiscriminacao, comment: commentDiscriminacao, setComment: setCommentDiscriminacao },
+    { type: "yesno", label: "Sofreu discriminação?", restrictedNote: "Informação de visualização restrita a apoiadores.", icon: <FiAlertCircle className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: discriminacao, set: setDiscriminacao, comment: commentDiscriminacao, setComment: setCommentDiscriminacao },
     { restrictKey: "diversidade", label: "Diversidade e Inclusão", icon: <FiUsers className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade },
     { restrictKey: "cargaHoraria", label: "Carga Horária / Jornada de Trabalho", icon: <FiClock className="text-indigo-700" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200", value: cargaHoraria, set: setCargaHoraria, comment: commentCargaHoraria, setComment: setCommentCargaHoraria },
     { restrictKey: "crescimento", label: "Oportunidades de Desenvolvimento / Crescimento", icon: <FiArrowUpCircle className="text-emerald-700" />, iconBg: "from-emerald-50 to-teal-100 border-emerald-200", value: crescimento, set: setCrescimento, comment: commentCrescimento, setComment: setCommentCrescimento },
@@ -1181,7 +1181,19 @@ function TrabalheiLaMobile({
                       {campo.icon}
                     </span>
                     <span>
-                      <span className="block">{campo.label}</span>
+                      <span className="flex items-center gap-1.5 flex-wrap">
+                        <span>{campo.label}</span>
+                        {campo.restrictedNote && (
+                          <span
+                            title={campo.restrictedNote}
+                            aria-label={campo.restrictedNote}
+                            className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-full px-2 py-0.5 cursor-help"
+                          >
+                            <FiInfo className="w-3 h-3" aria-hidden="true" />
+                            <span>Restrito a apoiadores</span>
+                          </span>
+                        )}
+                      </span>
                       {campo.subtitle && <span className="block text-xs text-slate-500 dark:text-blue-300">{campo.subtitle}</span>}
                     </span>
                   </label>

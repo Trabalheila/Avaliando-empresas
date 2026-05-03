@@ -7,7 +7,7 @@ import { FaPlus, FaStar, FaRegStar, FaUserEdit, FaGoogle, FaUserSecret, FaCheckC
 import {
   FiMessageCircle, FiDollarSign, FiCompass, FiCalendar, FiUsers,
   FiBriefcase, FiShield, FiHeart, FiRepeat, FiAward, FiTrendingUp, FiAlertCircle,
-  FiClock, FiArrowUpCircle,
+  FiClock, FiArrowUpCircle, FiInfo,
 } from "react-icons/fi";
 import LoginLinkedInButton from "./LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
@@ -314,7 +314,7 @@ function TrabalheiLaDesktop({
     { restrictKey: "lideranca", label: t('Acessibilidade e respeito da liderança'), value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca, icon: <FiUsers className="text-indigo-600" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200" },
     { restrictKey: "estimacaoOrganizacao", label: t('Condições de trabalho'), value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao, icon: <FiBriefcase className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200" },
     { restrictKey: "ambiente", label: t('Estímulo ao respeito'), value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente, icon: <FiUsers className="text-violet-600" />, iconBg: "from-violet-50 to-fuchsia-100 border-violet-200" },
-    { type: "yesno", label: t('Sofreu discriminação?'), value: discriminacao, set: setDiscriminacao, comment: commentDiscriminacao, setComment: setCommentDiscriminacao, icon: <FiAlertCircle className="text-teal-600" />, iconBg: "from-teal-50 to-cyan-100 border-teal-200" },
+    { type: "yesno", label: t('Sofreu discriminação?'), restrictedNote: "Informação de visualização restrita a apoiadores.", value: discriminacao, set: setDiscriminacao, comment: commentDiscriminacao, setComment: setCommentDiscriminacao, icon: <FiAlertCircle className="text-teal-600" />, iconBg: "from-teal-50 to-cyan-100 border-teal-200" },
     { restrictKey: "diversidade", label: t('Diversidade e Inclusão'), value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade, icon: <FiUsers className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200" },
     { restrictKey: "cargaHoraria", label: t('Carga Horária / Jornada de Trabalho'), value: cargaHoraria, set: setCargaHoraria, comment: commentCargaHoraria, setComment: setCommentCargaHoraria, icon: <FiClock className="text-indigo-700" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200" },
     { restrictKey: "crescimento", label: t('Oportunidades de Desenvolvimento / Crescimento'), value: crescimento, set: setCrescimento, comment: commentCrescimento, setComment: setCommentCrescimento, icon: <FiArrowUpCircle className="text-emerald-700" />, iconBg: "from-emerald-50 to-teal-100 border-emerald-200" },
@@ -1044,7 +1044,19 @@ function TrabalheiLaDesktop({
                         {campo.icon}
                       </span>
                       <span>
-                        <span className="block">{campo.label}</span>
+                        <span className="flex items-center gap-1.5 flex-wrap">
+                          <span>{campo.label}</span>
+                          {campo.restrictedNote && (
+                            <span
+                              title={campo.restrictedNote}
+                              aria-label={campo.restrictedNote}
+                              className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-full px-2 py-0.5 cursor-help"
+                            >
+                              <FiInfo className="w-3 h-3" aria-hidden="true" />
+                              <span>Restrito a apoiadores</span>
+                            </span>
+                          )}
+                        </span>
                         {campo.subtitle && <span className="block text-xs text-slate-500 dark:text-slate-400">{campo.subtitle}</span>}
                       </span>
                     </label>
