@@ -54,7 +54,7 @@ export default function CompanyRegister() {
       setRazaoSocial("");
       setCnae(null);
       if (!cnpjValue || cnpjValue.length < 14) return;
-      const res = await fetch(`/api/consulta-cnpj?cnpj=${cnpjValue}`);
+      const res = await fetch(`/api/cnpj?op=info&cnpj=${cnpjValue}`);
       if (!res.ok) throw new Error("CNPJ não encontrado");
       const data = await res.json();
       setRazaoSocial(data.razao_social || "");

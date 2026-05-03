@@ -506,7 +506,7 @@ export default function EmpresaDashboard() {
     setReceitaError("");
     (async () => {
       try {
-        const r = await fetch(`/api/cnpj-data?cnpj=${cnpjDigits}`);
+        const r = await fetch(`/api/cnpj?op=status&cnpj=${cnpjDigits}`);
         const body = await r.json().catch(() => ({}));
         if (cancelled) return;
         if (!r.ok) {
