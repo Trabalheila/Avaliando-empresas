@@ -134,8 +134,20 @@ export default function CompanyRegister() {
         }),
       });
       if (!resp.ok) {
-        const body = await resp.json().catch(() => ({}));
-        throw new Error(body?.error || "Falha ao enviar confirmação.");
+        // Tenta JSON; se falhar, lê como texto (ex.: página HTML 500 do Vercel)
+        // para que o usuário enxergue a causa real ao invés do genérico.
+        let body = null;
+        let textBody = "";
+        try {
+          body = await resp.clone().json();
+        } catch {
+          try { textBody = await resp.text(); } catch { /* ignore */ }
+        }
+        const detail =
+          body?.error ||
+          (textBody && textBody.length < 300 ? textBody : "") ||
+          `HTTP ${resp.status}`;
+        throw new Error(`Falha ao enviar confirmação: ${detail}`);
       }
       setLoading(false);
       setSubmitted(true);

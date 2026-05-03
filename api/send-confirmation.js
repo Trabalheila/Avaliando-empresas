@@ -1,23 +1,46 @@
 import { Resend } from 'resend';
 import * as admin from 'firebase-admin';
-// Importe getFirestore do módulo firebase-admin/firestore
-import { getFirestore } from 'firebase-admin/firestore'; // <--- ADICIONE ESTA LINHA
+import { getFirestore } from 'firebase-admin/firestore';
 
-// Inicialize o Firebase Admin SDK APENAS UMA VEZ
-if (!admin.apps.length) {
+// Inicialização preguiçosa para evitar crash no carregamento do módulo
+// quando alguma variável de ambiente está ausente — o handler retorna
+// 500 com mensagem JSON ao invés de a função falhar antes do try/catch.
+function ensureAdmin() {
+  if (admin.apps.length) return;
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
+  if (!projectId || !clientEmail || !privateKeyRaw) {
+    throw new Error(
+      'Configuração do Firebase Admin incompleta no servidor (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY).'
+    );
+  }
   admin.initializeApp({
     credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      projectId,
+      clientEmail,
+      privateKey: privateKeyRaw.replace(/\\n/g, '\n'),
     }),
   });
 }
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
+
+  // Wrapper geral: qualquer erro inesperado vira JSON com mensagem real,
+  // evitando o "Falha ao enviar confirmação." genérico no front.
+  try {
+    ensureAdmin();
+  } catch (initErr) {
+    console.error('Falha na inicialização do Firebase Admin:', initErr);
+    return res.status(500).json({ error: initErr?.message || 'Erro de configuração do servidor.' });
+  }
+
+  if (!process.env.RESEND_API_KEY) {
+    console.error('RESEND_API_KEY ausente no ambiente do servidor.');
+    return res.status(500).json({ error: 'Serviço de e-mail não configurado (RESEND_API_KEY ausente).' });
+  }
+  const resend = new Resend(process.env.RESEND_API_KEY);
 
   const {
     email,
@@ -84,35 +107,49 @@ export default async function handler(req, res) {
 
   } catch (firestoreError) {
     console.error('ERRO ao salvar dados no Firestore:', firestoreError);
-    return res.status(500).json({ error: 'Erro interno ao salvar dados da empresa.' });
+    return res.status(500).json({
+      error: `Erro ao salvar dados da empresa: ${firestoreError?.message || 'desconhecido'}`,
+    });
   }
 
   // --- 2. Enviar o e-mail com Resend ---
   const confirmationLink = `https://trabalheila.vercel.app/empresa/confirmar?token=${token}`;
   console.log('Link de confirmação enviado no e-mail:', confirmationLink);
 
-  const { data, error } = await resend.emails.send({
-    from: 'Trabalhei Lá <confirmacao@trabalheila.com.br>',
-    to: email,
-    reply_to: 'faleconosco@trabalheila.com.br',
-    subject: 'Confirme o cadastro da sua empresa no Trabalhei Lá',
-    html: `
-      <div style="font-family:sans-serif;max-width:600px;margin:auto">
-        <h2>Cadastro recebido!</h2>
-        <p>Olá! O cadastro da empresa <strong>${companyName}</strong> foi recebido com sucesso.</p>
-        <p>Clique no botão abaixo para confirmar e ativar seu acesso:</p>
-        <a href="${confirmationLink}" 
-           style="background:#1a237e;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block;margin:16px 0">
-          Confirmar Cadastro
-        </a>
-        <p style="color:#888;font-size:12px">Este link expira em 24 horas. Se não foi você, ignore este e-mail.</p>
-      </div>
-    `
-  });
+  let data;
+  let error;
+  try {
+    const result = await resend.emails.send({
+      from: 'Trabalhei Lá <confirmacao@trabalheila.com.br>',
+      to: email,
+      replyTo: 'faleconosco@trabalheila.com.br',
+      subject: 'Confirme o cadastro da sua empresa no Trabalhei Lá',
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:auto">
+          <h2>Cadastro recebido!</h2>
+          <p>Olá! O cadastro da empresa <strong>${companyName}</strong> foi recebido com sucesso.</p>
+          <p>Clique no botão abaixo para confirmar e ativar seu acesso:</p>
+          <a href="${confirmationLink}"
+             style="background:#1a237e;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block;margin:16px 0">
+            Confirmar Cadastro
+          </a>
+          <p style="color:#888;font-size:12px">Este link expira em 24 horas. Se não foi você, ignore este e-mail.</p>
+        </div>
+      `,
+    });
+    data = result?.data;
+    error = result?.error;
+  } catch (sendErr) {
+    console.error('Exceção ao chamar Resend:', sendErr);
+    return res.status(500).json({
+      error: `Falha ao chamar serviço de e-mail: ${sendErr?.message || 'erro desconhecido'}`,
+    });
+  }
 
   if (error) {
     console.error('ERRO ao enviar e-mail com Resend:', error);
-    return res.status(500).json({ error: 'Erro interno ao enviar e-mail.' });
+    const detail = error?.message || error?.name || 'erro desconhecido';
+    return res.status(500).json({ error: `Erro ao enviar e-mail: ${detail}` });
   }
 
   console.log('E-mail de confirmação enviado com sucesso para:', email);
