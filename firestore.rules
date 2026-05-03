@@ -125,5 +125,14 @@ service cloud.firestore {
         allow delete: if false;
       }
     }
+
+    // Profissionais de Apoio (userType = 'supportProfessional').
+    // Perfil público de leitura aberta; escrita apenas pelo dono autenticado.
+    match /supportProfessionals/{profId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.uid == profId;
+      allow update: if request.auth != null && request.auth.uid == profId;
+      allow delete: if request.auth != null && request.auth.uid == profId;
+    }
   }
 }

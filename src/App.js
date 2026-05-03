@@ -33,6 +33,8 @@ import EmpresaDashboard from './pages/EmpresaDashboard';
 import Login from './pages/Login';
 import SealDetailsPage from './pages/SealDetailsPage';
 import AuthAction from './pages/AuthAction';
+import ProfissionalApoioCadastro from './pages/ProfissionalApoioCadastro';
+import ProfissionalApoioPerfil from './pages/ProfissionalApoioPerfil';
 
 // Função para aplicar o tema (dark/light)
 function applyTheme(theme) {
@@ -212,6 +214,8 @@ function App() {
       <Route path="/empresa-dashboard" element={<EmpresaDashboard theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/selo-trabalheila" element={<SealDetailsPage />} />
       <Route path="/auth/action" element={<AuthAction />} />
+      <Route path="/profissionais-apoio/cadastro" element={<ProfissionalApoioCadastro theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/profissionais-apoio/:id" element={<ProfissionalApoioPerfil theme={theme} toggleTheme={toggleTheme} />} />
     </Routes>
   );
 
