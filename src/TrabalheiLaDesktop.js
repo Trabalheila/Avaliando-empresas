@@ -507,42 +507,47 @@ function TrabalheiLaDesktop({
                 {t('Evoluindo o mercado de trabalho')}
               </p>
 
-              {/* Badges horizontais (Anônimo / Verificado / Confiável) com tooltip */}
-              <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
-                <span
-                  title="Sua identidade é mantida em sigilo: avaliações são publicadas sob pseudônimo."
-                  className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
-                >
-                  <FaUserSecret className="text-[11px]" aria-hidden="true" />
-                  Anônimo
-                </span>
-                <span
-                  title="Conta verificada via login LinkedIn ou Google."
-                  className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
-                >
-                  <FaCheckCircle className="text-[11px]" aria-hidden="true" />
-                  Verificado
-                </span>
-                <span
-                  title="Plataforma com regras anti-fraude e moderação de avaliações."
-                  className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
-                >
-                  <FaShieldAlt className="text-[11px]" aria-hidden="true" />
-                  Confiável
-                </span>
-              </div>
+              {/* Badges (Anônimo / Verificado / Confiável) — quando autenticado,
+                  são renderizadas ao lado direito do card de perfil (abaixo).
+                  Aqui (centralizado) só aparecem para usuários não autenticados. */}
+              {!isAuthenticated && (
+                <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+                  <span
+                    title="Sua identidade é mantida em sigilo: avaliações são publicadas sob pseudônimo."
+                    className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
+                  >
+                    <FaUserSecret className="text-[11px]" aria-hidden="true" />
+                    Anônimo
+                  </span>
+                  <span
+                    title="Conta verificada via login LinkedIn ou Google."
+                    className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
+                  >
+                    <FaCheckCircle className="text-[11px]" aria-hidden="true" />
+                    Verificado
+                  </span>
+                  <span
+                    title="Plataforma com regras anti-fraude e moderação de avaliações."
+                    className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
+                  >
+                    <FaShieldAlt className="text-[11px]" aria-hidden="true" />
+                    Confiável
+                  </span>
+                </div>
+              )}
 
               {isAuthenticated && (
-                <div className="mb-2 mx-auto flex max-w-3xl flex-col items-center justify-center gap-4 bg-blue-50/70 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-600 rounded-2xl px-3 py-4">
-                  <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 text-center w-full">
+                <div className="mt-2 mx-auto flex flex-wrap items-start justify-center gap-3">
+                <div className="flex max-w-md flex-col items-center justify-center gap-3 bg-blue-50/70 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-600 rounded-2xl px-4 py-4">
+                  <p className="text-2xl font-bold text-blue-800 dark:text-blue-200 text-center w-full leading-tight">
                     {userPseudonym || userProfile?.name || "Usuário"}
                   </p>
                   {userProfile?.verification?.certified && (
-                    <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 text-center w-full -mt-2">
+                    <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 text-center w-full -mt-1">
                       ✓ Certificado
                     </p>
                   )}
-                  <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-slate-700 flex items-center justify-center text-2xl mx-auto">
+                  <div className="w-24 h-24 rounded-full bg-blue-50 dark:bg-slate-700 flex items-center justify-center text-5xl mx-auto">
                     {userProfile?.avatar ? (
                       typeof userProfile.avatar === "string" && (userProfile.avatar.startsWith("data:") || userProfile.avatar.startsWith("http")) ? (
                         <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
@@ -639,6 +644,31 @@ function TrabalheiLaDesktop({
                     })()}
                   </div>
 
+                </div>
+                {/* Badges ao lado do card quando autenticado (vertical) */}
+                <div className="flex flex-col items-start justify-center gap-2 self-center">
+                  <span
+                    title="Sua identidade é mantida em sigilo: avaliações são publicadas sob pseudônimo."
+                    className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
+                  >
+                    <FaUserSecret className="text-[11px]" aria-hidden="true" />
+                    Anônimo
+                  </span>
+                  <span
+                    title="Conta verificada via login LinkedIn ou Google."
+                    className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
+                  >
+                    <FaCheckCircle className="text-[11px]" aria-hidden="true" />
+                    Verificado
+                  </span>
+                  <span
+                    title="Plataforma com regras anti-fraude e moderação de avaliações."
+                    className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
+                  >
+                    <FaShieldAlt className="text-[11px]" aria-hidden="true" />
+                    Confiável
+                  </span>
+                </div>
                 </div>
               )}
               {firebaseStatus && <p className="text-xs text-red-500 dark:text-red-400 mb-4">{firebaseStatus}</p>}
