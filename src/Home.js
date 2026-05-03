@@ -145,6 +145,61 @@ function Home({ theme, toggleTheme }) {
       /* sessionStorage indisponível */
     }
   }, [location.search]);
+
+  // Toast de feedback do fluxo de verificação de e-mail (?verified=1|0).
+  // Após processar, limpa os parâmetros da URL para não repetir no refresh.
+  const [emailVerificationToast, setEmailVerificationToast] = useState(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(location.search || "");
+    const verified = params.get("verified");
+    if (verified === null) return;
+
+    if (verified === "1") {
+      setEmailVerificationToast({
+        type: "success",
+        message: "E-mail verificado com sucesso!",
+      });
+      try {
+        const stored = JSON.parse(localStorage.getItem("userProfile") || "{}");
+        localStorage.setItem(
+          "userProfile",
+          JSON.stringify({ ...stored, emailVerified: true })
+        );
+      } catch {
+        /* ignore */
+      }
+    } else {
+      const reason = params.get("reason") || "";
+      const detailMessages = {
+        expired: "Link de verificação expirado. Solicite um novo e-mail.",
+        invalid_token: "Link de verificação inválido ou expirado.",
+        invalid_payload: "Link de verificação inválido ou expirado.",
+        missing_token: "Link de verificação inválido ou expirado.",
+        server_misconfigured: "Falha de configuração no servidor de verificação.",
+        persist_failed: "Não foi possível registrar a verificação. Tente novamente.",
+      };
+      setEmailVerificationToast({
+        type: "error",
+        message: detailMessages[reason] || "Link de verificação inválido ou expirado.",
+      });
+    }
+
+    try {
+      params.delete("verified");
+      params.delete("reason");
+      const next =
+        window.location.pathname +
+        (params.toString() ? `?${params.toString()}` : "") +
+        window.location.hash;
+      window.history.replaceState({}, "", next);
+    } catch {
+      /* ignore */
+    }
+
+    const timer = setTimeout(() => setEmailVerificationToast(null), 6000);
+    return () => clearTimeout(timer);
+  }, [location.search]);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   // firebaseStatus é renderizado apenas como aviso de erro (texto em vermelho).
   // Inicia vazio para não exibir um placeholder ("verificando...") enquanto o
@@ -2034,6 +2089,51 @@ function Home({ theme, toggleTheme }) {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {emailVerificationToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: "fixed",
+            top: 16,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 9999,
+            maxWidth: "min(92vw, 460px)",
+            padding: "12px 18px",
+            borderRadius: 12,
+            boxShadow: "0 10px 30px rgba(15,23,42,0.18)",
+            backgroundColor:
+              emailVerificationToast.type === "success" ? "#16a34a" : "#dc2626",
+            color: "#ffffff",
+            fontWeight: 600,
+            fontSize: 14,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <span style={{ flex: 1 }}>{emailVerificationToast.message}</span>
+          <button
+            type="button"
+            onClick={() => setEmailVerificationToast(null)}
+            aria-label="Fechar"
+            style={{
+              background: "transparent",
+              border: 0,
+              color: "#ffffff",
+              cursor: "pointer",
+              fontWeight: 700,
+              fontSize: 18,
+              lineHeight: 1,
+              padding: 0,
+            }}
+          >
+            ×
+          </button>
         </div>
       )}
 

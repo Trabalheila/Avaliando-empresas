@@ -365,11 +365,21 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         return false;
       }
       let profileId = "";
+      let storedPseudonym = "";
       try {
         const stored = JSON.parse(localStorage.getItem("userProfile") || "{}");
         profileId = resolveProfileId(stored) || stored?.profileId || stored?.id || "";
+        storedPseudonym =
+          (stored?.pseudonym || stored?.nickname || "").toString().trim();
       } catch {
         // ignore
+      }
+      if (!storedPseudonym) {
+        try {
+          storedPseudonym = (localStorage.getItem("userPseudonym") || "").trim();
+        } catch {
+          // ignore
+        }
       }
       if (!profileId) {
         setVerificationStatus("Salve o perfil antes de enviar o e-mail de verificação.");
@@ -378,10 +388,14 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       setSendingVerification(true);
       setVerificationStatus("");
       try {
-        const resp = await fetch("/api/send-verification", {
+        const resp = await fetch("/api/send-verification-email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: profileId, email: normalized }),
+          body: JSON.stringify({
+            userId: profileId,
+            email: normalized,
+            pseudonym: storedPseudonym,
+          }),
           cache: "no-store",
         });
         const data = await resp.json().catch(() => null);
