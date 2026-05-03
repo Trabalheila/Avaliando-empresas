@@ -14,6 +14,7 @@ import CaptchaModal from "./components/CaptchaModal";
 import RestrictableTextarea from "./components/RestrictableTextarea";
 import WorkPeriodPicker from "./components/WorkPeriodPicker";
 import { handleAutoCorrectChange } from "./utils/ptBrAutoCorrect";
+import { resolveProfileId } from "./utils/profileIdentity";
 
 function CommentTextarea({
   value,
@@ -616,6 +617,22 @@ function TrabalheiLaDesktop({
                         return null;
                       })()}
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const pid =
+                          userProfile?.profileId ||
+                          resolveProfileId(userProfile, { persistGeneratedId: false });
+                        if (pid) {
+                          navigate(`/perfil/${encodeURIComponent(pid)}`);
+                        } else {
+                          navigate("/minha-conta");
+                        }
+                      }}
+                      className="ml-3 px-3 py-1.5 border-2 border-blue-700 text-blue-700 text-sm font-bold rounded-md hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
+                    >
+                      Ver meu perfil
+                    </button>
                     <button
                       type="button"
                       onClick={handleLogout}
