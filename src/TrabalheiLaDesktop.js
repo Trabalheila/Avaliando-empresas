@@ -533,80 +533,15 @@ function TrabalheiLaDesktop({
               </div>
 
               {isAuthenticated && (
-                <div className="mb-2 mx-auto flex max-w-3xl items-center justify-center gap-3 bg-blue-50/70 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-600 rounded-2xl px-3 py-2">
-                  <div className="flex items-center justify-center gap-4">
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-blue-800 dark:text-blue-200">{userPseudonym || userProfile?.name || "Usuário"}</p>
-                      {userProfile?.verification?.certified && (
-                        <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
-                          ✓ Certificado
-                        </p>
-                      )}
-                      {(() => {
-                        // Regra de negócio:
-                        //  - empresário => apenas "Painel Empresa".
-                        //  - trabalhador => apenas "Crie seu perfil".
-                        //  - não logado => bloco não é renderizado (envolvido por isAuthenticated).
-                        // Detecção de empresário aceita múltiplos sinais para evitar
-                        // dependência exclusiva de role === "admin_empresa" (que pode
-                        // não ter sido sincronizado em todos os fluxos de cadastro).
-                        const role = (userProfile?.role || "").toString().toLowerCase().trim();
-                        const userType = (userProfile?.userType || "").toString().toLowerCase().trim();
-                        const isEmployer =
-                          role === "admin_empresa" ||
-                          userType === "empresario" ||
-                          userType === "empres\u00e1rio" ||
-                          userProfile?.isEmployer === true ||
-                          Boolean(userProfile?.managedCompanyId);
-                        if (isEmployer) return null;
-                        return (
-                          <a
-                            href="/pseudonym"
-                            className="inline-flex items-center mt-1 px-3 py-1.5 border-2 border-blue-700 text-blue-700 text-sm font-bold rounded-md hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
-                          >
-                            <FaUserEdit className="mr-1 text-[11px]" />
-                            {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
-                          </a>
-                        );
-                      })()}
-                      {(() => {
-                        const role = (userProfile?.role || "").toString().toLowerCase().trim();
-                        const userType = (userProfile?.userType || "").toString().toLowerCase().trim();
-                        const isEmployer =
-                          role === "admin_empresa" ||
-                          userType === "empresario" ||
-                          userType === "empres\u00e1rio" ||
-                          userProfile?.isEmployer === true ||
-                          Boolean(userProfile?.managedCompanyId);
-                        if (!isEmployer) return null;
-                        return (
-                          <button
-                            type="button"
-                            onClick={() => navigate("/empresa-dashboard")}
-                            className="inline-flex items-center mt-1 px-3 py-1.5 rounded-full bg-amber-400 text-amber-900 text-xs font-bold tracking-normal hover:bg-amber-500 shadow-md transition"
-                          >
-                            Painel Empresa
-                          </button>
-                        );
-                      })()}
-                      {(() => {
-                        try {
-                          const { isAdmin } = require("./utils/rbac");
-                          if (isAdmin()) {
-                            return (
-                              <a
-                                href="/admin"
-                                className="mt-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition"
-                              >
-                                Admin
-                              </a>
-                            );
-                          }
-                        } catch { /* silencioso */ }
-                        return null;
-                      })()}
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-slate-700 flex items-center justify-center text-xl">
+                <div className="mb-2 mx-auto flex max-w-3xl flex-col items-center justify-center gap-3 bg-blue-50/70 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-600 rounded-2xl px-3 py-3">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 text-center">{userPseudonym || userProfile?.name || "Usuário"}</p>
+                    {userProfile?.verification?.certified && (
+                      <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 text-center">
+                        ✓ Certificado
+                      </p>
+                    )}
+                    <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-slate-700 flex items-center justify-center text-2xl">
                       {userProfile?.avatar ? (
                         typeof userProfile.avatar === "string" && (userProfile.avatar.startsWith("data:") || userProfile.avatar.startsWith("http")) ? (
                           <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
@@ -617,6 +552,52 @@ function TrabalheiLaDesktop({
                         <span className="text-blue-600">👤</span>
                       )}
                     </div>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    {(() => {
+                      // Regra de negócio:
+                      //  - empresário => apenas "Painel Empresa".
+                      //  - trabalhador => apenas "Crie seu perfil".
+                      //  - não logado => bloco não é renderizado (envolvido por isAuthenticated).
+                      const role = (userProfile?.role || "").toString().toLowerCase().trim();
+                      const userType = (userProfile?.userType || "").toString().toLowerCase().trim();
+                      const isEmployer =
+                        role === "admin_empresa" ||
+                        userType === "empresario" ||
+                        userType === "empres\u00e1rio" ||
+                        userProfile?.isEmployer === true ||
+                        Boolean(userProfile?.managedCompanyId);
+                      if (isEmployer) return null;
+                      return (
+                        <a
+                          href="/pseudonym"
+                          className="inline-flex items-center px-3 py-1.5 border-2 border-blue-700 text-blue-700 text-sm font-bold rounded-md hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
+                        >
+                          <FaUserEdit className="mr-1 text-[11px]" />
+                          {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
+                        </a>
+                      );
+                    })()}
+                    {(() => {
+                      const role = (userProfile?.role || "").toString().toLowerCase().trim();
+                      const userType = (userProfile?.userType || "").toString().toLowerCase().trim();
+                      const isEmployer =
+                        role === "admin_empresa" ||
+                        userType === "empresario" ||
+                        userType === "empres\u00e1rio" ||
+                        userProfile?.isEmployer === true ||
+                        Boolean(userProfile?.managedCompanyId);
+                      if (!isEmployer) return null;
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => navigate("/empresa-dashboard")}
+                          className="inline-flex items-center px-3 py-1.5 border-2 border-blue-700 text-blue-700 text-sm font-bold rounded-md hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
+                        >
+                          Painel Empresa
+                        </button>
+                      );
+                    })()}
                     <button
                       type="button"
                       onClick={() => {
@@ -629,17 +610,33 @@ function TrabalheiLaDesktop({
                           navigate("/minha-conta");
                         }
                       }}
-                      className="ml-3 px-3 py-1.5 border-2 border-blue-700 text-blue-700 text-sm font-bold rounded-md hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
+                      className="inline-flex items-center px-3 py-1.5 border-2 border-blue-700 text-blue-700 text-sm font-bold rounded-md hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
                     >
                       Ver meu perfil
                     </button>
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="ml-3 px-3 py-1.5 border-2 border-blue-700 text-blue-700 text-sm font-bold rounded-md hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
+                      className="inline-flex items-center px-3 py-1.5 border-2 border-blue-700 text-blue-700 text-sm font-bold rounded-md hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
                     >
                       Sair
                     </button>
+                    {(() => {
+                      try {
+                        const { isAdmin } = require("./utils/rbac");
+                        if (isAdmin()) {
+                          return (
+                            <a
+                              href="/admin"
+                              className="inline-flex items-center px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition"
+                            >
+                              Admin
+                            </a>
+                          );
+                        }
+                      } catch { /* silencioso */ }
+                      return null;
+                    })()}
                   </div>
 
                 </div>
