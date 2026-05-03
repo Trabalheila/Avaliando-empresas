@@ -47,11 +47,40 @@ function dedupeExperiences(list) {
   return Array.from(dedupe.values());
 }
 
+// Aplica a máscara visual ###.###.###-## à medida que o usuário digita.
+function maskCpf(value) {
+  const d = String(value || "").replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+  if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+}
+
+// Validação local dos dígitos verificadores do CPF.
+function isValidCpfDigits(input) {
+  const c = String(input || "").replace(/\D/g, "");
+  if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += Number(c[i]) * (10 - i);
+  let d1 = (sum * 10) % 11;
+  if (d1 === 10) d1 = 0;
+  if (d1 !== Number(c[9])) return false;
+  sum = 0;
+  for (let i = 0; i < 10; i++) sum += Number(c[i]) * (11 - i);
+  let d2 = (sum * 10) % 11;
+  if (d2 === 10) d2 = 0;
+  return d2 === Number(c[10]);
+}
+
 function ChoosePseudonym({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const [pseudonym, setPseudonym] = useState("");
   const [cpf, setCpf] = useState("");
   const [fullName, setFullName] = useState("");
+  // Estado da consulta automática de CPF (Receita / provedor externo).
+  const [cpfLoading, setCpfLoading] = useState(false);
+  const [cpfError, setCpfError] = useState("");
+  const [cpfVerified, setCpfVerified] = useState(false);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [educationLevel, setEducationLevel] = useState("");
@@ -185,7 +214,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
 
     if (isInitialLoad) {
       if (profile?.pseudonimo || profile?.name) setPseudonym(profile.pseudonimo || profile.name);
-      if (profile?.cpf) setCpf(profile.cpf);
+      if (profile?.cpf) setCpf(maskCpf(profile.cpf));
       if (profile?.nomeReal || profile?.fullName) setFullName(profile.nomeReal || profile.fullName);
       if (profile?.email) setEmail(profile.email);
       if (profile?.phone) setPhone(profile.phone);
@@ -651,6 +680,55 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     setPendingResumeExperiences((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  // Consulta o CPF na API ao sair do campo. Se o provedor retornar o nome,
+  // preenche o campo "Nome completo" e o trava como readOnly. Caso contrário,
+  // mantém o campo editável e exibe mensagem de erro discreta.
+  const handleCpfBlur = useCallback(async () => {
+    const digits = cpf.replace(/\D/g, "");
+    setCpfError("");
+    if (digits.length === 0) {
+      setCpfVerified(false);
+      return;
+    }
+    if (digits.length !== 11) {
+      setCpfError("CPF deve conter 11 dígitos.");
+      setCpfVerified(false);
+      return;
+    }
+    if (!isValidCpfDigits(digits)) {
+      setCpfError("CPF inválido.");
+      setCpfVerified(false);
+      return;
+    }
+    setCpfLoading(true);
+    try {
+      const ctrl = new AbortController();
+      const timeout = setTimeout(() => ctrl.abort(), 12000);
+      const resp = await fetch(`/api/consulta-cpf?cpf=${digits}`, { signal: ctrl.signal });
+      clearTimeout(timeout);
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok || !data?.valid) {
+        setCpfError(data?.error || "CPF inválido.");
+        setCpfVerified(false);
+        return;
+      }
+      if (data?.fullName) {
+        setFullName(data.fullName);
+        setCpfVerified(true);
+        setCpfError("");
+      } else {
+        setCpfError("Não foi possível verificar o CPF. Preencha o nome manualmente.");
+        setCpfVerified(false);
+      }
+    } catch (err) {
+      console.warn("Falha na consulta de CPF:", err);
+      setCpfError("Não foi possível verificar o CPF agora. Preencha o nome manualmente.");
+      setCpfVerified(false);
+    } finally {
+      setCpfLoading(false);
+    }
+  }, [cpf]);
+
   const handleSubmit = useCallback(
     async (e) => {
       e.preventDefault();
@@ -666,8 +744,16 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       }
 
       const cpfNumbers = cpf.replace(/\D/g, "");
-      if (cpfNumbers && cpfNumbers.length !== 11) {
+      if (!cpfNumbers) {
+        setError("CPF é obrigatório.");
+        return;
+      }
+      if (cpfNumbers.length !== 11) {
         setError("CPF deve conter 11 dígitos.");
+        return;
+      }
+      if (!isValidCpfDigits(cpfNumbers)) {
+        setError("CPF inválido.");
         return;
       }
 
@@ -937,38 +1023,87 @@ function ChoosePseudonym({ theme, toggleTheme }) {
               />
             </div>
 
-            {/* Nome real (privado) */}
-            <div ref={(el) => assignSectionRef(el, 2)}>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Nome completo <span className="text-xs font-normal text-slate-500">(privado — nunca será exibido)</span>
-              </label>
-              <input
-                value={fullName}
-                onChange={(e) => {
-                  setError(null);
-                  setFullName(e.target.value);
-                }}
-                placeholder="Seu nome real (opcional)"
-                className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
-              />
-            </div>
-
-            </div>
-
-            {/* CPF */}
+            {/* CPF — vem ANTES do nome completo. Ao sair do campo, consulta
+                a API e, se possível, preenche o nome automaticamente. */}
             <div ref={(el) => assignSectionRef(el, 3)}>
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                CPF <span className="text-xs font-normal text-slate-500">(privado — apenas validação interna)</span>
+                CPF <span className="text-rose-600">*</span>
+                <span className="text-xs font-normal text-slate-500"> (privado — apenas validação interna)</span>
               </label>
-              <input
-                value={cpf}
-                onChange={(e) => {
-                  setError(null);
-                  setCpf(e.target.value);
-                }}
-                placeholder="00000000000"
-                className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
-              />
+              <div className="relative">
+                <input
+                  value={cpf}
+                  onChange={(e) => {
+                    setError(null);
+                    setCpfError("");
+                    setCpfVerified(false);
+                    setCpf(maskCpf(e.target.value));
+                  }}
+                  onBlur={handleCpfBlur}
+                  inputMode="numeric"
+                  autoComplete="off"
+                  required
+                  placeholder="000.000.000-00"
+                  className="w-full p-3 pr-10 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                />
+                {cpfLoading && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 inline-block w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"
+                  />
+                )}
+                {!cpfLoading && cpfVerified && (
+                  <span
+                    aria-label="CPF verificado"
+                    title="CPF verificado"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-600 text-lg"
+                  >
+                    ✓
+                  </span>
+                )}
+              </div>
+              {cpfError && (
+                <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{cpfError}</p>
+              )}
+            </div>
+
+            {/* Nome real (privado) — readOnly quando preenchido pela API. */}
+            <div ref={(el) => assignSectionRef(el, 2)} className="md:col-span-2">
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                Nome completo <span className="text-xs font-normal text-slate-500">(privado — nunca será exibido)</span>
+                {cpfVerified && (
+                  <span className="ml-2 text-[11px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 rounded-full px-2 py-0.5">
+                    Verificado pelo CPF
+                  </span>
+                )}
+              </label>
+              <div className="flex gap-2">
+                <input
+                  value={fullName}
+                  onChange={(e) => {
+                    setError(null);
+                    setFullName(e.target.value);
+                  }}
+                  readOnly={cpfVerified}
+                  placeholder="Será preenchido após a verificação do CPF"
+                  className={`flex-1 p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100 ${
+                    cpfVerified
+                      ? "bg-slate-100 dark:bg-slate-700 cursor-not-allowed"
+                      : "bg-white dark:bg-slate-800"
+                  }`}
+                />
+                {cpfVerified && (
+                  <button
+                    type="button"
+                    onClick={() => setCpfVerified(false)}
+                    className="px-3 text-sm font-medium text-blue-700 dark:text-blue-300 hover:underline"
+                  >
+                    Editar
+                  </button>
+                )}
+              </div>
+            </div>
+
             </div>
 
             {/* ===== IMPORTAÇÃO DE EXPERIÊNCIAS ===== */}
