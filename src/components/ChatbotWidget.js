@@ -1,6 +1,8 @@
 // src/components/ChatbotWidget.js
 import React, { useState, useRef, useEffect } from 'react';
-import styles from '../styles/ChatbotWidget.module.css'; // Crie este arquivo CSS
+import styles from '../styles/ChatbotWidget.module.css';
+import { askGemini } from '../api/geminiService';
+import knowledgeBase from '../chatbotKnowledge.json';
 
 const ChatbotWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,6 +20,7 @@ const ChatbotWidget = () => {
     if (input.trim() === '') return;
 
     const userMessage = { sender: 'user', text: input };
+    const currentInput = input;
     setMessages((prevMessages) => [...prevMessages, userMessage]);
     setInput('');
 
@@ -26,20 +29,11 @@ const ChatbotWidget = () => {
     setMessages((prevMessages) => [...prevMessages, typingMessage]);
 
     try {
-      const response = await fetch('/api/chat-gemini', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message: input }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const botMessage = { sender: 'bot', text: data.response };
+      const responseText = await askGemini(currentInput, knowledgeBase);
+      const botMessage = {
+        sender: 'bot',
+        text: responseText || 'Desculpe, não consegui formular uma resposta.',
+      };
 
       setMessages((prevMessages) =>
         prevMessages.filter((msg) => !msg.isTyping).concat(botMessage)

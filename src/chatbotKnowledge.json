@@ -1,0 +1,34 @@
+[
+  {
+    "pergunta": "O que é o Trabalhei Lá?",
+    "resposta": "O Trabalhei Lá é uma plataforma onde trabalhadores podem avaliar empresas de forma anônima, compartilhando experiências sobre ambiente de trabalho, salários, benefícios e cultura."
+  },
+  {
+    "pergunta": "Como funciona o anonimato?",
+    "resposta": "O anonimato é garantido através do uso de pseudônimos. Seus dados pessoais (nome, CPF, e-mail) são armazenados separadamente e nunca são expostos publicamente nas avaliações."
+  },
+  {
+    "pergunta": "Quais os planos Premium?",
+    "resposta": "Temos o Plano Premium Trabalhador (R$ 29,90/mês) com recursos como comparação de empresas e relatórios executivos, e o Plano Premium Empresa (R$ 3.499,90/ano) para análise de mercado e benchmarks. Empresas também têm o Plano Fundador, gratuito até 31/07/2026."
+  },
+  {
+    "pergunta": "Como faço para avaliar uma empresa?",
+    "resposta": "Após criar sua conta, busque a empresa pelo nome ou CNPJ na home, abra o perfil dela e clique em 'Avaliar'. Você atribuirá notas em critérios como ambiente, salário, liderança e benefícios, podendo deixar um comentário opcional. A avaliação é publicada sob pseudônimo."
+  },
+  {
+    "pergunta": "Como importo minhas experiências do LinkedIn?",
+    "resposta": "Você pode importar de duas formas: 1) Conectando sua conta LinkedIn via OAuth no seu perfil — esta opção marca suas experiências como 'certificadas'; 2) Fazendo upload do PDF de perfil exportado do LinkedIn, do qual extraímos automaticamente empresas e cargos. Também é possível adicionar experiências manualmente."
+  },
+  {
+    "pergunta": "Minha empresa pode responder às avaliações?",
+    "resposta": "Sim. Empresas com plano Fundador ou Premium têm acesso ao painel de gestão de reputação, onde podem responder publicamente às avaliações, ver relatórios e acompanhar tendências. O cadastro da empresa precisa ser confirmado por um e-mail corporativo."
+  },
+  {
+    "pergunta": "O que é um Apoiador Premium?",
+    "resposta": "Apoiadores Premium são profissionais (RH, headhunters, mentores) que oferecem ajuda na recolocação. Empresas com planos pagos recebem créditos mensais para entrar em contato com Apoiadores e Trabalhadores Premium pela plataforma."
+  },
+  {
+    "pergunta": "É seguro avaliar a empresa onde trabalho atualmente?",
+    "resposta": "Sim. Sua avaliação aparece apenas com seu pseudônimo, e nunca exibimos dados que permitam identificar você (nome real, CPF, e-mail ou cargo exato). Os dados pessoais ficam isolados em outro registro, separado da avaliação pública."
+  }
+]
