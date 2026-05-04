@@ -17,12 +17,13 @@ function Apoiadores({ theme, toggleTheme }) {
 
       <main className="max-w-5xl mx-auto px-4 pt-10 pb-4 text-center">
         <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white mb-3">
-          Planos para Apoiadores
+          Planos para Apoiadores a de Trabalhadores e Empresas
         </h1>
         <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-base">
-          Consultores de RH, advogados trabalhistas, prestadores de serviços e demais profissionais
+          Advogados trabalhistas, Psicólogos, Consultores Empresariais, dentre outros.
           podem criar um perfil verificado, receber leads qualificados e ampliar sua atuação dentro
-          do Trabalhei Lá. Escolha o plano que combina com o seu momento.
+          do ecossistema de trabalho remoto. Escolha o plano que se encaixa no seu perfil e comece a ser encontrado por quem precisa dos seus serviços.
+          (Não há intermediação financeira entre as partes — o pagamento é feito diretamente entre cliente e apoiador, sem taxas adicionais da plataforma.)
         </p>
 
         {/* CTA principal: cadastro do perfil */}
