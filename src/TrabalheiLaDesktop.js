@@ -806,14 +806,15 @@ function TrabalheiLaDesktop({
             </section>
 
             {/* RANKING DE EMPRESAS */}
-            <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
-              <h2 className="text-2xl font-extrabold text-blue-900 dark:text-blue-200 text-center mb-2 font-azonix tracking-wide">🏆 Ranking de Empresas</h2>
+            <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-4 lg:p-5 border border-blue-100 dark:border-slate-700">
+              <h2 className="text-xl xl:text-2xl font-extrabold text-blue-900 dark:text-blue-200 text-center mb-2 font-azonix tracking-wide">🏆 Ranking de Empresas</h2>
               <div className="w-24 h-1 mx-auto mb-4 rounded-full bg-gradient-to-r from-yellow-300 via-amber-500 to-yellow-300" />
               {Array.isArray(setoresList) && setoresList.length > 0 && (
                 <select
                   value={sectorFilter}
                   onChange={(e) => setSectorFilter(e.target.value)}
-                  className="w-full mb-4 p-2 text-sm border border-blue-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="block w-full mb-3 px-2.5 py-2 text-sm border border-blue-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400 truncate"
+                  title="Filtrar por setor"
                 >
                   <option value="">Todos os setores</option>
                   {setoresList.map((s) => (
@@ -825,7 +826,8 @@ function TrabalheiLaDesktop({
                 <select
                   value={segmentFilter}
                   onChange={(e) => setSegmentFilter(e.target.value)}
-                  className="w-full mb-4 p-2 text-sm border border-blue-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="block w-full mb-3 px-2.5 py-2 text-sm border border-blue-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400 truncate"
+                  title="Filtrar por segmento (CNAE)"
                 >
                   <option value="">Todos os segmentos (CNAE)</option>
                   {segmentosList.map((seg) => {
@@ -843,21 +845,26 @@ function TrabalheiLaDesktop({
                     const mediaValue = Number.parseFloat(media);
                     const isRecommendedCompany = !isUnrated && Number.isFinite(mediaValue) && mediaValue >= 3;
                     return (
-                      <div key={i} className={`${isUnrated ? "bg-slate-200 text-slate-600" : `bg-gradient-to-r ${getMedalColor(i)} text-white`} rounded-2xl p-3`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-2xl">{getMedalEmoji(i)}</span>
-                            <div>
-                              <p className="font-bold text-sm">{emp.company}</p>
-                              {!isUnrated && (
-                                <p className={`text-[11px] font-bold ${isUnrated ? "text-slate-600" : "text-white/90"}`}>
-                                  {isRecommendedCompany ? "✓ Acima da média" : "X Abaixo da média"}
-                                </p>
-                              )}
-                            </div>
+                      <div key={i} className={`${isUnrated ? "bg-slate-200 text-slate-600" : `bg-gradient-to-r ${getMedalColor(i)} text-white`} rounded-2xl px-3 py-2.5`}>
+                        <div className="flex items-center gap-2 w-full">
+                          <span className="text-2xl shrink-0 leading-none">{getMedalEmoji(i)}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-sm leading-tight truncate" title={emp.company}>{emp.company}</p>
+                            {!isUnrated && (
+                              <p className={`text-[11px] font-bold leading-tight mt-0.5 ${isUnrated ? "text-slate-600" : "text-white/90"}`}>
+                                {isRecommendedCompany ? "✓ Acima da média" : "✗ Abaixo da média"}
+                              </p>
+                            )}
                           </div>
-                          <div className={`${isUnrated ? "bg-slate-300 text-slate-700" : "bg-white/20 text-white"} px-2 py-1 rounded-full font-bold text-xs`}>
-                            {isUnrated ? "--" : `${media} ⭐`}
+                          <div className={`shrink-0 ${isUnrated ? "bg-slate-300 text-slate-700" : "bg-white/20 text-white"} px-2 py-1 rounded-full font-bold text-xs inline-flex items-center gap-1 leading-none`}>
+                            {isUnrated ? (
+                              <span>--</span>
+                            ) : (
+                              <>
+                                <span>{media}</span>
+                                <FaStar className="text-yellow-200" />
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -866,12 +873,10 @@ function TrabalheiLaDesktop({
                 </div>
               )}
 
-              <div className="bg-blue-50 dark:bg-slate-800 rounded-2xl p-4 border border-blue-200 dark:border-slate-700">
-                <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-200 mb-2 tracking-wide">Empresas por Autocompletação</h3>
-                <p className="text-sm text-blue-900 dark:text-slate-200 leading-relaxed">
-                  Para manter performance com muitas empresas, a seleção agora é feita pelo campo
-                  <span className="font-semibold"> "Selecione a Empresa"</span> no formulário.
-                  Digite parte do nome para buscar rapidamente.
+              <div className="bg-blue-50 dark:bg-slate-800 rounded-2xl p-3 border border-blue-200 dark:border-slate-700">
+                <h3 className="text-sm font-extrabold text-blue-900 dark:text-blue-200 mb-1.5 tracking-wide">Empresas por Autocompletação</h3>
+                <p className="text-xs text-blue-900 dark:text-slate-200 leading-snug">
+                  Para manter performance com muitas empresas, a seleção é feita pelo campo <span className="font-semibold">"Selecione a Empresa"</span> no formulário. Digite parte do nome para buscar rapidamente.
                 </p>
               </div>
             </section>
