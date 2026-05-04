@@ -15,11 +15,14 @@
     "api/webhook.js": {
       "maxDuration": 30
     },
-    "api/confirm-company.js": {
+    "api/send-confirmation.js": {
       "maxDuration": 30
     }
   },
   "rewrites": [
+    { "source": "/api/confirm-company", "destination": "/api/send-confirmation" },
+    { "source": "/api/verify-email", "destination": "/api/send-verification-email" },
+    { "source": "/api/send-contact-request-apoiador", "destination": "/api/send-contact-request" },
     { "source": "/(.*)", "destination": "/" }
   ]
 }
