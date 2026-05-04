@@ -1,34 +1,122 @@
 [
   {
     "pergunta": "O que é o Trabalhei Lá?",
-    "resposta": "O Trabalhei Lá é uma plataforma onde trabalhadores podem avaliar empresas de forma anônima, compartilhando experiências sobre ambiente de trabalho, salários, benefícios e cultura."
+    "resposta": "O Trabalhei Lá é uma plataforma brasileira onde trabalhadores avaliam de forma anônima as empresas em que trabalharam ou trabalham. O objetivo é dar voz ao trabalhador e trazer transparência sobre ambiente, salários, liderança, benefícios e cultura organizacional, ajudando outros profissionais a tomarem decisões de carreira mais seguras."
   },
   {
     "pergunta": "Como funciona o anonimato?",
-    "resposta": "O anonimato é garantido através do uso de pseudônimos. Seus dados pessoais (nome, CPF, e-mail) são armazenados separadamente e nunca são expostos publicamente nas avaliações."
+    "resposta": "Toda avaliação é publicada sob um pseudônimo escolhido pelo usuário. Nome real, CPF, e-mail e dados de cadastro ficam armazenados separadamente, com acesso restrito, e nunca aparecem no perfil público da empresa. O pseudônimo pode ser editado a qualquer momento na sua conta."
   },
   {
-    "pergunta": "Quais os planos Premium?",
-    "resposta": "Temos o Plano Premium Trabalhador (R$ 29,90/mês) com recursos como comparação de empresas e relatórios executivos, e o Plano Premium Empresa (R$ 3.499,90/ano) para análise de mercado e benchmarks. Empresas também têm o Plano Fundador, gratuito até 31/07/2026."
+    "pergunta": "Quais são os planos disponíveis?",
+    "resposta": "Existem planos para Trabalhador e para Empresa. Trabalhador: Gratuito (avaliar e ver avaliações básicas) e Premium R$ 29,90/mês (comparar empresas, relatórios executivos, dashboard, tendências). Empresa: Gratuito (acompanhar nota e avaliações públicas), Fundador (gratuito até 31/07/2026, depois R$ 1.499,90/mês) e Premium R$ 3.499,90/ano (benchmarks, créditos de contato com Apoiadores e Trabalhadores Premium, gestão centralizada de contatos)."
   },
   {
     "pergunta": "Como faço para avaliar uma empresa?",
-    "resposta": "Após criar sua conta, busque a empresa pelo nome ou CNPJ na home, abra o perfil dela e clique em 'Avaliar'. Você atribuirá notas em critérios como ambiente, salário, liderança e benefícios, podendo deixar um comentário opcional. A avaliação é publicada sob pseudônimo."
+    "resposta": "Crie uma conta, busque a empresa pelo nome ou CNPJ na home e abra o perfil dela. Clique em 'Avaliar' e dê notas (1 a 5 estrelas) em critérios como ambiente de trabalho, salário, liderança, benefícios e equilíbrio. Você pode adicionar um comentário opcional. A avaliação vai ao ar sob seu pseudônimo."
   },
   {
     "pergunta": "Como importo minhas experiências do LinkedIn?",
-    "resposta": "Você pode importar de duas formas: 1) Conectando sua conta LinkedIn via OAuth no seu perfil — esta opção marca suas experiências como 'certificadas'; 2) Fazendo upload do PDF de perfil exportado do LinkedIn, do qual extraímos automaticamente empresas e cargos. Também é possível adicionar experiências manualmente."
+    "resposta": "Há três caminhos: (1) conectar a conta LinkedIn via OAuth no seu perfil — só esse caminho marca as experiências como 'certificadas'; (2) fazer upload do PDF de perfil exportado do LinkedIn (extraímos automaticamente empresa, cargo e período); (3) cadastrar manualmente. Experiências importadas alimentam seu histórico e habilitam avaliações específicas por empresa."
   },
   {
-    "pergunta": "Minha empresa pode responder às avaliações?",
-    "resposta": "Sim. Empresas com plano Fundador ou Premium têm acesso ao painel de gestão de reputação, onde podem responder publicamente às avaliações, ver relatórios e acompanhar tendências. O cadastro da empresa precisa ser confirmado por um e-mail corporativo."
+    "pergunta": "Empresas podem responder às avaliações?",
+    "resposta": "Sim. Empresas com plano Fundador ou Premium têm acesso ao painel de gestão de reputação, com ferramenta de resposta pública às avaliações, relatórios de reputação e acompanhamento de tendências. Para isso, o cadastro da empresa precisa ser confirmado por e-mail corporativo, garantindo que apenas representantes legítimos respondam."
   },
   {
     "pergunta": "O que é um Apoiador Premium?",
-    "resposta": "Apoiadores Premium são profissionais (RH, headhunters, mentores) que oferecem ajuda na recolocação. Empresas com planos pagos recebem créditos mensais para entrar em contato com Apoiadores e Trabalhadores Premium pela plataforma."
+    "resposta": "Apoiadores Premium são profissionais (RH, headhunters, mentores, consultores de carreira) cadastrados no Trabalhei Lá que oferecem ajuda em recolocação, mentoria e processos seletivos. Empresas com planos pagos recebem créditos mensais para contatar Apoiadores e Trabalhadores Premium diretamente pela plataforma."
   },
   {
     "pergunta": "É seguro avaliar a empresa onde trabalho atualmente?",
-    "resposta": "Sim. Sua avaliação aparece apenas com seu pseudônimo, e nunca exibimos dados que permitam identificar você (nome real, CPF, e-mail ou cargo exato). Os dados pessoais ficam isolados em outro registro, separado da avaliação pública."
+    "resposta": "Sim. A avaliação aparece apenas com pseudônimo e nunca exibimos dados que identifiquem você (nome, CPF, e-mail ou cargo exato). Os dados pessoais ficam isolados em outro registro, protegidos por regras de acesso. Empresas não têm como descobrir quem escreveu uma avaliação específica."
+  },
+  {
+    "pergunta": "Como me cadastro como trabalhador?",
+    "resposta": "Na home, clique em 'Entrar' e depois em 'Criar conta'. Você pode usar e-mail/senha ou login LinkedIn. Após criar a conta, escolha um pseudônimo, confirme seu e-mail no link enviado e pronto — já pode avaliar empresas e importar experiências."
+  },
+  {
+    "pergunta": "Como cadastro minha empresa?",
+    "resposta": "No menu, escolha 'Cadastrar empresa', informe CNPJ, nome, ramo, segmento e e-mail corporativo. Enviamos um link de confirmação para esse e-mail; ao confirmar, a empresa é publicada e você ganha acesso ao painel da empresa. Ramo e Segmento são obrigatórios para que a empresa apareça em comparações e benchmarks."
+  },
+  {
+    "pergunta": "O que acontece após eu confirmar o e-mail da empresa?",
+    "resposta": "A empresa fica publicada no Trabalhei Lá, ganha um perfil público com nota e avaliações, e o responsável que confirmou o e-mail recebe acesso ao painel de gestão (responder avaliações, ver relatório, acompanhar reputação). Se ainda não houver plano contratado, a empresa começa no plano Gratuito."
+  },
+  {
+    "pergunta": "O que é o Selo de Reputação?",
+    "resposta": "É um selo público exibido no perfil das empresas que mantêm boa reputação ao longo do tempo, calculado a partir das avaliações e do engajamento da empresa em responder. Os critérios e o status atual de cada empresa ficam visíveis na página de detalhes do selo."
+  },
+  {
+    "pergunta": "Posso editar ou apagar uma avaliação que enviei?",
+    "resposta": "Sim. Em 'Minha Conta' você visualiza todas as suas avaliações e pode editar o texto, ajustar as notas ou removê-las. Edições não removem o histórico interno, mas o que aparece publicamente é sempre a versão mais recente."
+  },
+  {
+    "pergunta": "Como funcionam os créditos de contato?",
+    "resposta": "Empresas com plano Fundador ou Premium recebem mensalmente uma quantidade de créditos. Cada crédito permite enviar uma solicitação de contato a um Apoiador Premium ou Trabalhador Premium. O contato só é entregue se o destinatário aceitar; créditos não usados não acumulam de um mês para o outro."
+  },
+  {
+    "pergunta": "O que é o plano Fundador?",
+    "resposta": "É um plano especial para empresas que entram cedo na plataforma: gratuito até 31/07/2026 e R$ 1.499,90/mês depois. Inclui painel completo, relatório de reputação, ferramenta de resposta pública e créditos de contato com Apoiadores Premium. É o caminho recomendado para empresas que querem testar a plataforma com baixo custo inicial."
+  },
+  {
+    "pergunta": "O que diferencia o plano Premium Empresa do Fundador?",
+    "resposta": "O Premium Empresa (R$ 3.499,90/ano) inclui tudo do Fundador, além de: créditos de contato também com Trabalhadores Premium, gerenciamento centralizado de contatos, comparação direta com concorrentes e benchmarks exclusivos por ramo/segmento. É indicado para empresas que usam a plataforma como ferramenta estratégica de employer branding e atração."
+  },
+  {
+    "pergunta": "Como funciona a comparação de empresas?",
+    "resposta": "Disponível no plano Premium Trabalhador e no Premium Empresa. Você seleciona até três empresas e a plataforma exibe lado a lado as notas por critério, evolução temporal, principais elogios e críticas. Para empresas, há também o benchmark com concorrentes do mesmo ramo e segmento."
+  },
+  {
+    "pergunta": "Quem pode ver minhas avaliações?",
+    "resposta": "Qualquer visitante do Trabalhei Lá vê o conteúdo da avaliação e o pseudônimo. Ninguém — nem mesmo a empresa avaliada — vê seu nome real, e-mail ou CPF. A equipe interna só acessa esses dados quando estritamente necessário (ex.: investigar denúncia de fraude), conforme nossa política de privacidade."
+  },
+  {
+    "pergunta": "Como pago um plano premium?",
+    "resposta": "O pagamento é feito por cartão de crédito via Stripe, em ambiente seguro. No plano Trabalhador a cobrança é mensal e recorrente; no Empresa Premium é anual. Você pode cancelar a qualquer momento na seção 'Minha Conta'; o acesso premium continua até o fim do período já pago."
+  },
+  {
+    "pergunta": "Como cancelo minha assinatura?",
+    "resposta": "Acesse 'Minha Conta' → 'Plano' → 'Cancelar assinatura'. O cancelamento é imediato no sistema e o acesso premium permanece ativo até o fim do ciclo já pago. Você não é cobrado novamente após isso."
+  },
+  {
+    "pergunta": "Esqueci minha senha, o que faço?",
+    "resposta": "Na tela de login, clique em 'Esqueci minha senha'. Informe o e-mail cadastrado e você receberá um link para redefinir a senha. Se não receber em alguns minutos, verifique a caixa de spam ou tente novamente com o e-mail correto."
+  },
+  {
+    "pergunta": "Como funciona o login com LinkedIn?",
+    "resposta": "Na tela de login, escolha 'Entrar com LinkedIn'. Você é redirecionado ao LinkedIn para autorizar o Trabalhei Lá; ao retornar, sua conta é criada (ou logada) automaticamente. Esse fluxo também sincroniza experiências profissionais e marca-as como 'certificadas'."
+  },
+  {
+    "pergunta": "O que são experiências certificadas?",
+    "resposta": "São experiências profissionais importadas diretamente do LinkedIn via OAuth. Como passaram pela autenticação do próprio LinkedIn, recebem um selo 'certificada' que aumenta a credibilidade das suas avaliações naquela empresa. Experiências adicionadas manualmente ou via PDF não recebem esse selo."
+  },
+  {
+    "pergunta": "Como apago minha conta e meus dados?",
+    "resposta": "Em 'Minha Conta' → 'Excluir dados', você solicita a exclusão da conta. Removemos seus dados pessoais e desvinculamos suas avaliações (que permanecem anonimizadas, sem qualquer ligação com você). O processo é irreversível e segue a LGPD."
+  },
+  {
+    "pergunta": "A plataforma respeita a LGPD?",
+    "resposta": "Sim. Coletamos apenas o necessário, armazenamos dados pessoais separados das avaliações públicas, e qualquer usuário pode solicitar correção ou exclusão dos seus dados. A política de privacidade completa está disponível em 'Política de Privacidade' no rodapé do site."
+  },
+  {
+    "pergunta": "Como faço para ser um Apoiador?",
+    "resposta": "Acesse 'Cadastrar Apoiador' e preencha o formulário com seu LinkedIn, áreas de atuação, especialidades e um pequeno texto descrevendo como você ajuda. Após análise, seu perfil é publicado e fica visível para empresas e trabalhadores Premium que podem te contatar."
+  },
+  {
+    "pergunta": "Quais critérios de avaliação existem?",
+    "resposta": "Hoje os critérios principais são: ambiente de trabalho, salário e benefícios, liderança e gestão, equilíbrio vida-trabalho, e oportunidades de crescimento. Cada um recebe nota de 1 a 5 estrelas. A nota geral da empresa é a média ponderada desses critérios entre todas as avaliações."
+  },
+  {
+    "pergunta": "Posso avaliar a mesma empresa mais de uma vez?",
+    "resposta": "Você pode atualizar sua avaliação para refletir uma nova fase (por exemplo, depois de uma promoção ou mudança de gestor). Só existe uma avaliação ativa por usuário/empresa, e o histórico de versões é mantido internamente para garantir integridade."
+  },
+  {
+    "pergunta": "O que aparece no painel da empresa (Business Dashboard)?",
+    "resposta": "Resumo da reputação (nota geral, evolução, distribuição por critério), lista de avaliações com filtros, ferramenta para responder publicamente, relatório executivo exportável, alertas de novas avaliações e — nos planos pagos — comparações com concorrentes e gestão de contatos com Apoiadores e Trabalhadores Premium."
+  },
+  {
+    "pergunta": "Como entro em contato com o suporte?",
+    "resposta": "Use o formulário de contato no rodapé do site ou envie um e-mail para o endereço de suporte indicado na página 'Política de Privacidade'. Pedidos relacionados à LGPD (exclusão, correção, portabilidade) também passam por esse canal."
   }
 ]
