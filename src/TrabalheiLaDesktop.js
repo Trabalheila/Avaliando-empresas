@@ -717,14 +717,14 @@ function TrabalheiLaDesktop({
             <button
               type="button"
               onClick={() => navigate('/escolha-perfil?planos=1')}
-              className="group inline-flex items-center gap-3 px-7 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-amber-950 text-base md:text-lg font-extrabold tracking-wide shadow-lg shadow-amber-500/30 ring-1 ring-amber-300/60 hover:shadow-xl hover:shadow-amber-500/40 hover:from-amber-300 hover:via-amber-400 hover:to-orange-400 hover:scale-[1.03] focus:outline-none focus:ring-4 focus:ring-amber-300/50 transition-all duration-200"
+              className="group inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-amber-950 text-sm md:text-[15px] font-bold tracking-tight whitespace-nowrap shadow-md shadow-amber-500/25 ring-1 ring-amber-300/60 hover:shadow-lg hover:shadow-amber-500/35 hover:from-amber-300 hover:via-amber-400 hover:to-orange-400 hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-amber-300/50 transition-all duration-200"
               aria-label="Ver benefícios do plano Premium"
             >
-              <span className="text-xl leading-none group-hover:animate-pulse" aria-hidden="true">⭐</span>
+              <span className="text-base leading-none" aria-hidden="true">⭐</span>
               <span>Premium para trabalhadores, empresas e apoiadores</span>
-              <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/30 text-amber-950 text-xs font-bold uppercase tracking-wider">
+              <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/30 text-amber-950 text-[10px] font-bold uppercase tracking-wider">
                 Ver benefícios
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 5l7 7-7 7" />
                 </svg>
               </span>
