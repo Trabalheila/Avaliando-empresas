@@ -1,18 +1,26 @@
 // api/send-verification-email.js
 //
-// Gera um JWT de verificação de e-mail (24h) e envia o link por e-mail
-// usando Resend. O link clicado pelo usuário aciona /api/verify-email?token=...
+// Endpoint duplo (rota por método HTTP):
 //
-// Variáveis de ambiente (todas obrigatórias):
-//   EMAIL_VERIFICATION_SECRET  — segredo HMAC para assinar o JWT.
-//   RESEND_API_KEY             — chave da Resend.
-//   EMAIL_FROM_ADDRESS         — remetente verificado na Resend.
-//   APP_BASE_URL               — base URL pública (ex.: https://www.trabalheila.com.br).
+//   POST → Gera um JWT (24h) e envia o link por e-mail via Resend.
+//          Body: { userId, email, pseudonym? }
 //
-// Body (POST JSON): { userId: string, email: string, pseudonym?: string }
+//   GET  → Endpoint clicado a partir do e-mail. Valida o JWT, marca o
+//          usuário como verificado no Firestore e redireciona para a
+//          home com ?verified=1 (sucesso) ou ?verified=0&reason=... (erro).
+//          Query: ?token=...
+//
+// Variáveis de ambiente:
+//   EMAIL_VERIFICATION_SECRET  — segredo HMAC do JWT (obrigatório)
+//   RESEND_API_KEY             — chave da Resend (obrigatório p/ POST)
+//   EMAIL_FROM_ADDRESS         — remetente verificado (obrigatório p/ POST)
+//   APP_BASE_URL               — base URL pública (obrigatório)
+//   FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY (GET)
 
 import jwt from 'jsonwebtoken';
 import { Resend } from 'resend';
+import * as admin from 'firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
@@ -27,13 +35,83 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-export default async function handler(req, res) {
-  res.setHeader('Cache-Control', 'no-store');
+function ensureAdmin() {
+  if (admin.apps.length) return;
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
+  if (!projectId || !clientEmail || !privateKeyRaw) {
+    throw new Error(
+      'Configuração do Firebase Admin incompleta (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY).'
+    );
+  }
+  let privateKey = privateKeyRaw.replace(/^\uFEFF/, '').trim();
+  if (
+    (privateKey.startsWith('"') && privateKey.endsWith('"')) ||
+    (privateKey.startsWith("'") && privateKey.endsWith("'"))
+  ) {
+    privateKey = privateKey.slice(1, -1);
+  }
+  privateKey = privateKey.replace(/\\n/g, '\n').replace(/\r/g, '');
+  admin.initializeApp({
+    credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
+  });
+}
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ ok: false, error: 'Método não permitido' });
+function buildRedirect(baseUrl, params) {
+  const base = (baseUrl || '').replace(/\/+$/, '') || '/';
+  const qs = new URLSearchParams(params).toString();
+  return `${base}/?${qs}`;
+}
+
+async function handleVerify(req, res) {
+  const baseUrl = process.env.APP_BASE_URL || '';
+  const secret = process.env.EMAIL_VERIFICATION_SECRET;
+
+  const token = (req.query?.token || '').toString();
+  if (!token) {
+    return res.redirect(302, buildRedirect(baseUrl, { verified: '0', reason: 'missing_token' }));
+  }
+  if (!secret) {
+    console.error('[verify-email] EMAIL_VERIFICATION_SECRET ausente');
+    return res.redirect(302, buildRedirect(baseUrl, { verified: '0', reason: 'server_misconfigured' }));
   }
 
+  let payload;
+  try {
+    payload = jwt.verify(token, secret);
+  } catch (err) {
+    const reason = err?.name === 'TokenExpiredError' ? 'expired' : 'invalid_token';
+    console.warn('[verify-email] token rejeitado:', err?.name || err?.message);
+    return res.redirect(302, buildRedirect(baseUrl, { verified: '0', reason }));
+  }
+
+  const userId = String(payload?.userId || '').trim();
+  const email = String(payload?.email || '').trim().toLowerCase();
+  if (!userId || !email) {
+    return res.redirect(302, buildRedirect(baseUrl, { verified: '0', reason: 'invalid_payload' }));
+  }
+
+  try {
+    ensureAdmin();
+    const db = getFirestore();
+    await db.collection('users').doc(userId).set(
+      {
+        email,
+        emailVerified: true,
+        emailVerifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.error('[verify-email] falha ao atualizar Firestore:', err?.message || err);
+    return res.redirect(302, buildRedirect(baseUrl, { verified: '0', reason: 'persist_failed' }));
+  }
+
+  return res.redirect(302, buildRedirect(baseUrl, { verified: '1' }));
+}
+
+async function handleSend(req, res) {
   const secret = process.env.EMAIL_VERIFICATION_SECRET;
   const resendKey = process.env.RESEND_API_KEY;
   const fromAddress = process.env.EMAIL_FROM_ADDRESS;
@@ -56,14 +134,14 @@ export default async function handler(req, res) {
   const userId = String(body.userId || '').trim();
   const email = String(body.email || '').trim().toLowerCase();
   const pseudonymRaw = String(body.pseudonym || '').trim();
-  const pseudonym = pseudonymRaw.slice(0, 80); // limite simples para evitar abuso no template
+  const pseudonym = pseudonymRaw.slice(0, 80);
 
   if (!userId) return res.status(400).json({ ok: false, error: 'userId obrigatório' });
   if (!isValidEmail(email)) return res.status(400).json({ ok: false, error: 'E-mail inválido' });
 
-  // Token assinado no servidor (segredo nunca exposto ao cliente).
   const token = jwt.sign({ userId, email }, secret, { expiresIn: '24h' });
-  const verifyUrl = `${appBaseUrl}/api/verify-email?token=${encodeURIComponent(token)}`;
+  // GET no mesmo endpoint executa a verificação.
+  const verifyUrl = `${appBaseUrl}/api/send-verification-email?token=${encodeURIComponent(token)}`;
 
   const greetingName = pseudonym ? escapeHtml(pseudonym) : '';
   const greeting = greetingName ? `Olá, ${greetingName}!` : 'Olá!';
@@ -108,4 +186,12 @@ export default async function handler(req, res) {
     console.error('[send-verification-email] erro inesperado:', err?.message || err);
     return res.status(500).json({ ok: false, error: 'Erro inesperado ao enviar e-mail.' });
   }
+}
+
+export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+
+  if (req.method === 'GET') return handleVerify(req, res);
+  if (req.method === 'POST') return handleSend(req, res);
+  return res.status(405).json({ ok: false, error: 'Método não permitido' });
 }

@@ -286,10 +286,10 @@ export async function createApoiadorContactRequest({
   const ref = await addDoc(collection(db, "contactRequestsApoiador"), payload);
 
   try {
-    await fetch(buildApiUrl("/api/send-contact-request-apoiador"), {
+    await fetch(buildApiUrl("/api/send-contact-request"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requestId: ref.id, ...payload }),
+      body: JSON.stringify({ type: "apoiador", requestId: ref.id, ...payload }),
     });
   } catch {
     /* silencioso */

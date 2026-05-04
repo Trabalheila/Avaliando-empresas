@@ -23,10 +23,10 @@ export default function CompanyConfirm() {
         return;
       }
       try {
-        const response = await fetch("/api/confirm-company", {
+        const response = await fetch("/api/send-confirmation", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
+          body: JSON.stringify({ action: "confirm", token }),
         });
 
         const result = await response.json().catch(() => ({}));

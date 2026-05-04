@@ -2,6 +2,10 @@ import { Resend } from 'resend';
 import * as admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 
+// Endpoint duplo (rota por body.action):
+//   action: "send"    (padrão) → envia e-mail de confirmação para a empresa
+//   action: "confirm"           → confirma o cadastro (cria usuário Auth + companies/{cnpj})
+//
 // Inicialização preguiçosa para evitar crash no carregamento do módulo
 // quando alguma variável de ambiente está ausente — o handler retorna
 // 500 com mensagem JSON ao invés de a função falhar antes do try/catch.
@@ -15,9 +19,6 @@ function ensureAdmin() {
       'Configuração do Firebase Admin incompleta no servidor (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY).'
     );
   }
-  // Normaliza a chave privada: remove BOM, aspas envoltas, \r e converte
-  // \n literais em quebras reais. Vercel costuma armazenar a chave com
-  // \n escapado e, às vezes, com aspas duplas no começo/fim.
   let privateKey = privateKeyRaw
     .replace(/^\uFEFF/, '')
     .trim();
@@ -43,18 +44,113 @@ function ensureAdmin() {
   });
 }
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
+async function handleConfirm(req, res) {
+  const { token } = req.body || {};
 
-  // Wrapper geral: qualquer erro inesperado vira JSON com mensagem real,
-  // evitando o "Falha ao enviar confirmação." genérico no front.
-  try {
-    ensureAdmin();
-  } catch (initErr) {
-    console.error('Falha na inicialização do Firebase Admin:', initErr);
-    return res.status(500).json({ error: initErr?.message || 'Erro de configuração do servidor.' });
+  if (!token || typeof token !== 'string') {
+    return res.status(400).json({ error: 'Token não informado.' });
+  }
+  if (!/^[A-Za-z0-9_-]{16,128}$/.test(token)) {
+    return res.status(400).json({ error: 'Formato de token inválido.' });
   }
 
+  try {
+    const firestore = getFirestore();
+    const pendingRef = firestore.collection('pendingCompanyConfirmations').doc(token);
+    const snap = await pendingRef.get();
+
+    if (!snap.exists) {
+      // Idempotência: se já existe a empresa criada, considera confirmada.
+      const legacyRef = firestore.collection('companies').doc(token);
+      const legacySnap = await legacyRef.get();
+      if (legacySnap.exists) {
+        return res.status(200).json({
+          success: true,
+          alreadyConfirmed: true,
+          message: 'Empresa já confirmada anteriormente.',
+        });
+      }
+      return res.status(404).json({ error: 'Token inválido ou não encontrado.' });
+    }
+
+    const data = snap.data();
+    const expiresMs =
+      (data.expiresAt && typeof data.expiresAt.toMillis === 'function')
+        ? data.expiresAt.toMillis()
+        : (data.expiresAt instanceof Date ? data.expiresAt.getTime() : null);
+
+    if (!expiresMs || Date.now() > expiresMs) {
+      return res.status(400).json({
+        error: 'Token expirado',
+        email: data.email,
+        companyName: data.companyName,
+      });
+    }
+
+    if (!data.email || !data.password || !data.cnpj) {
+      return res.status(400).json({
+        error: 'Dados de confirmação incompletos. Refaça o cadastro.',
+      });
+    }
+
+    const cnpjDigits = String(data.cnpj).replace(/\D/g, '');
+    if (cnpjDigits.length !== 14) {
+      return res.status(400).json({ error: 'CNPJ inválido no cadastro.' });
+    }
+
+    let userRecord;
+    try {
+      userRecord = await admin.auth().createUser({
+        email: data.email,
+        password: data.password,
+        displayName: data.companyName || data.email,
+        emailVerified: true,
+      });
+    } catch (authErr) {
+      if (authErr?.code === 'auth/email-already-exists') {
+        userRecord = await admin.auth().getUserByEmail(data.email);
+        await admin.auth().updateUser(userRecord.uid, {
+          password: data.password,
+          emailVerified: true,
+        });
+      } else {
+        console.error('ERRO ao criar usuário no Firebase Auth:', authErr);
+        return res.status(500).json({ error: 'Erro ao criar conta de acesso.' });
+      }
+    }
+
+    const companyRef = firestore.collection('companies').doc(cnpjDigits);
+    await companyRef.set({
+      cnpj: cnpjDigits,
+      email: data.email,
+      companyName: data.companyName,
+      razaoSocial: data.companyName,
+      cnaeCodigo: data.cnaeCodigo ?? null,
+      cnaeDescricao: data.cnaeDescricao ?? null,
+      setor: data.setor ?? null,
+      ramoAtuacao: data.ramoAtuacao ?? null,
+      responsavel: data.responsavel ?? null,
+      cargo: data.cargo ?? null,
+      ownerUid: userRecord.uid,
+      verified: true,
+      status: 'active',
+      createdAt: data.createdAt ?? admin.firestore.FieldValue.serverTimestamp(),
+      confirmedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    await pendingRef.delete();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Empresa confirmada com sucesso.',
+    });
+  } catch (err) {
+    console.error('ERRO em /api/send-confirmation (confirm):', err);
+    return res.status(500).json({ error: 'Erro interno ao confirmar empresa.' });
+  }
+}
+
+async function handleSend(req, res) {
   if (!process.env.RESEND_API_KEY) {
     console.error('RESEND_API_KEY ausente no ambiente do servidor.');
     return res.status(500).json({ error: 'Serviço de e-mail não configurado (RESEND_API_KEY ausente).' });
@@ -82,7 +178,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Dados incompletos' });
   }
 
-  // Validações básicas (defesa em profundidade — front também valida).
   const cnpjDigits = String(cnpj).replace(/\D/g, '');
   if (cnpjDigits.length !== 14) {
     return res.status(400).json({ error: 'CNPJ inválido.' });
@@ -97,11 +192,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Token inválido.' });
   }
 
-  // --- 1. Salvar o token e os dados da empresa no Firestore ---
-  // A senha é guardada temporariamente no doc pendente (acessível
-  // apenas via Admin SDK, regras negam leitura ao cliente). Após a
-  // confirmação, /api/confirm-company cria o usuário no Firebase Auth
-  // e apaga este documento, removendo a senha do Firestore.
   try {
     const firestore = getFirestore();
     const companyRef = firestore.collection('pendingCompanyConfirmations').doc(token);
@@ -133,7 +223,6 @@ export default async function handler(req, res) {
     });
   }
 
-  // --- 2. Enviar o e-mail com Resend ---
   const confirmationLink = `https://trabalheila.vercel.app/empresa/confirmar?token=${token}`;
   console.log('Link de confirmação enviado no e-mail:', confirmationLink);
 
@@ -175,4 +264,19 @@ export default async function handler(req, res) {
 
   console.log('E-mail de confirmação enviado com sucesso para:', email);
   return res.status(200).json({ success: true, data });
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
+
+  try {
+    ensureAdmin();
+  } catch (initErr) {
+    console.error('Falha na inicialização do Firebase Admin:', initErr);
+    return res.status(500).json({ error: initErr?.message || 'Erro de configuração do servidor.' });
+  }
+
+  const action = String((req.body || {}).action || 'send').toLowerCase();
+  if (action === 'confirm') return handleConfirm(req, res);
+  return handleSend(req, res);
 }
