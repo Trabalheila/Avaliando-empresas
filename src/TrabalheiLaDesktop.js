@@ -223,10 +223,17 @@ function TrabalheiLaDesktop({
 
   const renderStars = (value, setValue, comment, setComment, label, restrictKey) => (
     <div className="flex flex-col w-full md:w-2/3 gap-2">
-      <div className="flex gap-1">
+      <div className="flex items-center gap-1 leading-none">
         {[1, 2, 3, 4, 5].map((star) => (
-          <button key={star} type="button" onClick={() => setValue(star)} className="focus:outline-none transition-transform hover:scale-110">
-            {star <= value ? <FaStar className="text-yellow-400 text-2xl drop-shadow-sm" /> : <FaRegStar className="text-gray-300 text-2xl hover:text-yellow-200" />}
+          <button
+            key={star}
+            type="button"
+            onClick={() => setValue(star)}
+            className="inline-flex items-center justify-center p-0 m-0 bg-transparent border-0 focus:outline-none transition-transform hover:scale-110 leading-none align-middle"
+            style={{ lineHeight: 0 }}
+            aria-label={`${star} estrela${star > 1 ? 's' : ''}`}
+          >
+            {star <= value ? <FaStar className="text-yellow-400 text-2xl drop-shadow-sm block" /> : <FaRegStar className="text-gray-300 text-2xl hover:text-yellow-200 block" />}
           </button>
         ))}
       </div>
@@ -441,7 +448,7 @@ function TrabalheiLaDesktop({
         {/* HEADER — TRABALHEI LÁ centralizado, avatar/pseudônimo à direita */}
         <header ref={headerRef} className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl xl:max-w-7xl 2xl:max-w-[1480px] bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-b-3xl shadow-xl px-4 py-2 border-2 border-blue-200 dark:border-slate-700">
           <div className="relative flex items-center justify-center gap-3 min-h-[64px]">
-            {/* Logo da empresa pesquisada (canto esquerdo, opcional) */}
+            {/* Tema (canto esquerdo) */}
             <div className="absolute left-0 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-2">
               <button
                 type="button"
@@ -451,30 +458,6 @@ function TrabalheiLaDesktop({
               >
                 {theme === "dark" ? "🌙 Tema" : "☀️ Tema"}
               </button>
-              {company && (
-                <div className={`hidden lg:flex w-12 h-12 rounded-xl items-center justify-center border overflow-hidden ${logoUrl ? 'bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-slate-600' : 'bg-blue-900 border-blue-700'}`} title={companyNameForLogo}>
-                  {logoUrl ? (
-                    <img
-                      src={logoUrl}
-                      alt={`Logo ${companyNameForLogo}`}
-                      className="w-full h-full object-contain p-1"
-                      onError={(e) => {
-                        if (logoIndex < logoCandidates.length - 1) {
-                          setLogoIndex((prev) => prev + 1);
-                        } else {
-                          const initials = (companyNameForLogo || "")
-                            .split(/\s+/).filter(Boolean).slice(0, 2)
-                            .map((w) => w[0]).join("").toUpperCase() || "?";
-                          e.target.onerror = null;
-                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=1a237e&color=fff&size=128&bold=true`;
-                        }
-                      }}
-                    />
-                  ) : (
-                    <span className="text-white font-black text-lg tracking-tight">TL</span>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* TRABALHEI LÁ — grande e centralizado */}
@@ -531,6 +514,79 @@ function TrabalheiLaDesktop({
         </header>
 
         <div style={{ height: headerSpacerHeight + 24 }} />
+
+        {/* CARD DA EMPRESA SELECIONADA — logo grande, nota e classificação */}
+        {company && (
+          <div className="mx-auto max-w-3xl mb-6 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-blue-200 dark:border-slate-700 p-5">
+            <div className="flex flex-col sm:flex-row items-center gap-5">
+              {/* Logo da empresa (grande) */}
+              <div className={`shrink-0 w-28 h-28 md:w-32 md:h-32 rounded-2xl flex items-center justify-center border-2 overflow-hidden ${logoUrl ? 'bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-slate-600' : 'bg-blue-900 border-blue-700'}`}>
+                {logoUrl ? (
+                  <img
+                    src={logoUrl}
+                    alt={`Logo ${companyNameForLogo}`}
+                    className="w-full h-full object-contain p-2"
+                    onError={(e) => {
+                      if (logoIndex < logoCandidates.length - 1) {
+                        setLogoIndex((prev) => prev + 1);
+                      } else {
+                        const initials = (companyNameForLogo || "")
+                          .split(/\s+/).filter(Boolean).slice(0, 2)
+                          .map((w) => w[0]).join("").toUpperCase() || "?";
+                        e.target.onerror = null;
+                        e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=1a237e&color=fff&size=192&bold=true`;
+                      }
+                    }}
+                  />
+                ) : (
+                  <span className="text-white font-black text-4xl tracking-tight">TL</span>
+                )}
+              </div>
+
+              {/* Nome + classificação */}
+              <div className="flex-1 min-w-0 text-center sm:text-left">
+                <p className="text-xs uppercase tracking-wider text-blue-600 dark:text-blue-300 font-bold mb-1">Empresa selecionada</p>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-blue-900 dark:text-blue-100 leading-tight break-words">
+                  {companyNameForLogo}
+                </h2>
+                {!isCompanyUnrated && (
+                  <span
+                    className={`inline-flex items-center mt-2 text-xs font-bold px-2.5 py-1 rounded-lg border ${
+                      isCompanyRecommended
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-700"
+                        : "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700"
+                    }`}
+                  >
+                    {isCompanyRecommended ? "✓ Acima da média" : "✗ Abaixo da média"}
+                  </span>
+                )}
+              </div>
+
+              {/* Nota grande (avatar circular) */}
+              <div className="shrink-0 flex flex-col items-center">
+                <div
+                  className={`w-24 h-24 md:w-28 md:h-28 rounded-full flex items-center justify-center shadow-lg border-4 ${
+                    isCompanyUnrated
+                      ? "bg-slate-500 dark:bg-slate-600 border-slate-300 dark:border-slate-700"
+                      : "bg-blue-700 dark:bg-blue-800 border-blue-300 dark:border-blue-900"
+                  }`}
+                >
+                  <div className="text-center leading-none">
+                    <p className="text-3xl md:text-4xl font-extrabold text-white">
+                      {isCompanyUnrated ? "--" : `${companyNote}`}
+                    </p>
+                    {!isCompanyUnrated && (
+                      <p className="text-xs text-blue-100 mt-1">de 5</p>
+                    )}
+                  </div>
+                </div>
+                <p className={`mt-2 text-[11px] font-bold tracking-widest ${isCompanyUnrated ? "text-slate-500" : "text-blue-700 dark:text-blue-300"}`}>
+                  NOTA
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* CARD CENTRAL — "Evoluindo o mercado de trabalho" + ações agrupadas */}
         <div className="mx-auto max-w-2xl mb-6 bg-white/80 dark:bg-slate-900/70 backdrop-blur-sm rounded-2xl shadow-lg border border-blue-200 dark:border-slate-700 px-6 py-4 text-center">

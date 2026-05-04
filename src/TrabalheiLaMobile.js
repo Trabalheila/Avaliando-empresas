@@ -619,75 +619,83 @@ function TrabalheiLaMobile({
       <div style={{ height: headerSpacerHeight }} />
 
       <main className="px-4 space-y-3">
-        {/* Card empresa pesquisada — movido para fora do header */}
+        {/* Card empresa pesquisada — logo grande, nota e classificação visíveis */}
         {company && (
-          <div className="w-full rounded-2xl border border-blue-100 dark:border-slate-700 bg-blue-50/60 dark:bg-slate-800/70" style={{ padding: 10 }}>
+          <div className="w-full rounded-2xl border border-blue-100 dark:border-slate-700 bg-blue-50/60 dark:bg-slate-800/70 p-3">
             <div className="flex items-center gap-3">
-              {/* Logo + Nota à esquerda */}
-              <div className="shrink-0 flex flex-col items-center">
-                <div className={`rounded-xl flex items-center justify-center border overflow-hidden ${companyLogoUrl ? 'bg-blue-50 dark:bg-slate-800 border-blue-100 dark:border-slate-600' : 'bg-blue-900 border-blue-700'}`} style={{ width: 48, height: 48 }}>
-                  {companyLogoUrl ? (
-                    <img
-                      src={companyLogoUrl}
-                      alt="Logo da empresa"
-                      className="w-full h-full object-contain p-1"
-                      onError={(e) => {
-                        if (logoIndex < logoCandidates.length - 1) {
-                          setLogoIndex((prev) => prev + 1);
-                        } else {
-                          const name = selectedCompanyData?.company || "";
-                          const initials = name
-                            .split(/\s+/).filter(Boolean).slice(0, 2)
-                            .map((w) => w[0]).join("").toUpperCase() || "?";
-                          e.target.onerror = null;
-                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=1a237e&color=fff&size=128&bold=true`;
-                        }
-                      }}
-                    />
-                  ) : (
-                    <span className="text-white font-black text-lg tracking-tight">TL</span>
-                  )}
-                </div>
-                <div className="mt-1 text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <span className={`px-2 py-0.5 rounded-lg text-base leading-none font-extrabold text-white ${getBadgeColor(companyAverage)}`}>
-                      {companyAverage}
-                    </span>
-                    {companyAverage !== "--" && (
-                      <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">/5</span>
-                    )}
-                  </div>
-                  {companyAverage !== "--" && (
-                    <p
-                      className={`mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${
-                        isCompanyRecommended
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : "bg-red-50 text-red-700 border-red-200"
-                      }`}
-                    >
-                      {isCompanyRecommended ? "✓ Acima da média" : "X Abaixo da média"}
-                    </p>
-                  )}
-                </div>
+              {/* Logo grande */}
+              <div className={`shrink-0 rounded-2xl flex items-center justify-center border-2 overflow-hidden ${companyLogoUrl ? 'bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-slate-600' : 'bg-blue-900 border-blue-700'}`} style={{ width: 80, height: 80 }}>
+                {companyLogoUrl ? (
+                  <img
+                    src={companyLogoUrl}
+                    alt="Logo da empresa"
+                    className="w-full h-full object-contain p-1"
+                    onError={(e) => {
+                      if (logoIndex < logoCandidates.length - 1) {
+                        setLogoIndex((prev) => prev + 1);
+                      } else {
+                        const name = selectedCompanyData?.company || "";
+                        const initials = name
+                          .split(/\s+/).filter(Boolean).slice(0, 2)
+                          .map((w) => w[0]).join("").toUpperCase() || "?";
+                        e.target.onerror = null;
+                        e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=1a237e&color=fff&size=160&bold=true`;
+                      }
+                    }}
+                  />
+                ) : (
+                  <span className="text-white font-black text-2xl tracking-tight">TL</span>
+                )}
               </div>
 
-              {/* Nome da empresa (centro) */}
+              {/* Nome + classificação (centro) */}
               <div className="flex-1 min-w-0">
-                <p className="text-[0.95rem] font-bold text-blue-800 dark:text-blue-100 leading-tight break-words">
+                <p className="text-base font-bold text-blue-800 dark:text-blue-100 leading-tight break-words">
                   {company.value}
                 </p>
+                {companyAverage !== "--" && (
+                  <p
+                    className={`inline-block mt-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                      isCompanyRecommended
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : "bg-red-50 text-red-700 border-red-200"
+                    }`}
+                  >
+                    {isCompanyRecommended ? "✓ Acima da média" : "✗ Abaixo da média"}
+                  </p>
+                )}
               </div>
 
-              {/* Botão à direita */}
-              <button
-                type="button"
-                onClick={handleSaibaMais}
-                className="shrink-0 py-2 px-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition"
-                style={{ fontSize: '0.85rem', whiteSpace: 'nowrap' }}
-              >
-                Ver avaliações
-              </button>
+              {/* Nota grande (avatar circular) */}
+              <div className="shrink-0 flex flex-col items-center">
+                <div
+                  className={`rounded-full flex items-center justify-center shadow-md border-2 ${
+                    companyAverage === "--"
+                      ? "bg-slate-500 border-slate-300"
+                      : `${getBadgeColor(companyAverage)} border-white/40`
+                  }`}
+                  style={{ width: 64, height: 64 }}
+                >
+                  <div className="text-center leading-none">
+                    <p className="text-xl font-extrabold text-white">{companyAverage}</p>
+                    {companyAverage !== "--" && (
+                      <p className="text-[9px] text-white/90 mt-0.5">de 5</p>
+                    )}
+                  </div>
+                </div>
+                <p className="mt-1 text-[10px] font-bold tracking-widest text-blue-700 dark:text-blue-300">NOTA</p>
+              </div>
             </div>
+
+            {/* Botão "Ver avaliações" abaixo */}
+            <button
+              type="button"
+              onClick={handleSaibaMais}
+              className="mt-3 w-full py-2 px-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition"
+              style={{ fontSize: '0.9rem' }}
+            >
+              Ver avaliações
+            </button>
           </div>
         )}
 

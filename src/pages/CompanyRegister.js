@@ -3,6 +3,28 @@ import { useNavigate } from "react-router-dom";
 
 const PERSONAL_EMAIL_DOMAINS = ["gmail.com", "hotmail.com", "yahoo.com", "yahoo.com.br", "outlook.com", "live.com", "icloud.com"];
 
+// Opções padronizadas de Ramo de Atuação (alto nível, independente de CNAE).
+const RAMOS_DE_ATUACAO = [
+  "Tecnologia",
+  "Saúde",
+  "Educação",
+  "Finanças",
+  "Varejo",
+  "Indústria",
+  "Serviços",
+  "Construção Civil",
+  "Agropecuária",
+  "Energia e Utilidades",
+  "Transporte e Logística",
+  "Telecomunicações",
+  "Hospedagem e Alimentação",
+  "Mídia e Entretenimento",
+  "Imobiliário",
+  "Setor Público",
+  "Terceiro Setor / ONG",
+  "Outros",
+];
+
 function validarSenha(s) {
   return {
     tamanho: s.length >= 8,
@@ -17,6 +39,7 @@ export default function CompanyRegister() {
   const [cnpj, setCnpj] = useState("");
   const [razaoSocial, setRazaoSocial] = useState("");
   const [cnae, setCnae] = useState(null); // { codigo, descricao, setor }
+  const [ramoAtuacao, setRamoAtuacao] = useState("");
   const [responsavel, setResponsavel] = useState("");
   const [cargo, setCargo] = useState("");
   const [email, setEmail] = useState("");
@@ -129,6 +152,7 @@ export default function CompanyRegister() {
           cnaeCodigo: cnae?.codigo || null,
           cnaeDescricao: cnae?.descricao || null,
           setor: cnae?.setor || null,
+          ramoAtuacao: ramoAtuacao || null,
           responsavel,
           cargo,
         }),
@@ -170,6 +194,7 @@ export default function CompanyRegister() {
   const formValido =
     cnpjCompleto &&
     razaoSocial.trim().length > 0 &&
+    ramoAtuacao.trim().length > 0 &&
     responsavel.trim().length > 0 &&
     cargo.trim().length > 0 &&
     emailValido &&
@@ -370,6 +395,24 @@ export default function CompanyRegister() {
               <span>Não conseguimos buscar os dados automaticamente. Preencha a razão social manualmente.</span>
             </div>
           )}
+        </div>
+
+        {/* Ramo de Atuação (obrigatório) */}
+        <div className="mb-4">
+          <label htmlFor="ramoAtuacao" className={labelClass}>Ramo de Atuação</label>
+          <select
+            id="ramoAtuacao"
+            name="ramoAtuacao"
+            value={ramoAtuacao}
+            onChange={(e) => setRamoAtuacao(e.target.value)}
+            className={inputClass}
+            required
+          >
+            <option value="" disabled>Selecione o ramo de atuação</option>
+            {RAMOS_DE_ATUACAO.map((r) => (
+              <option key={r} value={r}>{r}</option>
+            ))}
+          </select>
         </div>
 
         {/* Separador entre grupos */}

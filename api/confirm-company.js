@@ -111,6 +111,7 @@ export default async function handler(req, res) {
       cnaeCodigo: data.cnaeCodigo ?? null,
       cnaeDescricao: data.cnaeDescricao ?? null,
       setor: data.setor ?? null,
+      ramoAtuacao: data.ramoAtuacao ?? null,
       responsavel: data.responsavel ?? null,
       cargo: data.cargo ?? null,
       ownerUid: userRecord.uid,

@@ -70,6 +70,7 @@ export default async function handler(req, res) {
     cnaeCodigo,
     cnaeDescricao,
     setor,
+    ramoAtuacao,
     responsavel,
     cargo,
   } = req.body || {};
@@ -114,6 +115,7 @@ export default async function handler(req, res) {
       cnaeCodigo: cnaeCodigo || null,
       cnaeDescricao: cnaeDescricao || null,
       setor: setor || null,
+      ramoAtuacao: ramoAtuacao || null,
       responsavel: responsavel || null,
       cargo: cargo || null,
       status: 'pending',
