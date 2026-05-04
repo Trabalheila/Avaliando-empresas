@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from "react-router-dom";
 import Select from "react-select";
@@ -125,8 +125,8 @@ function TrabalheiLaDesktop({
 
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const COMMENT_GUIDANCE_TEXT = "Descreva comportamentos e situaÃ§Ãµes. Evite citar nomes de pessoas.";
-  const COMMENT_WARNING_TEXT = "Identificamos possÃ­vel citaÃ§Ã£o de nome. Considere substituir por descriÃ§Ã£o do comportamento ou situaÃ§Ã£o.";
+  const COMMENT_GUIDANCE_TEXT = "Descreva comportamentos e situações. Evite citar nomes de pessoas.";
+  const COMMENT_WARNING_TEXT = "Identificamos possível citação de nome. Considere substituir por descrição do comportamento ou situação.";
 
   const containsPossiblePersonName = React.useCallback((value) => {
     const replacements = {
@@ -141,7 +141,7 @@ function TrabalheiLaDesktop({
       "8": "b",
     };
     const text = String(value || "").replace(/[304@1!578]/g, (char) => replacements[char] || char);
-    const namePattern = /\b[A-ZÃÃ€Ã‚ÃƒÃ‰ÃŠÃÃ“Ã”Ã•ÃšÃ‡][a-zÃ¡Ã Ã¢Ã£Ã©ÃªÃ­Ã³Ã´ÃµÃºÃ§]+(?:\s+[A-ZÃÃ€Ã‚ÃƒÃ‰ÃŠÃÃ“Ã”Ã•ÃšÃ‡][a-zÃ¡Ã Ã¢Ã£Ã©ÃªÃ­Ã³Ã´ÃµÃºÃ§]+)+\b/g;
+    const namePattern = /\b[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][a-záàâãéêíóôõúç]+(?:\s+[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][a-záàâãéêíóôõúç]+)+\b/g;
     const sentenceBoundaryPattern = /[.!?\n]/;
     let match = namePattern.exec(text);
 
@@ -236,7 +236,7 @@ function TrabalheiLaDesktop({
           warningText={COMMENT_WARNING_TEXT}
           containsPossiblePersonName={containsPossiblePersonName}
           rows={3}
-          placeholder={`ComentÃ¡rio sobre ${label.toLowerCase()} (opcional). Selecione trechos para marcar como restritos.`}
+          placeholder={`Comentário sobre ${label.toLowerCase()} (opcional). Selecione trechos para marcar como restritos.`}
           value={comment}
           onValueChange={setComment}
           segments={(criterionRestrictedSegments && criterionRestrictedSegments[restrictKey]) || []}
@@ -249,7 +249,7 @@ function TrabalheiLaDesktop({
         warningText={COMMENT_WARNING_TEXT}
         containsPossiblePersonName={containsPossiblePersonName}
         rows={3}
-        placeholder={`ComentÃ¡rio sobre ${label.toLowerCase()} (opcional)`}
+        placeholder={`Comentário sobre ${label.toLowerCase()} (opcional)`}
         value={comment}
         onValueChange={setComment}
         className="w-full p-2 text-sm border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100"
@@ -266,7 +266,7 @@ function TrabalheiLaDesktop({
         <div className="flex items-center gap-3" role="radiogroup" aria-label={label}>
           {[
             { v: "sim", l: t('Sim') },
-            { v: "nao", l: t('NÃ£o') },
+            { v: "nao", l: t('Não') },
           ].map((opt) => (
             <button
               key={opt.v}
@@ -288,7 +288,7 @@ function TrabalheiLaDesktop({
         </div>
         {isRequired && (
           <p className="text-xs text-rose-600 dark:text-rose-400">
-            * {t('ComentÃ¡rio obrigatÃ³rio ao informar "Sim".')}
+            * {t('Comentário obrigatório ao informar "Sim".')}
           </p>
         )}
         <CommentTextarea
@@ -296,7 +296,7 @@ function TrabalheiLaDesktop({
           warningText={COMMENT_WARNING_TEXT}
           containsPossiblePersonName={containsPossiblePersonName}
           rows={3}
-          placeholder={`ComentÃ¡rio sobre ${label.toLowerCase()}${isRequired ? " (obrigatÃ³rio)" : " (opcional)"}`}
+          placeholder={`Comentário sobre ${label.toLowerCase()}${isRequired ? " (obrigatório)" : " (opcional)"}`}
           value={commentValue}
           onValueChange={setCommentValue}
           className={`w-full p-2 text-sm border rounded-lg focus:outline-none focus:ring-1 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 ${
@@ -309,21 +309,21 @@ function TrabalheiLaDesktop({
 
   const campos = [
     { restrictKey: "comunicacao", label: t('Processo de Recrutamento'), value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao, icon: <FiMessageCircle className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200" },
-    { restrictKey: "etica", label: t('Proposta salarial e benefÃ­cios'), value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica, icon: <FiDollarSign className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200" },
-    { restrictKey: "cultura", label: t('VisÃ£o e valores da empresa'), value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura, icon: <FiCompass className="text-blue-700" />, iconBg: "from-blue-50 to-sky-100 border-blue-200" },
+    { restrictKey: "etica", label: t('Proposta salarial e benefícios'), value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica, icon: <FiDollarSign className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200" },
+    { restrictKey: "cultura", label: t('Visão e valores da empresa'), value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura, icon: <FiCompass className="text-blue-700" />, iconBg: "from-blue-50 to-sky-100 border-blue-200" },
     { restrictKey: "salario", label: t('Data do Pagamento'), value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario, icon: <FiCalendar className="text-rose-600" />, iconBg: "from-rose-50 to-red-100 border-rose-200" },
-    { restrictKey: "lideranca", label: t('Acessibilidade e respeito da lideranÃ§a'), value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca, icon: <FiUsers className="text-indigo-600" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200" },
-    { restrictKey: "estimacaoOrganizacao", label: t('CondiÃ§Ãµes de trabalho'), value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao, icon: <FiBriefcase className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200" },
-    { restrictKey: "ambiente", label: t('EstÃ­mulo ao respeito'), value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente, icon: <FiUsers className="text-violet-600" />, iconBg: "from-violet-50 to-fuchsia-100 border-violet-200" },
-    { type: "yesno", label: t('Sofreu discriminaÃ§Ã£o?'), restrictedNote: "InformaÃ§Ã£o de visualizaÃ§Ã£o restrita a apoiadores.", value: discriminacao, set: setDiscriminacao, comment: commentDiscriminacao, setComment: setCommentDiscriminacao, icon: <FiAlertCircle className="text-teal-600" />, iconBg: "from-teal-50 to-cyan-100 border-teal-200" },
-    { restrictKey: "diversidade", label: t('Diversidade e InclusÃ£o'), value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade, icon: <FiUsers className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200" },
-    { restrictKey: "cargaHoraria", label: t('Carga HorÃ¡ria / Jornada de Trabalho'), value: cargaHoraria, set: setCargaHoraria, comment: commentCargaHoraria, setComment: setCommentCargaHoraria, icon: <FiClock className="text-indigo-700" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200" },
+    { restrictKey: "lideranca", label: t('Acessibilidade e respeito da liderança'), value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca, icon: <FiUsers className="text-indigo-600" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200" },
+    { restrictKey: "estimacaoOrganizacao", label: t('Condições de trabalho'), value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao, icon: <FiBriefcase className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200" },
+    { restrictKey: "ambiente", label: t('Estímulo ao respeito'), value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente, icon: <FiUsers className="text-violet-600" />, iconBg: "from-violet-50 to-fuchsia-100 border-violet-200" },
+    { type: "yesno", label: t('Sofreu discriminação?'), restrictedNote: "Informação de visualização restrita a apoiadores.", value: discriminacao, set: setDiscriminacao, comment: commentDiscriminacao, setComment: setCommentDiscriminacao, icon: <FiAlertCircle className="text-teal-600" />, iconBg: "from-teal-50 to-cyan-100 border-teal-200" },
+    { restrictKey: "diversidade", label: t('Diversidade e Inclusão'), value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade, icon: <FiUsers className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200" },
+    { restrictKey: "cargaHoraria", label: t('Carga Horária / Jornada de Trabalho'), value: cargaHoraria, set: setCargaHoraria, comment: commentCargaHoraria, setComment: setCommentCargaHoraria, icon: <FiClock className="text-indigo-700" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200" },
     { restrictKey: "crescimento", label: t('Oportunidades de Desenvolvimento / Crescimento'), value: crescimento, set: setCrescimento, comment: commentCrescimento, setComment: setCommentCrescimento, icon: <FiArrowUpCircle className="text-emerald-700" />, iconBg: "from-emerald-50 to-teal-100 border-emerald-200" },
-    { restrictKey: "rating", label: t('SeguranÃ§a e integridade'), value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FiShield className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200" },
-    { restrictKey: "saudeBemEstar", label: t('PreocupaÃ§Ã£o com o bem estar'), value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar, icon: <FiHeart className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200" },
+    { restrictKey: "rating", label: t('Segurança e integridade'), value: rating, set: setRating, comment: commentRating, setComment: setCommentRating, icon: <FiShield className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200" },
+    { restrictKey: "saudeBemEstar", label: t('Preocupação com o bem estar'), value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar, icon: <FiHeart className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200" },
     { restrictKey: "equilibrio", label: t('Rotatividade'), subtitle: t('(Demite com facilidade?)'), value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio, icon: <FiRepeat className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300" },
     { restrictKey: "reconhecimento", label: t('Reconhecimento'), value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento, icon: <FiAward className="text-amber-700" />, iconBg: "from-amber-50 to-orange-100 border-amber-200" },
-    { restrictKey: "desenvolvimento", label: t('Planos de cargos e salÃ¡rios'), value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento, icon: <FiTrendingUp className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200" },
+    { restrictKey: "desenvolvimento", label: t('Planos de cargos e salários'), value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento, icon: <FiTrendingUp className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200" },
   ];
 
   const companyNote = selectedCompanyData ? calcularMedia(selectedCompanyData) : "--";
@@ -331,7 +331,7 @@ function TrabalheiLaDesktop({
   const companyNoteValue = Number.parseFloat(companyNote);
   const isCompanyRecommended = !isCompanyUnrated && Number.isFinite(companyNoteValue) && companyNoteValue >= 3;
 
-  // Progress bar: IntersectionObserver para critÃ©rios
+  // Progress bar: IntersectionObserver para critérios
   const criterionRefs = React.useRef([]);
   const [visibleCriterionIdx, setVisibleCriterionIdx] = React.useState(-1);
 
@@ -361,7 +361,7 @@ function TrabalheiLaDesktop({
   const stickyProgressTop = headerSpacerHeight + 8;
 
   const sourceConfig = [
-    { key: "indicacao", label: "IndicaÃ§Ã£o", color: "#2563eb" },
+    { key: "indicacao", label: "Indicação", color: "#2563eb" },
     { key: "siteVagas", label: "Site de vagas", color: "#16a34a" },
     { key: "gruposWhatsapp", label: "Grupos de WhatsApp", color: "#d97706" },
     { key: "redesSociais", label: "Redes sociais", color: "#9333ea" },
@@ -374,7 +374,7 @@ function TrabalheiLaDesktop({
 
   const workModelConfig = [
     { key: "presencial", label: "Presencial", color: "#2563eb" },
-    { key: "hibrida", label: "HÃ­brida (Semi presencial)", color: "#d97706" },
+    { key: "hibrida", label: "Híbrida (Semi presencial)", color: "#d97706" },
     { key: "remota", label: "Remota", color: "#16a34a" },
   ];
 
@@ -421,7 +421,7 @@ function TrabalheiLaDesktop({
     return `${topItem.label} lidera com ${topItem.percent.toFixed(0)}%`;
   };
 
-  // LÃ³gica para gerar a Logo baseada no nome da empresa
+  // Lógica para gerar a Logo baseada no nome da empresa
   const companyNameForLogo = selectedCompanyData ? selectedCompanyData.company : "TL";
   const logoCandidates = getCompanyLogoCandidates(companyNameForLogo, {
     size: 128,
@@ -438,48 +438,69 @@ function TrabalheiLaDesktop({
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-6">
       <div className="w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[1480px]">
-        {/* HEADER â€” TRABALHEI LÃ centralizado, avatar/pseudÃ´nimo Ã  direita */}
-        <header
-          ref={headerRef}
-          className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl xl:max-w-7xl 2xl:max-w-[1480px] bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-b-3xl shadow-xl px-6 py-2 border-2 border-blue-200 dark:border-slate-700"
-        >
-          <div className="relative flex items-center justify-center min-h-[64px]">
-            {/* Tema (canto esquerdo) */}
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-2">
+        {/* HEADER — TRABALHEI LÁ centralizado, avatar/pseudônimo à direita */}
+        <header ref={headerRef} className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl xl:max-w-7xl 2xl:max-w-[1480px] bg-gradient-to-br from-blue-50/95 via-blue-100/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm rounded-b-3xl shadow-xl px-4 py-2 border-2 border-blue-200 dark:border-slate-700">
+          <div className="relative flex items-center justify-center gap-3 min-h-[64px]">
+            {/* Logo da empresa pesquisada (canto esquerdo, opcional) */}
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-2">
               <button
                 type="button"
                 onClick={toggleTheme}
                 className="px-3 py-1.5 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 text-sm whitespace-nowrap"
                 aria-label="Alternar tema"
               >
-                {theme === "dark" ? "ðŸŒ™ Tema" : "â˜€ï¸ Tema"}
+                {theme === "dark" ? "🌙 Tema" : "☀️ Tema"}
               </button>
+              {company && (
+                <div className={`hidden lg:flex w-12 h-12 rounded-xl items-center justify-center border overflow-hidden ${logoUrl ? 'bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-slate-600' : 'bg-blue-900 border-blue-700'}`} title={companyNameForLogo}>
+                  {logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt={`Logo ${companyNameForLogo}`}
+                      className="w-full h-full object-contain p-1"
+                      onError={(e) => {
+                        if (logoIndex < logoCandidates.length - 1) {
+                          setLogoIndex((prev) => prev + 1);
+                        } else {
+                          const initials = (companyNameForLogo || "")
+                            .split(/\s+/).filter(Boolean).slice(0, 2)
+                            .map((w) => w[0]).join("").toUpperCase() || "?";
+                          e.target.onerror = null;
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=1a237e&color=fff&size=128&bold=true`;
+                        }
+                      }}
+                    />
+                  ) : (
+                    <span className="text-white font-black text-lg tracking-tight">TL</span>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* TRABALHEI LÃ â€” grande e centralizado */}
+            {/* TRABALHEI LÁ — grande e centralizado */}
             <h1
-              className="logo-syne tracking-wide text-blue-900 dark:text-blue-100 text-center font-black select-none"
+              className="logo-syne tracking-wide text-blue-900 dark:text-blue-100 text-center font-black select-none drop-shadow-[0_3px_0_rgba(30,64,175,0.25)] dark:drop-shadow-[0_3px_0_rgba(15,23,42,0.6)]"
               style={{
                 fontSize: 'clamp(28px, 4.6vw, 56px)',
-                letterSpacing: '0.02em',
+                letterSpacing: '0.04em',
                 lineHeight: 1.05,
                 margin: 0,
               }}
             >
-              TRABALHEI LÃ
+              TRABALHEI LÁ
             </h1>
 
-            {/* Avatar + pseudÃ´nimo (canto direito) ou botÃ£o Entrar */}
+            {/* Avatar + pseudônimo (canto direito) ou botão Entrar */}
             <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-3">
               {isAuthenticated ? (
                 <>
-                  <div className="flex flex-col items-end leading-tight max-w-[200px]">
-                    <span className="text-base md:text-lg font-bold text-blue-900 dark:text-blue-100 truncate max-w-[200px]">
-                      {userPseudonym || userProfile?.name || "UsuÃ¡rio"}
+                  <div className="hidden sm:flex flex-col items-end leading-tight max-w-[220px]">
+                    <span className="text-base md:text-lg font-bold text-blue-900 dark:text-blue-100 truncate max-w-[220px]">
+                      {userPseudonym || userProfile?.name || "Usuário"}
                     </span>
                     {userProfile?.verification?.certified && (
                       <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
-                        âœ“ Certificado
+                        ✓ Certificado
                       </span>
                     )}
                   </div>
@@ -491,7 +512,7 @@ function TrabalheiLaDesktop({
                         <span>{userProfile.avatar}</span>
                       )
                     ) : (
-                      <span className="text-blue-600">ðŸ‘¤</span>
+                      <span className="text-blue-600">👤</span>
                     )}
                   </div>
                 </>
@@ -509,159 +530,704 @@ function TrabalheiLaDesktop({
           </div>
         </header>
 
-        <div>
-          <div style={{ height: headerSpacerHeight + 24 }} />
+        <div style={{ height: headerSpacerHeight + 24 }} />
 
-          {/* CARD CENTRAL â€” "Evoluindo o mercado de trabalho" + aÃ§Ãµes agrupadas */}
-          <div className="mx-auto max-w-2xl mb-6 bg-white/80 dark:bg-slate-900/70 backdrop-blur-sm rounded-2xl shadow-lg border border-blue-200 dark:border-slate-700 px-6 py-4 text-center">
-            <div className="w-32 h-1 mx-auto rounded-full bg-gradient-to-r from-blue-300 via-blue-700 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500 mb-2" />
-            <p className="text-blue-700 dark:text-blue-200 text-base md:text-lg font-extrabold leading-tight mb-3">
-              {t('Evoluindo o mercado de trabalho')}
-            </p>
+        {/* CARD CENTRAL — "Evoluindo o mercado de trabalho" + ações agrupadas */}
+        <div className="mx-auto max-w-2xl mb-6 bg-white/80 dark:bg-slate-900/70 backdrop-blur-sm rounded-2xl shadow-lg border border-blue-200 dark:border-slate-700 px-6 py-4 text-center">
+          <div className="w-32 h-1 mx-auto rounded-full bg-gradient-to-r from-blue-300 via-blue-700 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500 mb-2" />
+          <p className="text-blue-700 dark:text-blue-200 text-base md:text-lg font-extrabold leading-tight mb-3">
+            {t('Evoluindo o mercado de trabalho')}
+          </p>
 
-            {!isAuthenticated && (
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <span
-                  title="Sua identidade Ã© mantida em sigilo: avaliaÃ§Ãµes sÃ£o publicadas sob pseudÃ´nimo."
-                  className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
-                >
-                  <FaUserSecret className="text-[11px]" aria-hidden="true" />
-                  AnÃ´nimo
-                </span>
-                <span
-                  title="Conta verificada via login LinkedIn ou Google."
-                  className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
-                >
-                  <FaCheckCircle className="text-[11px]" aria-hidden="true" />
-                  Verificado
-                </span>
-                <span
-                  title="Plataforma com regras anti-fraude e moderaÃ§Ã£o de avaliaÃ§Ãµes."
-                  className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
-                >
-                  <FaShieldAlt className="text-[11px]" aria-hidden="true" />
-                  ConfiÃ¡vel
-                </span>
-              </div>
-            )}
+          {!isAuthenticated && (
+            <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
+              <span
+                title="Sua identidade é mantida em sigilo: avaliações são publicadas sob pseudônimo."
+                className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
+              >
+                <FaUserSecret className="text-[11px]" aria-hidden="true" />
+                Anônimo
+              </span>
+              <span
+                title="Conta verificada via login LinkedIn ou Google."
+                className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
+              >
+                <FaCheckCircle className="text-[11px]" aria-hidden="true" />
+                Verificado
+              </span>
+              <span
+                title="Plataforma com regras anti-fraude e moderação de avaliações."
+                className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
+              >
+                <FaShieldAlt className="text-[11px]" aria-hidden="true" />
+                Confiável
+              </span>
+            </div>
+          )}
 
-            {isAuthenticated && (
-              <div className="flex flex-wrap items-center justify-center gap-3">
-                {(() => {
-                  // Regra de negÃ³cio:
-                  //  - empresÃ¡rio => apenas "Painel Empresa".
-                  //  - trabalhador => "Editar perfil" / "Crie seu perfil".
-                  const role = (userProfile?.role || "").toString().toLowerCase().trim();
-                  const userType = (userProfile?.userType || "").toString().toLowerCase().trim();
-                  const isEmployer =
-                    role === "admin_empresa" ||
-                    userType === "empresario" ||
-                    userType === "empres\u00e1rio" ||
-                    userProfile?.isEmployer === true ||
-                    Boolean(userProfile?.managedCompanyId);
-                  if (isEmployer) {
-                    return (
-                      <button
-                        type="button"
-                        onClick={() => navigate("/empresa-dashboard")}
-                        className="inline-flex items-center px-3 py-1.5 border border-blue-700 text-blue-700 text-sm font-bold rounded-md bg-transparent hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
-                      >
-                        Painel Empresa
-                      </button>
-                    );
-                  }
+          {isAuthenticated && (
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {(() => {
+                // Regra de negócio:
+                //  - empresário => apenas "Painel Empresa".
+                //  - trabalhador => "Editar perfil" / "Crie seu perfil".
+                const role = (userProfile?.role || "").toString().toLowerCase().trim();
+                const userType = (userProfile?.userType || "").toString().toLowerCase().trim();
+                const isEmployer =
+                  role === "admin_empresa" ||
+                  userType === "empresario" ||
+                  userType === "empres\u00e1rio" ||
+                  userProfile?.isEmployer === true ||
+                  Boolean(userProfile?.managedCompanyId);
+                if (isEmployer) {
                   return (
-                    <a
-                      href="/pseudonym"
+                    <button
+                      type="button"
+                      onClick={() => navigate("/empresa-dashboard")}
                       className="inline-flex items-center px-3 py-1.5 border border-blue-700 text-blue-700 text-sm font-bold rounded-md bg-transparent hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
                     >
-                      <FaUserEdit className="mr-1 text-[11px]" />
-                      {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
-                    </a>
+                      Painel Empresa
+                    </button>
                   );
-                })()}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const pid =
-                      userProfile?.profileId ||
-                      resolveProfileId(userProfile, { persistGeneratedId: false });
-                    if (pid) {
-                      navigate(`/perfil/${encodeURIComponent(pid)}`);
-                    } else {
-                      navigate("/minha-conta");
-                    }
-                  }}
-                  className="inline-flex items-center px-3 py-1.5 border border-blue-700 text-blue-700 text-sm font-bold rounded-md bg-transparent hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
-                >
-                  Ver meu perfil
-                </button>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="inline-flex items-center px-3 py-1.5 border border-blue-700 text-blue-700 text-sm font-bold rounded-md bg-transparent hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
-                >
-                  Sair
-                </button>
-                {(() => {
-                  try {
-                    const { isAdmin } = require("./utils/rbac");
-                    if (isAdmin()) {
-                      return (
-                        <a
-                          href="/admin"
-                          className="inline-flex items-center px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition"
-                        >
-                          Admin
-                        </a>
-                      );
-                    }
-                  } catch { /* silencioso */ }
-                  return null;
-                })()}
-              </div>
-            )}
-
-            {firebaseStatus && (
-              <p className="text-xs text-red-500 dark:text-red-400 mt-3">{firebaseStatus}</p>
-            )}
-
-            {company && (
+                }
+                return (
+                  <a
+                    href="/pseudonym"
+                    className="inline-flex items-center px-3 py-1.5 border border-blue-700 text-blue-700 text-sm font-bold rounded-md bg-transparent hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
+                  >
+                    <FaUserEdit className="mr-1 text-[11px]" />
+                    {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
+                  </a>
+                );
+              })()}
               <button
                 type="button"
-                onClick={handleSaibaMais}
-                className="mt-4 bg-blue-700 text-white font-extrabold py-3 px-12 min-w-[21rem] rounded-2xl shadow-lg transition-all transform hover:scale-105 hover:bg-blue-800 text-lg font-azonix"
+                onClick={() => {
+                  const pid =
+                    userProfile?.profileId ||
+                    resolveProfileId(userProfile, { persistGeneratedId: false });
+                  if (pid) {
+                    navigate(`/perfil/${encodeURIComponent(pid)}`);
+                  } else {
+                    navigate("/minha-conta");
+                  }
+                }}
+                className="inline-flex items-center px-3 py-1.5 border border-blue-700 text-blue-700 text-sm font-bold rounded-md bg-transparent hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
               >
-                {`Ver avaliaÃ§Ãµes da ${company.value.length > 25 ? company.value.slice(0, 25) + "â€¦" : company.value}`}
+                Ver meu perfil
               </button>
-            )}
-
-            {/* Banner Premium */}
-            <div className="mt-3 flex items-center justify-center">
               <button
                 type="button"
-                onClick={() => navigate('/escolha-perfil?planos=1')}
-                className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 text-blue-700 dark:text-blue-200 text-xs font-medium hover:bg-blue-100 dark:hover:bg-slate-700 transition"
+                onClick={handleLogout}
+                className="inline-flex items-center px-3 py-1.5 border border-blue-700 text-blue-700 text-sm font-bold rounded-md bg-transparent hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
               >
-                <span>Premium para trabalhadores, empresas e apoiadores</span>
-                <span className="underline font-semibold">ver benefÃ­cios</span>
+                Sair
               </button>
+              {(() => {
+                try {
+                  const { isAdmin } = require("./utils/rbac");
+                  if (isAdmin()) {
+                    return (
+                      <a
+                        href="/admin"
+                        className="inline-flex items-center px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition"
+                      >
+                        Admin
+                      </a>
+                    );
+                  }
+                } catch { /* silencioso */ }
+                return null;
+              })()}
             </div>
+          )}
+
+          {firebaseStatus && (
+            <p className="text-xs text-red-500 dark:text-red-400 mt-3">{firebaseStatus}</p>
+          )}
+
+          {company && (
+            <button
+              type="button"
+              onClick={handleSaibaMais}
+              className="mt-4 bg-blue-700 text-white font-extrabold py-3 px-12 min-w-[21rem] rounded-2xl shadow-lg transition-all transform hover:scale-105 hover:bg-blue-800 text-lg font-azonix"
+            >
+              {`Ver avaliações da ${company.value.length > 25 ? company.value.slice(0, 25) + "…" : company.value}`}
+            </button>
+          )}
+
+          {/* Banner Premium */}
+          <div className="mt-3 flex items-center justify-center">
+            <button
+              type="button"
+              onClick={() => navigate('/escolha-perfil?planos=1')}
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 text-blue-700 dark:text-blue-200 text-xs font-medium hover:bg-blue-100 dark:hover:bg-slate-700 transition"
+            >
+              <span>Premium para trabalhadores, empresas e apoiadores</span>
+              <span className="underline font-semibold">ver benefícios</span>
+            </button>
+          </div>
+        </div>
+
+        {/* CONTEÚDO - 3 COLUNAS NO DESKTOP (>1024px), 2 COLUNAS NO MOBILE (<1024px) */}
+        <div className="flex flex-col lg:flex-row lg:flex-nowrap gap-6 mb-8">
+
+          {/* COLUNA ESQUERDA - LOGIN + RANKING (flex-col ordem 1) */}
+          <div className="w-full lg:basis-[16%] lg:max-w-[16%] lg:min-w-[180px] xl:basis-[14%] xl:max-w-[14%] xl:min-w-[190px] lg:shrink-0 flex flex-col gap-6 order-1 lg:order-1 break-words">
+
+            {/* LOGIN ATUALIZADO (Sem Google, LinkedIn Corrigido) */}
+            <section
+              className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 mb-6 border border-blue-100 dark:border-slate-700"
+              style={{ animation: "homeLoginSectionIn 700ms ease-out both" }}
+            >
+              <style>{`
+                @keyframes homeLoginSectionIn {
+                  from { opacity: 0; transform: translateY(18px); }
+                  to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes homeCalloutIn {
+                  from { opacity: 0; transform: translateX(-18px); }
+                  to { opacity: 1; transform: translateX(0); }
+                }
+              `}</style>
+              <h2 className="text-3xl font-extrabold text-blue-900 dark:text-blue-200 text-center mb-2 tracking-wide font-azonix">Login para Avaliar</h2>
+              <div className="w-28 h-1 mx-auto mb-5 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
+              <div className="flex flex-col items-center space-y-4">
+                <div className="w-full max-w-xs -ml-3">
+                  <LoginLinkedInButton
+                    clientId={linkedInClientId}
+                    redirectUri={linkedInRedirectUri}
+                    onLoginSuccess={onLoginSuccess}
+                    onLoginFailure={(err) => setError(err?.message || String(err))}
+                    disabled={isLoading}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={onGoogleLogin}
+                  disabled={isLoading}
+                  className="w-full max-w-xs -ml-3 flex items-center justify-center gap-3 bg-white dark:bg-slate-900 border border-blue-200 dark:border-slate-700 text-blue-800 dark:text-blue-200 font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors text-sm md:text-base disabled:opacity-60"
+                >
+                  <FaGoogle className="text-lg" /> Cadastrar com Google
+                </button>
+                <p className="text-xs text-slate-500 dark:text-slate-300 text-center">
+                  Sem LinkedIn: entre com Google e complete seu perfil manualmente na próxima etapa.
+                </p>
+
+                {/* Bloco neutro de cadastro por perfil */}
+                <div className="w-full pt-4 mt-2 border-t border-blue-100 dark:border-slate-700">
+                  <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-100 text-center">
+                    Crie sua conta
+                  </h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 text-center mt-1 mb-3">
+                    Escolha seu perfil e comece a usar a plataforma!
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <Link
+                      to="/pseudonym"
+                      className="w-full text-center py-2 px-3 rounded-lg bg-lime-400 hover:bg-lime-500 text-emerald-950 text-sm font-bold shadow transition"
+                    >
+                      Sou Trabalhador
+                    </Link>
+                    <Link
+                      to="/empresa/cadastro"
+                      className="w-full text-center py-2 px-3 rounded-lg bg-amber-400 hover:bg-amber-500 text-amber-950 text-sm font-bold shadow transition"
+                    >
+                      Sou Empresário
+                    </Link>
+                    <Link
+                      to="/apoiadores"
+                      className="w-full text-center py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow transition"
+                    >
+                      Sou Apoiador
+                    </Link>
+                  </div>
+                </div>
+              </div>
+              {isAuthenticated && (
+                <p className="text-green-600 font-semibold text-center mt-4">✓ Você está autenticado!</p>
+              )}
+            </section>
+
+            {/* RANKING DE EMPRESAS */}
+            <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
+              <h2 className="text-2xl font-extrabold text-blue-900 dark:text-blue-200 text-center mb-2 font-azonix tracking-wide">🏆 Ranking de Empresas</h2>
+              <div className="w-24 h-1 mx-auto mb-4 rounded-full bg-gradient-to-r from-yellow-300 via-amber-500 to-yellow-300" />
+              {Array.isArray(setoresList) && setoresList.length > 0 && (
+                <select
+                  value={sectorFilter}
+                  onChange={(e) => setSectorFilter(e.target.value)}
+                  className="w-full mb-4 p-2 text-sm border border-blue-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  <option value="">Todos os setores</option>
+                  {setoresList.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              )}
+              {Array.isArray(segmentosList) && segmentosList.length > 0 && (
+                <select
+                  value={segmentFilter}
+                  onChange={(e) => setSegmentFilter(e.target.value)}
+                  className="w-full mb-4 p-2 text-sm border border-blue-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  <option value="">Todos os segmentos (CNAE)</option>
+                  {segmentosList.map((seg) => {
+                    const opt = (cnaeSegmentOptions || []).find((item) => item.code === seg);
+                    return <option key={seg} value={seg}>{opt ? opt.label : seg}</option>;
+                  })}
+                </select>
+              )}
+
+              {Array.isArray(top3) && top3.length > 0 && (
+                <div className="mb-4 space-y-2">
+                  {top3.map((emp, i) => {
+                    const media = calcularMedia(emp);
+                    const isUnrated = media === "--";
+                    const mediaValue = Number.parseFloat(media);
+                    const isRecommendedCompany = !isUnrated && Number.isFinite(mediaValue) && mediaValue >= 3;
+                    return (
+                      <div key={i} className={`${isUnrated ? "bg-slate-200 text-slate-600" : `bg-gradient-to-r ${getMedalColor(i)} text-white`} rounded-2xl p-3`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl">{getMedalEmoji(i)}</span>
+                            <div>
+                              <p className="font-bold text-sm">{emp.company}</p>
+                              {!isUnrated && (
+                                <p className={`text-[11px] font-bold ${isUnrated ? "text-slate-600" : "text-white/90"}`}>
+                                  {isRecommendedCompany ? "✓ Acima da média" : "X Abaixo da média"}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className={`${isUnrated ? "bg-slate-300 text-slate-700" : "bg-white/20 text-white"} px-2 py-1 rounded-full font-bold text-xs`}>
+                            {isUnrated ? "--" : `${media} ⭐`}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="bg-blue-50 dark:bg-slate-800 rounded-2xl p-4 border border-blue-200 dark:border-slate-700">
+                <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-200 mb-2 tracking-wide">Empresas por Autocompletação</h3>
+                <p className="text-sm text-blue-900 dark:text-slate-200 leading-relaxed">
+                  Para manter performance com muitas empresas, a seleção agora é feita pelo campo
+                  <span className="font-semibold"> "Selecione a Empresa"</span> no formulário.
+                  Digite parte do nome para buscar rapidamente.
+                </p>
+              </div>
+            </section>
           </div>
 
-          {/* CONTEÃšDO - 3 COLUNAS NO DESKTOP (>1024px), 2 COLUNAS NO MOBILE (<1024px) */}
-          <div className="flex flex-col lg:flex-row lg:flex-nowrap gap-6 mb-8">
-            {/* COLUNA ESQUERDA - LOGIN + RANKING (flex-col ordem 1) */}
-            <div className="w-full lg:basis-[16%] lg:max-w-[16%] lg:min-w-[180px] xl:basis-[14%] xl:max-w-[14%] xl:min-w-[190px] lg:shrink-0 flex flex-col gap-6 order-1 lg:order-1 break-words">
-              {/* ...coluna esquerda... */}
-            </div>
-            {/* COLUNA CENTRAL - FORMULÃRIO (ordem 2 no desktop) */}
-            <div className="w-full lg:basis-[62%] lg:min-w-[560px] xl:basis-[68%] xl:min-w-[640px] lg:flex-none flex flex-col gap-6 order-2 lg:order-2">
-              {/* ...coluna central... */}
-            </div>
-            {/* COLUNA DIREITA - OUTROS (ordem 3 no desktop) */}
-            <div className="w-full lg:basis-[22%] lg:max-w-[22%] lg:min-w-[240px] xl:basis-[18%] xl:max-w-[18%] xl:min-w-[240px] lg:shrink-0 flex flex-col gap-6 order-3 lg:order-3 break-words">
-              {/* ...coluna direita... */}
+          {/* COLUNA CENTRAL - FORMULÁRIO (ordem 2 no desktop) */}
+          <div className="w-full lg:basis-[62%] lg:min-w-[560px] xl:basis-[68%] xl:min-w-[640px] lg:flex-none flex flex-col gap-6 order-2 lg:order-2">
+
+            {/* FORMULÁRIO */}
+            <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
+              <h2 className="text-3xl font-extrabold text-blue-900 dark:text-blue-200 text-center mb-2 tracking-wide font-azonix">Avalie uma Empresa</h2>
+              <div className="w-32 h-1 mx-auto mb-5 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
+              <form onSubmit={handleSubmit} className="space-y-4">
+
+                <div>
+                  <label className="font-semibold text-slate-700 dark:text-slate-200 mb-2 block">Selecione a Empresa</label>
+                  <Select
+                    options={safeCompanyOptions}
+                    value={company}
+                    onChange={setCompany}
+                    placeholder="Buscar ou selecionar empresa..."
+                    styles={selectStyles}
+                    isClearable
+                  />
+
+                  <button type="button" onClick={() => setShowNewCompanyInput(!showNewCompanyInput)}
+                    className={`mt-3 inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow transition-all ${showNewCompanyInput ? "w-auto py-2 px-4 text-sm" : "w-full py-3 px-4"}`}>
+                    <FaPlus />
+                    {showNewCompanyInput ? "Cancelar" : "Adicione a empresa"}
+                  </button>
+
+                  {showNewCompanyInput && (
+                    <div className="mt-3 space-y-2">
+                      <div className="flex gap-2">
+                        <input type="text"
+                          className="flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="00.000.000/0001-00"
+                          value={newCompanyCnpj}
+                          onChange={(e) => {
+                            const d = e.target.value.replace(/\D/g, "").slice(0, 14);
+                            let m = d;
+                            if (d.length > 12) m = `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12)}`;
+                            else if (d.length > 8) m = `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8)}`;
+                            else if (d.length > 5) m = `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5)}`;
+                            else if (d.length > 2) m = `${d.slice(0,2)}.${d.slice(2)}`;
+                            setNewCompanyCnpj(m);
+                          }}
+                          inputMode="numeric"
+                          autoComplete="off"
+                        />
+                        <button type="button" onClick={handleAddNewCompany}
+                          disabled={isLoading}
+                          className="px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all">
+                          {isLoading ? "Consultando..." : "Consultar CNPJ"}
+                        </button>
+                      </div>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">
+                        Não sabe o CNPJ? Pesquise o nome da empresa no Google seguido de CNPJ.
+                      </p>
+                      {cnpjError && <p className="text-sm text-red-600">{cnpjError}</p>}
+
+                      {isUserAdmin && (
+                        <div className="rounded-xl border border-dashed border-blue-200 dark:border-slate-700 p-3 bg-blue-50/50 dark:bg-slate-800/60">
+                          <p className="text-xs font-semibold text-blue-900 dark:text-blue-200 mb-2">
+                            Sem CNPJ? Cadastro manual (apenas admin)
+                          </p>
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              value={manualCompanyName}
+                              onChange={(e) => setManualCompanyName(e.target.value)}
+                              placeholder="Nome da empresa"
+                              className="w-full p-2 border border-blue-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-sm"
+                            />
+                            <input
+                              type="text"
+                              value={manualRazaoSocial}
+                              onChange={(e) => setManualRazaoSocial(e.target.value)}
+                              placeholder="Razão social (opcional)"
+                              className="w-full p-2 border border-blue-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-sm"
+                            />
+                            <select
+                              value={manualSegment}
+                              onChange={(e) => setManualSegment(e.target.value)}
+                              className="w-full p-2 border border-blue-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-sm"
+                            >
+                              <option value="">Selecione o segmento (divisão CNAE)</option>
+                              {(cnaeSegmentOptions || []).map((opt) => (
+                                <option key={opt.code} value={opt.code}>{opt.label}</option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              onClick={handleAddCompanyWithoutCnpj}
+                              className="w-full px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition"
+                            >
+                              Preparar cadastro sem CNPJ
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {pendingCompanyData && (
+                        <div className="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-xl p-3 text-sm text-blue-900 dark:text-blue-100">
+                          <p className="font-semibold">Empresa encontrada: {pendingCompanyData.company}</p>
+                          <p className="text-xs text-blue-700 dark:text-blue-200 mt-1">CNPJ: {pendingCompanyData.cnpj || "não informado"}</p>
+                          {pendingCompanyData.razaoSocial && (
+                            <p className="text-xs text-blue-700 dark:text-blue-200 mt-0.5">Razão social: {pendingCompanyData.razaoSocial}</p>
+                          )}
+                          {pendingCompanyData.segmento && (
+                            <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-0.5">Segmento (CNAE): {pendingCompanyData.segmento}</p>
+                          )}
+                          {pendingCompanyData.cnaeDescricao && (
+                            <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">Setor: {pendingCompanyData.cnaeDescricao}</p>
+                          )}
+                          <p className="mt-2 font-medium">👍 Está correto?</p>
+                          <button
+                            type="button"
+                            onClick={handleConfirmNewCompany}
+                            disabled={isLoading}
+                            className="mt-2 px-4 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition"
+                          >
+                            {isLoading ? "Confirmando..." : "Confirmar empresa"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-xl p-4">
+                    <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-2">Como entrou na empresa?</p>
+                    <div className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
+                      {sourceConfig.map((item) => (
+                        <label key={item.key} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="entrySource"
+                            checked={entrySource === item.key}
+                            onChange={() => setEntrySource(item.key)}
+                          />
+                          {item.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-xl p-4">
+                    <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-2">Forma de contratação</p>
+                    <div className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
+                      {contractConfig.map((item) => (
+                        <label key={item.key} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="contractType"
+                            checked={contractType === item.key}
+                            onChange={() => setContractType(item.key)}
+                          />
+                          {item.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                <div className="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-xl p-4">
+                  <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-2">Modelo de trabalho</p>
+                  <div className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
+                    {workModelConfig.map((item) => (
+                      <label key={item.key} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="workModel"
+                          checked={workModel === item.key}
+                          onChange={() => setWorkModel(item.key)}
+                        />
+                        {item.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <WorkPeriodPicker
+                  idPrefix="wp-desktop"
+                  startMonth={workPeriodStartMonth}
+                  setStartMonth={setWorkPeriodStartMonth}
+                  startYear={workPeriodStartYear}
+                  setStartYear={setWorkPeriodStartYear}
+                  endMonth={workPeriodEndMonth}
+                  setEndMonth={setWorkPeriodEndMonth}
+                  endYear={workPeriodEndYear}
+                  setEndYear={setWorkPeriodEndYear}
+                  stillWorking={workPeriodStillWorking}
+                  setStillWorking={setWorkPeriodStillWorking}
+                />
+                </div>
+
+                {/* Barra de progresso dos critérios */}
+                {visibleCriterionIdx >= 0 && (
+                  <div
+                    className="sticky z-10 mb-2 ml-auto w-full max-w-[380px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-lg border border-blue-100 dark:border-slate-700 px-3 py-2 shadow-sm"
+                    style={{ top: stickyProgressTop }}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-bold text-blue-800 dark:text-blue-200">Critério {visibleCriterionIdx + 1} de {campos.length}</span>
+                      <span className="text-[11px] text-slate-500">{progressPercent}%</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-blue-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-blue-500 to-blue-700 rounded-full transition-all duration-300" style={{ width: `${progressPercent}%` }} />
+                    </div>
+                  </div>
+                )}
+
+                {campos.map((campo, idx) => (
+                  <div key={idx} ref={el => criterionRefs.current[idx] = el} data-criterion-idx={idx} className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+                    <label className="w-full md:w-1/3 text-slate-700 dark:text-slate-100 font-semibold flex items-center gap-2 mb-2 md:mb-0">
+                      <span className={`w-9 h-9 rounded-xl border bg-gradient-to-br ${campo.iconBg} flex items-center justify-center shadow-sm`}>
+                        {campo.icon}
+                      </span>
+                      <span>
+                        <span className="flex items-center gap-1.5 flex-wrap">
+                          <span>{campo.label}</span>
+                          {campo.restrictedNote && (
+                            <span
+                              title={campo.restrictedNote}
+                              aria-label={campo.restrictedNote}
+                              className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-full px-2 py-0.5 cursor-help"
+                            >
+                              <FiInfo className="w-3 h-3" aria-hidden="true" />
+                              <span>Restrito a apoiadores</span>
+                            </span>
+                          )}
+                        </span>
+                        {campo.subtitle && <span className="block text-xs text-slate-500 dark:text-slate-400">{campo.subtitle}</span>}
+                      </span>
+                    </label>
+                    {campo.type === "yesno"
+                      ? renderYesNo(campo.value, campo.set, campo.comment, campo.setComment, campo.label)
+                      : renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label, campo.restrictKey)}
+                  </div>
+                ))}
+
+                <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+                  <label className="text-slate-700 dark:text-slate-100 font-semibold text-lg block mb-2">Algo que queira acrescentar?</label>
+                  <RestrictableTextarea
+                    guidanceText={COMMENT_GUIDANCE_TEXT}
+                    warningText={COMMENT_WARNING_TEXT}
+                    containsPossiblePersonName={containsPossiblePersonName}
+                    className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-100 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    placeholder="Descreva sua experiência na empresa..."
+                    rows={3}
+                    value={generalComment}
+                    onValueChange={setGeneralComment}
+                    segments={generalCommentRestrictedSegments}
+                    onSegmentsChange={setGeneralCommentRestrictedSegments}
+                  />
+                </div>
+
+                {error && <p className="text-red-600 text-center text-sm font-medium">{error}</p>}
+
+                <div className="text-center pt-2">
+                  <style>{`
+                    @keyframes ctaGlow {
+                      0%, 100% { box-shadow: 0 0 8px rgba(59,130,246,0.4); }
+                      50% { box-shadow: 0 0 20px rgba(59,130,246,0.8), 0 0 40px rgba(59,130,246,0.3); }
+                    }
+                  `}</style>
+                  <button type="submit"
+                    className={`px-8 py-3 rounded-full font-extrabold text-white transition-all ${
+                      isAuthenticated ? (
+                        ((commentRating && containsPossiblePersonName(commentRating)) ||
+                         (generalComment && containsPossiblePersonName(generalComment)) ||
+                         Object.values(campos).some(c => c.comment && containsPossiblePersonName(c.comment)))
+                          ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed"
+                          : "bg-gradient-to-r from-blue-600 to-blue-800 hover:shadow-xl hover:scale-105"
+                        ) : "bg-blue-600"
+                    }`}
+                    style={!isAuthenticated ? { animation: 'ctaGlow 2s ease-in-out infinite' } : undefined}
+                    disabled={!isAuthenticated || isLoading || 
+                             (commentRating && containsPossiblePersonName(commentRating)) ||
+                             (generalComment && containsPossiblePersonName(generalComment)) ||
+                             Object.values(campos).some(c => c.comment && containsPossiblePersonName(c.comment))}
+                  >
+                    {isLoading ? "Enviando..." : isAuthenticated ? "Enviar Avaliação" : "Faça login para avaliar"}
+                  </button>
+                  {((commentRating && containsPossiblePersonName(commentRating)) ||
+                    (generalComment && containsPossiblePersonName(generalComment)) ||
+                    Object.values(campos).some(c => c.comment && containsPossiblePersonName(c.comment))) && (
+                    <p className="text-red-600 dark:text-red-400 text-xs font-semibold text-center mt-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded px-2 py-1">
+                      Detectamos possível citação de nome. Reformule usando descrição de comportamento/situação.
+                    </p>
+                  )}
+                  <p className="text-blue-600 dark:text-blue-300 text-xs font-semibold leading-tight mt-2">
+                    {t('Sua opinião é anônima e ajuda outros profissionais')}
+                  </p>
+                </div>
+
+              </form>
+            </section>
+          </div>
+
+          {/* COLUNA DIREITA - GRÁFICOS + COMO FUNCIONA (ordem 3 no desktop) */}
+          <div className="w-full lg:basis-[22%] lg:max-w-[22%] lg:min-w-[240px] xl:basis-[18%] xl:max-w-[18%] xl:min-w-[240px] lg:shrink-0 flex flex-col gap-6 order-3 lg:order-3 break-words">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
+              <div className="mb-4 space-y-4">
+                <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
+                  <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Classificação profissional da empresa</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(contractPieData)}</p>
+                  <div className="flex flex-col items-center gap-3">
+                    <div
+                      className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square"
+                      style={{ background: `conic-gradient(${contractPieData.chart})` }}
+                    />
+                    <div className="w-full grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                      {contractPieData.items.map((item) => (
+                        <p key={`company_contract_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200 break-words">
+                          <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                          <span className="flex-1">{item.label}: {item.percent.toFixed(0)}%</span>
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
+                  <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Classificação profissional geral</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(globalContractPieData)}</p>
+                  <div className="flex flex-col items-center gap-3">
+                    <div
+                      className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square"
+                      style={{ background: `conic-gradient(${globalContractPieData.chart})` }}
+                    />
+                    <div className="w-full grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                      {globalContractPieData.items.map((item) => (
+                        <p key={`global_contract_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200 break-words">
+                          <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                          <span className="flex-1">{item.label}: {item.percent.toFixed(0)}%</span>
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
+                  <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Modelo de trabalho geral</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(globalWorkModelPieData)}</p>
+                  <div className="flex flex-col items-center gap-3">
+                    <div
+                      className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square"
+                      style={{ background: `conic-gradient(${globalWorkModelPieData.chart})` }}
+                    />
+                    <div className="w-full grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                      {globalWorkModelPieData.items.map((item) => (
+                        <p key={`global_work_model_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200 break-words">
+                          <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                          <span className="flex-1">{item.label}: {item.percent.toFixed(0)}%</span>
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
+                  <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Formas de entrada na empresa</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(sourcePieData)}</p>
+                  <div className="flex flex-col items-center gap-3">
+                    <div
+                      className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square"
+                      style={{ background: `conic-gradient(${sourcePieData.chart})` }}
+                    />
+                    <div className="w-full grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                      {sourcePieData.items.map((item) => (
+                        <p key={`source_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200 break-words">
+                          <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                          <span className="flex-1">{item.label}: {item.percent.toFixed(0)}%</span>
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
+                  <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Modelo de trabalho na empresa</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(workModelPieData)}</p>
+                  <div className="flex flex-col items-center gap-3">
+                    <div
+                      className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square"
+                      style={{ background: `conic-gradient(${workModelPieData.chart})` }}
+                    />
+                    <div className="w-full grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                      {workModelPieData.items.map((item) => (
+                        <p key={`company_work_model_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200 break-words">
+                          <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                          <span className="flex-1">{item.label}: {item.percent.toFixed(0)}%</span>
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 bg-emerald-50 dark:bg-slate-800 rounded-2xl p-4 border border-emerald-200 dark:border-slate-700">
+                <h3 className="text-base font-bold text-emerald-900 dark:text-emerald-200 mb-2">Como funciona a plataforma</h3>
+                <p className="text-sm text-emerald-900 dark:text-slate-200 leading-relaxed mb-3">
+                  O objetivo do Trabalhei Lá é ajudar profissionais a decidir melhor onde trabalhar por meio de avaliações anônimas e verificadas.
+                </p>
+                <ul className="space-y-2 text-sm text-emerald-900 dark:text-slate-200">
+                  <li><span className="font-semibold">1.</span> Entre com LinkedIn e ajuste seu perfil anônimo.</li>
+                  <li><span className="font-semibold">2.</span> Escolha uma empresa e avalie os critérios da sua experiência.</li>
+                  <li><span className="font-semibold">3.</span> Veja notas, comentários e ranking para comparar empresas.</li>
+                </ul>
+              </div>
             </div>
           </div>
 
@@ -673,16 +1239,16 @@ function TrabalheiLaDesktop({
               <Link to="/termos-de-uso" className="text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-200 font-extrabold underline">
                 Termos de Uso
               </Link>
-              {" â€¢ "}
+              {" • "}
               <a href="/politica-de-privacidade" className="text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-200 font-extrabold underline">
-                PolÃ­tica de Privacidade
+                Política de Privacidade
               </a>
-              {" â€¢ "}
+              {" • "}
               <Link to="/purpose" className="text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-200 font-extrabold underline">
-                Qual o nosso propÃ³sito?
+                Qual o nosso propósito?
               </Link>
-              {" â€¢ "}
-              <span>Â© 2026 Trabalhei LÃ¡ - Todos os direitos reservados</span>
+              {" • "}
+              <span>© 2026 Trabalhei Lá - Todos os direitos reservados</span>
             </p>
           </div>
         </footer>
