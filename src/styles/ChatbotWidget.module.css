@@ -2,7 +2,7 @@
 .chatbotToggle {
   position: fixed;
   bottom: 20px;
-  right: 20px;
+  left: 20px;
   width: 275px;
   height: 275px;
   max-width: 22vw;
@@ -17,7 +17,8 @@
   border: none;
   padding: 0;
   z-index: 1000;
-  /* Sem espelhamento: mantém o texto da imagem legível. */
+  /* Posicionado à esquerda — o avatar naturalmente "olha" para a página
+     (centro/direita). Sem espelhamento, o texto permanece legível. */
   filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.38));
   transition: transform 0.2s ease, filter 0.2s ease;
 }
@@ -38,7 +39,7 @@
 .chatbotWindow {
   position: fixed;
   bottom: 24px;
-  right: 24px;
+  left: 24px;
   width: 440px;
   height: 600px;
   max-width: calc(100vw - 32px);
@@ -170,12 +171,12 @@
     max-width: 60vw;
     max-height: 60vw;
     bottom: 12px;
-    right: 12px;
+    left: 12px;
   }
   .chatbotWindow {
     bottom: 16px;
-    right: 12px;
     left: 12px;
+    right: 12px;
     width: auto;
     height: 70vh;
   }
