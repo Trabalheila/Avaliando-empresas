@@ -15,6 +15,9 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import AppHeader from "../components/AppHeader";
+import SECTORS from "../data/sectors";
+
+const MAX_AVATAR_SIZE = 5 * 1024 * 1024; // 5 MB
 
 const SPECIALTY_OPTIONS = [
   { value: "psicologia", label: "Psicologia" },
@@ -78,6 +81,10 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
   const [specialties, setSpecialties] = useState([]);
   const [bio, setBio] = useState("");
   const [profileLink, setProfileLink] = useState("");
+  const [ramoEspecializacao, setRamoEspecializacao] = useState("");
+  const [avatar, setAvatar] = useState(null); // base64 dataURL
+  const [avatarError, setAvatarError] = useState("");
+  const [isAvailableForContact, setIsAvailableForContact] = useState(true);
 
   const [cpfLoading, setCpfLoading] = useState(false);
   const [cpfError, setCpfError] = useState("");
@@ -105,6 +112,7 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
     senhaValida &&
     senhasCoincidem &&
     specialties.length > 0 &&
+    !!ramoEspecializacao &&
     bio.trim().length >= 20;
 
   const handleCpfBlur = useCallback(async () => {
@@ -178,6 +186,27 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
     }
   }, [cpf, birthdate]);
 
+  const handleAvatarChange = useCallback((e) => {
+    setAvatarError("");
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!/^image\//.test(f.type)) {
+      setAvatarError("O arquivo deve ser uma imagem (JPG, PNG ou WEBP).");
+      e.target.value = "";
+      return;
+    }
+    if (f.size > MAX_AVATAR_SIZE) {
+      setAvatarError("Imagem excede 5 MB.");
+      e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setAvatar(reader.result);
+    reader.onerror = () => setAvatarError("Não foi possível ler o arquivo.");
+    reader.readAsDataURL(f);
+    e.target.value = "";
+  }, []);
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
@@ -198,6 +227,9 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
         birthdate: birthdate || null,
         email: email.trim().toLowerCase(),
         specialties: specialties.map((s) => ({ value: s.value, label: s.label })),
+        ramoEspecializacao,
+        avatar: avatar || null,
+        isAvailableForContact: !!isAvailableForContact,
         bio: bio.trim(),
         profileLink: profileLink.trim() || null,
         createdAt: serverTimestamp(),
@@ -532,6 +564,96 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
                 placeholder="https://www.linkedin.com/in/seu-perfil"
                 className={inputClass}
               />
+            </div>
+
+            {/* Ramo de Especialização (obrigatório) */}
+            <div>
+              <label htmlFor="prof-ramo" className={labelClass}>
+                Ramo de Especialização <span className="text-rose-600">*</span>
+              </label>
+              <select
+                id="prof-ramo"
+                required
+                value={ramoEspecializacao}
+                onChange={(e) => setRamoEspecializacao(e.target.value)}
+                className={inputClass}
+              >
+                <option value="">Selecione um ramo…</option>
+                {SECTORS.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                Ramo principal em que você atua. Empresas Premium poderão filtrar Apoiadores
+                compatíveis por este ramo.
+              </p>
+            </div>
+
+            {/* Foto de perfil (avatar) */}
+            <div>
+              <label htmlFor="prof-avatar" className={labelClass}>
+                Foto de perfil <span className="text-xs font-normal text-slate-500">(opcional, mas recomendada)</span>
+              </label>
+              <div className="flex items-center gap-4">
+                {avatar ? (
+                  <img
+                    src={avatar}
+                    alt="Pré-visualização do avatar"
+                    className="h-16 w-16 rounded-full object-cover border-2 border-blue-100 dark:border-slate-700"
+                  />
+                ) : (
+                  <div className="h-16 w-16 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center text-2xl text-slate-400">
+                    👤
+                  </div>
+                )}
+                <div className="flex-1">
+                  <input
+                    id="prof-avatar"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="text-sm text-slate-600 dark:text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-blue-900/30 dark:file:text-blue-300"
+                  />
+                  {avatar && (
+                    <button
+                      type="button"
+                      onClick={() => setAvatar(null)}
+                      className="ml-2 text-xs font-semibold text-rose-600 hover:underline"
+                    >
+                      Remover
+                    </button>
+                  )}
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    JPG, PNG ou WEBP até 5 MB.
+                  </p>
+                  {avatarError && (
+                    <p className="mt-1 text-[11px] text-rose-600">{avatarError}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Disponível para contato */}
+            <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-900/20 p-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isAvailableForContact}
+                  onChange={(e) => setIsAvailableForContact(e.target.checked)}
+                  className="mt-1 h-4 w-4 accent-emerald-600"
+                />
+                <span className="text-sm">
+                  <span className="font-bold text-emerald-800 dark:text-emerald-200">
+                    Disponível para contato
+                  </span>
+                  <span className="block text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                    Permite que empresas Premium enviem pedidos de contato para você.
+                    Você pode alterar esta opção a qualquer momento no seu perfil.
+                  </span>
+                </span>
+              </label>
             </div>
 
             {error && (

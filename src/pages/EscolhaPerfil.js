@@ -415,6 +415,10 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 <FeatureRow ok><span className="font-semibold">Apoio Psicológico</span> — acesso a psicólogos parceiros, primeira consulta gratuita e descontos em sessões</FeatureRow>
                 <FeatureRow ok>Consultoria de Carreira Personalizada (1 sessão/mês com mentor parceiro)</FeatureRow>
                 <FeatureRow ok>Workshops exclusivos sobre carreira, negociação e direitos trabalhistas</FeatureRow>
+                <FeatureRow ok><span className="font-semibold">Conexão Premium com Empresas</span> — seja encontrado por Empresas Premium que buscam talentos</FeatureRow>
+                <FeatureRow ok><span className="font-semibold">Ative sua disponibilidade para contato</span> — controle quando quer receber propostas de empresas</FeatureRow>
+                <FeatureRow ok><span className="font-semibold">Gerencie seus pedidos de contato</span> — acesse sua página exclusiva "Meus Contatos" para gerenciar todas as interações</FeatureRow>
+                <FeatureRow ok><span className="font-semibold">Notificações prioritárias</span> — receba alertas em tempo real sobre oportunidades de emprego relevantes</FeatureRow>
               </ul>
               <button
                 type="button"
@@ -494,7 +498,8 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 <FeatureRow ok>Relatório de reputação da empresa com visão geral por área</FeatureRow>
                 <FeatureRow ok>Ferramenta de resposta pública a avaliações, identificada como “Resposta oficial da empresa”</FeatureRow>
                 <FeatureRow ok>Acesso prioritário aos próximos recursos (comparação com concorrentes, benchmarks de setor)</FeatureRow>
-                <FeatureRow ok>Conexão com consultores empresariais parceiros para transformar dados em plano de ação</FeatureRow>
+                <FeatureRow ok><span className="font-semibold">Conexão com consultores empresariais parceiros</span> — Inclui <span className="font-semibold">5 Créditos de Contato/mês</span> para iniciar conversas com Apoiadores Premium e transformar dados em plano de ação</FeatureRow>
+                <FeatureRow ok>Acesso à página <span className="font-semibold">"Meus Contatos"</span> para gerenciar interações com Apoiadores</FeatureRow>
               </ul>
               <p className="mt-3 text-xs text-indigo-700 dark:text-indigo-300 italic">
                 {isEmployerFreeWindowActive
@@ -528,10 +533,13 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 <FeatureRow ok>Relatórios de reputação avançados e comparativos (período, setor, concorrentes)</FeatureRow>
                 <FeatureRow ok>Ferramenta de resposta com análise de sentimento e sugestões de IA</FeatureRow>
                 <FeatureRow ok>Acesso antecipado a todos os recursos em desenvolvimento, sem custo adicional</FeatureRow>
-                <FeatureRow ok>Conexão prioritária com consultores empresariais parceiros</FeatureRow>
+                <FeatureRow ok><span className="font-semibold">Conexão prioritária com consultores empresariais parceiros</span> — Inclui <span className="font-semibold">20 Créditos de Contato/mês</span> para iniciar conversas com Apoiadores Premium e transformar dados em plano de ação</FeatureRow>
+                <FeatureRow ok>Acesso à página <span className="font-semibold">"Meus Contatos"</span> para gerenciar interações com Apoiadores</FeatureRow>
                 <li className="pt-2 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
                   E mais, exclusivo do Premium:
                 </li>
+                <FeatureRow ok><span className="font-semibold">Conexão Exclusiva com Talentos</span> — Inclui <span className="font-semibold">10 Créditos de Contato/mês</span> para encontrar e conectar-se com Trabalhadores Premium de alto Índice de Credibilidade e disponibilidade</FeatureRow>
+                <FeatureRow ok><span className="font-semibold">Gerenciamento Centralizado de Contatos</span> — Uma única página para acompanhar todas as suas solicitações de contato com Apoiadores e Trabalhadores Premium</FeatureRow>
                 <FeatureRow ok>Comparação em tempo real com concorrentes diretos do seu setor</FeatureRow>
                 <FeatureRow ok>Identificação automática de tendências e riscos do mercado</FeatureRow>
                 <FeatureRow ok>Relatórios executivos com oportunidades, ameaças e recomendações</FeatureRow>

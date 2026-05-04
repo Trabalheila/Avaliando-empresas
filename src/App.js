@@ -24,7 +24,10 @@ import Apoiadores from './pages/Apoiadores';
 import ApoiadorPerfil from './pages/ApoiadorPerfil';
 import WorkerProfile from './pages/WorkerProfile';
 import MinhaConta from './pages/MinhaConta';
+import MyContacts from './pages/MyContacts';
+import MyContactsApoiador from './pages/MyContactsApoiador';
 import CookieBanner from './components/CookieBanner';
+import ChatbotWidget from './components/ChatbotWidget';
 import CompanyRegister from './pages/CompanyRegister';
 import CompanyConfirm from './pages/CompanyConfirm';
 import CompanyRegisterAwait from './pages/CompanyRegisterAwait';
@@ -207,6 +210,8 @@ function App() {
       <Route path="/excluir-dados" element={<DeleteData theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/perfil/:profileId" element={<WorkerProfile theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/minha-conta" element={<MinhaConta theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/my-contacts" element={<MyContacts theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/apoiador/my-contacts" element={<MyContactsApoiador theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/empresa/cadastro" element={<CompanyRegister />} />
       <Route path="/empresa/cadastro/aguarde" element={<CompanyRegisterAwait />} />
       <Route path="/empresa/confirmar" element={<CompanyConfirm />} />
@@ -254,6 +259,7 @@ function App() {
         )}
       </div>
       <CookieBanner />
+      <ChatbotWidget />
     </>
   );
 }

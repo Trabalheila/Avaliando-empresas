@@ -13,6 +13,10 @@ import {
 } from "firebase/firestore";
 import { slugifyCompany } from "../services/reviews";
 import AppHeader from "../components/AppHeader";
+import AvailabilityToggleButton, {
+  AvailabilityIndicator,
+} from "../components/AvailabilityToggleButton";
+import { isPremiumWorker } from "../utils/rbac";
 
 /* ════════════════════════════════════════════════
    WorkerProfile — Página pública de perfil do trabalhador
@@ -272,6 +276,25 @@ export default function WorkerProfile({ theme, toggleTheme }) {
   const memberSince = formatDate(profile.createdAt || profile.updatedAt);
   const experiences = profile?.resumeData?.experiencesStructured || [];
 
+  // ─── Identidade do visitante (para saber se é o dono do perfil) ───
+  let viewerProfile = {};
+  try {
+    viewerProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+  } catch {
+    viewerProfile = {};
+  }
+  const viewerUid =
+    viewerProfile?.uid || viewerProfile?.id || viewerProfile?.profileId || "";
+  const isOwner = Boolean(viewerUid) && String(viewerUid) === String(profileId);
+  const isPremiumViewer = isPremiumWorker();
+  const profileIsPremium =
+    profile?.is_premium_worker === true ||
+    String(profile?.role || "").toLowerCase() === "premium_worker" ||
+    String(profile?.role || "").toLowerCase() === "trabalhador_premium" ||
+    profile?.is_premium === true;
+  const showAvailabilityIndicator =
+    profileIsPremium && profile?.isAvailableForContact === true;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
       <AppHeader theme={theme} toggleTheme={toggleTheme} title="Perfil do Trabalhador" />
@@ -290,24 +313,34 @@ export default function WorkerProfile({ theme, toggleTheme }) {
                 Membro desde {memberSince}
               </p>
 
-              {/* Badge de credibilidade */}
-              <div className={`inline-flex items-center gap-2 mt-3 px-3 py-1.5 rounded-full border text-sm font-semibold ${cred.bg} ${cred.color}`}>
-                {cred.icon}
-                <span>Índice de Credibilidade: {cred.label}</span>
+              {/* Badge de credibilidade + indicador de disponibilidade */}
+              <div className="flex flex-wrap items-center gap-2 mt-3 justify-center sm:justify-start">
+                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-semibold ${cred.bg} ${cred.color}`}>
+                  {cred.icon}
+                  <span>Índice de Credibilidade: {cred.label}</span>
+                </div>
+                <AvailabilityIndicator visible={showAvailabilityIndicator} />
               </div>
             </div>
 
-            {/* Compartilhar */}
-            <button
-              type="button"
-              onClick={handleShare}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition shrink-0"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-              </svg>
-              {copied ? "Link copiado!" : "Compartilhar perfil"}
-            </button>
+            {/* Compartilhar + Disponível para Contato (somente dono Premium) */}
+            <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+              <AvailabilityToggleButton
+                profileId={profileId}
+                isOwner={isOwner}
+                isPremium={isOwner && isPremiumViewer}
+              />
+              <button
+                type="button"
+                onClick={handleShare}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition shrink-0"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                {copied ? "Link copiado!" : "Compartilhar perfil"}
+              </button>
+            </div>
           </div>
         </section>
 

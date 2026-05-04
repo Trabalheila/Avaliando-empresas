@@ -134,5 +134,42 @@ service cloud.firestore {
       allow update: if request.auth != null && request.auth.uid == profId;
       allow delete: if request.auth != null && request.auth.uid == profId;
     }
+
+    // Pedidos de contato entre Apoiadores Premium e Trabalhadores.
+    // Privacidade: apenas o remetente (from) e o destinatário (to)
+    // podem ler. Atualização: somente o destinatário pode responder.
+    match /contactRequests/{requestId} {
+      allow read: if request.auth != null
+        && (resource.data.fromUid == request.auth.uid
+            || resource.data.toUid == request.auth.uid);
+      allow create: if request.auth != null
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string
+        && request.resource.data.message is string;
+      allow update: if request.auth != null
+        && resource.data.toUid == request.auth.uid
+        && request.resource.data.fromUid == resource.data.fromUid
+        && request.resource.data.toUid == resource.data.toUid;
+      allow delete: if false;
+    }
+
+    // Pedidos de contato entre Empresas Premium e Apoiadores Premium.
+    // Privacidade: apenas o remetente (fromUid - empresa) e o
+    // destinatário (toApoiadorUid - apoiador) podem ler. Atualização:
+    // somente o apoiador destinatário pode responder.
+    match /contactRequestsApoiador/{requestId} {
+      allow read: if request.auth != null
+        && (resource.data.fromUid == request.auth.uid
+            || resource.data.toApoiadorUid == request.auth.uid);
+      allow create: if request.auth != null
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toApoiadorId is string
+        && request.resource.data.message is string;
+      allow update: if request.auth != null
+        && resource.data.toApoiadorUid == request.auth.uid
+        && request.resource.data.fromUid == resource.data.fromUid
+        && request.resource.data.toApoiadorId == resource.data.toApoiadorId;
+      allow delete: if false;
+    }
   }
 }

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { isAdmin } from "../utils/rbac";
+import NotificationsBell from "./NotificationsBell";
 
 /* ════════════════════════════════════════════════
    AppHeader — Cabeçalho padronizado do projeto
@@ -143,6 +144,8 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
               .appHeaderThemeLabel { display: none !important; }
             }
           `}</style>
+
+          {!hideAvatar && <NotificationsBell />}
 
           {!hideAvatar && (
             <div className="relative" ref={dropdownRef}>

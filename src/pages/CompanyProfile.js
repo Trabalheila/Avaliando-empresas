@@ -64,6 +64,32 @@ const RAMOS_DISPONIVEIS = [
   "Outro",
 ];
 
+// Segmentos (divisões CNAE) disponibilizados na edição do perfil da
+// empresa. Mantém paridade com a lista usada no fluxo de cadastro em Home.js.
+const SEGMENTOS_DISPONIVEIS = [
+  "01 - Agropecuária",
+  "05 - Indústria extrativa",
+  "10 - Indústria de transformação",
+  "35 - Energia e utilidades",
+  "41 - Construção civil",
+  "45 - Comércio e reparação de veículos",
+  "47 - Comércio varejista",
+  "49 - Transporte terrestre",
+  "55 - Hospedagem e alimentação",
+  "58 - Informação e comunicação",
+  "62 - Tecnologia da informação",
+  "64 - Atividades financeiras",
+  "68 - Atividades imobiliárias",
+  "69 - Jurídico, contábil e auditoria",
+  "70 - Administração e consultoria",
+  "71 - Arquitetura e engenharia",
+  "72 - Pesquisa e desenvolvimento",
+  "78 - Seleção e gestão de RH",
+  "85 - Educação",
+  "86 - Saúde",
+  "93 - Esporte, cultura e lazer",
+];
+
 const LOCKED_METRICS = [
   {
     title: "Comparativo com concorrentes",
@@ -193,6 +219,7 @@ export default function CompanyProfile() {
   const [savingReplyId, setSavingReplyId] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState(null);
+  const [editError, setEditError] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
   // Logo pendente: o usuário selecionou um arquivo mas ainda não confirmou
@@ -392,6 +419,7 @@ export default function CompanyProfile() {
       razaoSocial: company.razaoSocial || "",
       cnpj: company.cnpj || "",
       ramo: company.ramo || "",
+      segmento: company.segmento || "",
       location: company.location || "",
       site: company.site || "",
       linkedin: company.socials?.linkedin || "",
@@ -399,6 +427,7 @@ export default function CompanyProfile() {
     };
     console.log("[CompanyProfile] openEdit — pre-preenchendo formulário com", initial);
     setEditForm(initial);
+    setEditError("");
     setEditOpen(true);  };
 
   // Auto-abre o modal quando navegamos do Dashboard com `?edit=1`.
@@ -416,6 +445,18 @@ export default function CompanyProfile() {
 
   const handleSaveEdit = async () => {
     if (!user || !editForm) return;
+    // Validações de obrigatoriedade dos campos de classificação setorial.
+    const ramoTrimmed = (editForm.ramo || "").trim();
+    const segmentoTrimmed = (editForm.segmento || "").trim();
+    if (!ramoTrimmed) {
+      setEditError("O ramo de atuação é obrigatório.");
+      return;
+    }
+    if (!segmentoTrimmed) {
+      setEditError("O segmento da empresa é obrigatório.");
+      return;
+    }
+    setEditError("");
     setSavingEdit(true);
     try {
       // Usa o id real do doc da empresa quando disponível; senão cai para o uid.
@@ -426,7 +467,8 @@ export default function CompanyProfile() {
         email: user.email || company?.email || "",
         razaoSocial: editForm.razaoSocial.trim(),
         cnpj: (editForm.cnpj || "").replace(/\D/g, ""),
-        ramo: editForm.ramo.trim(),
+        ramo: ramoTrimmed,
+        segmento: segmentoTrimmed,
         location: editForm.location.trim(),
         site: editForm.site.trim(),
         socials: {
@@ -790,10 +832,18 @@ export default function CompanyProfile() {
                 />
               </div>
               <div>
-                <label className={labelClass}>Ramo de atuação</label>
+                <label className={labelClass}>
+                  Ramo de atuação <span className="text-rose-500" aria-hidden="true">*</span>
+                </label>
                 <select
                   value={editForm.ramo || ""}
-                  onChange={(e) => setEditForm({ ...editForm, ramo: e.target.value })}
+                  onChange={(e) => {
+                    setEditForm({ ...editForm, ramo: e.target.value });
+                    if (editError) setEditError("");
+                  }}
+                  required
+                  aria-required="true"
+                  aria-invalid={!editForm.ramo}
                   className={inputClass}
                 >
                   <option value="">Selecione um ramo...</option>
@@ -808,6 +858,35 @@ export default function CompanyProfile() {
                 </select>
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   Usado nos comparativos de benchmark de setor.
+                </p>
+              </div>
+              <div>
+                <label className={labelClass}>
+                  Segmento da empresa <span className="text-rose-500" aria-hidden="true">*</span>
+                </label>
+                <select
+                  value={editForm.segmento || ""}
+                  onChange={(e) => {
+                    setEditForm({ ...editForm, segmento: e.target.value });
+                    if (editError) setEditError("");
+                  }}
+                  required
+                  aria-required="true"
+                  aria-invalid={!editForm.segmento}
+                  className={inputClass}
+                >
+                  <option value="">Selecione um segmento...</option>
+                  {SEGMENTOS_DISPONIVEIS.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                  {/* Preserva valor legado caso a empresa já tenha um segmento
+                      gravado que não está na lista padrão. */}
+                  {editForm.segmento && !SEGMENTOS_DISPONIVEIS.includes(editForm.segmento) && (
+                    <option value={editForm.segmento}>{editForm.segmento} (atual)</option>
+                  )}
+                </select>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Divisão CNAE usada para benchmarks e comparações de mercado.
                 </p>
               </div>
               <div className="sm:col-span-2">
@@ -853,6 +932,14 @@ export default function CompanyProfile() {
             </div>
 
             <div className="mt-8 flex items-center justify-end gap-3 flex-wrap">
+              {editError && (
+                <p
+                  role="alert"
+                  className="w-full -mb-2 text-sm font-semibold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-700 rounded-lg px-3 py-2"
+                >
+                  {editError}
+                </p>
+              )}
               <button
                 type="button"
                 onClick={() => navigate("/empresa-dashboard")}
@@ -863,6 +950,17 @@ export default function CompanyProfile() {
               <button
                 type="button"
                 onClick={async () => {
+                  // Valida antes de navegar para evitar sair com dados inválidos.
+                  const ramoOk = (editForm?.ramo || "").trim();
+                  const segOk = (editForm?.segmento || "").trim();
+                  if (!ramoOk) {
+                    setEditError("O ramo de atuação é obrigatório.");
+                    return;
+                  }
+                  if (!segOk) {
+                    setEditError("O segmento da empresa é obrigatório.");
+                    return;
+                  }
                   await handleSaveEdit();
                   navigate("/empresa-dashboard");
                 }}

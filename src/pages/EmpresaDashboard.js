@@ -15,6 +15,8 @@ import {
 import { auth, db } from "../firebase";
 import { SealIcon } from "./SealDetailsPage";
 import CompanyCommentsManager from "../components/CompanyCommentsManager";
+import CompatibleApoiadoresSection from "../components/CompatibleApoiadoresSection";
+import { getCompanyContactCredits } from "../services/contactRequests";
 
 const PREMIUM_PRICE_LABEL = "R$ 1.499,99/mês";
 const PREMIUM_AVAILABLE_AT = "01/08/2026";
@@ -68,31 +70,8 @@ const PREMIUM_FEATURES_SHOWCASE = [
 const GPTW_INFO_URL = "https://greatplacetowork.com.br/o-que-e-gptw/";
 
 // Lista placeholder de profissionais de apoio sugeridos para empresas Premium.
-// Em produção, virá de uma coleção como `supportProfessionals` filtrada por
-// compatibilidade (CNAE, especialidade, região etc.).
-const SUPPORT_PROFESSIONALS_PLACEHOLDER = [
-  {
-    id: "sp-1",
-    name: "Ana Cardoso",
-    role: "Consultora de Cultura & Clima",
-    specialty: "Diagnóstico e plano de ação para pontos negativos",
-    contact: "ana.cardoso@trabalheila.example",
-  },
-  {
-    id: "sp-2",
-    name: "Bruno Lima",
-    role: "Especialista em Liderança",
-    specialty: "Mentoria para gestores e feedback estruturado",
-    contact: "bruno.lima@trabalheila.example",
-  },
-  {
-    id: "sp-3",
-    name: "Carla Mendes",
-    role: "Psicóloga Organizacional",
-    specialty: "Saúde mental no trabalho e prevenção de assédio",
-    contact: "carla.mendes@trabalheila.example",
-  },
-];
+// SUPPORT_PROFESSIONALS_PLACEHOLDER removido: a lista de apoiadores compatíveis
+// agora é carregada dinamicamente em CompatibleApoiadoresSection (Firestore).
 
 // Critérios suportados nas avaliações (mesmos campos usados em Home.js).
 const CRITERIA = [
@@ -191,16 +170,12 @@ export default function EmpresaDashboard() {
   const [sendingSupport, setSendingSupport] = useState(false);
   const [supportSent, setSupportSent] = useState(false);
 
-  // Modal "Linha Direta com Apoiadores Premium" via WhatsApp (apenas Premium).
-  const [showHotlineModal, setShowHotlineModal] = useState(false);
+  // Modal "Linha Direta com Apoiadores Premium" antigo (WhatsApp) foi
+  // substituído pelo novo fluxo baseado em créditos via
+  // CompatibleApoiadoresSection + ContactApoiadorModal por apoiador.
 
-  // TODO: tornar dinâmico (vir do perfil do apoiador no Firestore).
-  const PREMIUM_SUPPORTER_WHATSAPP = "5511999999999";
-  const PREMIUM_SUPPORTER_WA_MESSAGE =
-    "Olá! Sou uma empresa Premium do Trabalhei Lá e preciso de suporte.";
-  const premiumSupporterWaUrl = `https://wa.me/${PREMIUM_SUPPORTER_WHATSAPP}?text=${encodeURIComponent(
-    PREMIUM_SUPPORTER_WA_MESSAGE
-  )}`;
+  // Créditos de contato com apoiadores (companies/{id}.contactCredits).
+  const [companyContactCredits, setCompanyContactCredits] = useState(null);
 
   // Status da empresa na Receita Federal (BrasilAPI via /api/cnpj-data).
   const [receitaData, setReceitaData] = useState(null);
@@ -622,6 +597,26 @@ export default function EmpresaDashboard() {
     : 0;
   // Acesso efetivo aos recursos Premium = assinante Premium OU trial ativo.
   const effectivePremium = isPremium || trialActive;
+
+  // Carrega quantidade de créditos de contato disponíveis para a empresa.
+  useEffect(() => {
+    let cancelled = false;
+    if (!effectivePremium || !company?.id) {
+      setCompanyContactCredits(null);
+      return undefined;
+    }
+    (async () => {
+      try {
+        const credits = await getCompanyContactCredits(company.id);
+        if (!cancelled) setCompanyContactCredits(credits);
+      } catch {
+        if (!cancelled) setCompanyContactCredits(0);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [effectivePremium, company?.id]);
 
   const [startingTrial, setStartingTrial] = useState(false);
   const handleStartTrial = useCallback(async () => {
@@ -1943,31 +1938,24 @@ export default function EmpresaDashboard() {
               </div>
 
               {/* Profissionais de apoio compatíveis */}
-              <div className="mt-8">
-                <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
-                  Profissionais compatíveis
-                </h3>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  Especialistas selecionados que podem ajudar sua empresa a evoluir nos pontos críticos das avaliações.
-                </p>
-                <ul className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {SUPPORT_PROFESSIONALS_PLACEHOLDER.map((p) => (
-                    <li
-                      key={p.id}
-                      className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-4"
-                    >
-                      <div className="text-sm font-extrabold text-slate-800 dark:text-slate-100">{p.name}</div>
-                      <div className="text-xs font-semibold text-blue-700 dark:text-blue-300 mt-0.5">{p.role}</div>
-                      <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">{p.specialty}</p>
-                      <a
-                        href={`mailto:${p.contact}`}
-                        className="mt-3 inline-block text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline break-all"
-                      >
-                        {p.contact}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+              <div id="apoiadores-compativeis-section">
+                <CompatibleApoiadoresSection
+                  companyId={company?.id}
+                  companyName={
+                    company?.razaoSocial ||
+                    company?.nomeFantasia ||
+                    company?.company ||
+                    ""
+                  }
+                  companySector={
+                    company?.ramo ||
+                    company?.setor ||
+                    company?.segmento ||
+                    company?.industry ||
+                    ""
+                  }
+                  fromUid={user?.uid}
+                />
               </div>
             </>
           )}
@@ -1991,61 +1979,31 @@ export default function EmpresaDashboard() {
                   </h2>
                   <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 max-w-2xl">
                     Acesso prioritário a apoiadores especializados em cultura organizacional, RH e gestão de pessoas.
-                    Tire dúvidas, agende consultorias e receba orientações sob medida para sua empresa.
+                    Cada contato consome 1 crédito da sua empresa.
+                  </p>
+                  <p className="mt-2 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                    Créditos disponíveis: {companyContactCredits ?? "—"}
                   </p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setShowHotlineModal(true)}
+                onClick={() => {
+                  const el = document.getElementById("apoiadores-compativeis-section");
+                  if (el && typeof el.scrollIntoView === "function") {
+                    el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }
+                }}
                 className="inline-flex items-center gap-2 h-11 px-5 rounded-lg font-bold text-white bg-emerald-600 hover:bg-emerald-700"
               >
                 <span aria-hidden="true">💬</span>
-                Contactar Apoiador Premium via WhatsApp
+                Contactar Apoiador Premium
               </button>
             </div>
           </section>
         )}
 
-        {/* Modal "Linha Direta com Apoiadores Premium" via WhatsApp */}
-        {effectivePremium && showHotlineModal && (
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Fale com um Apoiador Premium via WhatsApp"
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60"
-            onClick={(e) => { if (e.target === e.currentTarget) setShowHotlineModal(false); }}
-          >
-            <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6">
-              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
-                Fale com um Apoiador Premium via WhatsApp
-              </h3>
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                Entre em contato diretamente com nossos apoiadores especializados para suas necessidades. Clique no
-                botão abaixo para iniciar uma conversa no WhatsApp.
-              </p>
-              <div className="mt-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowHotlineModal(false)}
-                  className="h-10 px-4 rounded-lg font-bold text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                  Fechar
-                </button>
-                <a
-                  href={premiumSupporterWaUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setShowHotlineModal(false)}
-                  className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg font-bold text-white bg-emerald-600 hover:bg-emerald-700"
-                >
-                  <span aria-hidden="true">💬</span>
-                  Iniciar Conversa no WhatsApp
-                </a>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Modal "Linha Direta" antigo removido — fluxo agora é por crédito via ContactApoiadorModal por apoiador */}
 
         {/* Modal "Solicitar apoio" */}
         {effectivePremium && showSupportModal && (

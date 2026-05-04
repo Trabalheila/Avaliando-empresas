@@ -156,10 +156,15 @@ export default function PlanosApoiador() {
             </p>
             <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">
               <FeatureRow ok><span className="font-semibold">Todos os benefícios do plano Apoiador Essencial</span></FeatureRow>
-              <FeatureRow ok>Selo visual "Apoiador Premium Verificado" no perfil (substitui o Essencial)</FeatureRow>
+              <FeatureRow ok><span className="font-semibold">10 Créditos de Contato/mês</span> para iniciar conversas com Empresas Premium</FeatureRow>
+              <FeatureRow ok>Acesso à página <span className="font-semibold">"Meus Contatos"</span> para gerenciar interações e responder pedidos de empresas</FeatureRow>
+              <FeatureRow ok><span className="font-semibold">Notificações Prioritárias</span> sobre novas oportunidades e pedidos de contato (sininho na plataforma)</FeatureRow>
+              <FeatureRow ok>Selo visual <span className="font-semibold">"Apoiador Premium Verificado"</span> no perfil (substitui o Essencial)</FeatureRow>
+              <FeatureRow ok><span className="font-semibold">Controle de Disponibilidade:</span> ative/desative seu status para receber novos contatos</FeatureRow>
+              <FeatureRow ok><span className="font-semibold">Analytics do Perfil:</span> veja visualizações, cliques e taxa de resposta</FeatureRow>
+              <FeatureRow ok><span className="font-semibold">Relatórios de Mercado Avançados</span> com insights específicos por especialidade e ramo de atuação</FeatureRow>
               <FeatureRow ok>Acesso prioritário a um volume maior de leads qualificados</FeatureRow>
               <FeatureRow ok>Posicionamento ainda mais privilegiado nas listagens e recomendações</FeatureRow>
-              <FeatureRow ok>Relatórios de desempenho e insights de mercado detalhados</FeatureRow>
               <FeatureRow ok>Participação em programas de suporte Premium para usuários, com remuneração por sessões/consultas incluídas nos planos Premium de trabalhadores e empresas</FeatureRow>
               <FeatureRow ok>Acesso a ferramentas de marketing e branding co-criadas com o Trabalhei Lá</FeatureRow>
               <FeatureRow ok>Convites exclusivos para eventos e workshops da plataforma</FeatureRow>

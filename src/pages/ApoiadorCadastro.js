@@ -6,6 +6,7 @@ import { signInAnonymously } from "firebase/auth";
 import AppHeader from "../components/AppHeader";
 import { isAdmin } from "../utils/rbac";
 import { buildDeclarationText } from "../components/ConflictDeclarationGate";
+import SECTORS from "../data/sectors";
 
 /* ── Opções por tipo (lista abrangente de profissões) ── */
 const TIPOS = [
@@ -90,6 +91,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
   const [termosAceitos, setTermosAceitos] = useState(TERMOS.map(() => false));
   const [conflictDeclarationAccepted, setConflictDeclarationAccepted] = useState(false);
   const [nichos, setNichos] = useState([]);
+  const [ramoEspecializacao, setRamoEspecializacao] = useState("");
 
   /* ── Estado consultor ── */
   const [especialidade, setEspecialidade] = useState("");
@@ -221,6 +223,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
 
     if (!tipo) { setError("Selecione o tipo de apoiador."); return; }
     if (!nome.trim() || !email.trim() || !telefone.trim()) { setError("Preencha todos os campos obrigatórios."); return; }
+    if (!ramoEspecializacao) { setError("Selecione o Ramo de Especialização."); return; }
 
     /* Validação das credenciais */
     if (REGULATED_PROFESSIONS.has(tipo)) {
@@ -273,6 +276,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
         cliquesContato: 0,
         portfolio: portfolio.slice(0, 5),
         nichos: nichos.slice(0, 3),
+        ramoEspecializacao,
         uid: auth.currentUser?.uid || null,
         createdAt: serverTimestamp(),
 
@@ -303,7 +307,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
       setError("Ocorreu um erro ao enviar o cadastro. Tente novamente.");
     }
     setSubmitting(false);
-  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, arquivos, allTermosAceitos, conflictDeclarationAccepted, cnpj, segmentos, site, portfolio, nichos, credentialNumber, credentialStateOrRegion, credentialPortfolioUrl, credentialCertifications, credentialProof]);
+  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, arquivos, allTermosAceitos, conflictDeclarationAccepted, cnpj, segmentos, site, portfolio, nichos, ramoEspecializacao, credentialNumber, credentialStateOrRegion, credentialPortfolioUrl, credentialCertifications, credentialProof]);
 
   /* ═══ Tela de sucesso ═══ */
   if (success) {
@@ -417,6 +421,31 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* ── Ramo de Especialização (obrigatório) ── */}
+              <div className="mb-6">
+                <label htmlFor="ramoEspecializacao" className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                  Ramo de Especialização <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  id="ramoEspecializacao"
+                  value={ramoEspecializacao}
+                  onChange={(e) => setRamoEspecializacao(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200"
+                >
+                  <option value="">Selecione um ramo…</option>
+                  {SECTORS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Ramo principal em que você presta consultoria. Empresas Premium poderão filtrar
+                  apoiadores compatíveis por este ramo.
+                </p>
               </div>
 
               {/* ── Nichos de atuação (todos os tipos, máx 3) ── */}

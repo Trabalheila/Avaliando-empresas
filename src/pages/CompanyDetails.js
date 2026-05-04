@@ -10,6 +10,7 @@ import { getUserRole, isPremium, isAdmin } from "../utils/rbac";
 import { handleCheckout } from "../services/billing";
 import AppHeader from "../components/AppHeader";
 import ConflictDeclarationGate from "../components/ConflictDeclarationGate";
+import RelevantWorkersSection from "../components/RelevantWorkersSection";
 // import PremiumPieCard from "../components/PremiumPieCard"; // removido pois não é mais usado
 // ...existing code...
 
@@ -2192,6 +2193,23 @@ function CompanyDetails({ theme, toggleTheme }) {
             </div>
           </div>
         </div>
+
+        <RelevantWorkersSection
+          companySlug={getCompanySlug()}
+          companyName={
+            company?.razaoSocial ||
+            company?.nomeFantasia ||
+            company?.company ||
+            ""
+          }
+          companySector={
+            company?.ramo ||
+            company?.setor ||
+            company?.segmento ||
+            company?.industry ||
+            ""
+          }
+        />
 
         <div id="secao-comentarios" className="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
           <h2 className="text-lg font-bold text-blue-800 font-azonix tracking-[0.08em] mb-4">Comentários</h2>
