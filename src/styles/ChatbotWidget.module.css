@@ -3,8 +3,10 @@
   position: fixed;
   bottom: 20px;
   right: 20px;
-  width: 110px;
-  height: 110px;
+  width: 550px;
+  height: 550px;
+  max-width: 40vw;
+  max-height: 40vw;
   border-radius: 50%;
   /* Sem cor de fundo, sem sombra do botão — o avatar fica "solto" */
   background: transparent;
@@ -18,18 +20,18 @@
   /* Espelha horizontalmente o avatar para que ele "olhe" para a página
      (canto inferior direito → vira para a esquerda). */
   transform: scaleX(-1);
-  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.35));
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.4));
   transition: transform 0.2s ease, filter 0.2s ease;
 }
 
 .chatbotToggle:hover {
-  transform: scaleX(-1) scale(1.05);
-  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.45));
+  transform: scaleX(-1) scale(1.03);
+  filter: drop-shadow(0 14px 30px rgba(0, 0, 0, 0.5));
 }
 
 .avatar {
-  width: 110px;
-  height: 110px;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   object-fit: contain;
   background: transparent;
@@ -37,12 +39,12 @@
 
 .chatbotWindow {
   position: fixed;
-  bottom: 140px;
+  bottom: 24px;
   right: 24px;
   width: 440px;
   height: 600px;
   max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 180px);
+  max-height: calc(100vh - 48px);
   background-color: var(--background-color, #fff);
   border-radius: 14px;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
@@ -165,17 +167,15 @@
 
 @media (max-width: 520px) {
   .chatbotToggle {
-    width: 88px;
-    height: 88px;
-    bottom: 16px;
-    right: 16px;
-  }
-  .avatar {
-    width: 88px;
-    height: 88px;
+    width: 60vw;
+    height: 60vw;
+    max-width: 60vw;
+    max-height: 60vw;
+    bottom: 12px;
+    right: 12px;
   }
   .chatbotWindow {
-    bottom: 116px;
+    bottom: 16px;
     right: 12px;
     left: 12px;
     width: auto;
