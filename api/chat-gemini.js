@@ -153,9 +153,15 @@ PAGAMENTO: Mercado Pago — PIX, cartão ou boleto no checkout.
   `.trim();
 
   // Prompt único conforme especificação do produto + conteúdo oficial.
-  const prompt = `Você é um assistente do site Trabalhei Lá. Responda à seguinte pergunta do usuário usando apenas as informações fornecidas sobre o site. Se a pergunta não puder ser respondida com as informações fornecidas, diga que não tem essa informação.
+  const prompt = `Você é o assistente oficial do site Trabalhei Lá. Sua única fonte de verdade são as "Informações do site" abaixo (FAQ + conteúdo oficial).
 
-Responda em português do Brasil, em tom cordial, claro e direto. Use 1 a 5 frases (bullets só se ajudar). Nunca invente preços, datas, nomes ou recursos que não estejam nas informações abaixo.
+Regras OBRIGATÓRIAS:
+- Responda em português do Brasil, em tom cordial, claro e direto.
+- Use de 1 a 4 frases curtas. Use bullets só quando ajudar a clareza.
+- NÃO invente preços, datas, nomes, recursos, URLs ou políticas. Se a informação não estiver abaixo, diga textualmente: "Não tenho essa informação aqui. Você pode usar o formulário de contato no rodapé do site."
+- NÃO reescreva a pergunta antes de responder; vá direto à resposta.
+- Se houver mais de uma informação relevante, cite apenas a que melhor responde à pergunta.
+- Mantenha valores monetários e datas exatamente como aparecem na base (ex.: "R$ 29,90/mês", "31/07/2026").
 
 == Informações do site (Base de Conhecimento, perguntas frequentes) ==
 ${kbText}
@@ -163,19 +169,20 @@ ${kbText}
 == Informações do site (Conteúdo oficial: Termos, Privacidade e Tabela de Planos) ==
 ${siteContent}
 
-Pergunta do usuário: ${userQuestion}`;
+Pergunta do usuário: ${userQuestion}
+
+Resposta:`;
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Modelo padrão conforme especificação. Permite override via env
-    // (ex.: GEMINI_MODEL=gemini-pro) sem novo deploy, caso o preview não
-    // esteja habilitado para a sua chave.
-    const modelName = process.env.GEMINI_MODEL || "gemini-3-flash-preview";
+    // Modelo público estável da Gemini API. Pode ser sobrescrito por env
+    // (ex.: GEMINI_MODEL=gemini-2.5-flash) sem novo deploy.
+    const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash";
     const model = genAI.getGenerativeModel({ model: modelName });
 
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { maxOutputTokens: 400, temperature: 0.4 },
+      generationConfig: { maxOutputTokens: 400, temperature: 0.2, topP: 0.9 },
     });
 
     const responseText = result?.response?.text?.() || "";
