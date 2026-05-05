@@ -67,7 +67,9 @@
   width: 420px;
   height: 560px;
   max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 48px);
+  /* Considera o offset `bottom: 230px` + uma folga de 16px no topo,
+     para que o painel nunca ultrapasse a borda superior da viewport. */
+  max-height: calc(100vh - 230px - 16px);
   /* Background translúcido para integrar-se ao tema da página.
      Mantém legibilidade graças ao backdrop-filter. */
   background-color: rgba(255, 255, 255, 0.94);
@@ -80,6 +82,25 @@
   flex-direction: column;
   z-index: 1000;
   overflow: hidden;
+}
+
+/* Em telas baixas (típico de notebooks 13"–15" ou janelas não maximizadas
+   em monitores grandes), aproxima o painel do avatar e diminui a altura
+   para garantir que o cabeçalho com o botão "X" sempre apareça. */
+@media (max-height: 820px) {
+  .chatbotWindow {
+    bottom: 180px;
+    height: 480px;
+    max-height: calc(100vh - 180px - 16px);
+  }
+}
+
+@media (max-height: 680px) {
+  .chatbotWindow {
+    bottom: 140px;
+    height: 400px;
+    max-height: calc(100vh - 140px - 12px);
+  }
 }
 
 /* "Rabicho" do balão de fala apontando para o avatar (canto inferior

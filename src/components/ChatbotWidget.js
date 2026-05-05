@@ -21,7 +21,26 @@ function DraggableAvatar({ anchor = 'left', flip = false, onActivate, ariaLabel 
   const [position, setPosition] = useState(() => {
     try {
       const raw = localStorage.getItem(POS_KEY);
-      return raw ? JSON.parse(raw) : null;
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      // Descarta posições inválidas (NaN, fora da viewport, negativas).
+      // O reposicionamento fino dentro do limite acontece no useEffect de mount.
+      if (
+        !parsed ||
+        typeof parsed.left !== 'number' ||
+        typeof parsed.top !== 'number' ||
+        !Number.isFinite(parsed.left) ||
+        !Number.isFinite(parsed.top) ||
+        parsed.left < 0 ||
+        parsed.top < 0 ||
+        (typeof window !== 'undefined' &&
+          (parsed.left > window.innerWidth - MIN_SIZE ||
+            parsed.top > window.innerHeight - MIN_SIZE))
+      ) {
+        localStorage.removeItem(POS_KEY);
+        return null;
+      }
+      return parsed;
     } catch {
       return null;
     }
@@ -193,6 +212,33 @@ function DraggableAvatar({ anchor = 'left', flip = false, onActivate, ariaLabel 
     return () => window.removeEventListener('resize', onResize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [position]);
+
+  // Ao montar, garante que a posição salva ainda cabe na viewport atual
+  // (evita avatar "sumido" caso a janela tenha encolhido entre sessões).
+  // Também limita o tamanho do avatar a no máximo 35% do menor lado da
+  // viewport — evita ficar gigante em notebooks após resize por pinça.
+  useEffect(() => {
+    if (!toggleRef.current) return;
+
+    const viewportLimit = Math.floor(
+      Math.min(window.innerWidth, window.innerHeight) * 0.35
+    );
+    const dynamicMax = Math.max(MIN_SIZE, Math.min(MAX_SIZE, viewportLimit));
+    if (size && size > dynamicMax) {
+      setSize(dynamicMax);
+      persistSize(dynamicMax);
+    }
+
+    if (position) {
+      const rect = toggleRef.current.getBoundingClientRect();
+      const next = clampToViewport(position.left, position.top, rect.width, rect.height);
+      if (next.left !== position.left || next.top !== position.top) {
+        setPosition(next);
+        persistPosition(next);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleStyle = {
     ...(position ? { left: position.left, top: position.top, right: 'auto', bottom: 'auto' } : null),

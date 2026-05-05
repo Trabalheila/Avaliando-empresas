@@ -164,30 +164,86 @@ Pergunta do usuário: ${userQuestion}`;
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Modelo público estável da Gemini API com free tier amplo.
-    // Pode ser sobrescrito por env (ex.: GEMINI_MODEL=gemini-2.0-flash)
-    // sem novo deploy se o projeto tiver quota paga habilitada.
-    const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-    const model = genAI.getGenerativeModel({ model: modelName });
 
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { maxOutputTokens: 400, temperature: 0.2, topP: 0.9 },
-    });
+    // Cadeia de modelos: tenta o primário e cai para fallbacks em caso de
+    // 503 (sobrecarga) ou 404 (modelo descontinuado). Pode ser sobrescrito
+    // por env: GEMINI_MODEL para o primário, GEMINI_FALLBACK_MODELS como
+    // lista separada por vírgula. Free tier amplo em todos.
+    const primary = process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
+    const fallbacks = (
+      process.env.GEMINI_FALLBACK_MODELS ||
+      "gemini-2.5-flash-lite,gemini-2.5-flash,gemini-flash-latest"
+    )
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const candidates = [primary, ...fallbacks.filter((m) => m !== primary)];
 
-    const responseText = result?.response?.text?.() || "";
-    return res.status(200).json({ response: responseText });
+    const generationConfig = {
+      maxOutputTokens: 400,
+      temperature: 0.2,
+      topP: 0.9,
+    };
+
+    const isOverloaded = (err) => {
+      const msg = (err?.message || String(err)).toString();
+      return err?.status === 503 || /\b503\b|overloaded|unavailable|high demand/i.test(msg);
+    };
+    const isModelMissing = (err) => {
+      const msg = (err?.message || String(err)).toString();
+      return err?.status === 404 || /\b404\b|not.?found/i.test(msg);
+    };
+    const isQuotaExceeded = (err) => {
+      const msg = (err?.message || String(err)).toString();
+      return err?.status === 429 || /\b429\b|quota|rate.?limit/i.test(msg);
+    };
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    let lastError = null;
+    for (const modelName of candidates) {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      // Até 2 tentativas por modelo quando for 503 transitório.
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const result = await model.generateContent({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig,
+          });
+          const responseText = result?.response?.text?.() || "";
+          return res
+            .status(200)
+            .json({ response: responseText, modelUsed: modelName });
+        } catch (err) {
+          lastError = err;
+          if (isOverloaded(err) && attempt === 0) {
+            await sleep(800);
+            continue; // retry mesmo modelo
+          }
+          if (isOverloaded(err) || isModelMissing(err) || isQuotaExceeded(err)) {
+            break; // tenta o próximo modelo
+          }
+          throw err; // erro não-recuperável (auth, prompt inválido, etc.)
+        }
+      }
+    }
+    throw lastError || new Error("Falha desconhecida ao gerar resposta.");
   } catch (error) {
     console.error("Erro ao chamar a API do Gemini:", error);
-    // Detecta erro de quota (HTTP 429) para que o frontend possa exibir
-    // mensagem amigável sem despejar o JSON cru da Google.
     const raw = (error?.message || String(error)).toString();
     const isQuota = /\b429\b|quota|rate.?limit/i.test(raw);
-    return res.status(isQuota ? 429 : 500).json({
+    const isOverloaded = error?.status === 503 || /\b503\b|overloaded|high demand/i.test(raw);
+    const httpStatus = isQuota ? 429 : isOverloaded ? 503 : 500;
+    return res.status(httpStatus).json({
       message: isQuota
         ? "Cota da IA excedida no momento. Tente novamente em instantes."
+        : isOverloaded
+        ? "A IA está sobrecarregada no momento. Tente novamente em instantes."
         : "Erro interno do servidor ao se comunicar com a IA.",
-      error: isQuota ? "quota_exceeded" : raw,
+      error: isQuota
+        ? "quota_exceeded"
+        : isOverloaded
+        ? "model_overloaded"
+        : raw,
       name: error?.name,
       status: error?.status,
     });
