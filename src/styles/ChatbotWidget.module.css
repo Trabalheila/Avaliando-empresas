@@ -64,8 +64,8 @@
   bottom: 230px;
   right: 32px;
   left: auto;
-  width: 360px;
-  height: 460px;
+  width: 420px;
+  height: 560px;
   max-width: calc(100vw - 32px);
   max-height: calc(100vh - 48px);
   /* Background translúcido para integrar-se ao tema da página.
@@ -141,18 +141,30 @@
 }
 
 .message {
-  padding: 9px 13px;
+  padding: 11px 15px;
   border-radius: 16px;
-  /* Balão ocupa ~65% da largura do contêiner, mais compacto. */
-  max-width: 68%;
+  /* Balão ocupa ~85% da largura do contêiner, com bom espaço para o texto.
+     Ajusta-se dinamicamente ao conteúdo (sem largura fixa). */
+  max-width: 85%;
+  width: fit-content;
   word-wrap: break-word;
-  line-height: 1.4;
-  font-size: 0.9rem;
+  line-height: 1.5;
+  font-size: 0.95rem;
   color: var(--text-color, #1f2937);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-  /* Mostra ~3-4 linhas; texto mais longo rola internamente. */
-  max-height: calc(1.4em * 4 + 18px);
+  /* Mostra ~6-8 linhas confortavelmente; textos maiores rolam suavemente. */
+  max-height: calc(1.5em * 8 + 22px);
   overflow-y: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+}
+
+.message::-webkit-scrollbar {
+  width: 6px;
+}
+.message::-webkit-scrollbar-thumb {
+  background-color: rgba(15, 23, 42, 0.25);
+  border-radius: 3px;
 }
 
 .user {
