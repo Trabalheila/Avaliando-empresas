@@ -167,9 +167,13 @@ ${kbText || '(nenhuma fornecida)'}
     return res.status(200).json({ response: responseText });
   } catch (error) {
     console.error('Erro ao chamar a API do Gemini:', error);
-    return res
-      .status(500)
-      .json({ message: 'Erro interno do servidor ao se comunicar com a IA.' });
+    // Devolve detalhes para facilitar o diagnóstico no frontend.
+    return res.status(500).json({
+      message: 'Erro interno do servidor ao se comunicar com a IA.',
+      error: error?.message || String(error),
+      name: error?.name,
+      status: error?.status,
+    });
   }
 }
 

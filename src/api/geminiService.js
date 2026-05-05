@@ -32,14 +32,12 @@ export async function askGemini(question, knowledgeBase) {
     let detail = "";
     try {
       const err = await response.json();
-      detail = err?.message || "";
+      detail = err?.error || err?.message || "";
     } catch {
       /* ignore */
     }
     throw new Error(
-      `Falha ao consultar o assistente (HTTP ${response.status})${
-        detail ? `: ${detail}` : ""
-      }`
+      `HTTP ${response.status}${detail ? `: ${detail}` : ""}`
     );
   }
 

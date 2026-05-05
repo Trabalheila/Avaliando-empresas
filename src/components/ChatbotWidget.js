@@ -4,6 +4,41 @@ import styles from '../styles/ChatbotWidget.module.css';
 import { askGemini } from '../api/geminiService';
 import knowledgeBase from '../chatbotKnowledge.json';
 
+const STOP_WORDS = new Set([
+  'a','o','os','as','de','do','da','dos','das','um','uma','uns','umas',
+  'e','ou','que','qual','quais','para','por','com','sem','no','na','nos','nas',
+  'meu','minha','seus','suas','eu','voce','você','é','sao','são','ser','ter',
+  'como','onde','quando','quem','porque','por que','isso','essa','esse','isto'
+]);
+
+const normalize = (s) =>
+  (s || '')
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ');
+
+const tokenize = (s) =>
+  normalize(s)
+    .split(/\s+/)
+    .filter((w) => w && w.length > 2 && !STOP_WORDS.has(w));
+
+const findLocalAnswer = (question, kb) => {
+  if (!Array.isArray(kb) || !kb.length) return '';
+  const qTokens = tokenize(question);
+  if (!qTokens.length) return '';
+  let best = { score: 0, resposta: '' };
+  for (const item of kb) {
+    if (!item?.pergunta || !item?.resposta) continue;
+    const pTokens = new Set(tokenize(item.pergunta));
+    let score = 0;
+    for (const t of qTokens) if (pTokens.has(t)) score += 1;
+    if (score > best.score) best = { score, resposta: item.resposta };
+  }
+  return best.score >= 1 ? best.resposta : '';
+};
+
 const ChatbotWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -40,8 +75,18 @@ const ChatbotWidget = () => {
       );
     } catch (error) {
       console.error('Erro ao enviar mensagem para o chatbot:', error);
+
+      // Fallback local: tenta achar a melhor entrada da base de conhecimento
+      // por sobreposição de palavras (sem depender da API).
+      const fallback = findLocalAnswer(currentInput, knowledgeBase);
+      const fallbackText = fallback
+        ? `${fallback}\n\n(Resposta da base local — o assistente online está indisponível no momento.)`
+        : `Desculpe, o assistente online está indisponível no momento (${error.message}). Tente reformular a pergunta ou volte daqui a pouco.`;
+
       setMessages((prevMessages) =>
-        prevMessages.filter((msg) => !msg.isTyping).concat({ sender: 'bot', text: 'Desculpe, tive um problema ao processar sua solicitação.' })
+        prevMessages
+          .filter((msg) => !msg.isTyping)
+          .concat({ sender: 'bot', text: fallbackText })
       );
     }
   };
