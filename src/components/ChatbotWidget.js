@@ -319,18 +319,11 @@ const ChatbotWidget = () => {
 
   return (
     <>
-      {/* Avatar à ESQUERDA — espelhado para "olhar" para o conteúdo. */}
-      <DraggableAvatar
-        anchor="left"
-        flip
-        onActivate={handleToggleOpen}
-        ariaLabel="Abrir assistente do Trabalhei Lá (lado esquerdo — arraste para mover, pinça para redimensionar)"
-      />
-      {/* Avatar à DIREITA — orientação natural (já olha para o conteúdo). */}
+      {/* Avatar único, ancorado à DIREITA da página. */}
       <DraggableAvatar
         anchor="right"
         onActivate={handleToggleOpen}
-        ariaLabel="Abrir assistente do Trabalhei Lá (lado direito — arraste para mover, pinça para redimensionar)"
+        ariaLabel="Abrir assistente do Trabalhei Lá (arraste para mover, pinça para redimensionar)"
       />
 
       {isOpen && (
