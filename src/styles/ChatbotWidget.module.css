@@ -13,19 +13,27 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  cursor: pointer;
+  cursor: grab;
   border: none;
   padding: 0;
   z-index: 1000;
+  /* Bloqueia gestos nativos do toque (scroll, zoom) para permitir
+     drag-and-drop com Pointer Events em mobile. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
   /* Posicionado à esquerda — o avatar naturalmente "olha" para a página
      (centro/direita). Sem espelhamento, o texto permanece legível. */
   filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.38));
-  transition: transform 0.2s ease, filter 0.2s ease;
+  transition: filter 0.2s ease;
 }
 
 .chatbotToggle:hover {
-  transform: scale(1.04);
   filter: drop-shadow(0 12px 26px rgba(0, 0, 0, 0.48));
+}
+
+.chatbotToggle:active {
+  cursor: grabbing;
 }
 
 .avatar {

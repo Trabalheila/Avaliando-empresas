@@ -45,6 +45,124 @@ const ChatbotWidget = () => {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
 
+  // ── Drag-and-drop do avatar ──────────────────────────────────────────────
+  // Posição persistida em localStorage. Quando null, cai no CSS default
+  // (bottom-left). Inline-style sobrescreve com top/left absolutos.
+  const POS_KEY = 'chatbotAvatarPos.v1';
+  const [position, setPosition] = useState(() => {
+    try {
+      const raw = localStorage.getItem(POS_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+  const dragStateRef = useRef(null); // { startX, startY, baseLeft, baseTop, moved }
+  const toggleRef = useRef(null);
+  const DRAG_THRESHOLD = 5; // px — abaixo disso é considerado clique
+
+  const clampToViewport = (left, top, w, h) => {
+    const maxLeft = Math.max(0, window.innerWidth - w);
+    const maxTop = Math.max(0, window.innerHeight - h);
+    return {
+      left: Math.min(Math.max(0, left), maxLeft),
+      top: Math.min(Math.max(0, top), maxTop),
+    };
+  };
+
+  const handlePointerDown = (e) => {
+    if (!toggleRef.current) return;
+    // Apenas botão esquerdo do mouse / toque primário.
+    if (e.button !== undefined && e.button !== 0) return;
+
+    const rect = toggleRef.current.getBoundingClientRect();
+    dragStateRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      baseLeft: rect.left,
+      baseTop: rect.top,
+      width: rect.width,
+      height: rect.height,
+      moved: false,
+    };
+    try {
+      toggleRef.current.setPointerCapture?.(e.pointerId);
+    } catch { /* ignore */ }
+  };
+
+  const handlePointerMove = (e) => {
+    const st = dragStateRef.current;
+    if (!st) return;
+    const dx = e.clientX - st.startX;
+    const dy = e.clientY - st.startY;
+    if (!st.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+    st.moved = true;
+    const { left, top } = clampToViewport(
+      st.baseLeft + dx,
+      st.baseTop + dy,
+      st.width,
+      st.height
+    );
+    setPosition({ left, top });
+  };
+
+  const handlePointerUp = (e) => {
+    const st = dragStateRef.current;
+    if (!st) return;
+    try {
+      toggleRef.current?.releasePointerCapture?.(e.pointerId);
+    } catch { /* ignore */ }
+    if (st.moved) {
+      // Persiste a posição final.
+      try {
+        const rect = toggleRef.current.getBoundingClientRect();
+        const pos = { left: rect.left, top: rect.top };
+        localStorage.setItem(POS_KEY, JSON.stringify(pos));
+        setPosition(pos);
+      } catch { /* ignore */ }
+    }
+    // Se não houve movimento, deixa o onClick disparar normalmente.
+    dragStateRef.current = null;
+  };
+
+  const handleToggleClick = () => {
+    // Bloqueia o "click" sintético quando acabou de arrastar.
+    // dragStateRef já foi limpo no pointerup, mas guardamos uma marca rápida.
+    if (justDraggedRef.current) {
+      justDraggedRef.current = false;
+      return;
+    }
+    setIsOpen((v) => !v);
+  };
+  const justDraggedRef = useRef(false);
+
+  // Mantém a marca "acabei de arrastar" para o click subsequente ignorar.
+  const handlePointerUpWrapped = (e) => {
+    const moved = dragStateRef.current?.moved;
+    handlePointerUp(e);
+    if (moved) justDraggedRef.current = true;
+  };
+
+  // Reposiciona se a janela diminuir e o avatar ficar fora da viewport.
+  useEffect(() => {
+    const onResize = () => {
+      if (!position || !toggleRef.current) return;
+      const rect = toggleRef.current.getBoundingClientRect();
+      const next = clampToViewport(position.left, position.top, rect.width, rect.height);
+      if (next.left !== position.left || next.top !== position.top) {
+        setPosition(next);
+        try { localStorage.setItem(POS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      }
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [position]);
+
+  const toggleStyle = position
+    ? { left: position.left, top: position.top, right: 'auto', bottom: 'auto' }
+    : undefined;
+  // ─────────────────────────────────────────────────────────────────────────
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -99,8 +217,18 @@ const ChatbotWidget = () => {
 
   return (
     <>
-      <button className={styles.chatbotToggle} onClick={() => setIsOpen(!isOpen)}>
-        <img src="/chatbot-avatar.png" alt="Chatbot Avatar" className={styles.avatar} /> {/* Use o avatar que você criou */}
+      <button
+        ref={toggleRef}
+        className={styles.chatbotToggle}
+        style={toggleStyle}
+        onClick={handleToggleClick}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUpWrapped}
+        onPointerCancel={handlePointerUpWrapped}
+        aria-label="Abrir assistente do Trabalhei Lá (arraste para mover)"
+      >
+        <img src="/chatbot-avatar.png" alt="Chatbot Avatar" className={styles.avatar} draggable={false} />
       </button>
 
       {isOpen && (
