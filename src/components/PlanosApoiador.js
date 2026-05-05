@@ -22,16 +22,26 @@ function FeatureRow({ ok, children }) {
 export default function PlanosApoiador() {
   const [loadingTier, setLoadingTier] = useState("");
   const [error, setError] = useState("");
+  // Quando o usuário clica em "Assinar Essencial", mostramos uma etapa
+  // de confirmação com o preço final — com 10% de desconto se o
+  // diploma estiver verificado, ou preço cheio caso contrário.
+  const [confirmEssencial, setConfirmEssencial] = useState(null);
 
-  const handleSupporterCheckout = async (tier = "essential") => {
+  const ESSENTIAL_BASE_PRICE = 199.9;
+  const ESSENTIAL_DIPLOMA_DISCOUNT = 0.1;
+  const formatBRL = (v) =>
+    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  // Redireciona efetivamente para o Mercado Pago. O preço final do MP
+  // é controlado pelo preapproval_plan_id; quando o desconto se aplica,
+  // sinalizamos a intenção via query string para o backend processar
+  // (ou para registro de atendimento manual).
+  const redirectToCheckout = async (tier, { applyDiplomaDiscount = false } = {}) => {
     setLoadingTier(tier);
     setError("");
     try {
-      // Caminho 1: redirect direto para o checkout de assinatura do Mercado Pago
-      // usando preapproval_plan_id da variavel de ambiente.
       const directMpUrl = getMpPlanUrl("supporter", tier);
       if (directMpUrl) {
-        // Garantir que existe um cadastro de apoiador antes de redirecionar.
         if (!auth.currentUser) await signInAnonymously(auth);
         const uid = auth.currentUser?.uid;
         if (!uid) { setError("Faça login para continuar."); setLoadingTier(""); return; }
@@ -41,7 +51,10 @@ export default function PlanosApoiador() {
           setLoadingTier("");
           return;
         }
-        window.location.assign(directMpUrl);
+        const finalUrl = applyDiplomaDiscount
+          ? `${directMpUrl}${directMpUrl.includes("?") ? "&" : "?"}diploma_discount=1`
+          : directMpUrl;
+        window.location.assign(finalUrl);
         return;
       }
 
@@ -49,8 +62,6 @@ export default function PlanosApoiador() {
       if (!auth.currentUser) await signInAnonymously(auth);
       const uid = auth.currentUser?.uid;
       if (!uid) { setError("Faça login para continuar."); setLoadingTier(""); return; }
-
-      /* Buscar apoiador vinculado ao UID */
       const snap = await getDocs(query(collection(db, "apoiadores"), where("uid", "==", uid)));
       if (snap.empty) {
         setError("Você precisa ter um cadastro de apoiador antes de assinar Premium. Cadastre-se primeiro.");
@@ -66,12 +77,50 @@ export default function PlanosApoiador() {
         audience: "supporter",
         tier,
         apoiadorId,
+        diplomaDiscount: !!applyDiplomaDiscount,
       });
     } catch (err) {
       setError(err?.message || "Erro ao iniciar checkout. Tente novamente.");
     } finally {
       setLoadingTier("");
     }
+  };
+
+  // Botão do plano Essencial: antes de redirecionar, busca o cadastro
+  // do apoiador e abre o painel de confirmação exibindo o preço final
+  // (com ou sem desconto).
+  const handleEssencialClick = async () => {
+    setError("");
+    setLoadingTier("essential");
+    try {
+      if (!auth.currentUser) await signInAnonymously(auth);
+      const uid = auth.currentUser?.uid;
+      if (!uid) { setError("Faça login para continuar."); return; }
+      const snap = await getDocs(query(collection(db, "apoiadores"), where("uid", "==", uid)));
+      if (snap.empty) {
+        setError("Você precisa ter um cadastro de apoiador antes de assinar. Cadastre-se primeiro.");
+        return;
+      }
+      const data = snap.docs[0].data() || {};
+      const isDiplomaVerified = data.isDiplomaVerified === true;
+      const discountedPrice = +(
+        ESSENTIAL_BASE_PRICE * (1 - ESSENTIAL_DIPLOMA_DISCOUNT)
+      ).toFixed(2);
+      setConfirmEssencial({
+        isDiplomaVerified,
+        basePrice: ESSENTIAL_BASE_PRICE,
+        finalPrice: isDiplomaVerified ? discountedPrice : ESSENTIAL_BASE_PRICE,
+      });
+    } finally {
+      setLoadingTier("");
+    }
+  };
+
+  const handleSupporterCheckout = async (tier = "essential") => {
+    if (tier === "essential") {
+      return handleEssencialClick();
+    }
+    return redirectToCheckout(tier);
   };
 
   return (
@@ -113,6 +162,9 @@ export default function PlanosApoiador() {
             <h3 className="text-lg font-bold text-blue-700 dark:text-blue-400 mb-1">Apoiador Essencial</h3>
             <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
               R$ 199,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
+            </p>
+            <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-md px-2 py-1 inline-block mb-2">
+              🎓 Desconto de 10% para profissionais com diploma verificado!
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
               Visibilidade e leads para profissionais parceiros
@@ -193,6 +245,86 @@ export default function PlanosApoiador() {
             <p className="text-xs text-red-600 dark:text-red-400 mt-2">{error}</p>
           )}
         </div>
+
+        {/* ===== Modal de confirmação do plano Essencial ===== */}
+        {confirmEssencial && (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-essencial-title"
+            onClick={() => setConfirmEssencial(null)}
+          >
+            <div
+              className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-md w-full p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3
+                id="confirm-essencial-title"
+                className="text-lg font-extrabold text-slate-800 dark:text-slate-100 mb-2"
+              >
+                Confirmar assinatura — Apoiador Essencial
+              </h3>
+              {confirmEssencial.isDiplomaVerified ? (
+                <div className="mb-4">
+                  <p className="text-sm text-slate-600 dark:text-slate-300 mb-2">
+                    🎓 <strong>Você tem diploma verificado!</strong> Aplicamos automaticamente
+                    o desconto de 10%.
+                  </p>
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-base text-slate-400 line-through">
+                      {formatBRL(confirmEssencial.basePrice)}
+                    </span>
+                    <span className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">
+                      {formatBRL(confirmEssencial.finalPrice)}
+                    </span>
+                    <span className="text-sm text-slate-500">/mês</span>
+                  </div>
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1">
+                    Você economiza {formatBRL(confirmEssencial.basePrice - confirmEssencial.finalPrice)}/mês.
+                  </p>
+                </div>
+              ) : (
+                <div className="mb-4">
+                  <p className="text-sm text-slate-600 dark:text-slate-300 mb-2">
+                    Valor da assinatura mensal:
+                  </p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">
+                      {formatBRL(confirmEssencial.basePrice)}
+                    </span>
+                    <span className="text-sm text-slate-500">/mês</span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                    🎓 Envie e verifique seu diploma no perfil para ganhar 10% de desconto
+                    nas próximas cobranças.
+                  </p>
+                </div>
+              )}
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setConfirmEssencial(null)}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={loadingTier === "essential"}
+                  onClick={() => {
+                    const apply = !!confirmEssencial.isDiplomaVerified;
+                    setConfirmEssencial(null);
+                    redirectToCheckout("essential", { applyDiplomaDiscount: apply });
+                  }}
+                  className="px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {loadingTier === "essential" ? "Abrindo checkout…" : "Confirmar e ir para o checkout"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

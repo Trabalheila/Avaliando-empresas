@@ -217,6 +217,14 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
                     ✓ Profissional Verificado
                   </span>
                 )}
+                {isDiplomaVerified && (
+                  <span
+                    className="px-2.5 py-0.5 text-[11px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-full"
+                    title="Diploma verificado pela equipe — você é elegível a 10% de desconto no Plano Apoiador Essencial."
+                  >
+                    🎉 Elegível a 10% de desconto no Plano Apoiador Essencial
+                  </span>
+                )}
               </div>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                 {TIPO_LABELS[apoiador.tipo] || apoiador.tipo}
