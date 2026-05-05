@@ -45,10 +45,14 @@ const ChatbotWidget = () => {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
 
-  // ── Drag-and-drop do avatar ──────────────────────────────────────────────
-  // Posição persistida em localStorage. Quando null, cai no CSS default
-  // (bottom-left). Inline-style sobrescreve com top/left absolutos.
+  // ── Drag-and-drop + Pinch-to-resize do avatar ───────────────────────────
+  // Posição e tamanho persistidos em localStorage. Quando null, cai no CSS
+  // default (bottom-left, 275px). Inline-style sobrescreve.
   const POS_KEY = 'chatbotAvatarPos.v1';
+  const SIZE_KEY = 'chatbotAvatarSize.v1';
+  const MIN_SIZE = 56;   // px — ainda clicável
+  const MAX_SIZE = 480;  // px — não tomar a tela toda
+
   const [position, setPosition] = useState(() => {
     try {
       const raw = localStorage.getItem(POS_KEY);
@@ -57,8 +61,21 @@ const ChatbotWidget = () => {
       return null;
     }
   });
+  const [size, setSize] = useState(() => {
+    try {
+      const raw = localStorage.getItem(SIZE_KEY);
+      const n = raw ? parseFloat(raw) : NaN;
+      return Number.isFinite(n) ? Math.min(MAX_SIZE, Math.max(MIN_SIZE, n)) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const dragStateRef = useRef(null); // { startX, startY, baseLeft, baseTop, moved }
+  const pinchStateRef = useRef(null); // { baseDist, baseSize, centerX, centerY }
+  const pointersRef = useRef(new Map()); // pointerId -> { x, y }
   const toggleRef = useRef(null);
+  const justDraggedRef = useRef(false);
   const DRAG_THRESHOLD = 5; // px — abaixo disso é considerado clique
 
   const clampToViewport = (left, top, w, h) => {
@@ -70,27 +87,78 @@ const ChatbotWidget = () => {
     };
   };
 
+  const getDistance = () => {
+    const pts = Array.from(pointersRef.current.values());
+    if (pts.length < 2) return 0;
+    const [a, b] = pts;
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  };
+
+  const persistPosition = (pos) => {
+    try { localStorage.setItem(POS_KEY, JSON.stringify(pos)); } catch { /* ignore */ }
+  };
+  const persistSize = (s) => {
+    try { localStorage.setItem(SIZE_KEY, String(s)); } catch { /* ignore */ }
+  };
+
   const handlePointerDown = (e) => {
     if (!toggleRef.current) return;
-    // Apenas botão esquerdo do mouse / toque primário.
-    if (e.button !== undefined && e.button !== 0) return;
+    if (e.button !== undefined && e.button !== 0 && e.pointerType === 'mouse') return;
 
-    const rect = toggleRef.current.getBoundingClientRect();
-    dragStateRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      baseLeft: rect.left,
-      baseTop: rect.top,
-      width: rect.width,
-      height: rect.height,
-      moved: false,
-    };
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     try {
       toggleRef.current.setPointerCapture?.(e.pointerId);
     } catch { /* ignore */ }
+
+    if (pointersRef.current.size === 1) {
+      // Inicia possível drag.
+      const rect = toggleRef.current.getBoundingClientRect();
+      dragStateRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        baseLeft: rect.left,
+        baseTop: rect.top,
+        width: rect.width,
+        height: rect.height,
+        moved: false,
+      };
+    } else if (pointersRef.current.size === 2) {
+      // Entrou no modo pinch — cancela drag em andamento.
+      dragStateRef.current = null;
+      const rect = toggleRef.current.getBoundingClientRect();
+      pinchStateRef.current = {
+        baseDist: getDistance() || 1,
+        baseSize: rect.width,
+        baseLeft: rect.left,
+        baseTop: rect.top,
+      };
+      justDraggedRef.current = true; // evita "click" ao soltar
+    }
   };
 
   const handlePointerMove = (e) => {
+    if (!pointersRef.current.has(e.pointerId)) return;
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    // Pinch tem prioridade.
+    if (pointersRef.current.size >= 2 && pinchStateRef.current) {
+      const dist = getDistance();
+      if (!dist) return;
+      const ratio = dist / pinchStateRef.current.baseDist;
+      const next = Math.min(
+        MAX_SIZE,
+        Math.max(MIN_SIZE, pinchStateRef.current.baseSize * ratio)
+      );
+      setSize(next);
+      // Mantém o avatar dentro da viewport ao crescer.
+      const baseLeft = pinchStateRef.current.baseLeft;
+      const baseTop = pinchStateRef.current.baseTop;
+      const { left, top } = clampToViewport(baseLeft, baseTop, next, next);
+      setPosition({ left, top });
+      return;
+    }
+
+    // Drag (1 dedo / mouse).
     const st = dragStateRef.current;
     if (!st) return;
     const dx = e.clientX - st.startX;
@@ -107,40 +175,63 @@ const ChatbotWidget = () => {
   };
 
   const handlePointerUp = (e) => {
-    const st = dragStateRef.current;
-    if (!st) return;
+    pointersRef.current.delete(e.pointerId);
     try {
       toggleRef.current?.releasePointerCapture?.(e.pointerId);
     } catch { /* ignore */ }
-    if (st.moved) {
-      // Persiste a posição final.
-      try {
+
+    // Sai do modo pinch quando restar < 2 dedos.
+    if (pointersRef.current.size < 2 && pinchStateRef.current) {
+      const rect = toggleRef.current?.getBoundingClientRect();
+      if (rect) {
+        persistSize(rect.width);
+        persistPosition({ left: rect.left, top: rect.top });
+      }
+      pinchStateRef.current = null;
+      // Não permite que o gesto continue como drag.
+      dragStateRef.current = null;
+      justDraggedRef.current = true;
+      return;
+    }
+
+    // Encerra drag.
+    const st = dragStateRef.current;
+    if (st) {
+      if (st.moved) {
         const rect = toggleRef.current.getBoundingClientRect();
         const pos = { left: rect.left, top: rect.top };
-        localStorage.setItem(POS_KEY, JSON.stringify(pos));
+        persistPosition(pos);
         setPosition(pos);
-      } catch { /* ignore */ }
+        justDraggedRef.current = true;
+      }
+      dragStateRef.current = null;
     }
-    // Se não houve movimento, deixa o onClick disparar normalmente.
-    dragStateRef.current = null;
   };
 
   const handleToggleClick = () => {
-    // Bloqueia o "click" sintético quando acabou de arrastar.
-    // dragStateRef já foi limpo no pointerup, mas guardamos uma marca rápida.
     if (justDraggedRef.current) {
       justDraggedRef.current = false;
       return;
     }
     setIsOpen((v) => !v);
   };
-  const justDraggedRef = useRef(false);
 
-  // Mantém a marca "acabei de arrastar" para o click subsequente ignorar.
-  const handlePointerUpWrapped = (e) => {
-    const moved = dragStateRef.current?.moved;
-    handlePointerUp(e);
-    if (moved) justDraggedRef.current = true;
+  // Desktop bonus: Ctrl/⌘ + scroll sobre o avatar redimensiona.
+  const handleWheel = (e) => {
+    if (!(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    const rect = toggleRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const delta = -e.deltaY; // scroll up = aumenta
+    const next = Math.min(
+      MAX_SIZE,
+      Math.max(MIN_SIZE, rect.width + delta * 0.5)
+    );
+    setSize(next);
+    persistSize(next);
+    const { left, top } = clampToViewport(rect.left, rect.top, next, next);
+    setPosition({ left, top });
+    persistPosition({ left, top });
   };
 
   // Reposiciona se a janela diminuir e o avatar ficar fora da viewport.
@@ -151,16 +242,17 @@ const ChatbotWidget = () => {
       const next = clampToViewport(position.left, position.top, rect.width, rect.height);
       if (next.left !== position.left || next.top !== position.top) {
         setPosition(next);
-        try { localStorage.setItem(POS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+        persistPosition(next);
       }
     };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, [position]);
 
-  const toggleStyle = position
-    ? { left: position.left, top: position.top, right: 'auto', bottom: 'auto' }
-    : undefined;
+  const toggleStyle = {
+    ...(position ? { left: position.left, top: position.top, right: 'auto', bottom: 'auto' } : null),
+    ...(size ? { width: size, height: size, maxWidth: 'none', maxHeight: 'none' } : null),
+  };
   // ─────────────────────────────────────────────────────────────────────────
 
   const scrollToBottom = () => {
@@ -224,9 +316,10 @@ const ChatbotWidget = () => {
         onClick={handleToggleClick}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUpWrapped}
-        onPointerCancel={handlePointerUpWrapped}
-        aria-label="Abrir assistente do Trabalhei Lá (arraste para mover)"
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onWheel={handleWheel}
+        aria-label="Abrir assistente do Trabalhei Lá (arraste para mover, pinça para redimensionar)"
       >
         <img src="/chatbot-avatar.png" alt="Chatbot Avatar" className={styles.avatar} draggable={false} />
       </button>
