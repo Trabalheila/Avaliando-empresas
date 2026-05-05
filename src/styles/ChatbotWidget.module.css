@@ -22,10 +22,16 @@
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
-  /* Posicionado à esquerda — o avatar naturalmente "olha" para a página
-     (centro/direita). Sem espelhamento, o texto permanece legível. */
   filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.38));
   transition: filter 0.2s ease;
+}
+
+/* Âncora alternativa: instancia posicionada no canto inferior direito.
+   Mantém todas as características (mobilidade, escala) — muda apenas o
+   ponto de partida quando ainda não há posição salva. */
+.chatbotToggleRight {
+  left: auto;
+  right: 20px;
 }
 
 .chatbotToggle:hover {
@@ -42,10 +48,12 @@
   border-radius: 50%;
   object-fit: contain;
   background: transparent;
-  /* Espelha horizontalmente o avatar para que ele "olhe" para o
-     conteúdo da página (canto inferior esquerdo → vira a direita).
-     Aplicado APENAS na imagem; o balão de texto não é afetado, então
-     as mensagens permanecem legíveis. */
+}
+
+/* Flip horizontal opt-in: aplicado apenas à instância da esquerda, para que
+   o avatar "olhe" para o conteúdo da página. O balão de mensagens fica
+   fora do botão, então o texto nunca é espelhado. */
+.avatarFlipped {
   transform: scaleX(-1);
 }
 
@@ -197,6 +205,10 @@
     max-height: 60vw;
     bottom: 12px;
     left: 12px;
+  }
+  .chatbotToggleRight {
+    left: auto;
+    right: 12px;
   }
   .chatbotWindow {
     bottom: 16px;
