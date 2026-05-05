@@ -175,9 +175,10 @@ Resposta:`;
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Modelo público estável da Gemini API. Pode ser sobrescrito por env
-    // (ex.: GEMINI_MODEL=gemini-2.5-flash) sem novo deploy.
-    const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+    // Modelo público estável da Gemini API com free tier amplo.
+    // Pode ser sobrescrito por env (ex.: GEMINI_MODEL=gemini-2.0-flash)
+    // sem novo deploy se o projeto tiver quota paga habilitada.
+    const modelName = process.env.GEMINI_MODEL || "gemini-1.5-flash";
     const model = genAI.getGenerativeModel({ model: modelName });
 
     const result = await model.generateContent({
@@ -189,9 +190,15 @@ Resposta:`;
     return res.status(200).json({ response: responseText });
   } catch (error) {
     console.error("Erro ao chamar a API do Gemini:", error);
-    return res.status(500).json({
-      message: "Erro interno do servidor ao se comunicar com a IA.",
-      error: error?.message || String(error),
+    // Detecta erro de quota (HTTP 429) para que o frontend possa exibir
+    // mensagem amigável sem despejar o JSON cru da Google.
+    const raw = (error?.message || String(error)).toString();
+    const isQuota = /\b429\b|quota|rate.?limit/i.test(raw);
+    return res.status(isQuota ? 429 : 500).json({
+      message: isQuota
+        ? "Cota da IA excedida no momento. Tente novamente em instantes."
+        : "Erro interno do servidor ao se comunicar com a IA.",
+      error: isQuota ? "quota_exceeded" : raw,
       name: error?.name,
       status: error?.status,
     });

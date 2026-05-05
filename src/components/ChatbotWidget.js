@@ -299,9 +299,15 @@ const ChatbotWidget = () => {
       // Fallback local: tenta achar a melhor entrada da base de conhecimento
       // por sobreposição de palavras (sem depender da API).
       const fallback = findLocalAnswer(currentInput, knowledgeBase);
+      const isQuota = /\b429\b|quota|rate.?limit/i.test(error?.message || '');
+      const offlineNote = isQuota
+        ? '(O assistente atingiu o limite de uso por agora — resposta da base local.)'
+        : '(Resposta da base local — o assistente online está indisponível no momento.)';
       const fallbackText = fallback
-        ? `${fallback}\n\n(Resposta da base local — o assistente online está indisponível no momento.)`
-        : `Desculpe, o assistente online está indisponível no momento (${error.message}). Tente reformular a pergunta ou volte daqui a pouco.`;
+        ? `${fallback}\n\n${offlineNote}`
+        : isQuota
+          ? 'O assistente atingiu o limite de uso no momento. Tente novamente em alguns instantes ou reformule a pergunta.'
+          : 'Desculpe, o assistente está indisponível no momento. Tente novamente em instantes.';
 
       setMessages((prevMessages) =>
         prevMessages
