@@ -160,3 +160,5 @@ dist
 *.key
 secrets/
 .secrets/
+.vercel
+.env*.local

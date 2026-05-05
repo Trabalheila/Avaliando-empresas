@@ -167,7 +167,7 @@ Pergunta do usuário: ${userQuestion}`;
     // Modelo público estável da Gemini API com free tier amplo.
     // Pode ser sobrescrito por env (ex.: GEMINI_MODEL=gemini-2.0-flash)
     // sem novo deploy se o projeto tiver quota paga habilitada.
-    const modelName = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+    const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
     const model = genAI.getGenerativeModel({ model: modelName });
 
     const result = await model.generateContent({
