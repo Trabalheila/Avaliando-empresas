@@ -92,26 +92,64 @@ autorizado, mas nenhum sistema é 100% seguro.
 6. Alterações: a política pode mudar; alterações relevantes são notificadas.
 7. Exclusão: o usuário pode solicitar exclusão pela página /excluir-dados.
 
-== TABELA DE PLANOS (oficial, página /purpose) ==
-- Plano Gratuito (Trabalhador): avaliar empresas, publicar comentários sob
-  pseudônimo, ver avaliações públicas, criar perfil com pseudônimo e avatar,
-  importar experiências via LinkedIn ou currículo. Bloqueado: comparação,
+== TABELA DE PLANOS (oficial — página /escolha-perfil) ==
+
+PLANOS PARA TRABALHADOR:
+- Gratuito: avaliar empresas, publicar comentários sob pseudônimo, ver
+  avaliações públicas, criar perfil com pseudônimo e avatar, importar
+  experiências via LinkedIn ou currículo. Bloqueado: comparação,
   relatórios executivos, assessoria jurídica, dashboard, tendências.
-- Premium Trabalhador — R$ 29,90/mês: tudo do Gratuito + comparação de empresas,
-  avaliações reais com tendências, relatórios executivos, dashboard detalhado,
-  resumo de trechos sensíveis em avaliações restritas, Assessoria Jurídica
-  Trabalhista (advogados parceiros, primeira consulta gratuita), selo de perfil
-  verificado.
-- Premium Empresa — R$ 1.499,90/mês: comparar com concorrentes em tempo real,
-  identificar tendências e riscos do setor, relatórios executivos, dashboard
-  dinâmico, marketplace de consultores de RH (20% de desconto), marketplace de
-  prestadores corporativos (15% de desconto), benchmarks exclusivos, reputação
-  de mercado, direito de resposta pública às avaliações.
-- Apoiador Premium — a partir de R$ 199,90/mês (varia por nicho e destaque):
-  até 3 nichos, descrição estendida (até 600 caracteres), portfólio com até 5
-  casos, documentos e certificações visíveis, destaque nas páginas, recebimento
-  de avaliações com estrelas, selo "Apoiador Premium Verificado", posicionamento
-  prioritário e relatório mensal de visualizações e cliques.
+- Premium Trabalhador — R$ 29,90/mês: tudo do Gratuito + comparação de
+  empresas, avaliações reais com tendências, relatórios executivos, dashboard
+  detalhado, resumo de trechos sensíveis em avaliações restritas, Assessoria
+  Jurídica Trabalhista (advogados parceiros, primeira consulta gratuita) e
+  selo de perfil verificado.
+
+PLANOS PARA EMPRESA (gratuidade promocional vai até 31/07/2026):
+- Gratuito (R$ 0): ver nota geral da empresa e acompanhar avaliações
+  públicas. Não tem painel completo, relatório de reputação, ferramenta
+  de resposta nem créditos de contato.
+- Plano Fundador: GRATUITO até 31/07/2026 e DEPOIS R$ 1.499,90/mês.
+  Quem entra como Fundador mantém esse preço para sempre, mesmo após o
+  lançamento de novos recursos. Inclui:
+    • Painel completo de avaliações por critério (salário, cultura,
+      liderança, benefícios e mais).
+    • Relatório de reputação da empresa com visão geral por área.
+    • Ferramenta de resposta pública identificada como “Resposta oficial
+      da empresa”.
+    • Acesso prioritário aos próximos recursos (comparação com
+      concorrentes, benchmarks de setor).
+    • 5 Créditos de Contato/mês para iniciar conversas com Apoiadores
+      Premium.
+    • Acesso à página “Meus Contatos” para gerenciar interações com
+      Apoiadores.
+- Empresa Premium: GRATUITO até 31/07/2026 e DEPOIS R$ 3.499,90/ano.
+  É o Plano Fundador em versão avançada — inclui:
+    • Painel por critério com filtros, séries históricas e exportação.
+    • Relatórios de reputação avançados e comparativos (período, setor,
+      concorrentes).
+    • Ferramenta de resposta com análise de sentimento e sugestões de IA.
+    • Acesso antecipado a todos os recursos em desenvolvimento, sem custo
+      adicional.
+    • 20 Créditos de Contato/mês com Apoiadores Premium.
+    • 10 Créditos de Contato/mês com Trabalhadores Premium (Conexão
+      Exclusiva com Talentos de alto Índice de Credibilidade).
+    • Gerenciamento Centralizado de Contatos (Apoiadores + Trabalhadores).
+    • Comparação em tempo real com concorrentes diretos do setor.
+    • Identificação automática de tendências e riscos do mercado.
+    • Relatórios executivos com oportunidades, ameaças e recomendações.
+    • Dashboard dinâmico para análise de desempenho e contratos.
+    • Benchmarks exclusivos e índice de reputação de mercado.
+
+PLANOS PARA APOIADOR:
+- Apoiador Premium — a partir de R$ 199,90/mês (varia por nicho e nível
+  de destaque): até 3 nichos, descrição estendida (até 600 caracteres),
+  portfólio com até 5 casos, documentos e certificações visíveis, destaque
+  nas páginas, recebimento de avaliações com estrelas, selo "Apoiador
+  Premium Verificado", posicionamento prioritário e relatório mensal de
+  visualizações e cliques.
+
+PAGAMENTO: Mercado Pago — PIX, cartão ou boleto no checkout.
   `.trim();
 
   // Prompt único conforme especificação do produto + conteúdo oficial.
