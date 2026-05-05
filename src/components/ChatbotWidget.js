@@ -26,8 +26,22 @@ const tokenize = (s) =>
 
 const findLocalAnswer = (question, kb) => {
   if (!Array.isArray(kb) || !kb.length) return '';
+  const normalized = normalize(question).trim();
+
+  // Saudações e mensagens curtas: respondem com uma apresentação fixa,
+  // independentemente da base de conhecimento.
+  const GREETINGS = [
+    'oi', 'ola', 'olá', 'eai', 'e ai', 'bom dia', 'boa tarde', 'boa noite',
+    'como vai', 'tudo bem', 'tudo bom', 'hey', 'hello', 'hi'
+  ].map((s) => normalize(s));
+  if (GREETINGS.some((g) => normalized === g || normalized.startsWith(g + ' '))) {
+    return 'Olá! Sou o assistente do Trabalhei Lá. Posso ajudar com dúvidas sobre planos, avaliações, cadastro, privacidade e muito mais. O que você gostaria de saber?';
+  }
+
   const qTokens = tokenize(question);
-  if (!qTokens.length) return '';
+  if (!qTokens.length) {
+    return 'Pode reformular sua pergunta? Posso ajudar com planos (Trabalhador, Empresa, Apoiador), avaliações, cadastro, privacidade, pagamentos, entre outros assuntos do Trabalhei Lá.';
+  }
   let best = { score: 0, resposta: '' };
   for (const item of kb) {
     if (!item?.pergunta || !item?.resposta) continue;

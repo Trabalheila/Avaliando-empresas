@@ -152,26 +152,15 @@ PLANOS PARA APOIADOR:
 PAGAMENTO: Mercado Pago — PIX, cartão ou boleto no checkout.
   `.trim();
 
-  // Prompt único conforme especificação do produto + conteúdo oficial.
-  const prompt = `Você é o assistente oficial do site Trabalhei Lá. Sua única fonte de verdade são as "Informações do site" abaixo (FAQ + conteúdo oficial).
+  // Prompt original conforme especificação do produto.
+  const prompt = `Você é um assistente do site Trabalhei Lá. Responda à seguinte pergunta do usuário usando apenas as informações fornecidas sobre o site. Se a pergunta não puder ser respondida com as informações fornecidas, diga que não tem essa informação.
 
-Regras OBRIGATÓRIAS:
-- Responda em português do Brasil, em tom cordial, claro e direto.
-- Use de 1 a 4 frases curtas. Use bullets só quando ajudar a clareza.
-- NÃO invente preços, datas, nomes, recursos, URLs ou políticas. Se a informação não estiver abaixo, diga textualmente: "Não tenho essa informação aqui. Você pode usar o formulário de contato no rodapé do site."
-- NÃO reescreva a pergunta antes de responder; vá direto à resposta.
-- Se houver mais de uma informação relevante, cite apenas a que melhor responde à pergunta.
-- Mantenha valores monetários e datas exatamente como aparecem na base (ex.: "R$ 29,90/mês", "31/07/2026").
-
-== Informações do site (Base de Conhecimento, perguntas frequentes) ==
+Informações do site:
 ${kbText}
 
-== Informações do site (Conteúdo oficial: Termos, Privacidade e Tabela de Planos) ==
 ${siteContent}
 
-Pergunta do usuário: ${userQuestion}
-
-Resposta:`;
+Pergunta do usuário: ${userQuestion}`;
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
