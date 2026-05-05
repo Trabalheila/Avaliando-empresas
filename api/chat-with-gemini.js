@@ -147,10 +147,9 @@ ${kbText || '(nenhuma fornecida)'}
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    // gemini-pro foi descontinuado na API v1; usamos gemini-1.5-flash
-    // (rápido, gratuito no nível básico e disponível na chave padrão).
-    // Permite override via GEMINI_MODEL.
-    const modelName = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+    // Modelo padrão: gemini-pro (amplamente suportado em generateContent v1beta).
+    // Permite override via env GEMINI_MODEL (ex.: gemini-1.5-flash).
+    const modelName = process.env.GEMINI_MODEL || 'gemini-pro';
     const model = genAI.getGenerativeModel({
       model: modelName,
       systemInstruction,
