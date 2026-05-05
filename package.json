@@ -32,11 +32,15 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "autoprefixer": "^10.4.16",
+    "concurrently": "^9.2.1",
+    "express": "^5.2.1",
     "postcss": "^8.4.31",
     "react-scripts": "5.0.1",
     "tailwindcss": "^3.3.5",
+    "tsx": "^4.21.0",
     "typescript": "^4.9.5"
   },
+  "proxy": "http://localhost:3001",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
@@ -46,7 +50,9 @@
     "cap:open:android": "npx cap open android",
     "cap:run:android": "npx cap run android",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "dev:api": "tsx dev-server.mjs",
+    "dev": "concurrently -n CRA,API -c blue,green \"npm:start\" \"npm:dev:api\""
   },
   "eslintConfig": {
     "extends": [
