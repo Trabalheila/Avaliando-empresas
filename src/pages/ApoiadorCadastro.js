@@ -232,10 +232,8 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
         return;
       }
     }
-    if (!credentialProof) {
-      setError("Anexe o comprovante de credencial (PDF, JPG ou PNG).");
-      return;
-    }
+    // Diploma é opcional. Não bloqueia o submit se não enviado — perfis sem
+    // diploma só não ganham o selo aprimorado "Verificado com Diploma".
 
     if (!allTermosAceitos) { setError("Aceite todos os termos obrigatórios."); return; }
     if (!conflictDeclarationAccepted) {
@@ -288,9 +286,19 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
           stateOrRegion: REGULATED_PROFESSIONS.has(tipo) ? credentialStateOrRegion.trim() : "",
           portfolioUrl: !REGULATED_PROFESSIONS.has(tipo) ? credentialPortfolioUrl.trim() : "",
           certifications: !REGULATED_PROFESSIONS.has(tipo) ? credentialCertifications.trim() : "",
-          proof: credentialProof, // { name, size, type, url(base64) }
+          proof: credentialProof, // { name, size, type, url(base64) } | null
         },
         verificationStatus: "pending",
+        // Flags atualizadas pela equipe de análise:
+        //  - isCouncilVerified: true após checagem do número do conselho
+        //    (OAB/CRM/CRP/CRC/CREA/CREFITO). Necessário para ativar o perfil
+        //    e exibir o selo "Profissional Verificado".
+        //  - isDiplomaVerified: true se o diploma foi enviado e aprovado.
+        //    Quando combinado com isCouncilVerified, gera o selo aprimorado
+        //    "Profissional Verificado com Diploma".
+        isCouncilVerified: false,
+        isDiplomaVerified: false,
+        hasDiplomaUploaded: !!credentialProof,
         hasAgreedConflictDeclaration: true,
         conflictDeclarationAgreedAt: serverTimestamp(),
       };
@@ -620,14 +628,14 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                   </div>
                 )}
 
-                {/* Comprovante (obrigatório para todas as profissões) */}
+                {/* Diploma (OPCIONAL). Registro no conselho continua
+                    obrigatório para profissões regulamentadas. */}
                 <div className="mt-4">
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
-                    Comprovante de credencial *
+                    Diploma <span className="text-xs font-normal text-slate-500">(opcional)</span>
                   </label>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                    Foto da carteira (OAB/CRM/CRP/CRC/CREA/CREFITO), certificado de formação ou outro
-                    documento que comprove sua qualificação. PDF, JPG ou PNG (máx. 5 MB).
+                    PDF, JPG ou PNG (máx. 5 MB).
                   </p>
                   <input
                     type="file"
@@ -650,6 +658,15 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                       </button>
                     </div>
                   )}
+                  <div className="mt-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                    <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed">
+                      O upload do seu diploma é <strong>opcional</strong>, mas perfis com
+                      diploma verificado recebem um selo de <strong>“Profissional Verificado
+                      com Diploma”</strong>, aumentando a confiança dos clientes e a visibilidade
+                      na plataforma. A verificação do seu registro no órgão de classe
+                      (OAB, CRM, etc.) é <strong>obrigatória</strong> para a ativação do perfil.
+                    </p>
+                  </div>
                 </div>
               </div>
 

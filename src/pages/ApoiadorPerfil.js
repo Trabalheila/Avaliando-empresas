@@ -167,7 +167,17 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
   }
 
   const isPremium = apoiador.plano === "premium";
-  const isVerified = apoiador.verificationStatus === "verified";
+  // Selo de profissional verificado:
+  //  - Selo aprimorado: registro no conselho aprovado E diploma aprovado.
+  //  - Selo base: apenas o registro no conselho aprovado
+  //    (ou legacy verificationStatus === "verified").
+  //  - Sem selo: registro não aprovado (perfil não ativo).
+  const isCouncilVerified =
+    apoiador.isCouncilVerified === true ||
+    apoiador.verificationStatus === "verified";
+  const isDiplomaVerified = apoiador.isDiplomaVerified === true;
+  const isVerifiedWithDiploma = isCouncilVerified && isDiplomaVerified;
+  const isVerified = isCouncilVerified;
   const nichos = apoiador.nichos || apoiador.areas || apoiador.segmentos || [];
 
   return (
@@ -191,9 +201,20 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
                     ✓ Apoiador Premium Verificado
                   </span>
                 )}
-                {isVerified && !isPremium && (
-                  <span className="px-2.5 py-0.5 text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 rounded-full">
-                    ✓ Apoiador Verificado
+                {isVerifiedWithDiploma && !isPremium && (
+                  <span
+                    className="px-2.5 py-0.5 text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 rounded-full"
+                    title="Registro no conselho de classe e diploma verificados pela equipe."
+                  >
+                    🎓 Profissional Verificado com Diploma
+                  </span>
+                )}
+                {isVerified && !isVerifiedWithDiploma && !isPremium && (
+                  <span
+                    className="px-2.5 py-0.5 text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 rounded-full"
+                    title="Registro no conselho de classe verificado pela equipe."
+                  >
+                    ✓ Profissional Verificado
                   </span>
                 )}
               </div>
