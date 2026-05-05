@@ -20,10 +20,13 @@ function Apoiadores({ theme, toggleTheme }) {
           Planos para Apoiadores a de Trabalhadores e Empresas
         </h1>
         <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-base">
-          Advogados trabalhistas, Psicólogos, Consultores Empresariais, dentre outros.
-          podem criar um perfil verificado, receber leads qualificados e ampliar sua atuação dentro
-          do ecossistema de trabalho remoto. Escolha o plano que se encaixa no seu perfil e comece a ser encontrado por quem precisa dos seus serviços.
-          (Não há intermediação financeira entre as partes — o pagamento é feito diretamente entre cliente e apoiador, sem taxas adicionais da plataforma.)
+          Profissionais como <strong>Advogados Trabalhistas, Psicólogos, Consultores Empresariais e outros especialistas</strong>:
+          crie seu perfil verificado no Trabalhei Lá para receber leads qualificados e expandir sua atuação.
+          Nossa plataforma atua como um ponto de conexão eficiente, unindo quem oferece serviços a quem precisa deles.
+        </p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-2xl mx-auto mt-3">
+          Não há qualquer intermediação financeira ou negociação por parte do Trabalhei Lá.
+          O pagamento é feito diretamente entre o cliente e o profissional, sem taxas adicionais da plataforma.
         </p>
 
         {/* CTA principal: cadastro do perfil */}
