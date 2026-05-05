@@ -4,55 +4,6 @@ import styles from '../styles/ChatbotWidget.module.css';
 import { askGemini } from '../api/geminiService';
 import knowledgeBase from '../chatbotKnowledge.json';
 
-const STOP_WORDS = new Set([
-  'a','o','os','as','de','do','da','dos','das','um','uma','uns','umas',
-  'e','ou','que','qual','quais','para','por','com','sem','no','na','nos','nas',
-  'meu','minha','seus','suas','eu','voce','você','é','sao','são','ser','ter',
-  'como','onde','quando','quem','porque','por que','isso','essa','esse','isto'
-]);
-
-const normalize = (s) =>
-  (s || '')
-    .toString()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s]/g, ' ');
-
-const tokenize = (s) =>
-  normalize(s)
-    .split(/\s+/)
-    .filter((w) => w && w.length > 2 && !STOP_WORDS.has(w));
-
-const findLocalAnswer = (question, kb) => {
-  if (!Array.isArray(kb) || !kb.length) return '';
-  const normalized = normalize(question).trim();
-
-  // Saudações e mensagens curtas: respondem com uma apresentação fixa,
-  // independentemente da base de conhecimento.
-  const GREETINGS = [
-    'oi', 'ola', 'olá', 'eai', 'e ai', 'bom dia', 'boa tarde', 'boa noite',
-    'como vai', 'tudo bem', 'tudo bom', 'hey', 'hello', 'hi'
-  ].map((s) => normalize(s));
-  if (GREETINGS.some((g) => normalized === g || normalized.startsWith(g + ' '))) {
-    return 'Olá! Sou o assistente do Trabalhei Lá. Posso ajudar com dúvidas sobre planos, avaliações, cadastro, privacidade e muito mais. O que você gostaria de saber?';
-  }
-
-  const qTokens = tokenize(question);
-  if (!qTokens.length) {
-    return 'Pode reformular sua pergunta? Posso ajudar com planos (Trabalhador, Empresa, Apoiador), avaliações, cadastro, privacidade, pagamentos, entre outros assuntos do Trabalhei Lá.';
-  }
-  let best = { score: 0, resposta: '' };
-  for (const item of kb) {
-    if (!item?.pergunta || !item?.resposta) continue;
-    const pTokens = new Set(tokenize(item.pergunta));
-    let score = 0;
-    for (const t of qTokens) if (pTokens.has(t)) score += 1;
-    if (score > best.score) best = { score, resposta: item.resposta };
-  }
-  return best.score >= 1 ? best.resposta : '';
-};
-
 /**
  * Subcomponente: avatar arrastável e redimensionável (pinça/Ctrl+scroll).
  * Cada instância persiste a própria posição/tamanho em localStorage usando
@@ -299,9 +250,12 @@ const ChatbotWidget = () => {
 
     try {
       const responseText = await askGemini(currentInput, knowledgeBase);
+      // Qualquer resposta não-vazia do Gemini é considerada válida e
+      // exibida diretamente ao usuário, sem qualquer aviso adicional.
+      const text = (responseText || '').trim();
       const botMessage = {
         sender: 'bot',
-        text: responseText || 'Desculpe, não consegui formular uma resposta.',
+        text: text || 'Desculpe, não consegui processar sua pergunta no momento. Tente novamente mais tarde.',
       };
 
       setMessages((prevMessages) =>
@@ -309,24 +263,15 @@ const ChatbotWidget = () => {
       );
     } catch (error) {
       console.error('Erro ao enviar mensagem para o chatbot:', error);
-
-      // Fallback local: tenta achar a melhor entrada da base de conhecimento
-      // por sobreposição de palavras (sem depender da API).
-      const fallback = findLocalAnswer(currentInput, knowledgeBase);
-      const isQuota = /\b429\b|quota|rate.?limit/i.test(error?.message || '');
-      const offlineNote = isQuota
-        ? '(O assistente atingiu o limite de uso por agora — resposta da base local.)'
-        : '(Resposta da base local — o assistente online está indisponível no momento.)';
-      const fallbackText = fallback
-        ? `${fallback}\n\n${offlineNote}`
-        : isQuota
-          ? 'O assistente atingiu o limite de uso no momento. Tente novamente em alguns instantes ou reformule a pergunta.'
-          : 'Desculpe, o assistente está indisponível no momento. Tente novamente em instantes.';
-
+      // Falha real do Gemini (rede, chave, 5xx, quota): mensagem genérica
+      // e amigável, sem mencionar "base local" ou "assistente indisponível".
       setMessages((prevMessages) =>
         prevMessages
           .filter((msg) => !msg.isTyping)
-          .concat({ sender: 'bot', text: fallbackText })
+          .concat({
+            sender: 'bot',
+            text: 'Desculpe, não consegui processar sua pergunta no momento. Tente novamente mais tarde.',
+          })
       );
     }
   };
