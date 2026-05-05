@@ -23,7 +23,7 @@
     { "source": "/api/confirm-company", "destination": "/api/send-confirmation" },
     { "source": "/api/verify-email", "destination": "/api/send-verification-email" },
     { "source": "/api/send-contact-request-apoiador", "destination": "/api/send-contact-request" },
-    { "source": "/api/chat-gemini", "destination": "/api/chat-with-gemini" },
+    { "source": "/api/chat-with-gemini", "destination": "/api/chat-gemini" },
     { "source": "/(.*)", "destination": "/" }
   ]
 }

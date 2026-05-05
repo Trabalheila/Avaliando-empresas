@@ -3,7 +3,7 @@
 // IMPORTANTE: a chave (GEMINI_API_KEY) NUNCA fica aqui — ela vive somente
 // no backend (Vercel Function em /api/chat-with-gemini.js).
 
-const ENDPOINT = "/api/chat-with-gemini";
+const ENDPOINT = "/api/chat-gemini";
 
 /**
  * Envia uma pergunta do usuário + a base de conhecimento para o backend
