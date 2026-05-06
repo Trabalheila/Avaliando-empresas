@@ -14,6 +14,7 @@ import LoginLinkedInButton from "./LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
 import RestrictableTextarea from "./components/RestrictableTextarea";
 import WorkPeriodPicker from "./components/WorkPeriodPicker";
+import SpellCheckSuggestions from "./components/SpellCheckSuggestions";
 import { getCompanyLogoCandidates } from "./utils/getCompanyLogo";
 import { handleAutoCorrectChange } from "./utils/ptBrAutoCorrect";
 
@@ -79,6 +80,7 @@ function CommentTextarea({
           {warningText}
         </p>
       )}
+      <SpellCheckSuggestions value={draftValue} onChangeValue={setDraftValue} className="mt-1" />
     </>
   );
 }

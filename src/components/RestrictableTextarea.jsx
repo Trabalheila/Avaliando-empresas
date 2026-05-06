@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sanitizeSegments } from "./RestrictedComment";
 import { applyAutoCorrect } from "../utils/ptBrAutoCorrect";
+import SpellCheckSuggestions from "./SpellCheckSuggestions";
 
 /**
  * RestrictableTextarea
@@ -407,6 +408,8 @@ export default function RestrictableTextarea({
           {warningText}
         </p>
       )}
+
+      <SpellCheckSuggestions value={draftValue} onChangeValue={setDraftValue} />
 
       <div className="flex flex-wrap items-center gap-2">
         <button

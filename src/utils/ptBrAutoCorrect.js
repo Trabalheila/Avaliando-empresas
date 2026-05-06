@@ -329,3 +329,58 @@ export function handleAutoCorrectChange(event, prevValue, setValue) {
   setValue(next);
   return null;
 }
+
+// ──────────────────────────────────────────────────────────────────
+// Sugestões de correção em tempo real
+// ──────────────────────────────────────────────────────────────────
+//
+// `findSpellingSuggestions(text)` percorre as palavras do texto e identifica
+// candidatos a correção usando o mesmo dicionário de `applyAutoCorrect`.
+// Retorna no máximo `limit` ocorrências.
+//
+// `applySuggestion(text, suggestion)` retorna o novo texto + posição do
+// caret após substituir a palavra original pela correção, preservando
+// capitalização original.
+
+const WORD_TOKEN_REGEX = /\b[A-Za-zÀ-ÖØ-öø-ÿ]{2,}\b/g;
+
+export function findSpellingSuggestions(text, { limit = 8 } = {}) {
+  if (typeof text !== "string" || text.length === 0) return [];
+  const out = [];
+  WORD_TOKEN_REGEX.lastIndex = 0;
+  let match;
+  while ((match = WORD_TOKEN_REGEX.exec(text)) !== null) {
+    const word = match[0];
+    if (shouldSkipByCase(word)) continue;
+    const lower = word.toLowerCase();
+    const corrected = CORRECTIONS[lower];
+    if (!corrected || corrected.toLowerCase() === lower) continue;
+    const replacement = matchCase(word, corrected);
+    out.push({
+      original: word,
+      replacement,
+      start: match.index,
+      end: match.index + word.length,
+    });
+    if (out.length >= limit) break;
+  }
+  WORD_TOKEN_REGEX.lastIndex = 0;
+  return out;
+}
+
+export function applySuggestion(text, suggestion) {
+  if (!suggestion || typeof text !== "string") return null;
+  const { start, end, replacement } = suggestion;
+  if (
+    typeof start !== "number" ||
+    typeof end !== "number" ||
+    start < 0 ||
+    end > text.length ||
+    end <= start
+  ) {
+    return null;
+  }
+  const value = text.slice(0, start) + replacement + text.slice(end);
+  const caret = start + replacement.length;
+  return { value, caret };
+}
