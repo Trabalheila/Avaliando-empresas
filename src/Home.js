@@ -21,6 +21,7 @@ import {
 import { getLinkedInRedirectUri } from "./utils/linkedinAuth";
 import { buildApiUrl } from "./utils/apiBase";
 import { evaluationHasPotentialPersonalName } from "./utils/personNameDetection";
+import ReferralBanner from "./components/ReferralBanner";
 
 const CONNECTOR_WORDS = new Set(["de", "da", "do", "das", "dos", "e"]);
 const LEGAL_SUFFIXES = new Set(["S.A", "SA", "S/A", "LTDA", "ME", "MEI", "EPP", "EIRELI", "SPE", "SCP"]);
@@ -2103,6 +2104,7 @@ function Home({ theme, toggleTheme }) {
   return (
     <>
       {/* Banner de lançamento removido */}
+      <ReferralBanner hasReferred={Boolean(userProfile?.referralRewardClaimed)} />
 
       {showResponsibilityModal && (
         <div
