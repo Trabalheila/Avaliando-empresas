@@ -79,7 +79,7 @@ export default function EmployerVerification({ theme, toggleTheme }) {
     }
     setLoading(true);
     try {
-      const res = await fetch(buildApiUrl("/api/company-verification?op=request"), {
+      const res = await fetch(buildApiUrl("/api/admin?op=verify-request"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -117,7 +117,7 @@ export default function EmployerVerification({ theme, toggleTheme }) {
     }
     setLoading(true);
     try {
-      const res = await fetch(buildApiUrl("/api/company-verification?op=confirm"), {
+      const res = await fetch(buildApiUrl("/api/admin?op=verify-confirm"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ requestId, code: cleaned }),
@@ -138,7 +138,7 @@ export default function EmployerVerification({ theme, toggleTheme }) {
     setInfo("");
     setLoading(true);
     try {
-      const res = await fetch(buildApiUrl("/api/company-verification?op=resend"), {
+      const res = await fetch(buildApiUrl("/api/admin?op=verify-resend"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ requestId }),

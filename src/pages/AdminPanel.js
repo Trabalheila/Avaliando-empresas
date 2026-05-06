@@ -256,7 +256,7 @@ function AdminPanel({ theme, toggleTheme }) {
     if (!uid) return;
     setVerifLoading(true);
     try {
-      const res = await fetch(buildApiUrl("/api/company-verification?op=list"), {
+      const res = await fetch(buildApiUrl("/api/admin?op=verify-list"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uid, status: verifStatusFilter }),
@@ -282,7 +282,7 @@ function AdminPanel({ theme, toggleTheme }) {
       setVerifBusyId(item.id);
       try {
         const res = await fetch(
-          buildApiUrl("/api/company-verification?op=manual-decision"),
+          buildApiUrl("/api/admin?op=verify-decision"),
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
