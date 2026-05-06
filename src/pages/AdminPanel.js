@@ -78,7 +78,7 @@ function AdminPanel({ theme, toggleTheme }) {
   }, [admin, navigate]);
 
   /* ── Abas ── */
-  const TABS = ["Comentários", "Avaliações", "Apoiadores"];
+  const TABS = ["Comentários", "Avaliações", "Apoiadores", "Planos"];
   const [activeTab, setActiveTab] = useState("Comentários");
 
   /* ── Estado ── */
@@ -380,7 +380,13 @@ function AdminPanel({ theme, toggleTheme }) {
             <button
               key={tab}
               type="button"
-              onClick={() => setActiveTab(tab)}
+              onClick={() => {
+                if (tab === "Planos") {
+                  navigate("/admin/plans");
+                  return;
+                }
+                setActiveTab(tab);
+              }}
               className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition ${
                 activeTab === tab
                   ? "bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 border border-b-0 border-slate-200 dark:border-slate-700"
