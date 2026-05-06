@@ -39,6 +39,12 @@ export default function AdminQuickAccess({ position = "top-right" }) {
       hint: "Dashboard de apoiadores",
     },
     {
+      to: "/admin/plans",
+      label: "Gerenciar Planos",
+      icon: "💳",
+      hint: "Conceder/remover Premium Gratuito",
+    },
+    {
       to: "/admin",
       label: "Painel Admin",
       icon: "⚙️",
