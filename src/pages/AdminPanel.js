@@ -78,7 +78,7 @@ function AdminPanel({ theme, toggleTheme }) {
   }, [admin, navigate]);
 
   /* ── Abas ── */
-  const TABS = ["Comentários", "Avaliações", "Apoiadores", "Planos"];
+  const TABS = ["Comentários", "Avaliações", "Apoiadores", "Restritos", "Planos"];
   const [activeTab, setActiveTab] = useState("Comentários");
 
   /* ── Estado ── */
@@ -103,6 +103,16 @@ function AdminPanel({ theme, toggleTheme }) {
   /* ── Estado apoiadores (unificado) ── */
   const [apoiadores, setApoiadores] = useState([]);
   const [apoiadoresLoading, setApoiadoresLoading] = useState(true);
+
+  /* ── Estado da aba Restritos ── */
+  const [restrictedItems, setRestrictedItems] = useState([]);
+  const [restrictedLoading, setRestrictedLoading] = useState(false);
+  const [restrictedSearch, setRestrictedSearch] = useState("");
+  const [restrictedCursor, setRestrictedCursor] = useState(null);
+  const [restrictedHasMore, setRestrictedHasMore] = useState(false);
+  const [restrictedToast, setRestrictedToast] = useState(null);
+  const [restrictedEditing, setRestrictedEditing] = useState(null); // { item, summary, replacement }
+  const [restrictedBusyKey, setRestrictedBusyKey] = useState(null);
 
   /* ── Carregar dados ── */
   useEffect(() => {
@@ -145,6 +155,92 @@ function AdminPanel({ theme, toggleTheme }) {
       setApoiadoresLoading(false);
     })();
   }, [admin]);
+
+  /* ── Carregar trechos restritos ── */
+  const loadRestricted = useCallback(
+    async ({ reset = false } = {}) => {
+      const uid = getAdminUid();
+      if (!uid) return;
+      setRestrictedLoading(true);
+      try {
+        const res = await fetch(buildApiUrl("/api/admin?op=restricted"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uid,
+            search: restrictedSearch,
+            cursor: reset ? null : restrictedCursor,
+            pageSize: 50,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Erro ao listar trechos restritos.");
+        setRestrictedItems((prev) => (reset ? data.items : [...prev, ...data.items]));
+        setRestrictedCursor(data.nextCursor || null);
+        setRestrictedHasMore(Boolean(data.hasMore));
+      } catch (err) {
+        console.error("[AdminPanel/restricted] erro:", err);
+        setRestrictedToast({ type: "error", message: err.message || "Erro ao carregar." });
+      }
+      setRestrictedLoading(false);
+    },
+    [restrictedSearch, restrictedCursor]
+  );
+
+  useEffect(() => {
+    if (activeTab === "Restritos") {
+      loadRestricted({ reset: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  const moderateSegment = useCallback(
+    async ({ item, action, summary, replacementText }) => {
+      const uid = getAdminUid();
+      if (!uid) return;
+      const key = `${item.reviewId}:${item.source}:${item.segmentIndex}`;
+      setRestrictedBusyKey(key);
+      try {
+        const res = await fetch(buildApiUrl("/api/admin?op=moderate-segment"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uid,
+            reviewId: item.reviewId,
+            source: item.source,
+            segmentIndex: item.segmentIndex,
+            action,
+            summary,
+            replacementText,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Falha ao moderar trecho.");
+        setRestrictedToast({
+          type: "success",
+          message:
+            action === "approve"
+              ? "Trecho aprovado e tornado público."
+              : action === "reject"
+                ? "Trecho removido do conteúdo original."
+                : "Trecho atualizado.",
+        });
+        setRestrictedEditing(null);
+        await loadRestricted({ reset: true });
+      } catch (err) {
+        console.error("[AdminPanel/moderate] erro:", err);
+        setRestrictedToast({ type: "error", message: err.message || "Erro ao moderar." });
+      }
+      setRestrictedBusyKey(null);
+    },
+    [loadRestricted]
+  );
+
+  useEffect(() => {
+    if (!restrictedToast) return undefined;
+    const t = window.setTimeout(() => setRestrictedToast(null), 3500);
+    return () => window.clearTimeout(t);
+  }, [restrictedToast]);
 
   /* ── Exclusão via API server-side (Firebase Admin SDK) ── */
   const adminDeleteDoc = useCallback(async (collectionName, docId) => {
@@ -571,6 +667,179 @@ function AdminPanel({ theme, toggleTheme }) {
           </section>
         )}
 
+        {/* ═══ ABA Restritos ═══ */}
+        {activeTab === "Restritos" && (
+          <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+              <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200">
+                Comentários restritos ({restrictedItems.length})
+              </h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  type="text"
+                  placeholder="Buscar por trecho, resumo, empresa…"
+                  value={restrictedSearch}
+                  onChange={(e) => setRestrictedSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      setRestrictedCursor(null);
+                      loadRestricted({ reset: true });
+                    }
+                  }}
+                  className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRestrictedCursor(null);
+                    loadRestricted({ reset: true });
+                  }}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                  disabled={restrictedLoading}
+                >
+                  {restrictedLoading ? "Carregando…" : "Atualizar"}
+                </button>
+              </div>
+            </div>
+
+            {restrictedToast && (
+              <div
+                className={`mb-3 px-3 py-2 rounded-lg text-sm font-medium ${
+                  restrictedToast.type === "success"
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                    : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+                }`}
+              >
+                {restrictedToast.message}
+              </div>
+            )}
+
+            {restrictedLoading && restrictedItems.length === 0 ? (
+              <p className="text-sm text-slate-500">Carregando trechos restritos…</p>
+            ) : restrictedItems.length === 0 ? (
+              <p className="text-sm text-slate-500">Nenhum trecho restrito encontrado.</p>
+            ) : (
+              <div className="space-y-3 max-h-[640px] overflow-y-auto pr-1">
+                {restrictedItems.map((it) => {
+                  const key = `${it.reviewId}:${it.source}:${it.segmentIndex}`;
+                  const busy = restrictedBusyKey === key;
+                  const date = it.createdAt
+                    ? new Date(it.createdAt).toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      })
+                    : "—";
+                  return (
+                    <div
+                      key={key}
+                      className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700"
+                    >
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap text-xs">
+                            <span className="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 font-bold">
+                              {it.sourceLabel}
+                            </span>
+                            <span className="text-slate-500 dark:text-slate-400">
+                              {it.companySlug || "—"}
+                            </span>
+                            <span className="text-slate-500 dark:text-slate-400">
+                              · {it.pseudonym || "Anônimo"}
+                            </span>
+                            <span className="text-slate-500 dark:text-slate-400">· {date}</span>
+                            <a
+                              href={`/empresa/${it.companySlug}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 dark:text-blue-400 underline"
+                            >
+                              ver avaliação ↗
+                            </a>
+                          </div>
+
+                          <div className="mt-2 text-sm">
+                            <p className="font-semibold text-slate-700 dark:text-slate-200 mb-0.5">
+                              Trecho restrito:
+                            </p>
+                            <blockquote className="border-l-4 border-purple-400 pl-3 text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words">
+                              {it.excerpt || <em className="text-slate-400">(vazio)</em>}
+                            </blockquote>
+                          </div>
+
+                          <div className="mt-2 text-sm">
+                            <p className="font-semibold text-slate-700 dark:text-slate-200 mb-0.5">
+                              Resumo curto:
+                            </p>
+                            <p className="text-slate-600 dark:text-slate-300">
+                              {it.summary || <em className="text-slate-400">(sem resumo)</em>}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2 shrink-0">
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => moderateSegment({ item: it, action: "approve" })}
+                            className="px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 disabled:opacity-50"
+                            title="Remove a restrição — texto fica público"
+                          >
+                            Aprovar
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() =>
+                              setRestrictedEditing({
+                                item: it,
+                                summary: it.summary || "",
+                                replacement: it.excerpt || "",
+                              })
+                            }
+                            className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300 rounded-lg hover:bg-blue-100 disabled:opacity-50"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  "Remover este trecho do texto original? Ele será substituído por '[removido pela moderação]'."
+                                )
+                              ) {
+                                moderateSegment({ item: it, action: "reject" });
+                              }
+                            }}
+                            className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 disabled:opacity-50"
+                          >
+                            Rejeitar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {restrictedHasMore && (
+                  <div className="pt-2 text-center">
+                    <button
+                      type="button"
+                      onClick={() => loadRestricted({ reset: false })}
+                      disabled={restrictedLoading}
+                      className="px-4 py-2 text-sm font-semibold rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 disabled:opacity-50"
+                    >
+                      {restrictedLoading ? "Carregando…" : "Carregar mais"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        )}
+
         {/* ═══ ABA Apoiadores (unificada) ═══ */}
         {activeTab === "Apoiadores" && (
           <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
@@ -673,6 +942,78 @@ function AdminPanel({ theme, toggleTheme }) {
                 className="flex-1 py-2 rounded-lg bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition disabled:opacity-50"
               >
                 {deleting ? "Apagando…" : "Apagar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Modal de edição de trecho restrito ═══ */}
+      {restrictedEditing && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={() => setRestrictedEditing(null)}
+        >
+          <div
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 max-w-lg w-full border border-slate-200 dark:border-slate-700 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">
+              Editar trecho restrito
+            </h3>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                Resumo curto
+              </label>
+              <input
+                type="text"
+                value={restrictedEditing.summary}
+                onChange={(e) =>
+                  setRestrictedEditing((prev) => ({ ...prev, summary: e.target.value }))
+                }
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                Trecho original (substituirá o conteúdo)
+              </label>
+              <textarea
+                rows={4}
+                value={restrictedEditing.replacement}
+                onChange={(e) =>
+                  setRestrictedEditing((prev) => ({ ...prev, replacement: e.target.value }))
+                }
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200"
+              />
+              <p className="mt-1 text-[11px] text-slate-500">
+                Deixar igual ao original mantém apenas a alteração do resumo.
+              </p>
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setRestrictedEditing(null)}
+                className="flex-1 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const { item, summary, replacement } = restrictedEditing;
+                  const replacementText =
+                    replacement !== item.excerpt ? replacement : null;
+                  moderateSegment({
+                    item,
+                    action: "edit",
+                    summary,
+                    replacementText,
+                  });
+                }}
+                className="flex-1 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700"
+              >
+                Salvar
               </button>
             </div>
           </div>

@@ -305,8 +305,292 @@ export default async function handler(req, res) {
   if (op === "reviews") return handleReviews(req, res);
   if (op === "users") return handleListUsers(req, res);
   if (op === "update-plan") return handleUpdatePlan(req, res);
+  if (op === "restricted") return handleListRestricted(req, res);
+  if (op === "moderate-segment") return handleModerateSegment(req, res);
 
   return res.status(400).json({
-    error: "Parâmetro 'op' inválido. Use ?op=delete, ?op=reviews, ?op=users ou ?op=update-plan.",
+    error:
+      "Parâmetro 'op' inválido. Use ?op=delete, ?op=reviews, ?op=users, ?op=update-plan, ?op=restricted ou ?op=moderate-segment.",
   });
 }
+
+/* ────────────────────────────────────────────────
+   op=restricted / op=moderate-segment
+   ──────────────────────────────────────────────── */
+
+// Mapeamento criterionKey → campo de comentário no documento de review.
+const CRITERION_COMMENT_FIELD = {
+  comunicacao: "commentComunicacao",
+  etica: "commentEtica",
+  cultura: "commentCultura",
+  saudeBemEstar: "commentSaudeBemEstar",
+  lideranca: "commentLideranca",
+  ambiente: "commentAmbiente",
+  estimacaoOrganizacao: "commentEstimacaoOrganizacao",
+  desenvolvimento: "commentDesenvolvimento",
+  reconhecimento: "commentReconhecimento",
+  equilibrio: "commentEquilibrio",
+  diversidade: "commentDiversidade",
+  inovacao: "commentInovacao",
+  oportunidades: "commentOportunidades",
+  reputacao: "commentReputacao",
+  impactoSocial: "commentImpactoSocial",
+  discriminacao: "commentDiscriminacao",
+  cargaHoraria: "commentCargaHoraria",
+  crescimento: "commentCrescimento",
+};
+
+const CRITERION_LABEL = {
+  comunicacao: "Recrutamento",
+  etica: "Proposta salarial",
+  cultura: "Cultura",
+  saudeBemEstar: "Saúde e bem-estar",
+  lideranca: "Liderança",
+  ambiente: "Ambiente",
+  estimacaoOrganizacao: "Estima da organização",
+  desenvolvimento: "Desenvolvimento",
+  reconhecimento: "Reconhecimento",
+  equilibrio: "Equilíbrio",
+  diversidade: "Diversidade",
+  inovacao: "Inovação",
+  oportunidades: "Oportunidades",
+  reputacao: "Reputação",
+  impactoSocial: "Impacto social",
+  discriminacao: "Discriminação",
+  cargaHoraria: "Carga horária",
+  crescimento: "Crescimento",
+};
+
+function buildSegmentItems(reviewDoc) {
+  const data = reviewDoc.data() || {};
+  const out = [];
+  const baseMeta = {
+    reviewId: reviewDoc.id,
+    companySlug: data.companySlug || "",
+    pseudonym:
+      data.pseudonym || data.pseudonimo || data.userName || data.authorName || "",
+    createdAt:
+      data.createdAt?.toDate?.()?.toISOString?.() ||
+      (typeof data.createdAt === "string" ? data.createdAt : null),
+  };
+
+  const generalText = typeof data.generalComment === "string" ? data.generalComment : "";
+  const generalSegs = Array.isArray(data.restrictedSegments) ? data.restrictedSegments : [];
+  generalSegs.forEach((seg, idx) => {
+    if (!seg || typeof seg !== "object") return;
+    const start = Number(seg.start);
+    const end = Number(seg.end);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return;
+    out.push({
+      ...baseMeta,
+      source: "general",
+      sourceLabel: "Comentário geral",
+      segmentIndex: idx,
+      start,
+      end,
+      summary: String(seg.summary || ""),
+      excerpt: generalText.slice(start, end),
+      fullText: generalText,
+    });
+  });
+
+  const criterionMap =
+    data.criterionRestrictedSegments && typeof data.criterionRestrictedSegments === "object"
+      ? data.criterionRestrictedSegments
+      : {};
+  for (const [key, segs] of Object.entries(criterionMap)) {
+    if (!Array.isArray(segs)) continue;
+    const fieldName = CRITERION_COMMENT_FIELD[key];
+    const text = fieldName ? (typeof data[fieldName] === "string" ? data[fieldName] : "") : "";
+    segs.forEach((seg, idx) => {
+      if (!seg || typeof seg !== "object") return;
+      const start = Number(seg.start);
+      const end = Number(seg.end);
+      if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return;
+      out.push({
+        ...baseMeta,
+        source: key,
+        sourceLabel: CRITERION_LABEL[key] || key,
+        segmentIndex: idx,
+        start,
+        end,
+        summary: String(seg.summary || ""),
+        excerpt: text.slice(start, end),
+        fullText: text,
+      });
+    });
+  }
+
+  return out;
+}
+
+async function handleListRestricted(req, res) {
+  const { uid, pageSize = 50, cursor = null, search = "" } = req.body || {};
+
+  if (!requireAdminUid(uid)) {
+    return res.status(403).json({ error: "Acesso restrito ao administrador." });
+  }
+
+  try {
+    const { db } = await ensureAdmin();
+    const limitNum = Math.min(Math.max(parseInt(pageSize, 10) || 50, 1), 200);
+
+    let q = db.collection("reviews").orderBy("createdAt", "desc").limit(limitNum + 1);
+    if (cursor) {
+      const cursorSnap = await db.collection("reviews").doc(String(cursor)).get();
+      if (cursorSnap.exists) q = q.startAfter(cursorSnap);
+    }
+    const snap = await q.get();
+
+    const docs = snap.docs.slice(0, limitNum);
+    const hasMore = snap.docs.length > limitNum;
+    const nextCursor = hasMore ? docs[docs.length - 1].id : null;
+
+    const searchLower = String(search || "").trim().toLowerCase();
+    const items = [];
+    for (const d of docs) {
+      const segs = buildSegmentItems(d);
+      for (const seg of segs) {
+        if (searchLower) {
+          const hay =
+            `${seg.excerpt} ${seg.summary} ${seg.pseudonym} ${seg.companySlug} ${seg.sourceLabel}`.toLowerCase();
+          if (!hay.includes(searchLower)) continue;
+        }
+        items.push(seg);
+      }
+    }
+
+    return res.status(200).json({ items, nextCursor, hasMore });
+  } catch (err) {
+    console.error("[admin/restricted] erro:", err);
+    return res.status(500).json({ error: "Erro interno ao listar trechos restritos." });
+  }
+}
+
+async function handleModerateSegment(req, res) {
+  const {
+    uid,
+    reviewId,
+    source,
+    segmentIndex,
+    action,
+    summary,
+    replacementText,
+  } = req.body || {};
+
+  if (!requireAdminUid(uid)) {
+    return res.status(403).json({ error: "Acesso restrito ao administrador." });
+  }
+  if (!reviewId || typeof reviewId !== "string") {
+    return res.status(400).json({ error: "reviewId é obrigatório." });
+  }
+  if (typeof source !== "string" || !source) {
+    return res.status(400).json({ error: "source inválido." });
+  }
+  if (!Number.isInteger(segmentIndex) || segmentIndex < 0) {
+    return res.status(400).json({ error: "segmentIndex inválido." });
+  }
+  if (!["approve", "reject", "edit"].includes(action)) {
+    return res.status(400).json({ error: "action inválido." });
+  }
+
+  try {
+    const { db } = await ensureAdmin();
+    const ref = db.collection("reviews").doc(reviewId);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: "Review não encontrada." });
+
+    const data = snap.data() || {};
+    const isGeneral = source === "general";
+    const textField = isGeneral ? "generalComment" : CRITERION_COMMENT_FIELD[source];
+    if (!textField) return res.status(400).json({ error: "source desconhecido." });
+
+    const segsField = isGeneral ? "restrictedSegments" : null;
+    let segments = isGeneral
+      ? Array.isArray(data.restrictedSegments)
+        ? [...data.restrictedSegments]
+        : []
+      : Array.isArray(data.criterionRestrictedSegments?.[source])
+        ? [...data.criterionRestrictedSegments[source]]
+        : [];
+
+    if (segmentIndex >= segments.length) {
+      return res.status(404).json({ error: "Trecho não encontrado." });
+    }
+    const target = { ...segments[segmentIndex] };
+    const text = typeof data[textField] === "string" ? data[textField] : "";
+    const start = Number(target.start);
+    const end = Number(target.end);
+
+    const update = {};
+
+    if (action === "approve") {
+      // Remove o trecho da lista de restritos (texto fica público).
+      segments.splice(segmentIndex, 1);
+    } else if (action === "reject") {
+      // Substitui o trecho no texto-fonte por placeholder e remove segmento.
+      const placeholder = "[removido pela moderação]";
+      const newText = text.slice(0, start) + placeholder + text.slice(end);
+      const delta = placeholder.length - (end - start);
+      // Ajusta segmentos posteriores (no mesmo campo) que dependam de índices.
+      segments = segments
+        .filter((_, idx) => idx !== segmentIndex)
+        .map((s) => {
+          const sStart = Number(s.start);
+          const sEnd = Number(s.end);
+          if (sStart >= end) {
+            return { ...s, start: sStart + delta, end: sEnd + delta };
+          }
+          return s;
+        });
+      update[textField] = newText;
+    } else if (action === "edit") {
+      const newSummary = typeof summary === "string" ? summary.trim() : null;
+      const newExcerpt =
+        typeof replacementText === "string" ? replacementText : null;
+      if (newSummary !== null) target.summary = newSummary;
+      if (newExcerpt !== null) {
+        const newText = text.slice(0, start) + newExcerpt + text.slice(end);
+        const delta = newExcerpt.length - (end - start);
+        target.end = start + newExcerpt.length;
+        segments = segments.map((s, idx) => {
+          if (idx === segmentIndex) return target;
+          const sStart = Number(s.start);
+          const sEnd = Number(s.end);
+          if (sStart >= end) {
+            return { ...s, start: sStart + delta, end: sEnd + delta };
+          }
+          return s;
+        });
+        update[textField] = newText;
+      } else {
+        segments[segmentIndex] = target;
+      }
+    }
+
+    if (isGeneral) {
+      update[segsField] = segments;
+    } else {
+      const map = {
+        ...(data.criterionRestrictedSegments && typeof data.criterionRestrictedSegments === "object"
+          ? data.criterionRestrictedSegments
+          : {}),
+      };
+      if (segments.length === 0) delete map[source];
+      else map[source] = segments;
+      update.criterionRestrictedSegments = map;
+    }
+
+    update.updatedAt = new Date();
+    update.lastModerationBy = uid;
+    update.lastModerationAt = new Date();
+
+    await ref.set(update, { merge: true });
+
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error("[admin/moderate-segment] erro:", err);
+    return res.status(500).json({ error: "Erro interno ao moderar trecho." });
+  }
+}
+
