@@ -1366,11 +1366,14 @@ function Home({ theme, toggleTheme }) {
     );
 
     const successMessage = evaluationData?.hasPotentialPersonalName
-      ? "Avaliação enviada com sucesso! Obrigado por sua contribuição.\n\nObservação: identificamos uma possível citação de nome em seu comentário. Sua avaliação foi registrada normalmente e poderá ser revisada por nossa equipe."
+      ? "Avaliação enviada com sucesso! Identificamos uma possível citação de nome no seu comentário; sua avaliação foi registrada e poderá ser revisada por nossa equipe."
       : "Avaliação enviada com sucesso! Obrigado por sua contribuição.";
-    alert(successMessage);
+    setEmailVerificationToast({ type: "success", message: successMessage });
     localStorage.removeItem(REVIEW_DRAFT_STORAGE_KEY);
-    navigate(`/empresa?name=${encodeURIComponent(evaluationData.company)}`);
+    // Aguarda alguns instantes para o usuário ver o toast antes de navegar.
+    setTimeout(() => {
+      navigate(`/empresa?name=${encodeURIComponent(evaluationData.company)}`);
+    }, 1500);
   }, [navigate]);
 
   // Roda as validações e abre o modal de Termo de Responsabilidade.

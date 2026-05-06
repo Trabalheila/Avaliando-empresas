@@ -219,6 +219,10 @@ export default function RestrictableTextarea({
 
   const confirmPending = useCallback(() => {
     if (!pendingRange) return;
+    if (pendingRange.end <= pendingRange.start) {
+      setFeedback("O trecho selecionado está vazio. Ajuste as bordas antes de confirmar.");
+      return;
+    }
     const summary = pendingSummary.trim();
     if (!summary) {
       setFeedback("Informe um Resumo Curto para o trecho marcado.");
@@ -236,6 +240,85 @@ export default function RestrictableTextarea({
     setPendingSummary("");
     setFeedback("");
   }, []);
+
+  // Refinamento das bordas da seleção pendente.
+  // Garante limites válidos e evita sobreposição com segmentos confirmados.
+  const adjustPendingRange = useCallback(
+    (edge, delta) => {
+      setPendingRange((prev) => {
+        if (!prev) return prev;
+        const text = draftValue;
+        const others = (segments || []).filter((s) => !(s.start === prev.start && s.end === prev.end));
+        let nextStart = prev.start;
+        let nextEnd = prev.end;
+        if (edge === "start") {
+          nextStart = Math.max(0, Math.min(text.length, prev.start + delta));
+          if (nextStart >= prev.end) nextStart = Math.max(0, prev.end - 1);
+        } else {
+          nextEnd = Math.max(0, Math.min(text.length, prev.end + delta));
+          if (nextEnd <= prev.start) nextEnd = Math.min(text.length, prev.start + 1);
+        }
+        // Cancela se colidir com outro segmento confirmado.
+        const overlaps = others.some(
+          (s) => !(nextEnd <= s.start || nextStart >= s.end)
+        );
+        if (overlaps) {
+          setFeedback("Os limites colidem com outro trecho marcado.");
+          return prev;
+        }
+        setFeedback("");
+        return { start: nextStart, end: nextEnd };
+      });
+    },
+    [draftValue, segments]
+  );
+
+  // Snap até o limite da palavra mais próxima na direção indicada.
+  const snapPendingToWord = useCallback(
+    (edge, direction) => {
+      setPendingRange((prev) => {
+        if (!prev) return prev;
+        const text = draftValue;
+        const isWordChar = (ch) => /[\p{L}\p{N}_]/u.test(ch || "");
+        let pos = edge === "start" ? prev.start : prev.end;
+        if (direction < 0) {
+          // Move para esquerda até começo de palavra.
+          while (pos > 0 && !isWordChar(text[pos - 1])) pos -= 1;
+          while (pos > 0 && isWordChar(text[pos - 1])) pos -= 1;
+        } else {
+          while (pos < text.length && !isWordChar(text[pos])) pos += 1;
+          while (pos < text.length && isWordChar(text[pos])) pos += 1;
+        }
+        let nextStart = prev.start;
+        let nextEnd = prev.end;
+        if (edge === "start") nextStart = Math.min(pos, prev.end - 1);
+        else nextEnd = Math.max(pos, prev.start + 1);
+        if (nextStart < 0) nextStart = 0;
+        if (nextEnd > text.length) nextEnd = text.length;
+        const others = (segments || []).filter((s) => !(s.start === prev.start && s.end === prev.end));
+        const overlaps = others.some((s) => !(nextEnd <= s.start || nextStart >= s.end));
+        if (overlaps) {
+          setFeedback("Os limites colidem com outro trecho marcado.");
+          return prev;
+        }
+        setFeedback("");
+        return { start: nextStart, end: nextEnd };
+      });
+    },
+    [draftValue, segments]
+  );
+
+  // Aplica seleção pendente novamente ao textarea (visualizar limites).
+  const reselectPendingInTextarea = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el || !pendingRange) return;
+    el.focus();
+    try {
+      el.setSelectionRange(pendingRange.start, pendingRange.end);
+    } catch {
+      /* noop */
+    }
+  }, [pendingRange]);
 
   const removeSegment = useCallback(
     (idx) => {
@@ -352,6 +435,64 @@ export default function RestrictableTextarea({
           <p className="text-xs italic text-amber-900/90 dark:text-amber-100/90 break-words">
             "{previewText}"
           </p>
+
+          {/* Refinamento das bordas: permite ajustar inicio/fim antes de confirmar. */}
+          <div className="rounded-md border border-amber-200 dark:border-amber-500/30 bg-white/60 dark:bg-slate-900/40 p-2 space-y-2">
+            <p className="text-[11px] font-semibold text-amber-900 dark:text-amber-200">
+              Ajustar bordas (opcional)
+            </p>
+            <div className="flex flex-wrap items-center gap-2 text-[11px]">
+              <span className="font-semibold text-slate-700 dark:text-slate-200 min-w-[40px]">Início:</span>
+              <button type="button" onClick={() => snapPendingToWord("start", -1)} title="Recuar uma palavra"
+                className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600">
+                ⟪ palavra
+              </button>
+              <button type="button" onClick={() => adjustPendingRange("start", -1)} title="Recuar 1 caractere"
+                className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600">
+                ◀ -1
+              </button>
+              <span className="font-mono text-slate-500 dark:text-slate-400">{pendingRange.start}</span>
+              <button type="button" onClick={() => adjustPendingRange("start", 1)} title="Avançar 1 caractere"
+                className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600">
+                +1 ▶
+              </button>
+              <button type="button" onClick={() => snapPendingToWord("start", 1)} title="Avançar uma palavra"
+                className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600">
+                palavra ⟫
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-[11px]">
+              <span className="font-semibold text-slate-700 dark:text-slate-200 min-w-[40px]">Fim:</span>
+              <button type="button" onClick={() => snapPendingToWord("end", -1)} title="Recuar uma palavra"
+                className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600">
+                ⟪ palavra
+              </button>
+              <button type="button" onClick={() => adjustPendingRange("end", -1)} title="Recuar 1 caractere"
+                className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600">
+                ◀ -1
+              </button>
+              <span className="font-mono text-slate-500 dark:text-slate-400">{pendingRange.end}</span>
+              <button type="button" onClick={() => adjustPendingRange("end", 1)} title="Avançar 1 caractere"
+                className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600">
+                +1 ▶
+              </button>
+              <button type="button" onClick={() => snapPendingToWord("end", 1)} title="Avançar uma palavra"
+                className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600">
+                palavra ⟫
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" onClick={reselectPendingInTextarea}
+                className="text-[11px] px-2 py-1 rounded bg-amber-100 hover:bg-amber-200 dark:bg-amber-500/20 dark:hover:bg-amber-500/30 text-amber-900 dark:text-amber-200">
+                Visualizar no texto
+              </button>
+              <button type="button" onClick={cancelPending}
+                className="text-[11px] px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-100">
+                Refazer seleção
+              </button>
+            </div>
+          </div>
+
           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">
             Resumo Curto do assunto
           </label>

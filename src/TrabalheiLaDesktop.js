@@ -1160,7 +1160,19 @@ function TrabalheiLaDesktop({
                     style={!isAuthenticated ? { animation: 'ctaGlow 2s ease-in-out infinite' } : undefined}
                     disabled={!isAuthenticated || isLoading}
                   >
-                    {isLoading ? "Enviando..." : isAuthenticated ? "Enviar Avaliação" : "Faça login para avaliar"}
+                    {isLoading ? (
+                      <span className="inline-flex items-center justify-center gap-2">
+                        <span
+                          aria-hidden="true"
+                          className="inline-block h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin"
+                        />
+                        <span>Enviando</span>
+                      </span>
+                    ) : isAuthenticated ? (
+                      "Enviar Avaliação"
+                    ) : (
+                      "Faça login para avaliar"
+                    )}
                   </button>
                   {((commentRating && containsPossiblePersonName(commentRating)) ||
                     (generalComment && containsPossiblePersonName(generalComment)) ||
