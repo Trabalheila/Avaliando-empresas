@@ -20,6 +20,7 @@ import {
 } from "./utils/profileIdentity";
 import { getLinkedInRedirectUri } from "./utils/linkedinAuth";
 import { buildApiUrl } from "./utils/apiBase";
+import { evaluationHasPotentialPersonalName } from "./utils/personNameDetection";
 
 const CONNECTOR_WORDS = new Set(["de", "da", "do", "das", "dos", "e"]);
 const LEGAL_SUFFIXES = new Set(["S.A", "SA", "S/A", "LTDA", "ME", "MEI", "EPP", "EIRELI", "SPE", "SCP"]);
@@ -1135,7 +1136,7 @@ function Home({ theme, toggleTheme }) {
     const pseudonym = localStorage.getItem("userPseudonym");
     const authorProfileId = resolveProfileId(userProfile, { persistGeneratedId: false }) || "";
 
-    return {
+    const draft = {
       company: company?.value || "",
       pseudonym: pseudonym || "",
       authorProfileId,
@@ -1186,6 +1187,13 @@ function Home({ theme, toggleTheme }) {
       timestamp: new Date().toISOString(),
       ...termsData,
     };
+
+    // Sinalização (não bloqueante) de potencial citação de nome de pessoa.
+    // A detecção é heurística e pode gerar falsos positivos (ex.: nomes de
+    // empresa/local). Persistimos o flag para revisão posterior.
+    draft.hasPotentialPersonalName = evaluationHasPotentialPersonalName(draft);
+
+    return draft;
   }, [company, userProfile, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment, generalCommentRestrictedSegments, entrySource, contractType, workModel, discriminacao, commentDiscriminacao, cargaHoraria, commentCargaHoraria, crescimento, commentCrescimento, criterionRestrictedSegments, workPeriodStartMonth, workPeriodStartYear, workPeriodEndMonth, workPeriodEndYear, workPeriodStillWorking]);
 
   const submitEvaluation = useCallback(async (evaluationData) => {
@@ -1267,7 +1275,10 @@ function Home({ theme, toggleTheme }) {
       })
     );
 
-    alert("Avaliação enviada com sucesso! Obrigado por sua contribuição.");
+    const successMessage = evaluationData?.hasPotentialPersonalName
+      ? "Avaliação enviada com sucesso! Obrigado por sua contribuição.\n\nObservação: identificamos uma possível citação de nome em seu comentário. Sua avaliação foi registrada normalmente e poderá ser revisada por nossa equipe."
+      : "Avaliação enviada com sucesso! Obrigado por sua contribuição.";
+    alert(successMessage);
     localStorage.removeItem(REVIEW_DRAFT_STORAGE_KEY);
     navigate(`/empresa?name=${encodeURIComponent(evaluationData.company)}`);
   }, [navigate]);
