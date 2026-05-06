@@ -953,16 +953,30 @@ async function handleVerifyList(req, res) {
   }
   try {
     const { db } = await ensureAdmin();
-    let q = db.collection("companyVerifications").orderBy("updatedAt", "desc").limit(200);
+    // Evita exigir índice composto (status + updatedAt): filtra no servidor
+    // sem orderBy quando há where, e ordena em memória.
+    let q;
     if (status && status !== "todos") {
       q = db
         .collection("companyVerifications")
         .where("status", "==", status)
+        .limit(500);
+    } else {
+      q = db
+        .collection("companyVerifications")
         .orderBy("updatedAt", "desc")
         .limit(200);
     }
     const snap = await q.get();
-    const items = snap.docs.map((d) => {
+    const docs = snap.docs.slice();
+    if (status && status !== "todos") {
+      docs.sort((a, b) => {
+        const ta = a.data()?.updatedAt?.toMillis?.() || 0;
+        const tb = b.data()?.updatedAt?.toMillis?.() || 0;
+        return tb - ta;
+      });
+    }
+    const items = docs.slice(0, 200).map((d) => {
       const data = d.data() || {};
       return {
         id: d.id,
