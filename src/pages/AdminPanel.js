@@ -78,7 +78,7 @@ function AdminPanel({ theme, toggleTheme }) {
   }, [admin, navigate]);
 
   /* ── Abas ── */
-  const TABS = ["Comentários", "Avaliações", "Apoiadores", "Restritos", "Planos"];
+  const TABS = ["Comentários", "Avaliações", "Apoiadores", "Restritos", "Verificações", "Planos"];
   const [activeTab, setActiveTab] = useState("Comentários");
 
   /* ── Estado ── */
@@ -113,6 +113,14 @@ function AdminPanel({ theme, toggleTheme }) {
   const [restrictedToast, setRestrictedToast] = useState(null);
   const [restrictedEditing, setRestrictedEditing] = useState(null); // { item, summary, replacement }
   const [restrictedBusyKey, setRestrictedBusyKey] = useState(null);
+
+  /* ── Estado da aba Verificações ── */
+  const [verifItems, setVerifItems] = useState([]);
+  const [verifLoading, setVerifLoading] = useState(false);
+  const [verifStatusFilter, setVerifStatusFilter] = useState("pending_manual");
+  const [verifBusyId, setVerifBusyId] = useState(null);
+  const [verifToast, setVerifToast] = useState(null);
+  const [verifNotes, setVerifNotes] = useState({});
 
   /* ── Carregar dados ── */
   useEffect(() => {
@@ -241,6 +249,72 @@ function AdminPanel({ theme, toggleTheme }) {
     const t = window.setTimeout(() => setRestrictedToast(null), 3500);
     return () => window.clearTimeout(t);
   }, [restrictedToast]);
+
+  /* ── Carregar/decidir solicitações de verificação ── */
+  const loadVerifications = useCallback(async () => {
+    const uid = getAdminUid();
+    if (!uid) return;
+    setVerifLoading(true);
+    try {
+      const res = await fetch(buildApiUrl("/api/company-verification?op=list"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid, status: verifStatusFilter }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Falha ao listar verificações.");
+      setVerifItems(Array.isArray(data.items) ? data.items : []);
+    } catch (err) {
+      console.error("[AdminPanel/verifications] erro:", err);
+      setVerifToast({ type: "error", message: err.message || "Erro ao carregar." });
+    }
+    setVerifLoading(false);
+  }, [verifStatusFilter]);
+
+  useEffect(() => {
+    if (activeTab === "Verificações") loadVerifications();
+  }, [activeTab, loadVerifications]);
+
+  const decideVerification = useCallback(
+    async ({ item, action }) => {
+      const uid = getAdminUid();
+      if (!uid) return;
+      setVerifBusyId(item.id);
+      try {
+        const res = await fetch(
+          buildApiUrl("/api/company-verification?op=manual-decision"),
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              uid,
+              requestId: item.id,
+              action,
+              notes: verifNotes[item.id] || "",
+            }),
+          }
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Falha ao decidir.");
+        setVerifToast({
+          type: "success",
+          message: action === "approve" ? "Empresa aprovada." : "Solicitação rejeitada.",
+        });
+        await loadVerifications();
+      } catch (err) {
+        console.error("[AdminPanel/verifications] decide erro:", err);
+        setVerifToast({ type: "error", message: err.message || "Erro." });
+      }
+      setVerifBusyId(null);
+    },
+    [loadVerifications, verifNotes]
+  );
+
+  useEffect(() => {
+    if (!verifToast) return undefined;
+    const t = window.setTimeout(() => setVerifToast(null), 3500);
+    return () => window.clearTimeout(t);
+  }, [verifToast]);
 
   /* ── Exclusão via API server-side (Firebase Admin SDK) ── */
   const adminDeleteDoc = useCallback(async (collectionName, docId) => {
@@ -835,6 +909,160 @@ function AdminPanel({ theme, toggleTheme }) {
                     </button>
                   </div>
                 )}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* ═══ ABA Verificações (empresas) ═══ */}
+        {activeTab === "Verificações" && (
+          <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+              <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200">
+                Verificações de empresa ({verifItems.length})
+              </h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <select
+                  value={verifStatusFilter}
+                  onChange={(e) => setVerifStatusFilter(e.target.value)}
+                  className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+                >
+                  <option value="pending_manual">Aguardando revisão manual</option>
+                  <option value="pending_email">Aguardando código por e-mail</option>
+                  <option value="verified">Verificadas</option>
+                  <option value="rejected">Rejeitadas</option>
+                  <option value="todos">Todas</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={loadVerifications}
+                  disabled={verifLoading}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {verifLoading ? "Carregando…" : "Atualizar"}
+                </button>
+              </div>
+            </div>
+
+            {verifToast && (
+              <div
+                className={`mb-3 px-3 py-2 rounded-lg text-sm font-medium ${
+                  verifToast.type === "success"
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                    : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+                }`}
+              >
+                {verifToast.message}
+              </div>
+            )}
+
+            {verifLoading && verifItems.length === 0 ? (
+              <p className="text-sm text-slate-500">Carregando solicitações…</p>
+            ) : verifItems.length === 0 ? (
+              <p className="text-sm text-slate-500">Nenhuma solicitação para este filtro.</p>
+            ) : (
+              <div className="space-y-3 max-h-[640px] overflow-y-auto pr-1">
+                {verifItems.map((it) => {
+                  const busy = verifBusyId === it.id;
+                  const date = it.updatedAt
+                    ? new Date(it.updatedAt).toLocaleString("pt-BR")
+                    : "—";
+                  const affinityPct = Math.round((it.domainAffinity || 0) * 100);
+                  const statusBadge =
+                    {
+                      pending_email: "bg-slate-200 text-slate-700",
+                      pending_manual: "bg-amber-100 text-amber-700",
+                      verified: "bg-emerald-100 text-emerald-700",
+                      rejected: "bg-red-100 text-red-700",
+                    }[it.status] || "bg-slate-200 text-slate-700";
+                  return (
+                    <div
+                      key={it.id}
+                      className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700"
+                    >
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap text-xs">
+                            <span className={`px-2 py-0.5 rounded-full font-bold ${statusBadge}`}>
+                              {it.status}
+                            </span>
+                            {it.tier === "premium" && (
+                              <span className="px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700">
+                                Premium
+                              </span>
+                            )}
+                            <span className="text-slate-500">{date}</span>
+                          </div>
+                          <p className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">
+                            {it.razaoSocial || "—"}{" "}
+                            <span className="font-mono text-xs text-slate-500">
+                              CNPJ {it.cnpj}
+                            </span>
+                          </p>
+                          {it.nomeFantasia && (
+                            <p className="text-xs text-slate-500">{it.nomeFantasia}</p>
+                          )}
+                          <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
+                            <span className="font-semibold">E-mail:</span>{" "}
+                            <span className="font-mono">{it.corporateEmail}</span>
+                          </p>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            Afinidade do domínio com a razão social: {affinityPct}%{" "}
+                            {affinityPct < 80 && (
+                              <span className="text-amber-600 dark:text-amber-400">
+                                (heurística sugere revisão manual)
+                              </span>
+                            )}
+                          </p>
+                          {it.notes && (
+                            <p className="mt-1 text-xs italic text-slate-500">
+                              Notas: {it.notes}
+                            </p>
+                          )}
+
+                          {it.status === "pending_manual" && (
+                            <textarea
+                              rows={2}
+                              placeholder="Notas internas (opcional)"
+                              value={verifNotes[it.id] || ""}
+                              onChange={(e) =>
+                                setVerifNotes((prev) => ({
+                                  ...prev,
+                                  [it.id]: e.target.value,
+                                }))
+                              }
+                              className="mt-2 w-full px-2 py-1 text-xs rounded border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+                            />
+                          )}
+                        </div>
+                        {it.status === "pending_manual" && (
+                          <div className="flex flex-col gap-2 shrink-0">
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => decideVerification({ item: it, action: "approve" })}
+                              className="px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 disabled:opacity-50"
+                            >
+                              Aprovar
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => {
+                                if (window.confirm("Rejeitar esta solicitação?")) {
+                                  decideVerification({ item: it, action: "reject" });
+                                }
+                              }}
+                              className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 disabled:opacity-50"
+                            >
+                              Rejeitar
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </section>

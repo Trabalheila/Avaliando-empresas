@@ -45,6 +45,12 @@ export default function AdminQuickAccess({ position = "top-right" }) {
       hint: "Conceder/remover Premium Gratuito",
     },
     {
+      to: "/admin?tab=verif",
+      label: "Verificações Empresa",
+      icon: "🛡️",
+      hint: "Aprovar/rejeitar verificações manuais",
+    },
+    {
       to: "/admin",
       label: "Painel Admin",
       icon: "⚙️",
