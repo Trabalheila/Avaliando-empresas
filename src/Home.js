@@ -882,6 +882,96 @@ function Home({ theme, toggleTheme }) {
     workModel,
   ]);
 
+  // Limpa o formulário de avaliação quando a página é desmontada (navegação
+  // para outra rota) ou quando o navegador é fechado/recarregado.
+  // Garante que campos de texto não persistam entre sessões/navegações.
+  useEffect(() => {
+    const resetForm = () => {
+      setCompany(null);
+      setRating(0);
+      setCommentRating("");
+      setSalario(0);
+      setCommentSalario("");
+      setBeneficios(0);
+      setCommentBeneficios("");
+      setCultura(0);
+      setCommentCultura("");
+      setOportunidades(0);
+      setCommentOportunidades("");
+      setInovacao(0);
+      setCommentInovacao("");
+      setLideranca(0);
+      setCommentLideranca("");
+      setDiversidade(0);
+      setCommentDiversidade("");
+      setDiscriminacao("");
+      setCommentDiscriminacao("");
+      setCargaHoraria(0);
+      setCommentCargaHoraria("");
+      setCrescimento(0);
+      setCommentCrescimento("");
+      setAmbiente(0);
+      setCommentAmbiente("");
+      setEquilibrio(0);
+      setCommentEquilibrio("");
+      setReconhecimento(0);
+      setCommentReconhecimento("");
+      setComunicacao(0);
+      setCommentComunicacao("");
+      setEtica(0);
+      setCommentEtica("");
+      setDesenvolvimento(0);
+      setCommentDesenvolvimento("");
+      setSaudeBemEstar(0);
+      setCommentSaudeBemEstar("");
+      setImpactoSocial(0);
+      setCommentImpactoSocial("");
+      setReputacao(0);
+      setCommentReputacao("");
+      setEstimacaoOrganizacao(0);
+      setCommentEstimacaoOrganizacao("");
+      setGeneralComment("");
+      setGeneralCommentRestrictedSegments([]);
+      setCriterionRestrictedSegments({});
+      setEntrySource("");
+      setContractType("");
+      setWorkModel("");
+      setWorkPeriodStartMonth("");
+      setWorkPeriodStartYear("");
+      setWorkPeriodEndMonth("");
+      setWorkPeriodEndYear("");
+      setWorkPeriodStillWorking(false);
+      setManualCompanyName("");
+      setManualSegment("");
+      setManualRazaoSocial("");
+      setNewCompanyCnpj("");
+    };
+
+    const clearDraftStorage = () => {
+      try {
+        localStorage.removeItem(REVIEW_DRAFT_STORAGE_KEY);
+      } catch {
+        // ignore
+      }
+    };
+
+    // Limpa o rascunho ao fechar/recarregar o navegador.
+    const handleBeforeUnload = () => {
+      clearDraftStorage();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      // Ao desmontar (ex.: navegação para outra rota), zera o estado do
+      // formulário e remove o rascunho persistido para que o próximo acesso
+      // à Home comece com os campos limpos.
+      clearDraftStorage();
+      resetForm();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (company) {
       const data = empresas.find((emp) => emp.company === company.value);
