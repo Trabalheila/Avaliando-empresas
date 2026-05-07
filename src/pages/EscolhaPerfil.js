@@ -6,7 +6,7 @@ import { collection, getDocs, query, where, doc, getDoc, setDoc } from "firebase
 import { isPremium, getUserRole } from "../utils/rbac";
 import { resolveProfileId } from "../utils/profileIdentity";
 import {
-  FiCheck, FiX,
+  FiCheck, FiX, FiClock,
 } from "react-icons/fi";
 import AppHeader from "../components/AppHeader";
 import PlanosApoiador from "../components/PlanosApoiador";
@@ -529,22 +529,27 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 <li className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
                   Tudo do Plano Fundador, em versão avançada:
                 </li>
-                <FeatureRow ok>Painel de avaliações por critério com filtros, séries históricas e exportação</FeatureRow>
-                <FeatureRow ok>Relatórios de reputação avançados e comparativos (período, setor, concorrentes)</FeatureRow>
-                <FeatureRow ok>Ferramenta de resposta com análise de sentimento e sugestões de IA</FeatureRow>
+                <FeatureRow ok>Painel de avaliações por critério com filtros e séries históricas</FeatureRow>
+                <FeatureRow ok>Comparação de reputação por setor e concorrentes (benchmark CNAE)</FeatureRow>
+                <FeatureRow ok>Ferramenta de resposta pública oficial a avaliações</FeatureRow>
                 <FeatureRow ok>Acesso antecipado a todos os recursos em desenvolvimento, sem custo adicional</FeatureRow>
-                <FeatureRow ok><span className="font-semibold">Conexão prioritária com consultores empresariais parceiros</span> — Inclui <span className="font-semibold">20 Créditos de Contato/mês</span> para iniciar conversas com Apoiadores Premium e transformar dados em plano de ação</FeatureRow>
+                <FeatureRow ok><span className="font-semibold">Conexão com consultores empresariais parceiros</span> — Inclui <span className="font-semibold">20 Créditos de Contato/mês</span> para iniciar conversas com Apoiadores Premium e transformar dados em plano de ação</FeatureRow>
                 <FeatureRow ok>Acesso à página <span className="font-semibold">"Meus Contatos"</span> para gerenciar interações com Apoiadores</FeatureRow>
                 <li className="pt-2 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
                   E mais, exclusivo do Premium:
                 </li>
-                <FeatureRow ok><span className="font-semibold">Conexão Exclusiva com Talentos</span> — Inclui <span className="font-semibold">10 Créditos de Contato/mês</span> para encontrar e conectar-se com Trabalhadores Premium de alto Índice de Credibilidade e disponibilidade</FeatureRow>
-                <FeatureRow ok><span className="font-semibold">Gerenciamento Centralizado de Contatos</span> — Uma única página para acompanhar todas as suas solicitações de contato com Apoiadores e Trabalhadores Premium</FeatureRow>
-                <FeatureRow ok>Comparação em tempo real com concorrentes diretos do seu setor</FeatureRow>
-                <FeatureRow ok>Identificação automática de tendências e riscos do mercado</FeatureRow>
-                <FeatureRow ok>Relatórios executivos com oportunidades, ameaças e recomendações</FeatureRow>
-                <FeatureRow ok>Dashboard dinâmico para análise de desempenho e contratos</FeatureRow>
-                <FeatureRow ok>Benchmarks exclusivos e índice de reputação de mercado</FeatureRow>
+                <FeatureRow ok>Benchmark com até 3 concorrentes diretos do seu setor (cultura, liderança, salário e equilíbrio)</FeatureRow>
+                <FeatureRow ok>Dashboard dinâmico para análise de desempenho da reputação</FeatureRow>
+                <li className="pt-2 text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">
+                  Em breve (incluído no plano sem custo adicional):
+                </li>
+                <FeatureRow soon><span className="font-semibold">Conexão Exclusiva com Talentos</span> — <span className="font-semibold">10 Créditos de Contato/mês</span> para encontrar e conectar-se com Trabalhadores Premium de alto Índice de Credibilidade e disponibilidade</FeatureRow>
+                <FeatureRow soon>Gerenciamento Centralizado também para contatos com Trabalhadores Premium</FeatureRow>
+                <FeatureRow soon>Análise de sentimento e sugestões de IA na ferramenta de resposta</FeatureRow>
+                <FeatureRow soon>Exportação de relatórios e séries históricas (PDF/CSV)</FeatureRow>
+                <FeatureRow soon>Identificação automática de tendências e riscos do mercado</FeatureRow>
+                <FeatureRow soon>Relatório executivo mensal com oportunidades, ameaças e recomendações</FeatureRow>
+                <FeatureRow soon>Índice de reputação de mercado (score consolidado)</FeatureRow>
               </ul>
               <button
                 type="button"
@@ -802,11 +807,13 @@ function EscolhaPerfil({ theme, toggleTheme }) {
 }
 
 /* Linha de feature com ícone check/x */
-function FeatureRow({ ok, children }) {
+function FeatureRow({ ok, soon, children }) {
   return (
     <li className="flex items-start gap-2">
       {ok ? (
         <FiCheck className="mt-0.5 w-4 h-4 text-emerald-500 flex-shrink-0" />
+      ) : soon ? (
+        <FiClock className="mt-0.5 w-4 h-4 text-blue-500 flex-shrink-0" aria-label="Em breve" />
       ) : (
         <FiX className="mt-0.5 w-4 h-4 text-slate-400 flex-shrink-0" />
       )}
