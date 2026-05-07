@@ -5,6 +5,7 @@ import { deleteOwnReview, isReviewOwnedByCurrentUser, listReviewsByCompanySlug, 
 import { db } from "../firebase";
 import { collection, deleteDoc, doc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
 import { getStoredProfileId } from "../utils/profileIdentity";
+import RestrictedComment from "../components/RestrictedComment";
 
 const ITEM_CONFIG = {
   comunicacao: { label: "Processo de Recrutamento", commentKeys: ["commentComunicacao"] },
@@ -352,11 +353,18 @@ function CompanyItemComments({ theme, toggleTheme }) {
 
             if (!selectedComment) return null;
 
+            const restrictedSegments =
+              (review?.criterionRestrictedSegments &&
+                Array.isArray(review.criterionRestrictedSegments[itemKey])
+                ? review.criterionRestrictedSegments[itemKey]
+                : []) || [];
+
             return {
               id: review.id,
               pseudonym: review.pseudonym || "Anônimo",
               authorProfileId: review?.authorProfileId || review?.profileId || "",
               comment: selectedComment.trim(),
+              restrictedSegments,
               score: review?.[itemKey],
               createdAt:
                 typeof review?.createdAt?.toDate === "function"
@@ -889,7 +897,11 @@ function CompanyItemComments({ theme, toggleTheme }) {
                   <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{entry.pseudonym}</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">{toDateLabel(entry.createdAt)}</p>
                 </div>
-                <p className="mt-2 text-sm text-slate-700 dark:text-slate-100 whitespace-pre-line">{entry.comment}</p>
+                <RestrictedComment
+                  comment={entry.comment}
+                  restrictedSegments={entry.restrictedSegments}
+                  className="mt-2 text-sm text-slate-700 dark:text-slate-100"
+                />
                 <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                   Nota neste item: {typeof entry.score === "number" ? entry.score.toFixed(1) : "--"}
                 </p>
