@@ -45,6 +45,12 @@ export default function AdminQuickAccess({ position = "top-right" }) {
       hint: "Conceder/remover Premium Gratuito",
     },
     {
+      to: "/admin/crescimento",
+      label: "Crescimento",
+      icon: "📈",
+      hint: "Métricas, gráfico e tabela de usuários",
+    },
+    {
       to: "/admin?tab=verif",
       label: "Verificações Empresa",
       icon: "🛡️",

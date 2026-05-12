@@ -165,11 +165,47 @@ function getDisplayName(data = {}) {
   );
 }
 
+function classifyApprovalStatus(data = {}) {
+  // Mapeia o status de aprovação de cadastro do usuário usando campos já
+  // existentes nos documentos. Ordem de precedência:
+  //   1. Campo explícito `status` (approved | rejected | pending)
+  //   2. emailVerified / companyVerifiedAt indicam cadastro confirmado
+  //   3. Caso contrário, pending
+  const raw = String(data.status || data.approvalStatus || "").toLowerCase();
+  if (raw === "approved" || raw === "aprovado" || raw === "ativo") return "approved";
+  if (raw === "rejected" || raw === "reprovado" || raw === "rejeitado") return "rejected";
+  if (raw === "pending" || raw === "pendente") return "pending";
+  if (data.emailVerified === true || data.companyVerifiedAt) return "approved";
+  return "pending";
+}
+
+function pickCreatedAt(data = {}) {
+  // Não há um campo `createdAt` garantido em todos os docs de `users`, então
+  // fazemos best-effort com os timestamps já presentes.
+  const ts =
+    data.createdAt ||
+    data.emailVerifiedAt ||
+    data.companyVerifiedAt ||
+    data.freePremiumGrantedAt ||
+    data.updatedAt ||
+    null;
+  if (!ts) return null;
+  try {
+    if (typeof ts.toDate === "function") return ts.toDate();
+    if (ts instanceof Date) return ts;
+    const d = new Date(ts);
+    return Number.isNaN(d.getTime()) ? null : d;
+  } catch {
+    return null;
+  }
+}
+
 async function handleListUsers(req, res) {
   const {
     uid,
     userType = "todos",
     planStatus = "todos",
+    approvalStatus = "todos",
     search = "",
     pageSize = 50,
     cursor = null,
@@ -198,20 +234,25 @@ async function handleListUsers(req, res) {
     const items = docs
       .map((d) => {
         const data = d.data() || {};
+        const created = pickCreatedAt(data);
         return {
           id: d.id,
           name: getDisplayName(data),
+          pseudonym: data.pseudonym || "",
           email: data.email || "",
           userType: classifyUserType(data),
           planStatus: classifyPlanStatus(data),
+          approvalStatus: classifyApprovalStatus(data),
+          createdAt: created ? created.toISOString() : null,
           updatedAt: data.updatedAt?.toDate?.()?.toISOString?.() || null,
         };
       })
       .filter((item) => {
         if (userType !== "todos" && item.userType !== userType) return false;
         if (planStatus !== "todos" && item.planStatus !== planStatus) return false;
+        if (approvalStatus !== "todos" && item.approvalStatus !== approvalStatus) return false;
         if (searchLower) {
-          const haystack = `${item.name} ${item.email}`.toLowerCase();
+          const haystack = `${item.name} ${item.pseudonym} ${item.email}`.toLowerCase();
           if (!haystack.includes(searchLower)) return false;
         }
         return true;
@@ -221,6 +262,132 @@ async function handleListUsers(req, res) {
   } catch (err) {
     console.error("[admin/users] erro:", err);
     return res.status(500).json({ error: "Erro interno ao listar usuários." });
+  }
+}
+
+async function handleGrowthStats(req, res) {
+  const { uid } = req.body || {};
+  if (!requireAdminUid(uid)) {
+    return res.status(403).json({ error: "Acesso restrito ao administrador." });
+  }
+
+  try {
+    const { db } = await ensureAdmin();
+
+    // Faz varredura completa em lotes para não estourar memória.
+    const PAGE = 500;
+    let cursor = null;
+    const totals = {
+      total: 0,
+      approved: 0,
+      rejected: 0,
+      pending: 0,
+      plan: { gratuito: 0, premium: 0, premium_gratuito: 0 },
+      premiumByType: { trabalhador: 0, empresa: 0, apoiador: 0 },
+    };
+    const byMonth = new Map(); // "YYYY-MM" → contagem
+
+    /* eslint-disable no-await-in-loop */
+    while (true) {
+      let q = db.collection("users").orderBy("__name__").limit(PAGE);
+      if (cursor) q = q.startAfter(cursor);
+      const snap = await q.get();
+      if (snap.empty) break;
+
+      snap.docs.forEach((d) => {
+        const data = d.data() || {};
+        totals.total += 1;
+
+        const approval = classifyApprovalStatus(data);
+        totals[approval] = (totals[approval] || 0) + 1;
+
+        const plan = classifyPlanStatus(data);
+        totals.plan[plan] = (totals.plan[plan] || 0) + 1;
+
+        // Recorta o plano Premium (pago) por tipo de usuário.
+        if (plan === "premium" || plan === "premium_gratuito") {
+          const type = classifyUserType(data);
+          totals.premiumByType[type] = (totals.premiumByType[type] || 0) + 1;
+        }
+
+        const created = pickCreatedAt(data);
+        if (created) {
+          const key = `${created.getFullYear()}-${String(created.getMonth() + 1).padStart(
+            2,
+            "0"
+          )}`;
+          byMonth.set(key, (byMonth.get(key) || 0) + 1);
+        }
+      });
+
+      if (snap.docs.length < PAGE) break;
+      cursor = snap.docs[snap.docs.length - 1].id;
+    }
+    /* eslint-enable no-await-in-loop */
+
+    // Garante 12 meses contíguos terminando no mês atual (preenche zeros).
+    const now = new Date();
+    const monthly = [];
+    for (let i = 11; i >= 0; i -= 1) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      monthly.push({ month: key, count: byMonth.get(key) || 0 });
+    }
+
+    return res.status(200).json({ totals, monthly });
+  } catch (err) {
+    console.error("[admin/growth-stats] erro:", err);
+    return res.status(500).json({ error: "Erro interno ao calcular métricas." });
+  }
+}
+
+async function handleUpdateUserStatus(req, res) {
+  const { uid, targetUserId, status } = req.body || {};
+  if (!requireAdminUid(uid)) {
+    return res.status(403).json({ error: "Acesso restrito ao administrador." });
+  }
+  if (!targetUserId || typeof targetUserId !== "string") {
+    return res.status(400).json({ error: "targetUserId é obrigatório." });
+  }
+  const allowed = ["approved", "rejected", "pending"];
+  if (!allowed.includes(status)) {
+    return res.status(400).json({ error: "status inválido." });
+  }
+
+  try {
+    const { db, FieldValue } = await ensureAdmin();
+    const ref = db.collection("users").doc(targetUserId);
+    const snap = await ref.get();
+    if (!snap.exists) {
+      return res.status(404).json({ error: "Usuário não encontrado." });
+    }
+
+    const payload = {
+      status,
+      statusUpdatedAt: FieldValue.serverTimestamp(),
+      statusUpdatedBy: uid,
+    };
+    await ref.set(payload, { merge: true });
+
+    const updated = await ref.get();
+    const data = updated.data() || {};
+    const created = pickCreatedAt(data);
+    return res.status(200).json({
+      success: true,
+      user: {
+        id: updated.id,
+        name: getDisplayName(data),
+        pseudonym: data.pseudonym || "",
+        email: data.email || "",
+        userType: classifyUserType(data),
+        planStatus: classifyPlanStatus(data),
+        approvalStatus: classifyApprovalStatus(data),
+        createdAt: created ? created.toISOString() : null,
+      },
+    });
+  } catch (err) {
+    console.error("[admin/update-user-status] erro:", err);
+    return res.status(500).json({ error: "Erro interno ao atualizar status." });
   }
 }
 
@@ -305,6 +472,8 @@ export default async function handler(req, res) {
   if (op === "reviews") return handleReviews(req, res);
   if (op === "users") return handleListUsers(req, res);
   if (op === "update-plan") return handleUpdatePlan(req, res);
+  if (op === "growth-stats") return handleGrowthStats(req, res);
+  if (op === "update-user-status") return handleUpdateUserStatus(req, res);
   if (op === "restricted") return handleListRestricted(req, res);
   if (op === "moderate-segment") return handleModerateSegment(req, res);
   if (op === "verify-request") return handleVerifyRequest(req, res);
@@ -315,7 +484,7 @@ export default async function handler(req, res) {
 
   return res.status(400).json({
     error:
-      "Parâmetro 'op' inválido. Ops válidas: delete, reviews, users, update-plan, restricted, moderate-segment, verify-request, verify-confirm, verify-resend, verify-list, verify-decision.",
+      "Parâmetro 'op' inválido. Ops válidas: delete, reviews, users, update-plan, growth-stats, update-user-status, restricted, moderate-segment, verify-request, verify-confirm, verify-resend, verify-list, verify-decision.",
   });
 }
 
