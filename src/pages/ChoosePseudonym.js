@@ -10,6 +10,7 @@ import { buildApiUrl } from "../utils/apiBase";
 import { auth, db } from "../firebase";
 import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { resolveUserVerificationDetail } from "../utils/verificationLevel";
 
 const predefinedAvatars = [
   "🧑", "🧑‍💼", "🧑‍🔧", "🧑‍💻", "🧑‍🔬", "👩‍🏫", "👨‍🍳", "👩‍⚕️", "👨‍🚀", "👩‍🎨",
@@ -1126,6 +1127,12 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         status: "ativo",
         approvalStatus: "approved",
       };
+      // Computa nível de verificação (free/identity) com base nos campos já
+      // presentes (login provider, perfil LinkedIn etc.). "proven" só é
+      // atribuído por contexto da empresa avaliada — não aqui.
+      const vDetail = resolveUserVerificationDetail(nextProfile, "");
+      nextProfile.verification_level = vDetail.level;
+      nextProfile.verification_provider = vDetail.provider || null;
       localStorage.setItem("userPseudonym", trimmedPseudo);
       localStorage.setItem("userProfile", JSON.stringify(nextProfile));
 
@@ -1309,6 +1316,13 @@ function ChoosePseudonym({ theme, toggleTheme }) {
           parsedAt: new Date().toISOString(),
         },
       };
+
+      // Recalcula nível de verificação (free/identity) após enriquecer com
+      // experiências, perfil LinkedIn etc. "proven" depende da empresa
+      // avaliada e é computado no momento da avaliação.
+      const vDetailFull = resolveUserVerificationDetail(nextProfile, "");
+      nextProfile.verification_level = vDetailFull.level;
+      nextProfile.verification_provider = vDetailFull.provider || null;
 
       localStorage.setItem("userProfile", JSON.stringify(nextProfile));
 

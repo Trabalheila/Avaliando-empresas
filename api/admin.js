@@ -162,6 +162,36 @@ function isVerifiedByLinkedIn(data = {}) {
   return false;
 }
 
+// Computa o nível de verificação 3-tier para o painel admin.
+// Retorna { level: "free"|"identity"|"proven", provider: "linkedin"|"google"|null }.
+// "proven" só é elevado quando o usuário tem provenCompanies preenchido por
+// upload de holerite/CTPS (lógica de upload é tratada em endpoint separado).
+function computeVerificationLevel(data = {}) {
+  const stored = String(data.verification_level || data.verificationLevel || "").toLowerCase();
+  const storedProvider = String(data.verification_provider || "").toLowerCase();
+  const provider = String(data.loginProvider || "").toLowerCase();
+
+  let detectedProvider = null;
+  if (provider === "linkedin" || data.linkedinProfile || data.linkedInUrl) {
+    detectedProvider = "linkedin";
+  } else if (provider === "google" || data.googleId || data.googleProfile) {
+    detectedProvider = "google";
+  } else if (Array.isArray(data.linkedinExperiences) && data.linkedinExperiences.length > 0) {
+    detectedProvider = "linkedin";
+  }
+
+  const finalProvider = detectedProvider || (storedProvider === "google" || storedProvider === "linkedin" ? storedProvider : null);
+
+  const hasProvenDocs = Array.isArray(data.provenCompanies) && data.provenCompanies.length > 0;
+  if (stored === "proven" || hasProvenDocs) {
+    return { level: "proven", provider: finalProvider };
+  }
+  if (stored === "identity" || detectedProvider) {
+    return { level: "identity", provider: finalProvider };
+  }
+  return { level: "free", provider: null };
+}
+
 function getDisplayName(data = {}) {
   return (
     data.pseudonym ||
@@ -248,6 +278,7 @@ async function handleListUsers(req, res) {
       .map((d) => {
         const data = d.data() || {};
         const created = pickCreatedAt(data);
+        const verification = computeVerificationLevel(data);
         return {
           id: d.id,
           name: getDisplayName(data),
@@ -257,6 +288,8 @@ async function handleListUsers(req, res) {
           planStatus: classifyPlanStatus(data),
           approvalStatus: classifyApprovalStatus(data),
           verifiedByLinkedIn: isVerifiedByLinkedIn(data),
+          verificationLevel: verification.level,
+          verificationProvider: verification.provider,
           createdAt: created ? created.toISOString() : null,
           updatedAt: data.updatedAt?.toDate?.()?.toISOString?.() || null,
         };
@@ -298,6 +331,9 @@ async function handleGrowthStats(req, res) {
       pending: 0,
       incomplete: 0,
       linkedinVerified: 0,
+      verificationFree: 0,
+      verificationIdentity: 0,
+      verificationProven: 0,
       plan: { gratuito: 0, premium: 0, premium_gratuito: 0 },
       premiumByType: { trabalhador: 0, empresa: 0, apoiador: 0 },
     };
@@ -320,6 +356,11 @@ async function handleGrowthStats(req, res) {
         if (isVerifiedByLinkedIn(data)) {
           totals.linkedinVerified += 1;
         }
+
+        const v = computeVerificationLevel(data);
+        if (v.level === "proven") totals.verificationProven += 1;
+        else if (v.level === "identity") totals.verificationIdentity += 1;
+        else totals.verificationFree += 1;
 
         const plan = classifyPlanStatus(data);
         totals.plan[plan] = (totals.plan[plan] || 0) + 1;
@@ -455,6 +496,7 @@ async function handleUpdateUserStatus(req, res) {
     const updated = await ref.get();
     const data = updated.data() || {};
     const created = pickCreatedAt(data);
+    const verification = computeVerificationLevel(data);
     return res.status(200).json({
       success: true,
       user: {
@@ -466,6 +508,8 @@ async function handleUpdateUserStatus(req, res) {
         planStatus: classifyPlanStatus(data),
         approvalStatus: classifyApprovalStatus(data),
         verifiedByLinkedIn: isVerifiedByLinkedIn(data),
+        verificationLevel: verification.level,
+        verificationProvider: verification.provider,
         createdAt: created ? created.toISOString() : null,
       },
     });

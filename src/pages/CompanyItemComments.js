@@ -6,6 +6,11 @@ import { db } from "../firebase";
 import { collection, deleteDoc, doc, getDoc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
 import { getStoredProfileId } from "../utils/profileIdentity";
 import RestrictedComment from "../components/RestrictedComment";
+import VerificationLevelBadge from "../components/VerificationLevelBadge";
+import {
+  resolveUserVerificationDetail,
+  resolveEntryVerificationDetail,
+} from "../utils/verificationLevel";
 
 const ITEM_CONFIG = {
   comunicacao: { label: "Processo de Recrutamento", commentKeys: ["commentComunicacao"] },
@@ -27,51 +32,6 @@ function toDateLabel(value) {
   const parsed = new Date(value || "");
   if (!Number.isFinite(parsed.getTime())) return "";
   return parsed.toLocaleString("pt-BR");
-}
-
-function resolveVerificationLevel(userData) {
-  if (!userData || typeof userData !== "object") return "none";
-  const provider = (userData.loginProvider || "").toString().toLowerCase();
-  const hasLinkedinProfile = Boolean(userData.linkedinProfile || userData.linkedInUrl);
-  const hasLinkedinExperiences =
-    Array.isArray(userData.linkedinExperiences) && userData.linkedinExperiences.length > 0;
-  if (provider === "linkedin" || hasLinkedinProfile || hasLinkedinExperiences) {
-    return "linkedin";
-  }
-  return "none";
-}
-
-function resolveEntryVerification(entry, cache) {
-  if (entry?.authorLoginProvider === "linkedin" || entry?.authorHasLinkedIn) return "linkedin";
-  const cached = cache?.[entry?.authorProfileId] || cache?.[`pseudonym:${(entry?.pseudonym || "").toLowerCase()}`];
-  return cached || "none";
-}
-
-function VerificationBadge({ level }) {
-  if (level === "linkedin") {
-    return (
-      <span
-        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#0A66C2]/10 text-[#0A66C2] border border-[#0A66C2]/30 dark:bg-[#0A66C2]/20 dark:text-[#7CB9F1] dark:border-[#0A66C2]/40"
-        title="Verificado com LinkedIn"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          className="w-3 h-3"
-          fill="currentColor"
-        >
-          <path d="M20.45 20.45h-3.55v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.13 1.44-2.13 2.94v5.67H9.36V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.38-1.85 3.62 0 4.29 2.38 4.29 5.48v6.26zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.99 0 1.78-.77 1.78-1.72V1.72C24 .77 23.21 0 22.22 0z" />
-        </svg>
-        Verificado com LinkedIn
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
-      Não verificado
-    </span>
-  );
 }
 
 function toSortableTime(value) {
@@ -443,9 +403,13 @@ function CompanyItemComments({ theme, toggleTheme }) {
 
   React.useEffect(() => {
     let alive = true;
+    // Só buscamos no Firestore os entries que ainda não trazem informação de
+    // verificação no próprio registro. Como agora há três níveis, mesmo entries
+    // com authorLoginProvider precisam ser checadas para descobrir provider e
+    // possível nível "proven". Mantemos o filtro pelo entry só quando o nível
+    // mais alto (proven) já está indicado.
     const needLookup = (entries || []).filter(
-      (e) =>
-        !(e?.authorLoginProvider === "linkedin" || e?.authorHasLinkedIn)
+      (e) => (e?.authorVerificationLevel || "").toString().toLowerCase() !== "proven"
     );
     if (needLookup.length === 0) return;
 
@@ -473,11 +437,11 @@ function CompanyItemComments({ theme, toggleTheme }) {
           missingIds.map(async (id) => {
             try {
               const snap = await getDoc(doc(db, "users", id));
-              if (snap.exists()) return [id, resolveVerificationLevel(snap.data())];
+              if (snap.exists()) return [id, resolveUserVerificationDetail(snap.data(), companyName)];
             } catch {
               // ignore
             }
-            return [id, "none"];
+            return [id, { level: "free", provider: null }];
           })
         );
         const pseudoResults = await Promise.all(
@@ -494,7 +458,7 @@ function CompanyItemComments({ theme, toggleTheme }) {
                 try {
                   const snap = await getDocs(q1);
                   if (!snap.empty) {
-                    return [cacheKey, resolveVerificationLevel(snap.docs[0].data())];
+                    return [cacheKey, resolveUserVerificationDetail(snap.docs[0].data(), companyName)];
                   }
                 } catch {
                   // ignore
@@ -503,7 +467,7 @@ function CompanyItemComments({ theme, toggleTheme }) {
             } catch {
               // ignore
             }
-            return [cacheKey, "none"];
+            return [cacheKey, { level: "free", provider: null }];
           })
         );
         if (!alive) return;
@@ -1026,7 +990,10 @@ function CompanyItemComments({ theme, toggleTheme }) {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{entry.pseudonym}</p>
-                    <VerificationBadge level={resolveEntryVerification(entry, verificationByProfile)} />
+                    {(() => {
+                      const detail = resolveEntryVerificationDetail(entry, verificationByProfile, companyName);
+                      return <VerificationLevelBadge level={detail.level} provider={detail.provider} />;
+                    })()}
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">{toDateLabel(entry.createdAt)}</p>
                 </div>

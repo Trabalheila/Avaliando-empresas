@@ -20,6 +20,7 @@ import {
 } from "./utils/profileIdentity";
 import { getLinkedInRedirectUri } from "./utils/linkedinAuth";
 import { buildApiUrl } from "./utils/apiBase";
+import { resolveUserVerificationDetail } from "./utils/verificationLevel";
 import { evaluationHasPotentialPersonalName } from "./utils/personNameDetection";
 import ReferralBanner from "./components/ReferralBanner";
 
@@ -1242,6 +1243,14 @@ function Home({ theme, toggleTheme }) {
       )
     );
 
+    // Calcula o nível de verificação 3-tier para esta avaliação.
+    // Pode ser "proven" se o LinkedIn do autor contiver a empresa avaliada
+    // ou se houver documento comprobatório carregado (provenCompanies).
+    const targetCompany = company?.value || "";
+    const detail = resolveUserVerificationDetail(userProfile || {}, targetCompany);
+    const authorVerificationLevel = detail.level;
+    const authorVerificationProvider = detail.provider;
+
     const draft = {
       company: company?.value || "",
       pseudonym: pseudonym || "",
@@ -1249,6 +1258,8 @@ function Home({ theme, toggleTheme }) {
       authorLoginProvider,
       authorHasLinkedIn,
       authorHasResume,
+      authorVerificationLevel,
+      authorVerificationProvider,
       rating, commentRating, salario, commentSalario, beneficios, commentBeneficios,
       cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao,
       lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente,
