@@ -175,18 +175,19 @@ function getDisplayName(data = {}) {
 
 function classifyApprovalStatus(data = {}) {
   // Mapeia o status de cadastro do usuário usando campos já existentes.
-  // Buckets de saída: approved (ativo) | rejected (removido) | incomplete (sem pseudônimo)
+  // Buckets de saída: approved (ativo) | rejected (removido) | incomplete (sem pseudônimo nem e-mail)
   const raw = String(data.status || data.approvalStatus || "").toLowerCase();
+  const hasPseudonym = Boolean((data.pseudonym || data.pseudonimo || "").toString().trim());
+  const hasEmail = Boolean((data.email || "").toString().trim());
   if (raw === "approved" || raw === "aprovado" || raw === "ativo") return "approved";
   if (raw === "rejected" || raw === "reprovado" || raw === "rejeitado" || raw === "removido") return "rejected";
   if (raw === "incomplete" || raw === "incompleto" || raw === "pending" || raw === "pendente") {
-    // Cadastro marcado como incompleto/pendente: se na verdade já tem pseudônimo, eleva para ativo.
-    const hasPseudonym = Boolean((data.pseudonym || data.pseudonimo || "").toString().trim());
-    return hasPseudonym ? "approved" : "incomplete";
+    // Cadastro marcado como incompleto/pendente: se na verdade já tem
+    // pseudônimo OU e-mail (etapa 1 mínima), eleva para ativo.
+    return hasPseudonym || hasEmail ? "approved" : "incomplete";
   }
-  // Fallback (docs antigos sem campo status): pseudônimo -> ativo, senão incompleto.
-  const hasPseudonym = Boolean((data.pseudonym || data.pseudonimo || "").toString().trim());
-  if (hasPseudonym) return "approved";
+  // Fallback (docs antigos sem campo status): pseudônimo OU e-mail -> ativo.
+  if (hasPseudonym || hasEmail) return "approved";
   if (data.emailVerified === true || data.companyVerifiedAt) return "approved";
   return "incomplete";
 }

@@ -114,6 +114,20 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   // UID anônimo (ou autenticado) usado para registrar o funil de cadastro
   // na coleção cadastros_iniciados. Persistido em ref para o handleSubmit.
   const funnelUidRef = useRef(null);
+  // Cadastro em duas etapas:
+  //   1 → obrigatório: pseudônimo + e-mail (com aviso de privacidade)
+  //   2 → opcional: CPF, escolaridade, avatar, experiências…
+  // Quem já tem pseudônimo+email salvos no profile entra direto na etapa 2.
+  const [step, setStep] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      const hasPseudo = Boolean((saved?.pseudonimo || saved?.name || "").toString().trim());
+      const hasEmail = Boolean((saved?.email || "").toString().trim());
+      return hasPseudo && hasEmail ? 2 : 1;
+    } catch {
+      return 1;
+    }
+  });
   const [pseudonym, setPseudonym] = useState("");
   const [birthdate, setBirthdate] = useState("");
   const [birthdateError, setBirthdateError] = useState("");
@@ -1067,6 +1081,99 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     }
   }, [cpf, birthdate]);
 
+  // ─── Etapa 1: pseudônimo + e-mail ───
+  // Salva o mínimo no Firestore, marca o funil como concluído (a etapa 1 já
+  // conta como cadastro ativo) e avança para a etapa 2 (opcional).
+  const handleContinueStep1 = useCallback(
+    async (e) => {
+      if (e && typeof e.preventDefault === "function") e.preventDefault();
+      const trimmedPseudo = pseudonym.trim();
+      const trimmedEmail = (email || "").trim().toLowerCase();
+      if (!trimmedPseudo) {
+        setError("Por favor, escolha um pseudônimo.");
+        return;
+      }
+      if (!trimmedEmail) {
+        setError("Por favor, informe seu e-mail.");
+        return;
+      }
+      // Validação leve de formato. Mantemos liberal para reduzir abandono.
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+        setError("E-mail inválido.");
+        return;
+      }
+      setError(null);
+
+      const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      let unifiedId = resolveProfileId(existingProfile);
+      try {
+        const unified = await findUnifiedProfile({
+          id: unifiedId || undefined,
+          email: trimmedEmail,
+        });
+        if (unified?.id) unifiedId = unified.id;
+      } catch {
+        /* segue com id existente */
+      }
+
+      const nextProfile = {
+        ...existingProfile,
+        profileId: unifiedId,
+        name: trimmedPseudo,
+        pseudonimo: trimmedPseudo,
+        email: trimmedEmail,
+        // Status explícito: cadastro mínimo já é ATIVO.
+        status: "ativo",
+        approvalStatus: "approved",
+      };
+      localStorage.setItem("userPseudonym", trimmedPseudo);
+      localStorage.setItem("userProfile", JSON.stringify(nextProfile));
+
+      try {
+        await saveUserProfile({ id: unifiedId, ...nextProfile });
+      } catch (err) {
+        console.warn("[etapa1] Falha ao salvar perfil mínimo:", err);
+      }
+
+      // Funil: marca conclusão (usuário já está cadastrado a partir daqui).
+      try {
+        const funnelUid = funnelUidRef.current || auth?.currentUser?.uid;
+        if (funnelUid) {
+          await setDoc(
+            doc(db, "cadastros_iniciados", funnelUid),
+            {
+              uid: funnelUid,
+              concluido: true,
+              concluidoAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+              completedStep: 1,
+            },
+            { merge: true }
+          );
+        }
+      } catch (err) {
+        console.warn("[etapa1] Falha ao marcar funil:", err?.message || err);
+      }
+
+      // Dispara verificação de e-mail em segundo plano (não bloqueante).
+      try {
+        await sendVerificationEmail(trimmedEmail);
+      } catch (err) {
+        console.warn("[etapa1] Falha ao enviar e-mail de verificação:", err);
+      }
+
+      window.dispatchEvent(new Event("trabalheiLa_user_updated"));
+      setInfo("Cadastro confirmado! Você pode enriquecer seu perfil ou pular essa etapa.");
+      setStep(2);
+    },
+    [pseudonym, email, sendVerificationEmail]
+  );
+
+  // Permite avançar sem preencher nada da etapa 2 — perfil já está ativo.
+  const handleSkipStep2 = useCallback(() => {
+    navigate("/");
+  }, [navigate]);
+
   const handleSubmit = useCallback(
     async (e) => {
       e.preventDefault();
@@ -1077,8 +1184,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       }
 
       if (!confirmedHuman) {
-        setError("Por favor, confirme que você é um humano.");
-        return;
+        // Etapa 2 é opcional: se o usuário não marcou o "não sou robô" mas
+        // chegou aqui pela etapa 1, deixamos passar — ele já se cadastrou.
+        // Mantemos o aviso apenas via UI desabilitando o botão quando desejado.
       }
 
       // Validação de data de nascimento (opcional, mas se preenchida deve ser válida e >= 18 anos).
@@ -1104,15 +1212,12 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       }
 
       const cpfNumbers = cpf.replace(/\D/g, "");
-      if (!cpfNumbers) {
-        setError("CPF é obrigatório.");
-        return;
-      }
-      if (cpfNumbers.length !== 11) {
+      // CPF é opcional na etapa 2. Validamos apenas o formato quando preenchido.
+      if (cpfNumbers && cpfNumbers.length !== 11) {
         setError("CPF deve conter 11 dígitos.");
         return;
       }
-      if (!isValidCpfDigits(cpfNumbers)) {
+      if (cpfNumbers && !isValidCpfDigits(cpfNumbers)) {
         setError("CPF inválido.");
         return;
       }
@@ -1392,8 +1497,28 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             </div>
           )}
 
-          <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
-            {/* Pseudônimo */}
+          <form ref={formRef} onSubmit={step === 1 ? handleContinueStep1 : handleSubmit} className="space-y-4">
+            {/* Indicador visual de etapas */}
+            <div className="flex items-center gap-2 text-xs font-semibold mb-2">
+              <span className={`px-2 py-1 rounded-full ${step === 1 ? "bg-blue-600 text-white" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200"}`}>
+                {step === 1 ? "Etapa 1 de 2" : "✓ Etapa 1"}
+              </span>
+              <span className={`px-2 py-1 rounded-full ${step === 2 ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>
+                {step === 2 ? "Etapa 2 — opcional" : "Etapa 2"}
+              </span>
+            </div>
+
+            {step === 1 && (
+              <div className="rounded-xl border border-blue-200 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-700 px-4 py-3 text-sm text-blue-800 dark:text-blue-100 flex items-start gap-2">
+                <span aria-hidden="true">🔒</span>
+                <span>
+                  <strong>Seu nome real nunca será exibido.</strong> Todas as avaliações são publicadas sob seu pseudônimo.
+                </span>
+              </div>
+            )}
+
+            {/* Pseudônimo (etapa 1) */}
+            {step === 1 && (
             <div ref={(el) => assignSectionRef(el, 0)}>
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Escolha seu pseudônimo <span className="text-xs font-normal text-slate-500">— será sua identidade anônima nas avaliações</span></label>
               <input
@@ -1406,11 +1531,13 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
               />
             </div>
+            )}
 
             {/* Data de nascimento (opcional, mas se preenchida exige >= 18 anos). */}
+            {step === 2 && (
             <div>
               <label htmlFor="cp-birthdate" className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Data de Nascimento
+                Data de Nascimento <span className="text-xs font-normal text-slate-500">(opcional)</span>
               </label>
               <input
                 id="cp-birthdate"
@@ -1462,11 +1589,13 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 </p>
               )}
             </div>
+            )}
 
             {/* E-mail e Nome completo lado a lado em md+ */}
             <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
 
-            {/* E-mail */}
+            {/* E-mail (etapa 1) */}
+            {step === 1 && (
             <div ref={(el) => assignSectionRef(el, 1)}>
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
                 <span>E-mail</span>
@@ -1512,13 +1641,14 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 </div>
               )}
             </div>
+            )}
 
-            {/* CPF — vem ANTES do nome completo. Ao sair do campo, consulta
-                a API e, se possível, preenche o nome automaticamente. */}
+            {/* CPF — opcional (etapa 2). Ao sair do campo, consulta a API e,
+                se possível, preenche o nome automaticamente. */}
+            {step === 2 && (
             <div ref={(el) => assignSectionRef(el, 3)}>
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                CPF <span className="text-rose-600">*</span>
-                <span className="text-xs font-normal text-slate-500"> (privado — apenas validação interna)</span>
+                CPF <span className="text-xs font-normal text-slate-500">(opcional — apenas validação interna)</span>
               </label>
               <div className="relative">
                 <input
@@ -1533,7 +1663,6 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                   onBlur={handleCpfBlur}
                   inputMode="numeric"
                   autoComplete="off"
-                  required
                   placeholder="000.000.000-00"
                   className="w-full p-3 pr-10 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
                 />
@@ -1560,11 +1689,13 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">{cpfNotice}</p>
               )}
             </div>
+            )}
 
             {/* Nome real (privado) — readOnly quando preenchido pela API. */}
+            {step === 2 && (
             <div ref={(el) => assignSectionRef(el, 2)} className="md:col-span-2">
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Nome completo <span className="text-xs font-normal text-slate-500">(privado — nunca será exibido)</span>
+                Nome completo <span className="text-xs font-normal text-slate-500">(opcional — privado, nunca será exibido)</span>
                 {cpfVerified && (
                   <span className="ml-2 text-[11px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 rounded-full px-2 py-0.5">
                     Verificado pelo CPF
@@ -1597,14 +1728,33 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 )}
               </div>
             </div>
+            )}
 
             </div>
 
-            {/* ===== IMPORTAÇÃO DE EXPERIÊNCIAS ===== */}
+            {/* Botão Continuar — etapa 1 */}
+            {step === 1 && (
+              <>
+                {error && <p className="text-red-600 text-sm">{error}</p>}
+                <button
+                  type="submit"
+                  className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition disabled:opacity-60"
+                  disabled={!pseudonym.trim() || !email.trim()}
+                >
+                  Continuar
+                </button>
+                <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+                  Você pode enriquecer seu perfil depois (opcional).
+                </p>
+              </>
+            )}
+
+            {/* ===== IMPORTAÇÃO DE EXPERIÊNCIAS (etapa 2 — opcional) ===== */}
+            {step === 2 && (
             <div ref={(el) => assignSectionRef(el, 4)} className="bg-blue-50 dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-2xl p-5 space-y-5">
               <div>
                 <h3 className="text-lg font-bold text-blue-800 dark:text-blue-200 mb-1">
-                  Experiências profissionais
+                  Experiências profissionais <span className="text-xs font-normal text-slate-600 dark:text-slate-300">(opcional)</span>
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-300">
                   Importe de uma plataforma ou adicione manualmente. Apenas empresa e cargo são necessários.
@@ -1928,10 +2078,14 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 </div>
               )}
             </div>
+            )}
 
-            {/* Avatar */}
+            {/* Avatar (etapa 2 — opcional) */}
+            {step === 2 && (
             <div ref={(el) => assignSectionRef(el, 5)}>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Avatar</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Avatar <span className="text-xs font-normal text-slate-500">(opcional)</span>
+              </label>
               <div className="mb-3 flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50 p-3">
                 <div className="h-16 w-16 rounded-full overflow-hidden border border-blue-200 bg-white flex items-center justify-center text-2xl">
                   {avatar ? (
@@ -1999,8 +2153,10 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 </button>
               )}
             </div>
+            )}
 
-            {/* Confirmação humano */}
+            {/* Confirmação humano (etapa 2 — opcional) */}
+            {step === 2 && (
             <div ref={(el) => assignSectionRef(el, 6)} className="flex items-center gap-3">
               <input
                 type="checkbox"
@@ -2013,16 +2169,28 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 Não sou um robô e concordo em enviar uma avaliação sincera.
               </label>
             </div>
+            )}
 
             {info && <p className="text-emerald-700 text-sm">{info}</p>}
-            {error && <p className="text-red-600 text-sm">{error}</p>}
+            {step === 2 && error && <p className="text-red-600 text-sm">{error}</p>}
 
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition"
-            >
-              Salvar perfil
-            </button>
+            {step === 2 && (
+              <>
+                <button
+                  type="submit"
+                  className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition"
+                >
+                  Concluir perfil
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSkipStep2}
+                  className="w-full py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-300 hover:underline"
+                >
+                  Pular por agora
+                </button>
+              </>
+            )}
 
             <div className="pt-2 text-center">
               <Link
