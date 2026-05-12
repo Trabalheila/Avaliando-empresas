@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import { deleteOwnReview, isReviewOwnedByCurrentUser, listReviewsByCompanySlug, slugifyCompany, updateOwnReview } from "../services/reviews";
 import { db } from "../firebase";
-import { collection, deleteDoc, doc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
 import { getStoredProfileId } from "../utils/profileIdentity";
 import RestrictedComment from "../components/RestrictedComment";
 
@@ -27,6 +27,52 @@ function toDateLabel(value) {
   const parsed = new Date(value || "");
   if (!Number.isFinite(parsed.getTime())) return "";
   return parsed.toLocaleString("pt-BR");
+}
+
+function resolveVerificationLevel(userData) {
+  if (!userData || typeof userData !== "object") return "none";
+  const provider = (userData.loginProvider || "").toString().toLowerCase();
+  const hasLinkedinProfile = Boolean(userData.linkedinProfile);
+  const hasLinkedinExperiences =
+    Array.isArray(userData.linkedinExperiences) && userData.linkedinExperiences.length > 0;
+  if (provider === "linkedin" || hasLinkedinProfile || hasLinkedinExperiences) {
+    return "linkedin";
+  }
+  const resume = userData.resumeData;
+  if (resume && typeof resume === "object") {
+    const hasExperiences =
+      (Array.isArray(resume.experiences) && resume.experiences.length > 0) ||
+      (Array.isArray(resume.experiencesStructured) && resume.experiencesStructured.length > 0) ||
+      (typeof resume.rawText === "string" && resume.rawText.trim().length > 0);
+    if (hasExperiences) return "curriculum";
+  }
+  return "none";
+}
+
+function VerificationBadge({ level }) {
+  const styleMap = {
+    linkedin: {
+      className:
+        "bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800",
+      label: "Verificado com LinkedIn",
+    },
+    curriculum: {
+      className:
+        "bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800",
+      label: "Verificado pelo Currículo",
+    },
+    none: {
+      className:
+        "bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+      label: "Não verificado",
+    },
+  };
+  const cfg = styleMap[level] || styleMap.none;
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${cfg.className}`}>
+      {cfg.label}
+    </span>
+  );
 }
 
 function toSortableTime(value) {
@@ -148,6 +194,7 @@ function CompanyItemComments({ theme, toggleTheme }) {
   const [editingScore, setEditingScore] = React.useState(0);
   const [savingEditId, setSavingEditId] = React.useState("");
   const [openReactionPickerId, setOpenReactionPickerId] = React.useState(null);
+  const [verificationByProfile, setVerificationByProfile] = React.useState({});
   const reactionHoldTimeout = React.useRef(null);
 
   const reactions = [
@@ -391,6 +438,49 @@ function CompanyItemComments({ theme, toggleTheme }) {
       alive = false;
     };
   }, [companyName, itemConfig, itemKey]);
+
+  React.useEffect(() => {
+    let alive = true;
+    const ids = Array.from(
+      new Set(
+        (entries || [])
+          .map((e) => (e?.authorProfileId || "").toString().trim())
+          .filter(Boolean)
+      )
+    );
+    if (ids.length === 0) return;
+
+    setVerificationByProfile((prev) => {
+      const missing = ids.filter((id) => !(id in prev));
+      if (missing.length === 0) return prev;
+      (async () => {
+        const results = await Promise.all(
+          missing.map(async (id) => {
+            try {
+              const snap = await getDoc(doc(db, "users", id));
+              if (!snap.exists()) return [id, "none"];
+              return [id, resolveVerificationLevel(snap.data())];
+            } catch {
+              return [id, "none"];
+            }
+          })
+        );
+        if (!alive) return;
+        setVerificationByProfile((cur) => {
+          const next = { ...cur };
+          for (const [id, level] of results) {
+            if (!(id in next)) next[id] = level;
+          }
+          return next;
+        });
+      })();
+      return prev;
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [entries]);
 
   React.useEffect(() => {
     const key = getCommentsStorageKey();
@@ -894,7 +984,10 @@ function CompanyItemComments({ theme, toggleTheme }) {
                 className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-700"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{entry.pseudonym}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{entry.pseudonym}</p>
+                    <VerificationBadge level={verificationByProfile[entry.authorProfileId]} />
+                  </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">{toDateLabel(entry.createdAt)}</p>
                 </div>
                 <RestrictedComment
