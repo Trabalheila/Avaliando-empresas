@@ -473,7 +473,7 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
           </div>
         </header>
 
-        {/* ═══ Visitas (sessões anônimas — independente de cadastros) ═══ */}
+        {/* ═══ Visitas + Abandono (funil — separado dos cards de cadastros) ═══ */}
         <section>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-blue-300 dark:border-blue-700 shadow-sm overflow-hidden">
@@ -491,6 +491,33 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
                 </p>
                 <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                   Total de sessões via <code>signInAnonymously()</code>. Não representam usuários cadastrados.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-amber-300 dark:border-amber-700 shadow-sm overflow-hidden">
+              <div className="h-1 bg-gradient-to-r from-amber-400 to-orange-500" />
+              <div className="p-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                  Abandonaram o Cadastro
+                </p>
+                <p className="mt-1 text-2xl sm:text-3xl font-extrabold text-slate-800 dark:text-slate-100">
+                  {statsLoading
+                    ? "…"
+                    : stats?.registrationAbandoned === null || stats?.registrationAbandoned === undefined
+                    ? "—"
+                    : stats.registrationAbandoned.toLocaleString("pt-BR")}
+                </p>
+                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                  Entraram em <code>/pseudonym</code> e não concluíram o cadastro após 24h.
+                  {stats?.registrationStarted != null && (
+                    <>
+                      {" "}Iniciados: <strong>{stats.registrationStarted.toLocaleString("pt-BR")}</strong>
+                      {stats?.registrationCompleted != null && (
+                        <> · Concluídos: <strong>{stats.registrationCompleted.toLocaleString("pt-BR")}</strong></>
+                      )}
+                    </>
+                  )}
                 </p>
               </div>
             </div>

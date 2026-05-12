@@ -376,7 +376,47 @@ async function handleGrowthStats(req, res) {
       console.warn("[admin/growth-stats] visitas anônimas indisponíveis:", err?.message || err);
     }
 
-    return res.status(200).json({ totals, monthly, anonymousVisits });
+    // Funil de cadastro: total iniciados e total abandonos (sem concluido=true).
+    // Best-effort: se a coleção não existir ou as regras bloquearem, devolvemos null.
+    let registrationStarted = null;
+    let registrationAbandoned = null;
+    let registrationCompleted = null;
+    try {
+      const startedSnap = await db.collection("cadastros_iniciados").get();
+      registrationStarted = startedSnap.size;
+      let completed = 0;
+      // Considera abandono apenas docs criados há mais de 24h sem concluido=true.
+      const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+      let abandoned = 0;
+      startedSnap.forEach((docSnap) => {
+        const data = docSnap.data() || {};
+        if (data.concluido === true) {
+          completed += 1;
+          return;
+        }
+        const started = data.startedAt;
+        const startedMs =
+          started && typeof started.toMillis === "function"
+            ? started.toMillis()
+            : started instanceof Date
+            ? started.getTime()
+            : 0;
+        if (!startedMs || startedMs <= cutoff) abandoned += 1;
+      });
+      registrationCompleted = completed;
+      registrationAbandoned = abandoned;
+    } catch (err) {
+      console.warn("[admin/growth-stats] funil de cadastros indisponível:", err?.message || err);
+    }
+
+    return res.status(200).json({
+      totals,
+      monthly,
+      anonymousVisits,
+      registrationStarted,
+      registrationCompleted,
+      registrationAbandoned,
+    });
   } catch (err) {
     console.error("[admin/growth-stats] erro:", err);
     return res.status(500).json({ error: "Erro interno ao calcular métricas." });

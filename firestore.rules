@@ -171,5 +171,16 @@ service cloud.firestore {
         && request.resource.data.toApoiadorId == resource.data.toApoiadorId;
       allow delete: if false;
     }
+
+    // Funil de cadastro: registra quem entrou na página /pseudonym
+    // e quem completou. Documento por uid do Firebase Auth (anônimo ou não).
+    // Leitura/listagem só pelo backend admin; cada usuário pode criar/atualizar
+    // o próprio registro para sinalizar início e conclusão.
+    match /cadastros_iniciados/{userId} {
+      allow read, list: if false;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false;
+    }
   }
 }

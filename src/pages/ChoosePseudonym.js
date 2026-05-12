@@ -7,6 +7,9 @@ import { listCompanies } from "../services/companies";
 import AppHeader from "../components/AppHeader";
 import { getLinkedInRedirectUri } from "../utils/linkedinAuth";
 import { buildApiUrl } from "../utils/apiBase";
+import { auth, db } from "../firebase";
+import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 const predefinedAvatars = [
   "🧑", "🧑‍💼", "🧑‍🔧", "🧑‍💻", "🧑‍🔬", "👩‍🏫", "👨‍🍳", "👩‍⚕️", "👨‍🚀", "👩‍🎨",
@@ -108,6 +111,9 @@ function findCompanyInText(text, registeredCompanies) {
 
 function ChoosePseudonym({ theme, toggleTheme }) {
   const navigate = useNavigate();
+  // UID anônimo (ou autenticado) usado para registrar o funil de cadastro
+  // na coleção cadastros_iniciados. Persistido em ref para o handleSubmit.
+  const funnelUidRef = useRef(null);
   const [pseudonym, setPseudonym] = useState("");
   const [birthdate, setBirthdate] = useState("");
   const [birthdateError, setBirthdateError] = useState("");
@@ -280,11 +286,86 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     }
   }, []);
 
+  // ─── Funil de cadastro: registra entrada na página /pseudonym ───
+  // Cria/atualiza um doc em cadastros_iniciados com o uid do Firebase Auth
+  // (anônimo, quando o usuário ainda não fez login). A conclusão é marcada
+  // posteriormente em handleSubmit. Documentos sem concluido=true após 24h
+  // representam abandono e alimentam a métrica no painel admin.
+  useEffect(() => {
+    let cancelled = false;
+    let unsubscribe = null;
+
+    async function registerFunnelStart(uid) {
+      if (!uid || cancelled) return;
+      try {
+        await setDoc(
+          doc(db, "cadastros_iniciados", uid),
+          {
+            uid,
+            startedAt: serverTimestamp(),
+            // Marcador de conclusão é setado em handleSubmit; aqui só garantimos
+            // que o doc existe sem sobrescrever caso já tenha concluido=true.
+            concluido: false,
+            updatedAt: serverTimestamp(),
+            source: "pseudonym-page",
+          },
+          { merge: true }
+        );
+      } catch (err) {
+        // Falhas aqui são silenciosas — não devem bloquear o cadastro.
+        console.warn("[funil] Falha ao registrar início de cadastro:", err?.message || err);
+      }
+    }
+
+    // Diagnóstico solicitado: relata no console possíveis impedimentos no
+    // fluxo de /pseudonym (sem alterar comportamento).
+    try {
+      const blockers = [];
+      blockers.push("CPF obrigatório com validação de dígitos (pode bloquear quem não quer informar).");
+      blockers.push("Confirmação humano (checkbox confirmedHuman) obrigatório.");
+      blockers.push("Validação de idade mínima 18 anos quando data de nascimento é preenchida.");
+      blockers.push("Unicidade de CPF consulta Firestore — falha silenciosa, mas pode demorar em rede ruim.");
+      blockers.push("getUserProfileByCpf/findUnifiedProfile fazem queries síncronas durante o submit.");
+      blockers.push("listCompanies(300) executa no mount; se Firestore travar, autocomplete fica vazio (não bloqueia).");
+      blockers.push("Parser de currículo (extractResumeText/parseResumeText) faz import dinâmico de pdf.js/mammoth — pode travar/lançar erros silenciosos em arquivos grandes.");
+      blockers.push("sendVerificationEmail roda após save: falha não bloqueia, mas pode confundir o usuário.");
+      console.info("[funil/diagnóstico] Possíveis pontos de abandono em /pseudonym:", blockers);
+    } catch {
+      /* noop */
+    }
+
+    if (auth?.currentUser?.uid) {
+      funnelUidRef.current = auth.currentUser.uid;
+      registerFunnelStart(auth.currentUser.uid);
+    } else {
+      unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (cancelled) return;
+        if (user?.uid) {
+          funnelUidRef.current = user.uid;
+          registerFunnelStart(user.uid);
+        } else {
+          try {
+            const cred = await signInAnonymously(auth);
+            if (cancelled) return;
+            funnelUidRef.current = cred.user.uid;
+            registerFunnelStart(cred.user.uid);
+          } catch (err) {
+            console.warn("[funil] signInAnonymously falhou:", err?.message || err);
+          }
+        }
+      });
+    }
+
+    return () => {
+      cancelled = true;
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, []);
+
   // Carrega lista de empresas conhecidas para autocompletar nos cards de revisão.
   useEffect(() => {
     let cancelled = false;
-    listCompanies(300)
-      .then((rows) => {
+    listCompanies(300)      .then((rows) => {
         if (cancelled) return;
         const names = Array.from(
           new Set(
@@ -1144,6 +1225,27 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       }
 
       window.dispatchEvent(new Event("trabalheiLa_user_updated"));
+
+      // Funil: marca o doc de cadastros_iniciados como concluído.
+      // Falhas aqui não interrompem o redirect.
+      try {
+        const funnelUid = funnelUidRef.current || auth?.currentUser?.uid;
+        if (funnelUid) {
+          await setDoc(
+            doc(db, "cadastros_iniciados", funnelUid),
+            {
+              uid: funnelUid,
+              concluido: true,
+              concluidoAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          );
+        }
+      } catch (err) {
+        console.warn("[funil] Falha ao marcar conclusão:", err?.message || err);
+      }
+
       navigate("/");
     },
     [
