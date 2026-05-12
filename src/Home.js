@@ -1673,7 +1673,14 @@ function Home({ theme, toggleTheme }) {
           uid: existing.uid || u.uid,
           id: existing.id || u.uid,
           email: existing.email || u.email || "",
-          name: existing.name || u.displayName || data.name || "",
+          // O campo público `name` nunca deve receber o nome real vindo
+          // do provider (Google/LinkedIn). Mantemos apenas o que o próprio
+          // usuário já escolheu como pseudônimo (existing.name) ou o
+          // valor já salvo no doc Firestore (data.name = pseudônimo).
+          name: existing.name || data.name || "",
+          // Nome real do provider fica restrito a campos privados.
+          nomeReal: existing.nomeReal || u.displayName || data.nomeReal || data.fullName || "",
+          fullName: existing.fullName || u.displayName || data.fullName || data.nomeReal || "",
           // Campos do perfil usados para detectar empresário:
           role: data.role || existing.role || "",
           userType: data.userType || existing.userType || "",
@@ -1827,9 +1834,17 @@ function Home({ theme, toggleTheme }) {
       if (data) {
         const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
         const incomingPicture = data?.picture || data?.avatar || "";
+        // Nome real vindo do LinkedIn fica em campos privados (nomeReal/
+        // fullName). Não copiamos `data.name` para o campo público `name`
+        // do mergedProfile — esse permanece como pseudônimo já escolhido.
+        const { name: linkedinRealName, ...linkedinDataWithoutName } = data || {};
         let mergedProfile = {
           ...existingProfile,
-          ...data,
+          ...linkedinDataWithoutName,
+          // Preserva qualquer pseudônimo já existente; nunca herda nome real.
+          name: existingProfile?.name || "",
+          nomeReal: existingProfile?.nomeReal || linkedinRealName || "",
+          fullName: existingProfile?.fullName || linkedinRealName || "",
           loginProvider: "linkedin",
           fallback: false,
           linkedInUrl: data?.linkedInUrl || existingProfile?.linkedInUrl || null,
@@ -1898,8 +1913,8 @@ function Home({ theme, toggleTheme }) {
             // que são campos privados e nunca exibidos publicamente.
             name: effectiveName || undefined,
             pseudonimo: effectiveName || undefined,
-            nomeReal: mergedProfile.name || undefined,
-            fullName: mergedProfile.name || undefined,
+            nomeReal: mergedProfile.nomeReal || undefined,
+            fullName: mergedProfile.fullName || mergedProfile.nomeReal || undefined,
             email: mergedProfile.email,
             picture: mergedProfile.picture || mergedProfile.avatar || "",
             avatar: mergedProfile.avatar || mergedProfile.picture || "",
@@ -1943,7 +1958,11 @@ function Home({ theme, toggleTheme }) {
 
       const googleData = {
         id: user.uid,
-        name: user.displayName || "Usuário",
+        // `name` público nunca recebe o displayName vindo do Google.
+        // O nome real fica preservado em `nomeReal`/`fullName` (privados).
+        name: "",
+        nomeReal: user.displayName || "",
+        fullName: user.displayName || "",
         email: user.email || "",
         picture: user.photoURL || "",
         avatar: user.photoURL || "",
@@ -2019,8 +2038,8 @@ function Home({ theme, toggleTheme }) {
           // que são campos privados e nunca exibidos publicamente.
           name: effectiveName || undefined,
           pseudonimo: effectiveName || undefined,
-          nomeReal: mergedProfile.name || undefined,
-          fullName: mergedProfile.name || undefined,
+          nomeReal: mergedProfile.nomeReal || undefined,
+          fullName: mergedProfile.fullName || mergedProfile.nomeReal || undefined,
           email: mergedProfile.email,
           picture: mergedProfile.picture || mergedProfile.avatar || "",
           avatar: mergedProfile.avatar || mergedProfile.picture || "",

@@ -164,7 +164,10 @@ export default function MinhaConta({ theme, toggleTheme }) {
     );
   }
 
-  const pseudonym = profile.pseudonimo || profile.name || "Anônimo";
+  // Nunca cair em `profile.name` aqui: esse campo pode ter sido um dia
+  // populado com o nome real vindo do Google/LinkedIn. Pseudônimo só
+  // a partir de `profile.pseudonimo`.
+  const pseudonym = profile.pseudonimo || "Anônimo";
   const memberSince = formatDate(profile.createdAt || profile.updatedAt);
   const planLabel = getPlanLabel(profile);
   const planColor = getPlanColor(profile);

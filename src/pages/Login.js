@@ -106,7 +106,12 @@ export default function Login({ theme, toggleTheme }) {
         ...existing,
         id: user.uid || existing.id,
         uid: user.uid || existing.uid,
-        name: user.displayName || existing.name || "",
+        // Não copia displayName para o campo público `name` — ele
+        // pertence ao pseudônimo escolhido pelo usuário. O nome real
+        // fica em `nomeReal`/`fullName` (privados).
+        name: existing.name || "",
+        nomeReal: existing.nomeReal || user.displayName || "",
+        fullName: existing.fullName || user.displayName || "",
         email: user.email || existing.email || "",
         picture: user.photoURL || existing.picture || existing.avatar || "",
         avatar: user.photoURL || existing.avatar || existing.picture || "",

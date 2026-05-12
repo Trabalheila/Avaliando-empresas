@@ -86,7 +86,7 @@ export default function EmployerVerification({ theme, toggleTheme }) {
           uid,
           cnpj: digits,
           corporateEmail,
-          pseudonym: profile.pseudonym || profile.name || "",
+          pseudonym: profile.pseudonym || profile.pseudonimo || "",
           tier,
         }),
       });

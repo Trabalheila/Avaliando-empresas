@@ -272,7 +272,10 @@ export default function WorkerProfile({ theme, toggleTheme }) {
     );
   }
 
-  const pseudonym = profile.pseudonimo || profile.name || "Anônimo";
+  // Nunca cair em `profile.name` aqui: esse campo pode ter sido um dia
+  // populado com o nome real vindo do Google/LinkedIn. Em primeiro acesso
+  // o pseudônimo é obrigatório e fica em `profile.pseudonimo`.
+  const pseudonym = profile.pseudonimo || "Anônimo";
   const memberSince = formatDate(profile.createdAt || profile.updatedAt);
   const experiences = profile?.resumeData?.experiencesStructured || [];
 
