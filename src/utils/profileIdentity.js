@@ -47,6 +47,18 @@ export function ensureStoredProfileId() {
 
 export function resolveProfileId(profile, options = {}) {
   const { persistGeneratedId = true } = options;
+
+  // Prefer a `profileId` previously persisted no perfil (canonical) — esse
+  // valor foi resolvido pelo fluxo de autenticação após buscar o doc
+  // existente no Firestore (findUnifiedProfile). Honrá-lo evita que uma
+  // gravação posterior (ex.: ChoosePseudonym) recompute um ID diferente
+  // (por email) e crie um documento duplicado para o mesmo usuário.
+  const existingProfileId = (profile?.profileId || "").toString().trim();
+  if (existingProfileId) {
+    if (persistGeneratedId) safeWriteStorage(PROFILE_ID_STORAGE_KEY, existingProfileId);
+    return existingProfileId;
+  }
+
   const normalizedEmail = normalizeEmail(profile?.email);
   if (normalizedEmail) {
     const emailId = `email:${normalizedEmail}`;

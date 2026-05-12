@@ -1919,6 +1919,9 @@ function Home({ theme, toggleTheme }) {
             picture: mergedProfile.picture || mergedProfile.avatar || "",
             avatar: mergedProfile.avatar || mergedProfile.picture || "",
             loginProvider: "linkedin",
+            // Login social = Identidade Verificada (selo azul) imediatamente.
+            verification_level: "identity",
+            verification_provider: "linkedin",
             linkedinProfile: mergedProfile.linkedInUrl || null,
             linkedinExperiences: Array.isArray(mergedProfile.linkedinExperiences) ? mergedProfile.linkedinExperiences : [],
             profileId,
@@ -2044,6 +2047,11 @@ function Home({ theme, toggleTheme }) {
           picture: mergedProfile.picture || mergedProfile.avatar || "",
           avatar: mergedProfile.avatar || mergedProfile.picture || "",
           loginProvider: "google",
+          // Login social = Identidade Verificada (selo azul) imediatamente.
+          // Sem isso, o doc fica com verification_level ausente e cai em
+          // "free" na próxima leitura.
+          verification_level: "identity",
+          verification_provider: "google",
           profileId,
           updatedAt: new Date().toISOString(),
         });
