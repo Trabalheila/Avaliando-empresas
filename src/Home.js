@@ -1420,6 +1420,20 @@ function Home({ theme, toggleTheme }) {
       return;
     }
 
+    // Verificação mínima: só permite enviar avaliações para usuários com
+    // verification_level "identity" ou "proven". Usuários "free" continuam
+    // vendo o formulário, mas o envio é bloqueado com uma mensagem clara
+    // direcionando-os a autenticar com LinkedIn ou Google.
+    {
+      const detail = resolveUserVerificationDetail(userProfile || {}, company?.value || "");
+      if (!detail || detail.level === "free") {
+        setError(
+          "Para avaliar uma empresa, faça login com sua conta LinkedIn ou Google. Isso garante a autenticidade das avaliações sem revelar sua identidade."
+        );
+        return;
+      }
+    }
+
     // Bloqueia empresários (role admin_empresa) de avaliar a própria empresa
     // que gerenciam, garantindo a imparcialidade das avaliações.
     try {
@@ -1879,7 +1893,10 @@ function Home({ theme, toggleTheme }) {
         try {
           await saveUserProfile({
             id: profileId,
-            name: effectiveName || mergedProfile.name,
+            // `name` público deve conter SOMENTE o pseudônimo escolhido.
+            // O nome real do LinkedIn fica restrito a `nomeReal`/`fullName`,
+            // que são campos privados e nunca exibidos publicamente.
+            name: effectiveName || undefined,
             pseudonimo: effectiveName || undefined,
             nomeReal: mergedProfile.name || undefined,
             fullName: mergedProfile.name || undefined,
@@ -1997,7 +2014,10 @@ function Home({ theme, toggleTheme }) {
       try {
         await saveUserProfile({
           id: profileId,
-          name: effectiveName || mergedProfile.name,
+          // `name` público deve conter SOMENTE o pseudônimo escolhido.
+          // O nome real do Google fica restrito a `nomeReal`/`fullName`,
+          // que são campos privados e nunca exibidos publicamente.
+          name: effectiveName || undefined,
           pseudonimo: effectiveName || undefined,
           nomeReal: mergedProfile.name || undefined,
           fullName: mergedProfile.name || undefined,
@@ -2086,6 +2106,14 @@ function Home({ theme, toggleTheme }) {
     window.history.replaceState({}, "", cleanUrl || "/");
   }, [location.search, handleLoginSuccess]);
 
+  // Nível de verificação do usuário corrente (free | identity | proven),
+  // usado pelos formulários para bloquear o envio de avaliações de usuários
+  // ainda não autenticados via LinkedIn/Google.
+  const userVerificationLevel = useMemo(
+    () => resolveUserVerificationDetail(userProfile || {}, company?.value || "")?.level || "free",
+    [userProfile, company]
+  );
+
   const commonProps = {
     company, setCompany, rating, setRating, commentRating, setCommentRating,
     salario, setSalario, commentSalario, setCommentSalario, beneficios, setBeneficios, commentBeneficios, setCommentBeneficios,
@@ -2126,6 +2154,7 @@ function Home({ theme, toggleTheme }) {
     userProfile, userPseudonym,
     onLoginSuccess: handleLoginSuccess, selectedCompanyData, calcularMedia,
     onGoogleLogin: handleGoogleLogin,
+    userVerificationLevel,
     getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
     handleSaibaMais,
   };

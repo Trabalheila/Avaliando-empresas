@@ -122,7 +122,10 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   const [step, setStep] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("userProfile") || "{}");
-      const hasPseudo = Boolean((saved?.pseudonimo || saved?.name || "").toString().trim());
+      // IMPORTANTE: nunca usar `saved.name` como fallback de pseudônimo —
+      // esse campo pode conter o nome real vindo do LinkedIn/Google e não
+      // deve ser tratado como identidade anônima do usuário.
+      const hasPseudo = Boolean((saved?.pseudonimo || "").toString().trim());
       const hasEmail = Boolean((saved?.email || "").toString().trim());
       return hasPseudo && hasEmail ? 2 : 1;
     } catch {
@@ -275,7 +278,10 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     setVerificationSource((profile?.verification?.source || "").toString());
 
     if (isInitialLoad) {
-      if (profile?.pseudonimo || profile?.name) setPseudonym(profile.pseudonimo || profile.name);
+      // Só preenche o campo de pseudônimo a partir de `pseudonimo` salvo
+      // pelo próprio usuário. Nunca cair em `profile.name`, pois esse
+      // campo pode conter o nome real importado do LinkedIn/Google.
+      if (profile?.pseudonimo) setPseudonym(profile.pseudonimo);
       if (profile?.birthdate && /^\d{4}-\d{2}-\d{2}$/.test(profile.birthdate)) setBirthdate(profile.birthdate);
       if (profile?.cpf) setCpf(maskCpf(profile.cpf));
       if (profile?.nomeReal || profile?.fullName) setFullName(profile.nomeReal || profile.fullName);

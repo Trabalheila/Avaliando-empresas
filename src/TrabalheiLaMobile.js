@@ -200,6 +200,7 @@ function TrabalheiLaMobile({
   error, setError, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, safeCompanyOptions,
   handleLogout,
   onGoogleLogin,
+  userVerificationLevel,
   selectedCompanyData,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
   handleCaptchaConfirmed,
@@ -717,7 +718,7 @@ function TrabalheiLaMobile({
                 )}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-slate-700 dark:text-blue-100 truncate">{userPseudonym || userProfile?.name || "Usuário"}</p>
+                <p className="text-sm font-semibold text-slate-700 dark:text-blue-100 truncate">{userPseudonym || "Anônimo"}</p>
                 {userProfile?.verification?.certified && (
                   <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
                     ✓ Certificado
@@ -924,6 +925,28 @@ function TrabalheiLaMobile({
         {/* FORMULÁRIO */}
         <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700">
           <h2 className="text-sm uppercase tracking-[0.14em] font-extrabold text-blue-800 dark:text-blue-200 text-center mb-3">Avaliar Empresa</h2>
+          {isAuthenticated && userVerificationLevel === "free" && (
+            <div className="mb-4 rounded-2xl border border-amber-300 bg-amber-50 dark:border-amber-500/40 dark:bg-amber-500/10 p-4 text-center">
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                Para avaliar uma empresa, faça login com sua conta LinkedIn ou Google. Isso garante a autenticidade das avaliações sem revelar sua identidade.
+              </p>
+              <div className="mt-3 flex flex-col gap-2 items-stretch">
+                <LoginLinkedInButton
+                  clientId={linkedInClientId}
+                  redirectUri={linkedInRedirectUri}
+                  onLoginSuccess={onLoginSuccess}
+                  onLoginFailure={(err) => setError(err?.message || String(err))}
+                />
+                <button
+                  type="button"
+                  onClick={onGoogleLogin}
+                  className="w-full inline-flex items-center justify-center gap-2 bg-white dark:bg-slate-900 border border-blue-200 dark:border-slate-700 text-blue-800 dark:text-blue-200 font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors text-sm"
+                >
+                  <FaGoogle className="text-base" /> Entrar com Google
+                </button>
+              </div>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="font-semibold text-slate-700 dark:text-blue-200 mb-2 block text-sm">Selecione a Empresa</label>

@@ -118,6 +118,7 @@ function TrabalheiLaDesktop({
   linkedInClientId, linkedInRedirectUri, error, setError, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, selectedCompanyData, calcularMedia,
   handleLogout,
   onGoogleLogin,
+  userVerificationLevel,
   globalContractStats,
   globalWorkModelStats,
   getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
@@ -481,7 +482,7 @@ function TrabalheiLaDesktop({
                 <>
                   <div className="hidden sm:flex flex-col items-end leading-tight max-w-[220px]">
                     <span className="text-base md:text-lg font-bold text-blue-900 dark:text-blue-100 truncate max-w-[220px]">
-                      {userPseudonym || userProfile?.name || "Usuário"}
+                      {userPseudonym || "Anônimo"}
                     </span>
                     {userProfile?.verification?.certified && (
                       <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
@@ -898,6 +899,32 @@ function TrabalheiLaDesktop({
             <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
               <h2 className="text-3xl font-extrabold text-blue-900 dark:text-blue-200 text-center mb-2 tracking-wide font-azonix">Avalie uma Empresa</h2>
               <div className="w-32 h-1 mx-auto mb-5 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
+              {isAuthenticated && userVerificationLevel === "free" && (
+                <div className="mb-5 rounded-2xl border border-amber-300 bg-amber-50 dark:border-amber-500/40 dark:bg-amber-500/10 p-4 text-center">
+                  <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                    Para avaliar uma empresa, faça login com sua conta LinkedIn ou Google. Isso garante a autenticidade das avaliações sem revelar sua identidade.
+                  </p>
+                  <div className="mt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <div className="w-full sm:w-auto">
+                      <LoginLinkedInButton
+                        clientId={linkedInClientId}
+                        redirectUri={linkedInRedirectUri}
+                        onLoginSuccess={onLoginSuccess}
+                        onLoginFailure={(err) => setError(err?.message || String(err))}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onGoogleLogin}
+                      disabled={isLoading}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white dark:bg-slate-900 border border-blue-200 dark:border-slate-700 text-blue-800 dark:text-blue-200 font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors text-sm disabled:opacity-60"
+                    >
+                      <FaGoogle className="text-base" /> Entrar com Google
+                    </button>
+                  </div>
+                </div>
+              )}
               <form onSubmit={handleSubmit} className="space-y-4">
 
                 <div>
