@@ -8,8 +8,22 @@ export async function saveUserProfile(profile) {
     throw new Error("Usuário precisa de um identificador (id) para ser salvo.");
   }
 
+  // Auto-define o status do cadastro a partir do pseudônimo, sem aprovação manual:
+  //   pseudônimo preenchido  -> 'ativo'
+  //   pseudônimo vazio       -> 'incompleto'
+  // Só aplica quando o caller não passou um status explícito, para não
+  // sobrescrever ações do admin (ex.: 'rejected').
+  let derivedStatus;
+  if (profile.status === undefined || profile.status === null || profile.status === "") {
+    const hasPseudonym = Boolean(
+      (profile.pseudonimo || profile.pseudonym || "").toString().trim()
+    );
+    derivedStatus = hasPseudonym ? "ativo" : "incompleto";
+  }
+
   const payload = {
     ...profile,
+    ...(derivedStatus ? { status: derivedStatus } : {}),
     updatedAt: serverTimestamp(),
   };
 

@@ -18,16 +18,18 @@ import AdminQuickAccess from "../components/AdminQuickAccess";
    Constantes
    ────────────────────────────────────────────── */
 const APPROVAL_LABEL = {
-  approved: "Verificado com LinkedIn",
-  rejected: "Reprovado",
-  pending: "Pendente",
+  approved: "Ativo",
+  rejected: "Removido",
+  incomplete: "Incompleto",
+  pending: "Incompleto",
 };
 
 const APPROVAL_BADGE = {
   approved:
     "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
   rejected: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
-  pending: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
+  incomplete: "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200",
+  pending: "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200",
 };
 
 const PLAN_LABEL = {
@@ -61,9 +63,9 @@ const PLAN_FILTER_OPTIONS = [
 
 const APPROVAL_FILTER_OPTIONS = [
   { value: "todos", label: "Todos os status" },
-  { value: "approved", label: "Verificados com LinkedIn" },
-  { value: "rejected", label: "Reprovados" },
-  { value: "pending", label: "Pendentes" },
+  { value: "approved", label: "Ativos" },
+  { value: "incomplete", label: "Incompletos" },
+  { value: "rejected", label: "Removidos" },
 ];
 
 const TYPE_FILTER_OPTIONS = [
@@ -334,10 +336,10 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
           type: "success",
           message:
             status === "approved"
-              ? "Cadastro aprovado."
+              ? "Cadastro marcado como ativo."
               : status === "rejected"
-              ? "Cadastro reprovado."
-              : "Status redefinido para pendente.",
+              ? "Conta removida."
+              : "Status atualizado.",
         });
         // Atualiza contadores em segundo plano.
         loadStats();
@@ -448,18 +450,18 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
               accent="blue"
             />
             <MetricCard
-              label="Verificados (LinkedIn)"
+              label="Ativos"
               value={statsLoading ? "…" : totals?.approved ?? 0}
               accent="emerald"
             />
             <MetricCard
-              label="Reprovados"
+              label="Removidos"
               value={statsLoading ? "…" : totals?.rejected ?? 0}
               accent="red"
             />
             <MetricCard
-              label="Pendentes"
-              value={statsLoading ? "…" : totals?.pending ?? 0}
+              label="Incompletos"
+              value={statsLoading ? "…" : (totals?.incomplete ?? totals?.pending) ?? 0}
               accent="amber"
             />
             <MetricCard
@@ -680,7 +682,7 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
                               onClick={() => {
                                 if (
                                   window.confirm(
-                                    `Reprovar o cadastro de ${u.pseudonym || u.name || u.id}?`
+                                    `Remover a conta de ${u.pseudonym || u.name || u.id}? O usuário não aparecerá mais como ativo.`
                                   )
                                 ) {
                                   updateUserStatus(u, "rejected");
@@ -688,7 +690,7 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
                               }}
                               className="px-2.5 py-1 text-xs font-semibold rounded bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
                             >
-                              Reprovar
+                              Remover Conta
                             </button>
                           )}
                           <button

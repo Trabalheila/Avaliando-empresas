@@ -166,17 +166,21 @@ function getDisplayName(data = {}) {
 }
 
 function classifyApprovalStatus(data = {}) {
-  // Mapeia o status de aprovação de cadastro do usuário usando campos já
-  // existentes nos documentos. Ordem de precedência:
-  //   1. Campo explícito `status` (approved | rejected | pending)
-  //   2. emailVerified / companyVerifiedAt indicam cadastro confirmado
-  //   3. Caso contrário, pending
+  // Mapeia o status de cadastro do usuário usando campos já existentes.
+  // Buckets de saída: approved (ativo) | rejected (removido) | incomplete (sem pseudônimo)
   const raw = String(data.status || data.approvalStatus || "").toLowerCase();
   if (raw === "approved" || raw === "aprovado" || raw === "ativo") return "approved";
-  if (raw === "rejected" || raw === "reprovado" || raw === "rejeitado") return "rejected";
-  if (raw === "pending" || raw === "pendente") return "pending";
+  if (raw === "rejected" || raw === "reprovado" || raw === "rejeitado" || raw === "removido") return "rejected";
+  if (raw === "incomplete" || raw === "incompleto" || raw === "pending" || raw === "pendente") {
+    // Cadastro marcado como incompleto/pendente: se na verdade já tem pseudônimo, eleva para ativo.
+    const hasPseudonym = Boolean((data.pseudonym || data.pseudonimo || "").toString().trim());
+    return hasPseudonym ? "approved" : "incomplete";
+  }
+  // Fallback (docs antigos sem campo status): pseudônimo -> ativo, senão incompleto.
+  const hasPseudonym = Boolean((data.pseudonym || data.pseudonimo || "").toString().trim());
+  if (hasPseudonym) return "approved";
   if (data.emailVerified === true || data.companyVerifiedAt) return "approved";
-  return "pending";
+  return "incomplete";
 }
 
 function pickCreatedAt(data = {}) {
@@ -282,6 +286,7 @@ async function handleGrowthStats(req, res) {
       approved: 0,
       rejected: 0,
       pending: 0,
+      incomplete: 0,
       plan: { gratuito: 0, premium: 0, premium_gratuito: 0 },
       premiumByType: { trabalhador: 0, empresa: 0, apoiador: 0 },
     };
@@ -349,7 +354,7 @@ async function handleUpdateUserStatus(req, res) {
   if (!targetUserId || typeof targetUserId !== "string") {
     return res.status(400).json({ error: "targetUserId é obrigatório." });
   }
-  const allowed = ["approved", "rejected", "pending"];
+  const allowed = ["approved", "rejected", "pending", "ativo", "incompleto", "removido"];
   if (!allowed.includes(status)) {
     return res.status(400).json({ error: "status inválido." });
   }
