@@ -681,7 +681,16 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
                     </td>
                   </tr>
                 )}
-                {items.map((u) => {
+                {items
+                  // Por padrão, usuários "Removidos" (status=rejected) ficam
+                  // ocultos da listagem. Só aparecem quando o admin escolhe
+                  // explicitamente o filtro "Removidos" na barra superior.
+                  .filter((u) => {
+                    if (approvalFilter === "rejected") return true;
+                    const s = (u?.approvalStatus || u?.status || "").toString().toLowerCase();
+                    return s !== "rejected" && s !== "removido";
+                  })
+                  .map((u) => {
                   const isPremium =
                     u.planStatus === "premium" || u.planStatus === "premium_gratuito";
                   const busy = busyId === u.id;
