@@ -18,7 +18,7 @@ import AdminQuickAccess from "../components/AdminQuickAccess";
    Constantes
    ────────────────────────────────────────────── */
 const APPROVAL_LABEL = {
-  approved: "Aprovado",
+  approved: "Verificado com LinkedIn",
   rejected: "Reprovado",
   pending: "Pendente",
 };
@@ -61,7 +61,7 @@ const PLAN_FILTER_OPTIONS = [
 
 const APPROVAL_FILTER_OPTIONS = [
   { value: "todos", label: "Todos os status" },
-  { value: "approved", label: "Aprovados" },
+  { value: "approved", label: "Verificados com LinkedIn" },
   { value: "rejected", label: "Reprovados" },
   { value: "pending", label: "Pendentes" },
 ];
@@ -434,7 +434,7 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
               accent="blue"
             />
             <MetricCard
-              label="Aprovados"
+              label="Verificados (LinkedIn)"
               value={statsLoading ? "…" : totals?.approved ?? 0}
               accent="emerald"
             />
@@ -643,16 +643,6 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
                       </td>
                       <td className="p-3">
                         <div className="flex flex-wrap justify-end gap-1.5">
-                          {u.approvalStatus !== "approved" && (
-                            <button
-                              type="button"
-                              disabled={busy}
-                              onClick={() => updateUserStatus(u, "approved")}
-                              className="px-2.5 py-1 text-xs font-semibold rounded bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
-                            >
-                              Aprovar
-                            </button>
-                          )}
                           {u.approvalStatus !== "rejected" && (
                             <button
                               type="button"
