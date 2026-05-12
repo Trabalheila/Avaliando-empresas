@@ -1226,11 +1226,29 @@ function Home({ theme, toggleTheme }) {
   const buildEvaluationData = useCallback((termsData = {}) => {
     const pseudonym = localStorage.getItem("userPseudonym");
     const authorProfileId = resolveProfileId(userProfile, { persistGeneratedId: false }) || "";
+    const authorLoginProvider = (userProfile?.loginProvider || "").toString().toLowerCase();
+    const authorHasLinkedIn = Boolean(
+      authorLoginProvider === "linkedin" ||
+        userProfile?.linkedInUrl ||
+        userProfile?.linkedinProfile ||
+        (Array.isArray(userProfile?.linkedinExperiences) && userProfile.linkedinExperiences.length > 0)
+    );
+    const resumeData = userProfile?.resumeData;
+    const authorHasResume = Boolean(
+      resumeData && typeof resumeData === "object" && (
+        (Array.isArray(resumeData.experiences) && resumeData.experiences.length > 0) ||
+        (Array.isArray(resumeData.experiencesStructured) && resumeData.experiencesStructured.length > 0) ||
+        (typeof resumeData.rawText === "string" && resumeData.rawText.trim().length > 0)
+      )
+    );
 
     const draft = {
       company: company?.value || "",
       pseudonym: pseudonym || "",
       authorProfileId,
+      authorLoginProvider,
+      authorHasLinkedIn,
+      authorHasResume,
       rating, commentRating, salario, commentSalario, beneficios, commentBeneficios,
       cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao,
       lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente,

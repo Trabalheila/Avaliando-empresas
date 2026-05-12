@@ -32,7 +32,7 @@ function toDateLabel(value) {
 function resolveVerificationLevel(userData) {
   if (!userData || typeof userData !== "object") return "none";
   const provider = (userData.loginProvider || "").toString().toLowerCase();
-  const hasLinkedinProfile = Boolean(userData.linkedinProfile);
+  const hasLinkedinProfile = Boolean(userData.linkedinProfile || userData.linkedInUrl);
   const hasLinkedinExperiences =
     Array.isArray(userData.linkedinExperiences) && userData.linkedinExperiences.length > 0;
   if (provider === "linkedin" || hasLinkedinProfile || hasLinkedinExperiences) {
@@ -47,6 +47,13 @@ function resolveVerificationLevel(userData) {
     if (hasExperiences) return "curriculum";
   }
   return "none";
+}
+
+function resolveEntryVerification(entry, cache) {
+  if (entry?.authorLoginProvider === "linkedin" || entry?.authorHasLinkedIn) return "linkedin";
+  if (entry?.authorHasResume) return "curriculum";
+  const cached = cache?.[entry?.authorProfileId] || cache?.[`pseudonym:${(entry?.pseudonym || "").toLowerCase()}`];
+  return cached || "none";
 }
 
 function VerificationBadge({ level }) {
@@ -410,6 +417,9 @@ function CompanyItemComments({ theme, toggleTheme }) {
               id: review.id,
               pseudonym: review.pseudonym || "Anônimo",
               authorProfileId: review?.authorProfileId || review?.profileId || "",
+              authorLoginProvider: (review?.authorLoginProvider || "").toString().toLowerCase(),
+              authorHasLinkedIn: Boolean(review?.authorHasLinkedIn),
+              authorHasResume: Boolean(review?.authorHasResume),
               comment: selectedComment.trim(),
               restrictedSegments,
               score: review?.[itemKey],
@@ -441,36 +451,74 @@ function CompanyItemComments({ theme, toggleTheme }) {
 
   React.useEffect(() => {
     let alive = true;
+    const needLookup = (entries || []).filter(
+      (e) =>
+        !(e?.authorLoginProvider === "linkedin" || e?.authorHasLinkedIn || e?.authorHasResume)
+    );
+    if (needLookup.length === 0) return;
+
     const ids = Array.from(
+      new Set(needLookup.map((e) => (e?.authorProfileId || "").toString().trim()).filter(Boolean))
+    );
+    const pseudonyms = Array.from(
       new Set(
-        (entries || [])
-          .map((e) => (e?.authorProfileId || "").toString().trim())
-          .filter(Boolean)
+        needLookup
+          .filter((e) => !((e?.authorProfileId || "").toString().trim()))
+          .map((e) => (e?.pseudonym || "").toString().trim())
+          .filter((p) => p && p.toLowerCase() !== "anônimo" && p.toLowerCase() !== "anonimo")
       )
     );
-    if (ids.length === 0) return;
+    if (ids.length === 0 && pseudonyms.length === 0) return;
 
     setVerificationByProfile((prev) => {
-      const missing = ids.filter((id) => !(id in prev));
-      if (missing.length === 0) return prev;
+      const missingIds = ids.filter((id) => !(id in prev));
+      const missingPseudos = pseudonyms.filter(
+        (p) => !(`pseudonym:${p.toLowerCase()}` in prev)
+      );
+      if (missingIds.length === 0 && missingPseudos.length === 0) return prev;
       (async () => {
-        const results = await Promise.all(
-          missing.map(async (id) => {
+        const idResults = await Promise.all(
+          missingIds.map(async (id) => {
             try {
               const snap = await getDoc(doc(db, "users", id));
-              if (!snap.exists()) return [id, "none"];
-              return [id, resolveVerificationLevel(snap.data())];
+              if (snap.exists()) return [id, resolveVerificationLevel(snap.data())];
             } catch {
-              return [id, "none"];
+              // ignore
             }
+            return [id, "none"];
+          })
+        );
+        const pseudoResults = await Promise.all(
+          missingPseudos.map(async (p) => {
+            const cacheKey = `pseudonym:${p.toLowerCase()}`;
+            try {
+              const usersRef = collection(db, "users");
+              const variants = [
+                query(usersRef, where("pseudonimo", "==", p), limit(1)),
+                query(usersRef, where("pseudonym", "==", p), limit(1)),
+                query(usersRef, where("name", "==", p), limit(1)),
+              ];
+              for (const q1 of variants) {
+                try {
+                  const snap = await getDocs(q1);
+                  if (!snap.empty) {
+                    return [cacheKey, resolveVerificationLevel(snap.docs[0].data())];
+                  }
+                } catch {
+                  // ignore
+                }
+              }
+            } catch {
+              // ignore
+            }
+            return [cacheKey, "none"];
           })
         );
         if (!alive) return;
         setVerificationByProfile((cur) => {
           const next = { ...cur };
-          for (const [id, level] of results) {
-            if (!(id in next)) next[id] = level;
-          }
+          for (const [k, v] of idResults) if (!(k in next)) next[k] = v;
+          for (const [k, v] of pseudoResults) if (!(k in next)) next[k] = v;
           return next;
         });
       })();
@@ -986,7 +1034,7 @@ function CompanyItemComments({ theme, toggleTheme }) {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{entry.pseudonym}</p>
-                    <VerificationBadge level={verificationByProfile[entry.authorProfileId]} />
+                    <VerificationBadge level={resolveEntryVerification(entry, verificationByProfile)} />
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">{toDateLabel(entry.createdAt)}</p>
                 </div>
