@@ -12,6 +12,7 @@ import {
 import { db } from "../firebase";
 import { isAdmin } from "../utils/rbac";
 import AppHeader from "../components/AppHeader";
+import AdminQuickAccess from "../components/AdminQuickAccess";
 
 /* ──────────────────────────────────────────────
    Constantes
@@ -197,6 +198,7 @@ export default function AdminSupportersDashboard({ theme, toggleTheme }) {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100">
       <AppHeader theme={theme} toggleTheme={toggleTheme} />
+      <AdminQuickAccess />
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
         {/* Cabeçalho */}
         <header className="flex items-start justify-between gap-4 flex-wrap">

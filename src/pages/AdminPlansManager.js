@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { isAdmin } from "../utils/rbac";
 import { buildApiUrl } from "../utils/apiBase";
 import AppHeader from "../components/AppHeader";
+import AdminQuickAccess from "../components/AdminQuickAccess";
 
 const USER_TYPE_OPTIONS = [
   { value: "todos", label: "Todos" },
@@ -208,6 +209,7 @@ function AdminPlansManager({ theme, toggleTheme }) {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100">
       <AppHeader theme={theme} toggleTheme={toggleTheme} />
+      <AdminQuickAccess />
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-2">

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { db } from "../firebase";
 import {
   collection,
@@ -15,6 +15,7 @@ import { isAdmin } from "../utils/rbac";
 import { slugifyCompany, listReviewsByCompanySlug } from "../services/reviews";
 import { buildApiUrl } from "../utils/apiBase";
 import AppHeader from "../components/AppHeader";
+import AdminQuickAccess from "../components/AdminQuickAccess";
 
 /* ────────────────────────────────────────────────
    Critérios — mesmos do BusinessDashboard
@@ -71,6 +72,7 @@ function getAdminUid() {
    ════════════════════════════════════════════════ */
 function AdminPanel({ theme, toggleTheme }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const admin = useMemo(() => isAdmin(), []);
 
   useEffect(() => {
@@ -80,6 +82,21 @@ function AdminPanel({ theme, toggleTheme }) {
   /* ── Abas ── */
   const TABS = ["Comentários", "Avaliações", "Apoiadores", "Restritos", "Verificações", "Planos"];
   const [activeTab, setActiveTab] = useState("Comentários");
+
+  /* Permite linkar diretamente para uma aba via ?tab=apoiadores|verif|restritos|comentarios|avaliacoes */
+  useEffect(() => {
+    const params = new URLSearchParams(location.search || "");
+    const t = String(params.get("tab") || "").toLowerCase();
+    const map = {
+      apoiadores: "Apoiadores",
+      verif: "Verificações",
+      verificacoes: "Verificações",
+      restritos: "Restritos",
+      comentarios: "Comentários",
+      avaliacoes: "Avaliações",
+    };
+    if (map[t]) setActiveTab(map[t]);
+  }, [location.search]);
 
   /* ── Estado ── */
   const [comments, setComments] = useState([]);
@@ -103,6 +120,10 @@ function AdminPanel({ theme, toggleTheme }) {
   /* ── Estado apoiadores (unificado) ── */
   const [apoiadores, setApoiadores] = useState([]);
   const [apoiadoresLoading, setApoiadoresLoading] = useState(true);
+  const [apoiadoresSearch, setApoiadoresSearch] = useState("");
+  const [apoiadoresStatusFilter, setApoiadoresStatusFilter] = useState("pendente");
+  const [apoiadorBusyId, setApoiadorBusyId] = useState(null);
+  const [apoiadorToast, setApoiadorToast] = useState(null);
 
   /* ── Estado da aba Restritos ── */
   const [restrictedItems, setRestrictedItems] = useState([]);
@@ -435,14 +456,54 @@ function AdminPanel({ theme, toggleTheme }) {
 
   /* ── Aprovar / Rejeitar apoiador ── */
   const updateApoiadorStatus = useCallback(async (apoiadorId, newStatus) => {
+    setApoiadorBusyId(apoiadorId);
     try {
       await updateDoc(doc(db, "apoiadores", apoiadorId), { status: newStatus });
       setApoiadores((prev) =>
         prev.map((a) => (a.id === apoiadorId ? { ...a, status: newStatus } : a))
       );
+      const msg =
+        newStatus === "ativo"
+          ? "Apoiador aprovado."
+          : newStatus === "rejeitado"
+          ? "Apoiador rejeitado."
+          : newStatus === "pendente"
+          ? "Decisão revertida. Apoiador voltou para análise."
+          : "Status atualizado.";
+      setApoiadorToast({ type: "success", message: msg });
     } catch (err) {
       console.error("Erro ao atualizar apoiador:", err);
+      setApoiadorToast({
+        type: "error",
+        message: "Não foi possível atualizar o apoiador.",
+      });
     }
+    setApoiadorBusyId(null);
+  }, []);
+
+  /* ── Promover / remover Premium de apoiador ── */
+  const updateApoiadorPlano = useCallback(async (apoiadorId, newPlano) => {
+    setApoiadorBusyId(apoiadorId);
+    try {
+      await updateDoc(doc(db, "apoiadores", apoiadorId), { plano: newPlano });
+      setApoiadores((prev) =>
+        prev.map((a) => (a.id === apoiadorId ? { ...a, plano: newPlano } : a))
+      );
+      setApoiadorToast({
+        type: "success",
+        message:
+          newPlano === "premium"
+            ? "Apoiador promovido ao plano Premium."
+            : "Plano Premium removido.",
+      });
+    } catch (err) {
+      console.error("Erro ao atualizar plano do apoiador:", err);
+      setApoiadorToast({
+        type: "error",
+        message: "Não foi possível atualizar o plano.",
+      });
+    }
+    setApoiadorBusyId(null);
   }, []);
 
   /* ── Apagar comentários em massa ── */
@@ -529,6 +590,45 @@ function AdminPanel({ theme, toggleTheme }) {
     [apoiadores]
   );
 
+  const filteredApoiadores = useMemo(() => {
+    const term = apoiadoresSearch.trim().toLowerCase();
+    return apoiadores.filter((a) => {
+      const st = a.status || "pendente";
+      if (apoiadoresStatusFilter === "rejeitado") {
+        if (st !== "rejeitado" && st !== "rejected") return false;
+      } else if (apoiadoresStatusFilter === "ativo") {
+        if (st !== "ativo" && st !== "approved") return false;
+      } else if (apoiadoresStatusFilter === "pendente") {
+        if (st !== "pendente" && st !== "pending") return false;
+      } /* "todos" → não filtra por status */
+
+      if (term) {
+        const haystack = [
+          a.nome,
+          a.email,
+          a.razaoSocial,
+          a.uid,
+          a.pseudonym,
+          a.pseudonimo,
+          a.especialidade,
+          a.cnpj,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!haystack.includes(term)) return false;
+      }
+      return true;
+    });
+  }, [apoiadores, apoiadoresSearch, apoiadoresStatusFilter]);
+
+  // Auto-dismiss do toast da aba apoiadores
+  useEffect(() => {
+    if (!apoiadorToast) return undefined;
+    const t = window.setTimeout(() => setApoiadorToast(null), 3500);
+    return () => window.clearTimeout(t);
+  }, [apoiadorToast]);
+
   const TIPO_BADGE = {
     consultor: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
     advogado: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400",
@@ -541,11 +641,12 @@ function AdminPanel({ theme, toggleTheme }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
       <AppHeader theme={theme} toggleTheme={toggleTheme} title="Painel Administrativo" />
+      <AdminQuickAccess />
 
-      <main className="max-w-6xl mx-auto px-4 py-8 space-y-10">
+      <main className="max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-8 space-y-6 sm:space-y-10">
 
         {/* Abas */}
-        <div className="flex gap-1 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex gap-1 border-b border-slate-200 dark:border-slate-700 overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0 no-scrollbar">
           {TABS.map((tab) => (
             <button
               key={tab}
@@ -557,7 +658,7 @@ function AdminPanel({ theme, toggleTheme }) {
                 }
                 setActiveTab(tab);
               }}
-              className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition ${
+              className={`shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold rounded-t-lg transition whitespace-nowrap ${
                 activeTab === tab
                   ? "bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 border border-b-0 border-slate-200 dark:border-slate-700"
                   : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
@@ -1070,77 +1171,264 @@ function AdminPanel({ theme, toggleTheme }) {
 
         {/* ═══ ABA Apoiadores (unificada) ═══ */}
         {activeTab === "Apoiadores" && (
-          <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
-            <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200 mb-4">
-              Apoiadores pendentes ({apoiadoresPendentes.length})
-            </h2>
+          <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
+            <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+              <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200">
+                Apoiadores
+                <span className="ml-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
+                  ({filteredApoiadores.length})
+                </span>
+                {apoiadoresPendentes.length > 0 && apoiadoresStatusFilter !== "pendente" && (
+                  <button
+                    type="button"
+                    onClick={() => setApoiadoresStatusFilter("pendente")}
+                    className="ml-2 px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200 rounded-full hover:brightness-105"
+                  >
+                    {apoiadoresPendentes.length} pendente(s)
+                  </button>
+                )}
+              </h2>
+              <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+                <input
+                  type="search"
+                  placeholder="Buscar por nome, e-mail, pseudônimo…"
+                  value={apoiadoresSearch}
+                  onChange={(e) => setApoiadoresSearch(e.target.value)}
+                  className="flex-1 sm:flex-none sm:w-72 px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+                />
+                <select
+                  value={apoiadoresStatusFilter}
+                  onChange={(e) => setApoiadoresStatusFilter(e.target.value)}
+                  className="px-2 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+                >
+                  <option value="pendente">Pendentes</option>
+                  <option value="ativo">Aprovados</option>
+                  <option value="rejeitado">Rejeitados</option>
+                  <option value="todos">Todos</option>
+                </select>
+              </div>
+            </div>
+
+            {apoiadorToast && (
+              <div
+                className={`mb-3 px-3 py-2 rounded-lg text-sm font-medium ${
+                  apoiadorToast.type === "success"
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                    : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+                }`}
+              >
+                {apoiadorToast.message}
+              </div>
+            )}
 
             {apoiadoresLoading ? (
               <p className="text-sm text-slate-500">Carregando apoiadores…</p>
-            ) : apoiadoresPendentes.length === 0 ? (
-              <p className="text-sm text-slate-500">Nenhum apoiador pendente de aprovação.</p>
+            ) : filteredApoiadores.length === 0 ? (
+              <p className="text-sm text-slate-500">
+                {apoiadoresSearch
+                  ? "Nenhum apoiador corresponde à busca."
+                  : apoiadoresStatusFilter === "rejeitado"
+                  ? "Nenhum apoiador rejeitado."
+                  : apoiadoresStatusFilter === "ativo"
+                  ? "Nenhum apoiador aprovado."
+                  : "Nenhum apoiador pendente de aprovação."}
+              </p>
             ) : (
               <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                {apoiadoresPendentes.map((a) => (
-                  <div key={a.id} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">{a.nome || a.razaoSocial || "Sem nome"}</h3>
-                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${TIPO_BADGE[a.tipo] || "bg-slate-100 text-slate-600"}`}>
-                            {TIPO_LABEL[a.tipo] || a.tipo || "?"}
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          {a.email || "—"}
-                          {a.especialidade && ` · ${a.especialidade}`}
-                          {a.oab && ` · OAB ${a.oab}/${a.seccional || "?"}`}
-                          {a.cnpj && ` · CNPJ ${a.cnpj}`}
-                        </p>
-                        {a.status === "ativo" && (
-                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5 font-medium">
-                            {a.visualizacoes || 0} visualizações — {a.cliquesContato || 0} cliques
+                {filteredApoiadores.map((a) => {
+                  const st = a.status || "pendente";
+                  const isActive = st === "ativo" || st === "approved";
+                  const isRejected = st === "rejeitado" || st === "rejected";
+                  const isPending = !isActive && !isRejected;
+                  const isPremium =
+                    String(a.plano || "").toLowerCase() === "premium";
+                  const busy = apoiadorBusyId === a.id;
+                  return (
+                    <div
+                      key={a.id}
+                      className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700"
+                    >
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                              {a.nome || a.razaoSocial || "Sem nome"}
+                            </h3>
+                            <span
+                              className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                                TIPO_BADGE[a.tipo] || "bg-slate-100 text-slate-600"
+                              }`}
+                            >
+                              {TIPO_LABEL[a.tipo] || a.tipo || "?"}
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                                isActive
+                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                                  : isRejected
+                                  ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+                                  : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200"
+                              }`}
+                            >
+                              {isActive ? "Aprovado" : isRejected ? "Rejeitado" : "Pendente"}
+                            </span>
+                            {isPremium && (
+                              <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-200 text-amber-900 dark:bg-amber-700/40 dark:text-amber-100">
+                                Premium
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 break-all">
+                            {a.email || "—"}
+                            {a.especialidade && ` · ${a.especialidade}`}
+                            {a.oab && ` · OAB ${a.oab}/${a.seccional || "?"}`}
+                            {a.cnpj && ` · CNPJ ${a.cnpj}`}
                           </p>
-                        )}
-                        {a.descricao && <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{a.descricao}</p>}
-                        {(a.areas || a.segmentos || []).length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {(a.areas || a.segmentos || []).map((s) => (
-                              <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium">{s}</span>
-                            ))}
-                          </div>
-                        )}
-                        {a.linkedin && <a href={a.linkedin} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline mt-1 inline-block">LinkedIn</a>}
-                        {a.site && <a href={a.site} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline mt-1 inline-block ml-2">Site</a>}
-                        {a.documentos && a.documentos.length > 0 && (
-                          <div className="mt-2 flex gap-2 flex-wrap">
-                            {a.documentos.map((d, i) => (
-                              <a key={i} href={d.url || d} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline">
-                                Documento {i + 1}
+                          {isActive && (
+                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5 font-medium">
+                              {a.visualizacoes || 0} visualizações — {a.cliquesContato || 0} cliques
+                            </p>
+                          )}
+                          {a.descricao && (
+                            <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 break-words">
+                              {a.descricao}
+                            </p>
+                          )}
+                          {(a.areas || a.segmentos || []).length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {(a.areas || a.segmentos || []).map((s) => (
+                                <span
+                                  key={s}
+                                  className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium"
+                                >
+                                  {s}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex gap-3 flex-wrap mt-1">
+                            {a.linkedin && (
+                              <a
+                                href={a.linkedin}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 underline"
+                              >
+                                LinkedIn
                               </a>
-                            ))}
+                            )}
+                            {a.site && (
+                              <a
+                                href={a.site}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 underline"
+                              >
+                                Site
+                              </a>
+                            )}
+                            {a.documentos && a.documentos.length > 0 && (
+                              <>
+                                {a.documentos.map((d, i) => (
+                                  <a
+                                    key={i}
+                                    href={d.url || d}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-blue-600 underline"
+                                  >
+                                    Documento {i + 1}
+                                  </a>
+                                ))}
+                              </>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      <div className="flex flex-col gap-2 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => updateApoiadorStatus(a.id, "ativo")}
-                          className="px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition"
-                        >
-                          Aprovar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => updateApoiadorStatus(a.id, "rejeitado")}
-                          className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition"
-                        >
-                          Rejeitar
-                        </button>
+                        </div>
+                        <div className="flex flex-col gap-2 shrink-0 w-full sm:w-auto">
+                          {isPending && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => updateApoiadorStatus(a.id, "ativo")}
+                                className="px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition disabled:opacity-50"
+                              >
+                                Aprovar
+                              </button>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => updateApoiadorStatus(a.id, "rejeitado")}
+                                className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition disabled:opacity-50"
+                              >
+                                Rejeitar
+                              </button>
+                            </>
+                          )}
+                          {isActive && (
+                            <>
+                              {isPremium ? (
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() => updateApoiadorPlano(a.id, "gratuito")}
+                                  className="px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-300 rounded-lg hover:bg-amber-100 disabled:opacity-50"
+                                  title="Voltar para plano gratuito"
+                                >
+                                  Remover Premium
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() => updateApoiadorPlano(a.id, "premium")}
+                                  className="px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition disabled:opacity-50"
+                                  title="Promover ao plano Premium"
+                                >
+                                  Promover Premium
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => {
+                                  if (window.confirm("Desativar este apoiador (voltar para análise)?")) {
+                                    updateApoiadorStatus(a.id, "pendente");
+                                  }
+                                }}
+                                className="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 dark:bg-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-200 disabled:opacity-50"
+                              >
+                                Voltar p/ análise
+                              </button>
+                            </>
+                          )}
+                          {isRejected && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => updateApoiadorStatus(a.id, "ativo")}
+                                className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition disabled:opacity-50"
+                                title="Aprovar agora — reverter rejeição"
+                              >
+                                Aprovar agora
+                              </button>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => updateApoiadorStatus(a.id, "pendente")}
+                                className="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 dark:bg-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-200 disabled:opacity-50"
+                                title="Voltar para a fila de análise"
+                              >
+                                Reabrir análise
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
