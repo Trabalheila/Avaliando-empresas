@@ -80,7 +80,7 @@ function AdminPanel({ theme, toggleTheme }) {
   }, [admin, navigate]);
 
   /* ── Abas ── */
-  const TABS = ["Comentários", "Avaliações", "Apoiadores", "Restritos", "Verificações", "Planos"];
+  const TABS = ["Comentários", "Avaliações", "Apoiadores", "Restritos", "Verificações", "Planos", "Crescimento"];
   const [activeTab, setActiveTab] = useState("Comentários");
 
   /* Permite linkar diretamente para uma aba via ?tab=apoiadores|verif|restritos|comentarios|avaliacoes */
@@ -654,6 +654,10 @@ function AdminPanel({ theme, toggleTheme }) {
               onClick={() => {
                 if (tab === "Planos") {
                   navigate("/admin/plans");
+                  return;
+                }
+                if (tab === "Crescimento") {
+                  navigate("/admin/crescimento");
                   return;
                 }
                 setActiveTab(tab);
