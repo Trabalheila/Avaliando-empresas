@@ -66,6 +66,13 @@ const APPROVAL_FILTER_OPTIONS = [
   { value: "pending", label: "Pendentes" },
 ];
 
+const TYPE_FILTER_OPTIONS = [
+  { value: "todos", label: "Todos os tipos" },
+  { value: "trabalhador", label: "Usuários" },
+  { value: "apoiador", label: "Apoiadores" },
+  { value: "empresa", label: "Empresas" },
+];
+
 const PAGE_SIZE = 25;
 
 function getAdminUid() {
@@ -203,6 +210,7 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
   // Filtros
   const [approvalFilter, setApprovalFilter] = useState("todos");
   const [planFilter, setPlanFilter] = useState("todos");
+  const [typeFilter, setTypeFilter] = useState("todos");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
 
@@ -218,8 +226,14 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
       planStatus = "premium";
       userType = "empresa";
     }
+    // O filtro de Tipo tem prioridade quando definido. Se conflitar com o
+    // tipo implícito do filtro de Plano (premium_trabalhador/empresa),
+    // prevalece a seleção explícita do admin no filtro de Tipo.
+    if (typeFilter !== "todos") {
+      userType = typeFilter;
+    }
     return { userType, planStatus, approvalStatus: approvalFilter };
-  }, [approvalFilter, planFilter]);
+  }, [approvalFilter, planFilter, typeFilter]);
 
   const fetchPage = useCallback(
     async ({ nextCursor = null, reset = false } = {}) => {
@@ -504,7 +518,7 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
 
         {/* ═══ Filtros + Tabela ═══ */}
         <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
                 Status
@@ -537,9 +551,25 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
                 ))}
               </select>
             </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                Tipo
+              </label>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+              >
+                {TYPE_FILTER_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
             <form
               onSubmit={handleSearchSubmit}
-              className="sm:col-span-2 flex items-end gap-2"
+              className="sm:col-span-2 lg:col-span-2 flex items-end gap-2"
             >
               <div className="flex-1">
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
