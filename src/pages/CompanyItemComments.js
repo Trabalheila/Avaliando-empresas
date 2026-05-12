@@ -38,46 +38,38 @@ function resolveVerificationLevel(userData) {
   if (provider === "linkedin" || hasLinkedinProfile || hasLinkedinExperiences) {
     return "linkedin";
   }
-  const resume = userData.resumeData;
-  if (resume && typeof resume === "object") {
-    const hasExperiences =
-      (Array.isArray(resume.experiences) && resume.experiences.length > 0) ||
-      (Array.isArray(resume.experiencesStructured) && resume.experiencesStructured.length > 0) ||
-      (typeof resume.rawText === "string" && resume.rawText.trim().length > 0);
-    if (hasExperiences) return "curriculum";
-  }
   return "none";
 }
 
 function resolveEntryVerification(entry, cache) {
   if (entry?.authorLoginProvider === "linkedin" || entry?.authorHasLinkedIn) return "linkedin";
-  if (entry?.authorHasResume) return "curriculum";
   const cached = cache?.[entry?.authorProfileId] || cache?.[`pseudonym:${(entry?.pseudonym || "").toLowerCase()}`];
   return cached || "none";
 }
 
 function VerificationBadge({ level }) {
-  const styleMap = {
-    linkedin: {
-      className:
-        "bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800",
-      label: "Verificado com LinkedIn",
-    },
-    curriculum: {
-      className:
-        "bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800",
-      label: "Verificado pelo Currículo",
-    },
-    none: {
-      className:
-        "bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
-      label: "Não verificado",
-    },
-  };
-  const cfg = styleMap[level] || styleMap.none;
+  if (level === "linkedin") {
+    return (
+      <span
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#0A66C2]/10 text-[#0A66C2] border border-[#0A66C2]/30 dark:bg-[#0A66C2]/20 dark:text-[#7CB9F1] dark:border-[#0A66C2]/40"
+        title="Verificado com LinkedIn"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          className="w-3 h-3"
+          fill="currentColor"
+        >
+          <path d="M20.45 20.45h-3.55v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.13 1.44-2.13 2.94v5.67H9.36V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.38-1.85 3.62 0 4.29 2.38 4.29 5.48v6.26zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.99 0 1.78-.77 1.78-1.72V1.72C24 .77 23.21 0 22.22 0z" />
+        </svg>
+        Verificado com LinkedIn
+      </span>
+    );
+  }
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${cfg.className}`}>
-      {cfg.label}
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+      Não verificado
     </span>
   );
 }
@@ -453,7 +445,7 @@ function CompanyItemComments({ theme, toggleTheme }) {
     let alive = true;
     const needLookup = (entries || []).filter(
       (e) =>
-        !(e?.authorLoginProvider === "linkedin" || e?.authorHasLinkedIn || e?.authorHasResume)
+        !(e?.authorLoginProvider === "linkedin" || e?.authorHasLinkedIn)
     );
     if (needLookup.length === 0) return;
 

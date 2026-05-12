@@ -154,6 +154,14 @@ function classifyPlanStatus(data = {}) {
   return "gratuito";
 }
 
+function isVerifiedByLinkedIn(data = {}) {
+  const provider = String(data.loginProvider || "").toLowerCase();
+  if (provider === "linkedin") return true;
+  if (data.linkedinProfile || data.linkedInUrl) return true;
+  if (Array.isArray(data.linkedinExperiences) && data.linkedinExperiences.length > 0) return true;
+  return false;
+}
+
 function getDisplayName(data = {}) {
   return (
     data.pseudonym ||
@@ -247,6 +255,7 @@ async function handleListUsers(req, res) {
           userType: classifyUserType(data),
           planStatus: classifyPlanStatus(data),
           approvalStatus: classifyApprovalStatus(data),
+          verifiedByLinkedIn: isVerifiedByLinkedIn(data),
           createdAt: created ? created.toISOString() : null,
           updatedAt: data.updatedAt?.toDate?.()?.toISOString?.() || null,
         };
@@ -287,6 +296,7 @@ async function handleGrowthStats(req, res) {
       rejected: 0,
       pending: 0,
       incomplete: 0,
+      linkedinVerified: 0,
       plan: { gratuito: 0, premium: 0, premium_gratuito: 0 },
       premiumByType: { trabalhador: 0, empresa: 0, apoiador: 0 },
     };
@@ -305,6 +315,10 @@ async function handleGrowthStats(req, res) {
 
         const approval = classifyApprovalStatus(data);
         totals[approval] = (totals[approval] || 0) + 1;
+
+        if (isVerifiedByLinkedIn(data)) {
+          totals.linkedinVerified += 1;
+        }
 
         const plan = classifyPlanStatus(data);
         totals.plan[plan] = (totals.plan[plan] || 0) + 1;
@@ -339,7 +353,30 @@ async function handleGrowthStats(req, res) {
       monthly.push({ month: key, count: byMonth.get(key) || 0 });
     }
 
-    return res.status(200).json({ totals, monthly });
+    // Conta visitas anônimas (sessões signInAnonymously) listando o Firebase Auth.
+    // É best-effort: se falhar (cota/permissão), devolvemos null.
+    let anonymousVisits = null;
+    try {
+      const { getAuth } = await import("firebase-admin/auth");
+      const auth = getAuth();
+      let pageToken;
+      let count = 0;
+      /* eslint-disable no-await-in-loop */
+      do {
+        const result = await auth.listUsers(1000, pageToken);
+        for (const u of result.users) {
+          const providers = Array.isArray(u.providerData) ? u.providerData : [];
+          if (providers.length === 0) count += 1;
+        }
+        pageToken = result.pageToken;
+      } while (pageToken);
+      /* eslint-enable no-await-in-loop */
+      anonymousVisits = count;
+    } catch (err) {
+      console.warn("[admin/growth-stats] visitas anônimas indisponíveis:", err?.message || err);
+    }
+
+    return res.status(200).json({ totals, monthly, anonymousVisits });
   } catch (err) {
     console.error("[admin/growth-stats] erro:", err);
     return res.status(500).json({ error: "Erro interno ao calcular métricas." });
@@ -387,6 +424,7 @@ async function handleUpdateUserStatus(req, res) {
         userType: classifyUserType(data),
         planStatus: classifyPlanStatus(data),
         approvalStatus: classifyApprovalStatus(data),
+        verifiedByLinkedIn: isVerifiedByLinkedIn(data),
         createdAt: created ? created.toISOString() : null,
       },
     });

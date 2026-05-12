@@ -77,6 +77,39 @@ const TYPE_FILTER_OPTIONS = [
 
 const PAGE_SIZE = 25;
 
+function LinkedinIcon({ className = "w-3 h-3" }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className={className}
+      fill="currentColor"
+    >
+      <path d="M20.45 20.45h-3.55v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.13 1.44-2.13 2.94v5.67H9.36V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.38-1.85 3.62 0 4.29 2.38 4.29 5.48v6.26zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.99 0 1.78-.77 1.78-1.72V1.72C24 .77 23.21 0 22.22 0z" />
+    </svg>
+  );
+}
+
+function LinkedinVerificationCell({ verified }) {
+  if (verified) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-[#0A66C2]/10 text-[#0A66C2] border border-[#0A66C2]/30 dark:bg-[#0A66C2]/20 dark:text-[#7CB9F1]"
+        title="Verificado com LinkedIn"
+      >
+        <LinkedinIcon />
+        LinkedIn
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+      Não verificado
+    </span>
+  );
+}
+
 function getAdminUid() {
   try {
     const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
@@ -329,9 +362,14 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || "Falha ao atualizar.");
-        setItems((prev) =>
-          prev.map((u) => (u.id === data.user.id ? { ...u, ...data.user } : u))
-        );
+        // Se o admin removeu a conta, tira da lista visualmente.
+        if (status === "rejected" || status === "removido") {
+          setItems((prev) => prev.filter((u) => u.id !== user.id));
+        } else {
+          setItems((prev) =>
+            prev.map((u) => (u.id === data.user.id ? { ...u, ...data.user } : u))
+          );
+        }
         setToast({
           type: "success",
           message:
@@ -435,7 +473,31 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
           </div>
         </header>
 
-        {/* ═══ Cards de métricas ═══ */}
+        {/* ═══ Visitas (sessões anônimas — independente de cadastros) ═══ */}
+        <section>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-blue-300 dark:border-blue-700 shadow-sm overflow-hidden">
+              <div className="h-1 bg-gradient-to-r from-sky-400 to-blue-600" />
+              <div className="p-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-blue-700 dark:text-blue-300">
+                  Visitas (sessões anônimas)
+                </p>
+                <p className="mt-1 text-2xl sm:text-3xl font-extrabold text-slate-800 dark:text-slate-100">
+                  {statsLoading
+                    ? "…"
+                    : stats?.anonymousVisits === null || stats?.anonymousVisits === undefined
+                    ? "—"
+                    : stats.anonymousVisits.toLocaleString("pt-BR")}
+                </p>
+                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                  Total de sessões via <code>signInAnonymously()</code>. Não representam usuários cadastrados.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ═══ Cards de métricas de cadastros ═══ */}
         <section>
           {statsError && (
             <div className="mb-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-200 text-sm">
@@ -607,6 +669,7 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
                   <th className="text-left p-3 font-semibold">Pseudônimo</th>
                   <th className="text-left p-3 font-semibold">Tipo</th>
                   <th className="text-left p-3 font-semibold">Status</th>
+                  <th className="text-left p-3 font-semibold">Verificação</th>
                   <th className="text-left p-3 font-semibold">Plano</th>
                   <th className="text-left p-3 font-semibold">Cadastro</th>
                   <th className="text-right p-3 font-semibold">Ações</th>
@@ -616,7 +679,7 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
                 {!listLoading && items.length === 0 && (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={7}
                       className="p-6 text-center text-slate-500 dark:text-slate-400"
                     >
                       Nenhum usuário encontrado com os filtros selecionados.
@@ -660,6 +723,9 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
                         >
                           {APPROVAL_LABEL[u.approvalStatus] || u.approvalStatus}
                         </span>
+                      </td>
+                      <td className="p-3">
+                        <LinkedinVerificationCell verified={Boolean(u.verifiedByLinkedIn)} />
                       </td>
                       <td className="p-3">
                         <span
