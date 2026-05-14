@@ -309,6 +309,31 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
       if (segmentos.length > 0) baseData.segmentos = segmentos;
 
       await setDoc(doc(db, "apoiadores", id), baseData);
+
+      /* Espelha o cadastro na coleção `users` para que o painel admin
+         consiga listar este apoiador no filtro por tipo. Mantemos o
+         documento de `apoiadores` intacto — aqui apenas garantimos que
+         exista um doc em `users` com userType="apoiador" + campos mínimos.
+         A chave preferida é o uid autenticado; quando não houver, usamos
+         o próprio id do apoiador como fallback estável. */
+      try {
+        const userDocId = (auth.currentUser?.uid || id).toString();
+        await setDoc(
+          doc(db, "users", userDocId),
+          {
+            userType: "apoiador",
+            name: nome.trim(),
+            email: email.trim(),
+            uid: auth.currentUser?.uid || null,
+            apoiadorId: id,
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      } catch (mirrorErr) {
+        console.warn("Falha ao espelhar apoiador em users:", mirrorErr);
+      }
+
       setSuccess(true);
     } catch (err) {
       console.error("Erro ao salvar cadastro:", err);

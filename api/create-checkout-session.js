@@ -87,7 +87,23 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
   const planConfig = PLAN_MATRIX[audience]?.[tier] || PLAN_MATRIX.worker.essential;
   const transactionAmount = planConfig.amount;
   const planReason = planConfig.reason;
-  const preapprovalPlanId = (process.env[planConfig.envPlanId] || "").toString().trim();
+  const rawPreapprovalPlanId = (process.env[planConfig.envPlanId] || "").toString().trim();
+  // Valida o preapproval_plan_id: o ID real do Mercado Pago é um hash
+  // alfanumérico longo. Descarta valores claramente inválidos (placeholders
+  // como "preapproval_plan_id", "YOUR_PLAN_ID", strings curtas, etc.) para
+  // que o backend caia automaticamente no fluxo dinâmico (Caminho 2) em vez
+  // de propagar o erro "The template with id X does not exist" do MP.
+  const looksLikePlaceholder =
+    !rawPreapprovalPlanId ||
+    rawPreapprovalPlanId.length < 16 ||
+    /^(preapproval_plan_id|your_plan_id|plan_id|todo|changeme|xxx+)$/i.test(rawPreapprovalPlanId) ||
+    !/^[a-zA-Z0-9_-]+$/.test(rawPreapprovalPlanId);
+  const preapprovalPlanId = looksLikePlaceholder ? "" : rawPreapprovalPlanId;
+  if (rawPreapprovalPlanId && looksLikePlaceholder) {
+    console.warn(
+      `[create-checkout-session] ${planConfig.envPlanId} parece ser placeholder ("${rawPreapprovalPlanId}"); usando criação dinâmica.`
+    );
+  }
 
   const notificationParams = new URLSearchParams({
     provider: "mercadopago",
@@ -126,20 +142,29 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
 
     if (!response.ok) {
       const message = json?.message || json?.cause?.[0]?.description || "Falha ao criar assinatura no Mercado Pago.";
-      throw new Error(message);
+      const isTemplateMissing =
+        /template with id .* does not exist/i.test(message) ||
+        /preapproval_plan.*not.*(exist|found)/i.test(message);
+      if (isTemplateMissing) {
+        console.warn(
+          `[create-checkout-session] preapproval_plan_id "${preapprovalPlanId}" não existe na conta MP. Caindo no fluxo dinâmico.`
+        );
+        // Não lança: deixa o código abaixo (Caminho 2) executar.
+      } else {
+        throw new Error(message);
+      }
+    } else {
+      const checkoutUrl = json?.init_point;
+      if (!checkoutUrl) {
+        throw new Error("Resposta do Mercado Pago invalida: init_point ausente.");
+      }
+      return {
+        provider: "mercadopago",
+        redirectMode: "url",
+        checkoutUrl,
+        planId: preapprovalPlanId,
+      };
     }
-
-    const checkoutUrl = json?.init_point;
-    if (!checkoutUrl) {
-      throw new Error("Resposta do Mercado Pago invalida: init_point ausente.");
-    }
-
-    return {
-      provider: "mercadopago",
-      redirectMode: "url",
-      checkoutUrl,
-      planId: preapprovalPlanId,
-    };
   }
 
   // Caminho 2: criar plano dinamicamente (fallback).

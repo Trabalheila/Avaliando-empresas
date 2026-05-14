@@ -42,6 +42,7 @@ import SealDetailsPage from './pages/SealDetailsPage';
 import AuthAction from './pages/AuthAction';
 import ProfissionalApoioCadastro from './pages/ProfissionalApoioCadastro';
 import ProfissionalApoioPerfil from './pages/ProfissionalApoioPerfil';
+import migrateApoiadoresToUsers from './scripts/migrateApoiadoresToUsers';
 
 // Função para aplicar o tema (dark/light)
 function applyTheme(theme) {
@@ -139,6 +140,15 @@ function App() {
     applyTheme(theme);
     window.localStorage.setItem('trabalheiLa_theme', theme);
   }, [theme]);
+
+  /* Migração one-shot (apenas em dev): espelha cadastros antigos de
+     `apoiadores` na coleção `users` com userType="apoiador" para que
+     o painel admin os encontre no filtro por tipo. Usa flag em
+     localStorage para rodar uma única vez por navegador. */
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return;
+    migrateApoiadoresToUsers().catch(() => {});
+  }, []);
 
   const toggleTheme = useMemo(() => {
     return () => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
