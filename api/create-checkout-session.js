@@ -184,6 +184,9 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
     notification_url: `${serverBase}/api/webhook?${notificationParams.toString()}`,
   };
 
+  console.log("[create-checkout-session] MP preapproval_plan payload:", JSON.stringify(payload));
+  console.log("[create-checkout-session] appOrigin=", appOrigin, "serverBase=", serverBase);
+
   const response = await fetch("https://api.mercadopago.com/preapproval_plan", {
     method: "POST",
     headers: {
@@ -194,6 +197,7 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
   });
 
   const responseText = await response.text();
+  console.log("[create-checkout-session] MP preapproval_plan status=", response.status, "body=", responseText);
   let json;
   try {
     json = responseText ? JSON.parse(responseText) : {};
@@ -202,7 +206,9 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
   }
 
   if (!response.ok) {
-    const message = json?.message || json?.cause?.[0]?.description || "Falha ao criar plano de assinatura no Mercado Pago.";
+    console.error("[create-checkout-session] MP rejeitou. message=", json?.message, "cause=", JSON.stringify(json?.cause));
+    const causeDesc = Array.isArray(json?.cause) && json.cause[0]?.description ? ` (${json.cause[0].description})` : "";
+    const message = (json?.message ? json.message : "Falha ao criar plano de assinatura no Mercado Pago.") + causeDesc;
     throw new Error(message);
   }
 
@@ -379,6 +385,7 @@ export default async function handler(req, res) {
     });
     return res.status(200).json(checkoutPayload);
   } catch (err) {
+    console.error("[create-checkout-session] handler erro:", err?.message, err?.stack);
     return res.status(500).json({ error: err?.message || "Falha ao iniciar checkout Mercado Pago." });
   }
 }

@@ -6,6 +6,7 @@ import { buildApiUrl } from "../utils/apiBase";
  * O backend deve criar a sessao no endpoint /api/create-checkout-session.
  */
 export async function handleCheckout({ cnpj, companySlug, companyName, audience, paymentMethod, apoiadorId, tier } = {}) {
+  console.log("[handleCheckout] INICIO", { cnpj, companySlug, companyName, audience, paymentMethod, apoiadorId, tier });
   const cleanedCnpjRaw = (cnpj || "").toString().replace(/\D/g, "");
   const cleanedCnpj = cleanedCnpjRaw.length === 14 ? cleanedCnpjRaw : "";
   const normalizedCompanySlug = (companySlug || "")
@@ -19,29 +20,40 @@ export async function handleCheckout({ cnpj, companySlug, companyName, audience,
   const normalizedTier = ["essential", "premium"].includes(tier) ? tier : "essential";
 
   if (!cleanedCnpj && !normalizedCompanySlug && !cleanedApoiadorId) {
+    console.error("[handleCheckout] FALHA: sem identificadores (cnpj/slug/apoiadorId)");
     throw new Error("Nao foi possivel identificar a empresa para iniciar o checkout.");
   }
 
-  const response = await fetch(buildApiUrl("/api/create-checkout-session"), {
+  const apiUrl = buildApiUrl("/api/create-checkout-session");
+  const body = {
+    cnpj: cleanedCnpj || null,
+    companySlug: normalizedCompanySlug || null,
+    companyName: (companyName || "").toString().trim() || null,
+    audience: ["worker", "employer", "supporter"].includes(audience) ? audience : "worker",
+    tier: normalizedTier,
+    paymentMethod: paymentMethod === "pix" ? "pix" : "card",
+    apoiadorId: cleanedApoiadorId || null,
+  };
+  console.log("[handleCheckout] POST", apiUrl, body);
+
+  const response = await fetch(apiUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      cnpj: cleanedCnpj || null,
-      companySlug: normalizedCompanySlug || null,
-      companyName: (companyName || "").toString().trim() || null,
-      audience: ["worker", "employer", "supporter"].includes(audience) ? audience : "worker",
-      tier: normalizedTier,
-      paymentMethod: paymentMethod === "pix" ? "pix" : "card",
-      apoiadorId: cleanedApoiadorId || null,
-    }),
+    body: JSON.stringify(body),
   });
 
-  const payload = await response.json();
+  console.log("[handleCheckout] response.status", response.status, response.statusText);
+  const payload = await response.json().catch((e) => {
+    console.error("[handleCheckout] resposta nao e JSON valido", e);
+    return null;
+  });
+  console.log("[handleCheckout] response.body", payload);
   if (!response.ok) {
     throw new Error(payload?.error || "Nao foi possivel iniciar o checkout.");
   }
 
   if (payload?.redirectMode === "url" && payload?.checkoutUrl) {
+    console.log("[handleCheckout] redirecionando para", payload.checkoutUrl);
     window.location.assign(payload.checkoutUrl);
     return;
   }

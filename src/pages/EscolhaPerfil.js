@@ -107,6 +107,8 @@ function EscolhaPerfil({ theme, toggleTheme }) {
   };
 
   const handlePremiumUnlock = async (audience = "worker", tier = "essential") => {
+    // [DEBUG] Confirma que o clique chegou na funcao (problema de binding -> nao aparece)
+    console.log("[handlePremiumUnlock] CLICADO", { audience, tier, ts: new Date().toISOString() });
     const loadingKey = `${audience}-${tier}`;
     setCheckoutLoadingAudience(loadingKey);
     setCheckoutError("");
@@ -118,6 +120,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
       } catch {
         stored = {};
       }
+      console.log("[handlePremiumUnlock] userProfile lido", stored);
 
       const isEmployer = audience === "employer";
       const canGrantEmployerForFree = isEmployer && isEmployerFreeWindowActive;
@@ -126,6 +129,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
       // usando preapproval_plan_id da variavel de ambiente. Funciona para todos os
       // tiers exceto quando o empregador esta dentro da janela gratuita.
       const directMpUrl = getMpPlanUrl(audience, tier);
+      console.log("[handlePremiumUnlock] getMpPlanUrl ->", { directMpUrl, canGrantEmployerForFree });
       if (directMpUrl && !canGrantEmployerForFree) {
         // Persistir intencao de perfil antes do redirect.
         const updatedProfile = { ...stored, profileTypeChosen: audience };
@@ -191,6 +195,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
         await setDoc(userRef, { profileTypeChosen: audience }, { merge: true });
       }
 
+      console.log("[handlePremiumUnlock] sem directMpUrl, chamando handleCheckout()", { audience, tier });
       await handleCheckout({
         cnpj: "",
         companySlug: "trabalhei-la",
@@ -198,7 +203,11 @@ function EscolhaPerfil({ theme, toggleTheme }) {
         audience,
         tier,
       });
+      console.log("[handlePremiumUnlock] handleCheckout() retornou sem lancar erro");
     } catch (err) {
+      console.error("[handlePremiumUnlock] ERRO capturado:", err);
+      console.error("[handlePremiumUnlock] err.message:", err?.message);
+      console.error("[handlePremiumUnlock] err.stack:", err?.stack);
       setCheckoutError(err?.message || "Erro ao iniciar checkout. Tente novamente.");
     } finally {
       setCheckoutLoadingAudience(null);
