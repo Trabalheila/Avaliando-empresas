@@ -40,7 +40,10 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
 
   const appOrigin = getAppOrigin(req);
   const serverBase = getServerBaseUrl(req);
-  const externalReference = cnpj ? cnpj : `slug:${companySlug}`;
+  // MP rejeita caracteres especiais (ex: ':') em external_reference.
+  // Mantemos apenas [a-zA-Z0-9_-] e usamos prefixo 'slug-' em vez de 'slug:'.
+  const rawExternalRef = cnpj ? cnpj : `slug-${companySlug}`;
+  const externalReference = rawExternalRef.toString().replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 250);
 
   // Mapeamento tier -> preco + nome do plano + variavel de preapproval_plan_id pre-criado.
   // Se a variavel de ambiente correspondente estiver definida, o checkout usa o
@@ -105,13 +108,20 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
     );
   }
 
-  const notificationParams = new URLSearchParams({
+  // notification_url: omitir params vazios para evitar payload "sujo" rejeitado pelo MP.
+  const notifEntries = {
     provider: "mercadopago",
     cnpj: cnpj || "",
     companySlug: companySlug || "",
     audience,
     tier,
     apoiadorId: apoiadorId || "",
+  };
+  const notificationParams = new URLSearchParams();
+  Object.entries(notifEntries).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && String(v).length > 0) {
+      notificationParams.set(k, String(v));
+    }
   });
 
   // Caminho 1: usar preapproval_plan_id pre-cadastrado no Mercado Pago.
