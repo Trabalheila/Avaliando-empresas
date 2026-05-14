@@ -91,6 +91,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
   const [termosAceitos, setTermosAceitos] = useState(TERMOS.map(() => false));
   const [conflictDeclarationAccepted, setConflictDeclarationAccepted] = useState(false);
   const [nichos, setNichos] = useState([]);
+  const [adExitum, setAdExitum] = useState(false);
   const [ramoEspecializacao, setRamoEspecializacao] = useState("");
 
   /* ── Estado consultor ── */
@@ -274,6 +275,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
         cliquesContato: 0,
         portfolio: portfolio.slice(0, 5),
         nichos: nichos.slice(0, 3),
+        adExitum: Boolean(adExitum),
         ramoEspecializacao,
         uid: auth.currentUser?.uid || null,
         createdAt: serverTimestamp(),
@@ -340,7 +342,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
       setError("Ocorreu um erro ao enviar o cadastro. Tente novamente.");
     }
     setSubmitting(false);
-  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, arquivos, allTermosAceitos, conflictDeclarationAccepted, cnpj, segmentos, site, portfolio, nichos, ramoEspecializacao, credentialNumber, credentialStateOrRegion, credentialPortfolioUrl, credentialCertifications, credentialProof]);
+  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, arquivos, allTermosAceitos, conflictDeclarationAccepted, cnpj, segmentos, site, portfolio, nichos, adExitum, ramoEspecializacao, credentialNumber, credentialStateOrRegion, credentialPortfolioUrl, credentialCertifications, credentialProof]);
 
   /* ═══ Tela de sucesso ═══ */
   if (success) {
@@ -693,6 +695,28 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* ── Modelo de honorários: Ad Exitum (opcional) ── */}
+              <div className="mb-6 p-4 rounded-xl bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={adExitum}
+                    onChange={(e) => setAdExitum(e.target.checked)}
+                    className="mt-0.5 shrink-0 accent-purple-600"
+                  />
+                  <span>
+                    <span className="block text-sm font-bold text-purple-800 dark:text-purple-200">
+                      Aceito o modelo Ad Exitum
+                    </span>
+                    <span className="block text-xs text-slate-600 dark:text-slate-300 leading-relaxed mt-1">
+                      Ad exitum significa que você só recebe se ganhar a causa do cliente.
+                      Apoiadores que aceitam esse modelo ganham um selo destacado no perfil
+                      e aparecem em buscas filtradas por essa modalidade.
+                    </span>
+                  </span>
+                </label>
               </div>
 
               {/* ── Termos obrigatórios ── */}

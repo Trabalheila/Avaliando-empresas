@@ -5,9 +5,15 @@ import { doc, getDoc, collection, getDocs, addDoc, updateDoc, serverTimestamp, q
 import { signInAnonymously } from "firebase/auth";
 import { isPremium as checkUserIsPremium } from "../utils/rbac";
 import AppHeader from "../components/AppHeader";
+import ConsultationModal from "../components/ConsultationModal";
+import { getConsultationPrice, getRatingLabel } from "../data/consultationPricing";
 
 const TIPO_LABELS = { consultor: "Consultor de RH", advogado: "Advogado Trabalhista", prestador: "Prestador de Serviços" };
 const STARS = [1, 2, 3, 4, 5];
+
+function BRL(value) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value) || 0);
+}
 
 function StarDisplay({ rating, size = "w-5 h-5" }) {
   return (
@@ -56,6 +62,8 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
   const [reviewSuccess, setReviewSuccess] = useState(false);
   const [reviewError, setReviewError] = useState("");
   const [alreadyReviewed, setAlreadyReviewed] = useState(false);
+  const [hasConsultation, setHasConsultation] = useState(false);
+  const [consultationModalOpen, setConsultationModalOpen] = useState(false);
   const userIsPremium = checkUserIsPremium();
 
   useEffect(() => {
@@ -79,6 +87,21 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
           if (uid) {
             const dupSnap = await getDocs(query(collection(db, "apoiadores", id, "avaliacoes"), where("autorId", "==", uid)));
             if (!dupSnap.empty) setAlreadyReviewed(true);
+
+            /* Verificar se o usuário já realizou consulta com este apoiador.
+               Só quem consultou (e pagou) pode avaliar. */
+            try {
+              const consSnap = await getDocs(
+                query(
+                  collection(db, "consultas"),
+                  where("apoiadorId", "==", id),
+                  where("workerId", "==", uid)
+                )
+              );
+              setHasConsultation(!consSnap.empty);
+            } catch {
+              setHasConsultation(false);
+            }
           }
         }
       } catch (err) {
@@ -99,6 +122,13 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
       /* Verificar se é Premium */
       if (!userIsPremium) {
         setReviewError("Apenas usuários Premium podem avaliar Apoiadores.");
+        setSubmittingReview(false);
+        return;
+      }
+
+      /* Só pode avaliar quem teve consulta intermediada com este apoiador. */
+      if (!hasConsultation) {
+        setReviewError("Você precisa realizar uma consulta com este Apoiador antes de avaliá-lo.");
         setSubmittingReview(false);
         return;
       }
@@ -146,7 +176,7 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
       setReviewError("Erro ao enviar avaliação. Tente novamente.");
     }
     setSubmittingReview(false);
-  }, [id, newRating, newComment, avaliacoes, userIsPremium]);
+  }, [id, newRating, newComment, avaliacoes, userIsPremium, hasConsultation]);
 
   if (loading) {
     return (
@@ -167,6 +197,15 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
   }
 
   const isPremium = apoiador.plano === "premium";
+  const isEssencial = apoiador.plano === "essencial" || apoiador.plano === "essential";
+  const isGratuito = !isPremium && !isEssencial;
+  const consultationPrice = getConsultationPrice(apoiador);
+  const apoiadorTier = isPremium ? "premium" : "essential";
+  const ratingLabel = getRatingLabel(apoiador.rating);
+  // Indicador de elegibilidade para upgrade: Essencial com avaliação "Excelente"
+  // E adExitum=true ganha um destaque visual sugerindo migração ao Premium.
+  const eligibleForPremiumUpgrade =
+    isEssencial && Math.round(apoiador.rating || 0) === 5 && apoiador.adExitum === true;
   // Selo de profissional verificado:
   //  - Selo aprimorado: registro no conselho aprovado E diploma aprovado.
   //  - Selo base: apenas o registro no conselho aprovado
@@ -225,6 +264,22 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
                     🎉 Elegível a 10% de desconto no Plano Apoiador Essencial
                   </span>
                 )}
+                {apoiador.adExitum === true && (
+                  <span
+                    className="px-2.5 py-0.5 text-[11px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-full"
+                    title="Este apoiador aceita o modelo Ad Exitum — você só paga se ganhar a causa."
+                  >
+                    ⚖️ Aceita Ad Exitum
+                  </span>
+                )}
+                {eligibleForPremiumUpgrade && (
+                  <span
+                    className="px-2.5 py-0.5 text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 border border-amber-300 dark:border-amber-800 rounded-full"
+                    title="Avaliação Excelente + aceita Ad Exitum — elegível para o plano Premium."
+                  >
+                    ⭐ Elegível para Premium
+                  </span>
+                )}
               </div>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                 {TIPO_LABELS[apoiador.tipo] || apoiador.tipo}
@@ -232,11 +287,16 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
               </p>
 
               {isPremium && apoiador.rating > 0 && (
-                <div className="flex items-center gap-2 mt-2">
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <StarDisplay rating={apoiador.rating} />
                   <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">
                     {apoiador.rating.toFixed(1)} ({apoiador.totalAvaliacoes || 0} avaliações)
                   </span>
+                  {ratingLabel && (
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                      {ratingLabel}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -266,6 +326,51 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
               <a href={apoiador.site} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline inline-block ml-3">Site</a>
             )}
           </div>
+
+          {/* Preço de consulta (Essencial / Premium) — Gratuito não exibe. */}
+          {!isGratuito && consultationPrice && (
+            <div className="mt-5 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+              <div className="flex items-baseline justify-between flex-wrap gap-2">
+                <div>
+                  <p className="text-xs uppercase font-bold tracking-wider text-blue-700 dark:text-blue-300">
+                    Consulta {isPremium ? "(preço do profissional)" : "(preço tabelado pela plataforma)"}
+                  </p>
+                  <p className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">
+                    {BRL(consultationPrice)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setConsultationModalOpen(true)}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
+                >
+                  Solicitar consulta
+                </button>
+              </div>
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                Pagamento seguro via Mercado Pago. A plataforma retém{" "}
+                {isPremium ? "12,5%" : "10%"} para custos operacionais.
+              </p>
+            </div>
+          )}
+
+          {/* Estatísticas de processos (Essencial) */}
+          {isEssencial && (
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <p className="text-[11px] uppercase font-semibold tracking-wider text-slate-500 dark:text-slate-400">Processos</p>
+                <p className="text-xl font-extrabold text-slate-800 dark:text-slate-100">
+                  {Number(apoiador.processosCount) || 0}
+                </p>
+              </div>
+              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                <p className="text-[11px] uppercase font-semibold tracking-wider text-emerald-700 dark:text-emerald-300">Casos ganhos</p>
+                <p className="text-xl font-extrabold text-emerald-700 dark:text-emerald-300">
+                  {Number(apoiador.casosGanhos) || 0}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Contato */}
           <div className="flex flex-wrap gap-3 mt-5">
@@ -331,6 +436,12 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
               <div className="mb-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
                 <p className="text-sm text-slate-500 dark:text-slate-400">Apenas usuários Premium podem deixar avaliações.</p>
               </div>
+            ) : !hasConsultation ? (
+              <div className="mb-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Apenas trabalhadores Premium que realizaram uma consulta com este Apoiador podem avaliá-lo.
+                </p>
+              </div>
             ) : alreadyReviewed ? (
               <div className="mb-6 p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800">
                 <p className="text-sm text-green-700 dark:text-green-400">Você já avaliou este Apoiador.</p>
@@ -378,6 +489,12 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
           </div>
         )}
       </main>
+
+      <ConsultationModal
+        open={consultationModalOpen}
+        onClose={() => setConsultationModalOpen(false)}
+        apoiador={apoiador}
+      />
     </div>
   );
 }

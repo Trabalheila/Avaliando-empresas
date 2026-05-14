@@ -219,12 +219,137 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
   };
 }
 
+/**
+ * Cria uma `preference` (one-shot) no Mercado Pago para uma consulta
+ * avulsa entre trabalhador Premium e Apoiador. Usa `marketplace_fee`
+ * para o split (10% essential / 12.5% premium) — funcional quando o
+ * MERCADO_PAGO_ACCESS_TOKEN é de uma conta com marketplace habilitado;
+ * sem isso, o pagamento é processado normalmente e o split deve ser
+ * reconciliado manualmente.
+ */
+async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tier, amount, workerId, especialidade }) {
+  const accessToken = (process.env.MERCADO_PAGO_ACCESS_TOKEN || "").toString().trim();
+  if (!accessToken) {
+    throw new Error("MERCADO_PAGO_ACCESS_TOKEN nao configurado.");
+  }
+  if (!apoiadorId) {
+    throw new Error("apoiadorId é obrigatório para a consulta.");
+  }
+
+  const safeAmount = Number(amount);
+  if (!Number.isFinite(safeAmount) || safeAmount <= 0) {
+    throw new Error("Valor da consulta inválido.");
+  }
+
+  const feePct = tier === "premium" ? 0.125 : 0.1;
+  const marketplaceFee = Number((safeAmount * feePct).toFixed(2));
+
+  const appOrigin = getAppOrigin(req);
+  const serverBase = getServerBaseUrl(req);
+
+  const notificationParams = new URLSearchParams({
+    provider: "mercadopago",
+    kind: "consultation",
+    apoiadorId,
+    tier,
+    workerId: workerId || "",
+  });
+
+  const preferencePayload = {
+    items: [
+      {
+        title: `Consulta — ${apoiadorNome || especialidade || "Apoiador"}`,
+        description: especialidade
+          ? `Consulta intermediada — ${especialidade}`
+          : "Consulta intermediada via Trabalhei Lá",
+        quantity: 1,
+        unit_price: safeAmount,
+        currency_id: "BRL",
+      },
+    ],
+    marketplace_fee: marketplaceFee,
+    external_reference: `consulta:${apoiadorId}:${workerId || "anon"}:${Date.now()}`,
+    back_urls: {
+      success: `${appOrigin}/apoiadores/perfil/${encodeURIComponent(apoiadorId)}?consulta=success`,
+      failure: `${appOrigin}/apoiadores/perfil/${encodeURIComponent(apoiadorId)}?consulta=failure`,
+      pending: `${appOrigin}/apoiadores/perfil/${encodeURIComponent(apoiadorId)}?consulta=pending`,
+    },
+    auto_return: "approved",
+    notification_url: `${serverBase}/api/webhook?${notificationParams.toString()}`,
+    metadata: {
+      kind: "consultation",
+      apoiadorId,
+      tier,
+      workerId: workerId || null,
+      especialidade: especialidade || null,
+      feePct,
+      marketplaceFee,
+    },
+  };
+
+  const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(preferencePayload),
+  });
+
+  const responseText = await response.text();
+  let json;
+  try {
+    json = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    json = {};
+  }
+
+  if (!response.ok) {
+    const message = json?.message || json?.cause?.[0]?.description || "Falha ao criar preferência de consulta.";
+    throw new Error(message);
+  }
+
+  const checkoutUrl = json?.init_point || json?.sandbox_init_point;
+  if (!checkoutUrl) {
+    throw new Error("Resposta do Mercado Pago invalida: init_point ausente.");
+  }
+
+  return {
+    provider: "mercadopago",
+    redirectMode: "url",
+    checkoutUrl,
+    preferenceId: json?.id || null,
+    marketplaceFee,
+    amount: safeAmount,
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   const { cnpj, companySlug, companyName, audience, tier, paymentMethod, apoiadorId } = req.body || {};
+
+  // Consulta avulsa (one-shot) com split: usa um fluxo diferente da assinatura
+  // recorrente. Mantém o mesmo endpoint para reaproveitar a estrutura existente.
+  if (String(audience).toLowerCase() === "consultation") {
+    try {
+      const payload = await createConsultationPreference({
+        req,
+        apoiadorId: (apoiadorId || "").toString().trim(),
+        apoiadorNome: (req.body?.apoiadorNome || "").toString().trim(),
+        tier: ["essential", "premium"].includes(tier) ? tier : "essential",
+        amount: Number(req.body?.amount),
+        workerId: (req.body?.workerId || "").toString().trim(),
+        especialidade: (req.body?.especialidade || "").toString().trim(),
+      });
+      return res.status(200).json(payload);
+    } catch (err) {
+      return res.status(500).json({ error: err?.message || "Falha ao iniciar consulta." });
+    }
+  }
+
   const cleanedCnpj = (cnpj || "").toString().replace(/\D/g, "");
   const hasValidCnpj = cleanedCnpj.length === 14;
   const normalizedCompanySlug = normalizeCompanySlug(companySlug);

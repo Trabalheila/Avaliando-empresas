@@ -53,3 +53,39 @@ export async function handleCheckout({ cnpj, companySlug, companyName, audience,
 
   throw new Error("Resposta de checkout invalida.");
 }
+
+/**
+ * Inicia uma consulta avulsa intermediada pela plataforma com split de pagamento.
+ * Reaproveita o mesmo endpoint `/api/create-checkout-session` usando audience="consultation".
+ */
+export async function requestConsultation({ apoiadorId, apoiadorNome, tier, amount, workerId, especialidade } = {}) {
+  if (!apoiadorId) throw new Error("Apoiador não identificado.");
+  const safeAmount = Number(amount);
+  if (!Number.isFinite(safeAmount) || safeAmount <= 0) {
+    throw new Error("Valor da consulta inválido.");
+  }
+  const safeTier = ["essential", "premium"].includes(tier) ? tier : "essential";
+
+  const response = await fetch(buildApiUrl("/api/create-checkout-session"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      audience: "consultation",
+      apoiadorId,
+      apoiadorNome: apoiadorNome || "",
+      tier: safeTier,
+      amount: safeAmount,
+      workerId: workerId || "",
+      especialidade: especialidade || "",
+    }),
+  });
+
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload?.error || "Não foi possível iniciar a consulta.");
+
+  if (payload?.checkoutUrl) {
+    window.location.assign(payload.checkoutUrl);
+    return payload;
+  }
+  throw new Error("Resposta de consulta inválida.");
+}

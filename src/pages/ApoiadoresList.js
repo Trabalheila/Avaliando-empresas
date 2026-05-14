@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { db } from "../firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import AppHeader from "../components/AppHeader";
 import PlanosApoiador from "../components/PlanosApoiador";
+
+const AD_EXITUM_DISMISS_KEY = "adExitumCardDismissed_v1";
 
 /* Normalização para casar `tipo` (slug ou label) com `name` da profissão. */
 function normalizeProfKey(value) {
@@ -43,10 +45,25 @@ function ApoiadoresList({ theme, toggleTheme }) {
   const [loading, setLoading] = useState(true);
 
   /* ── Filtros ── */
+  const [searchParams] = useSearchParams();
   const [filterTipo, setFilterTipo] = useState("");
   const [filterCategoria, setFilterCategoria] = useState("");
   const [filterNicho, setFilterNicho] = useState("");
   const [filterMinRating, setFilterMinRating] = useState(0);
+  const [filterAdExitum, setFilterAdExitum] = useState(false);
+  const [filterPlano, setFilterPlano] = useState(""); // "", "essencial", "premium"
+  const [adExitumDismissed, setAdExitumDismissed] = useState(() => {
+    try { return window.localStorage.getItem(AD_EXITUM_DISMISS_KEY) === "1"; }
+    catch { return false; }
+  });
+
+  /* Aceita pré-filtro via query string: ?plano=essencial|premium e ?adExitum=1 */
+  useEffect(() => {
+    const p = String(searchParams.get("plano") || "").toLowerCase();
+    if (p === "essencial" || p === "essential") setFilterPlano("essencial");
+    else if (p === "premium") setFilterPlano("premium");
+    if (searchParams.get("adExitum") === "1") setFilterAdExitum(true);
+  }, [searchParams]);
 
   useEffect(() => {
     (async () => {
@@ -107,6 +124,11 @@ function ApoiadoresList({ theme, toggleTheme }) {
       });
     }
     if (filterMinRating > 0) list = list.filter((a) => (a.rating || 0) >= filterMinRating);
+    if (filterAdExitum) list = list.filter((a) => a.adExitum === true);
+    if (filterPlano === "premium") list = list.filter((a) => a.plano === "premium");
+    else if (filterPlano === "essencial") {
+      list = list.filter((a) => a.plano === "essencial" || a.plano === "essential");
+    }
 
     /* Premium primeiro: com avaliação (rating desc), sem avaliação; depois gratuitos: com avaliação (rating desc), sem avaliação (alfa) */
     const premium = list.filter((a) => a.plano === "premium");
@@ -119,7 +141,12 @@ function ApoiadoresList({ theme, toggleTheme }) {
 
     return [...premiumRated, ...premiumUnrated, ...freeRated, ...freeUnrated];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apoiadores, filterTipo, filterCategoria, filterNicho, filterMinRating, tipoToCategoria]);
+  }, [apoiadores, filterTipo, filterCategoria, filterNicho, filterMinRating, filterAdExitum, filterPlano, tipoToCategoria]);
+
+  const dismissAdExitumCard = () => {
+    setAdExitumDismissed(true);
+    try { window.localStorage.setItem(AD_EXITUM_DISMISS_KEY, "1"); } catch { /* ignore */ }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900">
@@ -160,7 +187,53 @@ function ApoiadoresList({ theme, toggleTheme }) {
             <option value={0}>Qualquer avaliação</option>
             {STARS.map((s) => <option key={s} value={s}>≥ {s} estrela{s > 1 ? "s" : ""}</option>)}
           </select>
+          <select value={filterPlano} onChange={(e) => setFilterPlano(e.target.value)}
+            className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
+            <option value="">Todos os planos</option>
+            <option value="essencial">Essencial (preço tabelado)</option>
+            <option value="premium">Premium (preço do profissional)</option>
+          </select>
+          <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={filterAdExitum}
+              onChange={(e) => setFilterAdExitum(e.target.checked)}
+              className="accent-purple-600"
+            />
+            Aceita ad exitum
+          </label>
         </div>
+
+        {/* ── Card educativo Ad Exitum (dismissível) ── */}
+        {!adExitumDismissed && (
+          <div className="rounded-2xl p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 flex items-start gap-3">
+            <span className="text-2xl" aria-hidden>⚖️</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-extrabold text-purple-800 dark:text-purple-200">
+                Você não precisa pagar agora.
+              </p>
+              <p className="text-sm text-slate-700 dark:text-slate-200 mt-1">
+                Ad exitum é o modelo onde o advogado só recebe se ganhar a causa —
+                você não paga nada adiantado. Veja quem oferece essa opção.
+              </p>
+              <button
+                type="button"
+                onClick={() => setFilterAdExitum(true)}
+                className="mt-2 inline-block px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold"
+              >
+                Mostrar apenas quem aceita
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={dismissAdExitumCard}
+              aria-label="Fechar"
+              className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 text-xl leading-none"
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         {/* ── Lista ── */}
         {loading ? (

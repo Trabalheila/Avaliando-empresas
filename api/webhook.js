@@ -247,6 +247,44 @@ async function handleMercadoPagoWebhook(req, res) {
       return res.status(200).json({ received: true, ignored: true, reason: "payment_not_approved" });
     }
 
+    /* ──────────────────────────────────────────────────────────
+       Consultas intermediadas (split): kind=consultation
+       external_reference: consulta:<apoiadorId>:<workerId>:<timestamp>
+       ────────────────────────────────────────────────────────── */
+    const qKind = (req.query?.kind || "").toString().toLowerCase();
+    const externalRef = (payment?.external_reference || "").toString();
+    if (qKind === "consultation" || externalRef.startsWith("consulta:")) {
+      const parts = externalRef.split(":");
+      const apoiadorIdConsulta = (parts[1] || "").trim();
+      const workerIdConsulta = (parts[2] || "").trim();
+      if (!apoiadorIdConsulta || !workerIdConsulta) {
+        return res.status(200).json({ received: true, ignored: true, reason: "missing_consultation_reference" });
+      }
+      const { db, FieldValue } = await getAdminResources();
+      const meta = payment?.metadata || {};
+      const amount = Number(payment.transaction_amount) || 0;
+      const tier = (meta.tier || req.query?.tier || "essential").toString();
+      const feePct = tier === "premium" ? 0.125 : 0.10;
+      const marketplaceFee = Number((amount * feePct).toFixed(2));
+      const consultaDoc = {
+        apoiadorId: apoiadorIdConsulta,
+        workerId: workerIdConsulta,
+        amount,
+        marketplaceFee,
+        tier,
+        especialidade: (meta.especialidade || "").toString() || null,
+        provider: "mercadopago",
+        paymentId: payment.id || null,
+        payerEmail: payment?.payer?.email || null,
+        status: "approved",
+        paidAt: FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
+      };
+      const consultaId = `${apoiadorIdConsulta}_${workerIdConsulta}_${payment.id}`;
+      await db.collection("consultas").doc(consultaId).set(consultaDoc, { merge: true });
+      return res.status(200).json({ received: true, updated: true, kind: "consultation" });
+    }
+
     const metadata = payment?.metadata || {};
     const fromReference = parseCompanyFromReference(payment?.external_reference || "");
     const cnpjFromMetadata = toDigits(metadata.cnpj);
