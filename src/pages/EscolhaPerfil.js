@@ -15,6 +15,12 @@ import { getMpPlanUrl } from "../utils/mpSubscription";
 const EMPLOYER_FREE_PERIOD_END_ISO = "2026-07-31T23:59:59-03:00";
 const EMPLOYER_FREE_PERIOD_LABEL = "31 de julho de 2026";
 
+// Flag temporario: assinaturas pagas via Mercado Pago estao desativadas ate
+// que o CNPJ da plataforma seja fornecido / a conta MP seja homologada para
+// preapproval. Empresas dentro da janela gratuita continuam liberadas.
+const PAID_CHECKOUT_DISABLED = true;
+const PAID_CHECKOUT_DISABLED_MSG = "Em breve";
+
 function extractProfileCnpj(profile) {
   const candidates = [
     profile?.cnpj,
@@ -109,6 +115,19 @@ function EscolhaPerfil({ theme, toggleTheme }) {
   const handlePremiumUnlock = async (audience = "worker", tier = "essential") => {
     // [DEBUG] Confirma que o clique chegou na funcao (problema de binding -> nao aparece)
     console.log("[handlePremiumUnlock] CLICADO", { audience, tier, ts: new Date().toISOString() });
+
+    // BLOQUEIO TEMPORARIO: assinaturas Mercado Pago estao desativadas ate que
+    // o CNPJ da plataforma seja fornecido / conta MP seja homologada para
+    // assinaturas recorrentes. Empresas dentro da janela gratuita continuam
+    // tendo acesso liberado normalmente.
+    const isEmployerFreeFlow = audience === "employer" && isEmployerFreeWindowActive;
+    if (!isEmployerFreeFlow) {
+      setCheckoutError(
+        "Assinaturas pagas temporariamente indisponiveis. Estamos finalizando a homologacao com o Mercado Pago. Em breve liberaremos novamente."
+      );
+      return;
+    }
+
     const loadingKey = `${audience}-${tier}`;
     setCheckoutLoadingAudience(loadingKey);
     setCheckoutError("");
@@ -400,12 +419,17 @@ function EscolhaPerfil({ theme, toggleTheme }) {
               </ul>
               <button
                 type="button"
-                className="mt-6 w-full py-3 rounded-lg bg-blue-600 text-white text-base font-bold hover:bg-blue-700 transition"
-                style={{ animation: "premiumGlow 2s ease-in-out infinite" }}
+                className="mt-6 w-full py-3 rounded-lg bg-blue-600 text-white text-base font-bold hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                style={PAID_CHECKOUT_DISABLED ? undefined : { animation: "premiumGlow 2s ease-in-out infinite" }}
                 onClick={() => handlePremiumUnlock("worker", "essential")}
-                disabled={!!checkoutLoadingAudience}
+                disabled={PAID_CHECKOUT_DISABLED || !!checkoutLoadingAudience}
+                title={PAID_CHECKOUT_DISABLED ? "Assinaturas pagas temporariamente indisponiveis" : undefined}
               >
-                {checkoutLoadingAudience === "worker-essential" ? "Abrindo checkout…" : "Assinar Essencial"}
+                {PAID_CHECKOUT_DISABLED
+                  ? PAID_CHECKOUT_DISABLED_MSG
+                  : checkoutLoadingAudience === "worker-essential"
+                    ? "Abrindo checkout…"
+                    : "Assinar Essencial"}
               </button>
             </div>
 
@@ -441,11 +465,16 @@ function EscolhaPerfil({ theme, toggleTheme }) {
               </ul>
               <button
                 type="button"
-                className="mt-6 w-full py-3 rounded-lg bg-amber-500 text-white text-base font-bold hover:bg-amber-600 transition"
+                className="mt-6 w-full py-3 rounded-lg bg-amber-500 text-white text-base font-bold hover:bg-amber-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
                 onClick={() => handlePremiumUnlock("worker", "premium")}
-                disabled={!!checkoutLoadingAudience}
+                disabled={PAID_CHECKOUT_DISABLED || !!checkoutLoadingAudience}
+                title={PAID_CHECKOUT_DISABLED ? "Assinaturas pagas temporariamente indisponiveis" : undefined}
               >
-                {checkoutLoadingAudience === "worker-premium" ? "Abrindo checkout…" : "Assinar Premium"}
+                {PAID_CHECKOUT_DISABLED
+                  ? PAID_CHECKOUT_DISABLED_MSG
+                  : checkoutLoadingAudience === "worker-premium"
+                    ? "Abrindo checkout…"
+                    : "Assinar Premium"}
               </button>
             </div>
           </div>
@@ -572,11 +601,16 @@ function EscolhaPerfil({ theme, toggleTheme }) {
               </ul>
               <button
                 type="button"
-                className="mt-6 w-full py-3 rounded-lg bg-amber-500 text-white text-base font-bold hover:bg-amber-600 transition"
+                className="mt-6 w-full py-3 rounded-lg bg-amber-500 text-white text-base font-bold hover:bg-amber-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
                 onClick={() => handlePremiumUnlock("employer", "premium")}
-                disabled={!!checkoutLoadingAudience}
+                disabled={PAID_CHECKOUT_DISABLED || !!checkoutLoadingAudience}
+                title={PAID_CHECKOUT_DISABLED ? "Assinaturas pagas temporariamente indisponiveis" : undefined}
               >
-                {checkoutLoadingAudience === "employer-premium" ? "Abrindo checkout…" : "Assinar Empresa Premium"}
+                {PAID_CHECKOUT_DISABLED
+                  ? PAID_CHECKOUT_DISABLED_MSG
+                  : checkoutLoadingAudience === "employer-premium"
+                    ? "Abrindo checkout…"
+                    : "Assinar Empresa Premium"}
               </button>
             </div>
           </div>
