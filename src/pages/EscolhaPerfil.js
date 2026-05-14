@@ -265,7 +265,11 @@ function EscolhaPerfil({ theme, toggleTheme }) {
             <div className="p-6 flex flex-col items-center text-center flex-1">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Sou Trabalhador</h2>
               <p className="text-slate-600 dark:text-slate-400 text-sm">
-                Compare empresas, veja avaliações reais e tome decisões mais seguras na sua carreira.
+                Avalie empresas, acesse avaliações verificadas e conecte-se diretamente com advogados
+                trabalhistas, psicólogos e consultores — tudo dentro da plataforma.
+                <span className="block mt-1 text-blue-700 dark:text-blue-300 font-semibold">
+                  Plano Premium libera consultas diretas com profissionais verificados.
+                </span>
               </p>
               <span className="mt-4 inline-block text-blue-600 dark:text-blue-400 font-semibold text-sm group-hover:underline">
                 Ver benefícios →
@@ -289,7 +293,11 @@ function EscolhaPerfil({ theme, toggleTheme }) {
             <div className="p-6 flex flex-col items-center text-center flex-1">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Sou Empresário</h2>
               <p className="text-slate-600 dark:text-slate-400 text-sm">
-                Monitore reputação, compare concorrentes e tome decisões estratégicas com dados reais.
+                Gerencie sua reputação, responda avaliações e conecte-se com consultores de RH,
+                contadores e advogados especializados em gestão empresarial.
+                <span className="block mt-1 text-indigo-700 dark:text-indigo-300 font-semibold">
+                  Plano Fundador gratuito até 31 de julho de 2026.
+                </span>
               </p>
               <span className="mt-4 inline-block text-indigo-600 dark:text-indigo-400 font-semibold text-sm group-hover:underline">
                 Ver benefícios →
@@ -314,7 +322,9 @@ function EscolhaPerfil({ theme, toggleTheme }) {
             <div className="p-6 flex flex-col items-center text-center flex-1">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Sou Apoiador</h2>
               <p className="text-slate-600 dark:text-slate-400 text-sm">
-                Crie seu perfil de consultor ou advogado. Receba contatos gratuitos de potenciais clientes e destaque suas habilidades.
+                Ofereça seus serviços a trabalhadores e empresas que precisam de apoio especializado.
+                Receba requisições de consulta diretamente pela plataforma com split automático de
+                pagamento via Mercado Pago.
               </p>
               <span className="mt-4 inline-block text-blue-600 dark:text-blue-400 font-semibold text-sm group-hover:underline">
                 Ver benefícios →
@@ -503,8 +513,8 @@ function EscolhaPerfil({ theme, toggleTheme }) {
               </ul>
               <p className="mt-3 text-xs text-indigo-700 dark:text-indigo-300 italic">
                 {isEmployerFreeWindowActive
-                  ? "O Plano Fundador tem gratuidade provisória válida até 31 de julho de 2026. Depois dessa data, passa a R$ 1.499,90/mês — quem já estiver dentro mantém o preço de Fundador."
-                  : "Quem entra agora garante o preço Fundador. Quando os recursos avançados forem lançados, você não paga a diferença."}
+                  ? "O Plano Fundador tem gratuidade válida até 31 de julho de 2026. A partir de agosto de 2026, o plano equivalente será R$ 1.499,90/mês — quem já estiver dentro mantém o preço de Fundador para sempre."
+                  : "Quem entra agora garante o preço Fundador para sempre. Quando os recursos avançados forem lançados, você não paga a diferença."}
               </p>
             </div>
 
@@ -607,9 +617,12 @@ function EscolhaPerfil({ theme, toggleTheme }) {
               <p className="text-slate-800 dark:text-slate-200 leading-relaxed">
                 {isEmployerFreeWindowActive ? (
                   <>
-                    Durante o período de lançamento, empresas podem ativar o plano gratuitamente até{" "}
-                    <span className="font-bold text-indigo-700 dark:text-indigo-400">{EMPLOYER_FREE_PERIOD_LABEL}</span>.{" "}
-                    <span className="font-bold">Depois disso, as condições comerciais voltam ao fluxo padrão.</span>
+                    O Plano Fundador tem gratuidade válida até{" "}
+                    <span className="font-bold text-indigo-700 dark:text-indigo-400">31 de julho de 2026</span>.
+                    {" "}A partir de agosto de 2026, o plano equivalente será{" "}
+                    <span className="font-bold text-indigo-700 dark:text-indigo-400">R$ 1.499,90/mês</span>{" "}
+                    — quem já estiver dentro mantém o preço de Fundador{" "}
+                    <span className="font-bold">para sempre</span>.
                   </>
                 ) : (
                   <>

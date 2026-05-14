@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { db, auth } from "../firebase";
 import { doc, getDoc, collection, getDocs, addDoc, updateDoc, serverTimestamp, query, orderBy, where, increment } from "firebase/firestore";
 import { signInAnonymously } from "firebase/auth";
-import { isPremium as checkUserIsPremium } from "../utils/rbac";
+import { isPremium as checkUserIsPremium, getUserRole } from "../utils/rbac";
 import AppHeader from "../components/AppHeader";
 import ConsultationModal from "../components/ConsultationModal";
 import { getConsultationPrice, getRatingLabel } from "../data/consultationPricing";
@@ -65,6 +65,8 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
   const [hasConsultation, setHasConsultation] = useState(false);
   const [consultationModalOpen, setConsultationModalOpen] = useState(false);
   const userIsPremium = checkUserIsPremium();
+  const userRole = getUserRole();
+  const viewerAudience = userRole === "empresa" || userRole === "admin_empresa" ? "employer" : "worker";
 
   useEffect(() => {
     if (!id) return;
@@ -199,7 +201,7 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
   const isPremium = apoiador.plano === "premium";
   const isEssencial = apoiador.plano === "essencial" || apoiador.plano === "essential";
   const isGratuito = !isPremium && !isEssencial;
-  const consultationPrice = getConsultationPrice(apoiador);
+  const consultationPrice = getConsultationPrice(apoiador, viewerAudience);
   const apoiadorTier = isPremium ? "premium" : "essential";
   const ratingLabel = getRatingLabel(apoiador.rating);
   // Indicador de elegibilidade para upgrade: Essencial com avaliação "Excelente"
@@ -494,6 +496,7 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
         open={consultationModalOpen}
         onClose={() => setConsultationModalOpen(false)}
         apoiador={apoiador}
+        audience={viewerAudience}
       />
     </div>
   );

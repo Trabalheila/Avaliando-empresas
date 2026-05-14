@@ -92,6 +92,9 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
   const [conflictDeclarationAccepted, setConflictDeclarationAccepted] = useState(false);
   const [nichos, setNichos] = useState([]);
   const [adExitum, setAdExitum] = useState(false);
+  /* Em quais contextos o apoiador atua: trabalhadores, empresas ou ambos. */
+  const [servesWorker, setServesWorker] = useState(true);
+  const [servesEmployer, setServesEmployer] = useState(false);
   const [ramoEspecializacao, setRamoEspecializacao] = useState("");
 
   /* ── Estado consultor ── */
@@ -276,6 +279,10 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
         portfolio: portfolio.slice(0, 5),
         nichos: nichos.slice(0, 3),
         adExitum: Boolean(adExitum),
+        servesAudiences: [
+          ...(servesWorker ? ["worker"] : []),
+          ...(servesEmployer ? ["employer"] : []),
+        ],
         ramoEspecializacao,
         uid: auth.currentUser?.uid || null,
         createdAt: serverTimestamp(),
@@ -342,7 +349,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
       setError("Ocorreu um erro ao enviar o cadastro. Tente novamente.");
     }
     setSubmitting(false);
-  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, arquivos, allTermosAceitos, conflictDeclarationAccepted, cnpj, segmentos, site, portfolio, nichos, adExitum, ramoEspecializacao, credentialNumber, credentialStateOrRegion, credentialPortfolioUrl, credentialCertifications, credentialProof]);
+  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, arquivos, allTermosAceitos, conflictDeclarationAccepted, cnpj, segmentos, site, portfolio, nichos, adExitum, servesWorker, servesEmployer, ramoEspecializacao, credentialNumber, credentialStateOrRegion, credentialPortfolioUrl, credentialCertifications, credentialProof]);
 
   /* ═══ Tela de sucesso ═══ */
   if (success) {
@@ -695,6 +702,39 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* ── Modelo de honorários: Ad Exitum (opcional) ── */}
+              <div className="mb-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">
+                  Em quais contextos você atende?
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                  Marque ambos se você atende tanto trabalhadores individuais quanto empresas.
+                  Isso define em quais buscas o seu perfil aparece.
+                </p>
+                <label className="flex items-center gap-2 cursor-pointer mb-2">
+                  <input
+                    type="checkbox"
+                    checked={servesWorker}
+                    onChange={(e) => setServesWorker(e.target.checked)}
+                    className="accent-blue-600"
+                  />
+                  <span className="text-sm text-slate-700 dark:text-slate-200">
+                    Atendo <strong>trabalhadores</strong> (direito trabalhista, psicologia, coach de carreira, RH e benefícios)
+                  </span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={servesEmployer}
+                    onChange={(e) => setServesEmployer(e.target.checked)}
+                    className="accent-indigo-600"
+                  />
+                  <span className="text-sm text-slate-700 dark:text-slate-200">
+                    Atendo <strong>empresas</strong> (consultoria de RH, contabilidade, advocacia empresarial, employer branding e benefícios corporativos)
+                  </span>
+                </label>
               </div>
 
               {/* ── Modelo de honorários: Ad Exitum (opcional) ── */}

@@ -58,19 +58,21 @@ export async function handleCheckout({ cnpj, companySlug, companyName, audience,
  * Inicia uma consulta avulsa intermediada pela plataforma com split de pagamento.
  * Reaproveita o mesmo endpoint `/api/create-checkout-session` usando audience="consultation".
  */
-export async function requestConsultation({ apoiadorId, apoiadorNome, tier, amount, workerId, especialidade } = {}) {
+export async function requestConsultation({ apoiadorId, apoiadorNome, tier, amount, workerId, especialidade, audience } = {}) {
   if (!apoiadorId) throw new Error("Apoiador não identificado.");
   const safeAmount = Number(amount);
   if (!Number.isFinite(safeAmount) || safeAmount <= 0) {
     throw new Error("Valor da consulta inválido.");
   }
   const safeTier = ["essential", "premium"].includes(tier) ? tier : "essential";
+  const safeAudience = ["worker", "employer"].includes(audience) ? audience : "worker";
 
   const response = await fetch(buildApiUrl("/api/create-checkout-session"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       audience: "consultation",
+      requesterAudience: safeAudience,
       apoiadorId,
       apoiadorNome: apoiadorNome || "",
       tier: safeTier,

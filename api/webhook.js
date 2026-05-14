@@ -264,11 +264,16 @@ async function handleMercadoPagoWebhook(req, res) {
       const meta = payment?.metadata || {};
       const amount = Number(payment.transaction_amount) || 0;
       const tier = (meta.tier || req.query?.tier || "essential").toString();
+      const requesterAudience =
+        (meta.requesterAudience || req.query?.requesterAudience || "worker").toString() === "employer"
+          ? "employer"
+          : "worker";
       const feePct = tier === "premium" ? 0.125 : 0.10;
       const marketplaceFee = Number((amount * feePct).toFixed(2));
       const consultaDoc = {
         apoiadorId: apoiadorIdConsulta,
         workerId: workerIdConsulta,
+        requesterAudience,
         amount,
         marketplaceFee,
         tier,
@@ -277,6 +282,7 @@ async function handleMercadoPagoWebhook(req, res) {
         paymentId: payment.id || null,
         payerEmail: payment?.payer?.email || null,
         status: "approved",
+        readByApoiador: false,
         paidAt: FieldValue.serverTimestamp(),
         createdAt: FieldValue.serverTimestamp(),
       };

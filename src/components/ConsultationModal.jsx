@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
-import { isPremium as checkUserIsPremium } from "../utils/rbac";
+import { isPremium as checkUserIsPremium, getUserRole } from "../utils/rbac";
 import { requestConsultation } from "../services/billing";
 import { getConsultationPrice } from "../data/consultationPricing";
 
@@ -11,29 +11,35 @@ import { getConsultationPrice } from "../data/consultationPricing";
  * Props:
  *  - open: boolean
  *  - onClose: () => void
- *  - mode: "choose-tier" | "confirm" (default: detectado a partir de `apoiador`)
- *  - apoiador?: { id, nome, plano, tipo, precoConsulta, especialidade } — quando
- *    fornecido, o modal vai direto para a confirmação.
+ *  - apoiador?: { id, nome, plano, tipo, precoConsulta, precoConsultaEmpresa, especialidade }
+ *  - audience?: "worker" | "employer" — quando ausente, detectado a partir do papel
+ *    do usuário (empresa/admin_empresa → employer; demais → worker).
  *
  * Comportamento:
- *  - Trabalhador free → tela de upgrade (mesmo se passar apoiador).
- *  - Trabalhador premium sem apoiador → escolher tier (Essencial vs Premium).
- *  - Trabalhador premium com apoiador → confirmar e ir para o checkout.
+ *  - Free (worker não-premium ou empresa Gratuita) → tela de upgrade.
+ *  - Premium sem apoiador → escolher tier (Essencial vs Premium).
+ *  - Premium com apoiador → confirmar e ir para o checkout.
  */
 function BRL(value) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value) || 0);
 }
 
-export default function ConsultationModal({ open, onClose, apoiador = null }) {
+export default function ConsultationModal({ open, onClose, apoiador = null, audience }) {
   const navigate = useNavigate();
   const userIsPremium = useMemo(() => checkUserIsPremium(), []);
+  const userRole = useMemo(() => getUserRole(), []);
+  const detectedAudience = useMemo(() => {
+    if (audience === "worker" || audience === "employer") return audience;
+    return userRole === "empresa" || userRole === "admin_empresa" ? "employer" : "worker";
+  }, [audience, userRole]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   if (!open) return null;
 
-  const price = apoiador ? getConsultationPrice(apoiador) : null;
+  const price = apoiador ? getConsultationPrice(apoiador, detectedAudience) : null;
   const apoiadorTier = apoiador && String(apoiador.plano || "").toLowerCase() === "premium" ? "premium" : "essential";
+  const isEmployer = detectedAudience === "employer";
 
   /* ── Estado 1: Free → Upgrade ── */
   if (!userIsPremium) {
@@ -41,23 +47,37 @@ export default function ConsultationModal({ open, onClose, apoiador = null }) {
       <Backdrop onClose={onClose}>
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-700">
           <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 mb-2">
-            Recurso exclusivo Premium
+            {isEmployer ? "Disponível a partir do Plano Fundador" : "Recurso exclusivo Premium"}
           </h2>
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            Solicitar consultas diretamente pela plataforma é um benefício do plano
-            <strong> Premium Trabalhador</strong>. Com ele você fala com advogados,
-            psicólogos e consultores parceiros com pagamento seguro e split automático.
+            {isEmployer ? (
+              <>
+                Solicitar consultas com apoiadores especializados em gestão empresarial —
+                consultores de RH, contadores e advogados — é um benefício dos planos
+                <strong> Fundador</strong> e <strong>Premium</strong> para empresas.
+              </>
+            ) : (
+              <>
+                Solicitar consultas diretamente pela plataforma é um benefício do plano
+                <strong> Premium Trabalhador</strong>. Com ele você fala com advogados,
+                psicólogos e consultores parceiros com pagamento seguro e split automático.
+              </>
+            )}
           </p>
           <div className="mt-4 flex flex-col gap-2">
             <button
               type="button"
               onClick={() => {
                 onClose?.();
-                navigate("/escolha-perfil?audience=worker&tier=premium");
+                navigate(
+                  isEmployer
+                    ? "/escolha-perfil?audience=employer&tier=essential"
+                    : "/escolha-perfil?audience=worker&tier=premium"
+                );
               }}
               className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold"
             >
-              Fazer upgrade para Premium
+              {isEmployer ? "Conhecer o Plano Fundador" : "Fazer upgrade para Premium"}
             </button>
             <button
               type="button"
@@ -147,6 +167,7 @@ export default function ConsultationModal({ open, onClose, apoiador = null }) {
         amount: price,
         workerId,
         especialidade: apoiador.especialidade || apoiador.tipo || "",
+        audience: detectedAudience,
       });
     } catch (err) {
       setError(err?.message || "Erro inesperado.");

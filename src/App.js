@@ -30,6 +30,7 @@ import WorkerProfile from './pages/WorkerProfile';
 import MinhaConta from './pages/MinhaConta';
 import MyContacts from './pages/MyContacts';
 import MyContactsApoiador from './pages/MyContactsApoiador';
+import ApoiadorRequisicoes from './pages/ApoiadorRequisicoes';
 import CookieBanner from './components/CookieBanner';
 import ChatbotWidget from './components/ChatbotWidget';
 import CompanyRegister from './pages/CompanyRegister';
@@ -230,6 +231,7 @@ function App() {
       <Route path="/minha-conta" element={<MinhaConta theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/my-contacts" element={<MyContacts theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/apoiador/my-contacts" element={<MyContactsApoiador theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/apoiador/requisicoes" element={<ApoiadorRequisicoes theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/empresa/cadastro" element={<CompanyRegister />} />
       <Route path="/empresa/cadastro/aguarde" element={<CompanyRegisterAwait />} />
       <Route path="/empresa/confirmar" element={<CompanyConfirm />} />

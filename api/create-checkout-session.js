@@ -227,7 +227,7 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
  * sem isso, o pagamento é processado normalmente e o split deve ser
  * reconciliado manualmente.
  */
-async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tier, amount, workerId, especialidade }) {
+async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tier, amount, workerId, especialidade, requesterAudience }) {
   const accessToken = (process.env.MERCADO_PAGO_ACCESS_TOKEN || "").toString().trim();
   if (!accessToken) {
     throw new Error("MERCADO_PAGO_ACCESS_TOKEN nao configurado.");
@@ -253,6 +253,7 @@ async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tie
     apoiadorId,
     tier,
     workerId: workerId || "",
+    requesterAudience: requesterAudience === "employer" ? "employer" : "worker",
   });
 
   const preferencePayload = {
@@ -282,6 +283,7 @@ async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tie
       tier,
       workerId: workerId || null,
       especialidade: especialidade || null,
+      requesterAudience: requesterAudience === "employer" ? "employer" : "worker",
       feePct,
       marketplaceFee,
     },
@@ -343,6 +345,7 @@ export default async function handler(req, res) {
         amount: Number(req.body?.amount),
         workerId: (req.body?.workerId || "").toString().trim(),
         especialidade: (req.body?.especialidade || "").toString().trim(),
+        requesterAudience: (req.body?.requesterAudience || "worker").toString().trim(),
       });
       return res.status(200).json(payload);
     } catch (err) {

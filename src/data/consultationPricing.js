@@ -18,6 +18,43 @@ export const CONSULTATION_PRICE_TABLE = {
   coach_carreira: 80.0,
 };
 
+/**
+ * Tabela de preços tabelados para consultas EMPRESARIAIS (audience=employer).
+ * Valores mais altos refletem o escopo corporativo da consulta.
+ * Chaves casam com `tipo` do documento do apoiador.
+ */
+export const EMPLOYER_CONSULTATION_PRICE_TABLE = {
+  consultor_rh: 250.0,
+  contador: 200.0,
+  advogado: 300.0,
+  advogado_trabalhista: 300.0,
+  employer_branding: 220.0,
+  consultor_employer_branding: 220.0,
+  consultor_beneficios: 180.0,
+};
+
+/**
+ * Catálogo de especialidades exibidas na busca segmentado por audiência.
+ * Quando um trabalhador busca apoiador → use SPECIALTIES_BY_AUDIENCE.worker.
+ * Quando uma empresa busca apoiador → use SPECIALTIES_BY_AUDIENCE.employer.
+ */
+export const SPECIALTIES_BY_AUDIENCE = {
+  worker: [
+    { value: "advogado_trabalhista", label: "Direito trabalhista" },
+    { value: "psicologo", label: "Psicologia" },
+    { value: "coach_carreira", label: "Coach de carreira" },
+    { value: "consultor_rh", label: "Consultoria de RH" },
+    { value: "consultor_beneficios", label: "Benefícios" },
+  ],
+  employer: [
+    { value: "consultor_rh", label: "Consultoria de RH" },
+    { value: "contador", label: "Contabilidade" },
+    { value: "advogado_trabalhista", label: "Advocacia empresarial trabalhista" },
+    { value: "employer_branding", label: "Employer branding" },
+    { value: "consultor_beneficios", label: "Benefícios corporativos" },
+  ],
+};
+
 /** Preço padrão para tipos não mapeados na tabela acima. */
 export const CONSULTATION_DEFAULT_PRICE = 100.0;
 
@@ -34,11 +71,14 @@ export const CONSULTATION_PLATFORM_FEE_PCT = {
 /**
  * Retorna o preço tabelado para um determinado `tipo` de apoiador.
  * Aceita o slug salvo no documento (`advogado`, `consultor_rh`, ...).
+ * `audience` (worker|employer) seleciona a tabela apropriada.
  */
-export function getTabledPriceForTipo(tipo) {
+export function getTabledPriceForTipo(tipo, audience = "worker") {
   const key = String(tipo || "").toLowerCase().trim();
-  if (Object.prototype.hasOwnProperty.call(CONSULTATION_PRICE_TABLE, key)) {
-    return CONSULTATION_PRICE_TABLE[key];
+  const table =
+    audience === "employer" ? EMPLOYER_CONSULTATION_PRICE_TABLE : CONSULTATION_PRICE_TABLE;
+  if (Object.prototype.hasOwnProperty.call(table, key)) {
+    return table[key];
   }
   return CONSULTATION_DEFAULT_PRICE;
 }
@@ -46,19 +86,25 @@ export function getTabledPriceForTipo(tipo) {
 /**
  * Calcula o preço efetivo de consulta para um apoiador.
  *  - Premium com `precoConsulta` definido → usa o valor próprio.
- *  - Essencial → usa o valor tabelado.
+ *  - Essencial → usa o valor tabelado da `audience` (worker/employer).
  *  - Gratuito → retorna null (não oferece consulta intermediada).
  */
-export function getConsultationPrice(apoiador) {
+export function getConsultationPrice(apoiador, audience = "worker") {
   if (!apoiador) return null;
   const plano = String(apoiador.plano || "").toLowerCase();
   if (plano === "premium") {
+    // Apoiador Premium pode ter preço diferente por audiência.
+    const fieldByAudience =
+      audience === "employer"
+        ? Number(apoiador.precoConsultaEmpresa)
+        : Number(apoiador.precoConsulta);
+    if (Number.isFinite(fieldByAudience) && fieldByAudience > 0) return fieldByAudience;
     const own = Number(apoiador.precoConsulta);
     if (Number.isFinite(own) && own > 0) return own;
     return null;
   }
   if (plano === "essencial" || plano === "essential") {
-    return getTabledPriceForTipo(apoiador.tipo);
+    return getTabledPriceForTipo(apoiador.tipo, audience);
   }
   // Gratuito (ou sem plano explícito) NÃO tem consulta intermediada.
   return null;

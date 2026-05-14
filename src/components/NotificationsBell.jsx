@@ -4,6 +4,8 @@ import {
   listIncomingRequests,
   listIncomingApoiadorRequests,
 } from "../services/contactRequests";
+import { db } from "../firebase";
+import { collection, query, where, getDocs, limit } from "firebase/firestore";
 
 /**
  * NotificationsBell
@@ -52,13 +54,39 @@ export default function NotificationsBell() {
     }
     setLoading(true);
     try {
-      const [worker, apoiador] = await Promise.all([
+      const [worker, apoiador, consultas] = await Promise.all([
         uid ? listIncomingRequests(uid, 30) : Promise.resolve([]),
         apoiadorId ? listIncomingApoiadorRequests(apoiadorId, 30) : Promise.resolve([]),
+        apoiadorId
+          ? (async () => {
+              try {
+                const q = query(
+                  collection(db, "consultas"),
+                  where("apoiadorId", "==", apoiadorId),
+                  limit(30)
+                );
+                const snap = await getDocs(q);
+                return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+              } catch {
+                return [];
+              }
+            })()
+          : Promise.resolve([]),
       ]);
       const combined = [
         ...worker.map((r) => ({ ...r, _kind: "worker" })),
         ...apoiador.map((r) => ({ ...r, _kind: "apoiador" })),
+        ...consultas.map((r) => ({
+          ...r,
+          _kind: "consulta",
+          createdAt:
+            r.createdAt?.toDate?.()?.toISOString?.() ||
+            r.createdAt ||
+            new Date().toISOString(),
+          status: (["approved", "paid"].includes((r.status || "").toLowerCase()))
+            ? "pending"
+            : r.status,
+        })),
       ].sort((a, b) =>
         String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
       );
@@ -86,6 +114,7 @@ export default function NotificationsBell() {
   }, [uid, apoiadorId, load]);
 
   const unreadCount = items.filter((r) => {
+    if (r._kind === "consulta") return r.status === "pending" && r.readByApoiador === false;
     if (r.status !== "pending") return false;
     return r._kind === "apoiador" ? !r.readByApoiador : !r.readByWorker;
   }).length;
@@ -151,10 +180,28 @@ export default function NotificationsBell() {
               <ul className="max-h-80 overflow-y-auto">
                 {items.slice(0, 8).map((r) => {
                   const unread =
-                    r.status === "pending" &&
-                    (r._kind === "apoiador" ? !r.readByApoiador : !r.readByWorker);
+                    r._kind === "consulta"
+                      ? r.status === "pending" && r.readByApoiador === false
+                      : r.status === "pending" &&
+                        (r._kind === "apoiador" ? !r.readByApoiador : !r.readByWorker);
                   const target =
-                    r._kind === "apoiador" ? "/apoiador/my-contacts" : "/my-contacts";
+                    r._kind === "consulta"
+                      ? "/apoiador/requisicoes"
+                      : r._kind === "apoiador"
+                      ? "/apoiador/my-contacts"
+                      : "/my-contacts";
+                  const title =
+                    r._kind === "consulta"
+                      ? unread
+                        ? "📅 Nova requisição de consulta"
+                        : "Requisição de consulta"
+                      : unread
+                      ? "📩 Novo pedido de contato"
+                      : "Pedido de contato";
+                  const desc =
+                    r._kind === "consulta"
+                      ? `${r.requesterAudience === "employer" ? "Empresa" : "Trabalhador"} • ${r.especialidade || "consulta intermediada"}`
+                      : "Você recebeu um pedido de contato. Clique para ver.";
                   return (
                     <li key={`${r._kind}-${r.id}`}>
                       <button
@@ -171,11 +218,10 @@ export default function NotificationsBell() {
                         }
                       >
                         <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                          {unread ? "📩 Novo pedido de contato" : "Pedido de contato"}
+                          {title}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
-                          Você recebeu um pedido de contato de uma empresa. Clique
-                          para ver.
+                          {desc}
                         </p>
                       </button>
                     </li>

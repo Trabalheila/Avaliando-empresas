@@ -4,6 +4,8 @@ import { db } from "../firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import AppHeader from "../components/AppHeader";
 import PlanosApoiador from "../components/PlanosApoiador";
+import { getUserRole } from "../utils/rbac";
+import { SPECIALTIES_BY_AUDIENCE } from "../data/consultationPricing";
 
 const AD_EXITUM_DISMISS_KEY = "adExitumCardDismissed_v1";
 
@@ -46,6 +48,17 @@ function ApoiadoresList({ theme, toggleTheme }) {
 
   /* ── Filtros ── */
   const [searchParams] = useSearchParams();
+  const userRole = useMemo(() => getUserRole(), []);
+  /* Audiência detectada: empresa/admin_empresa → employer; demais → worker. */
+  const viewerAudience = useMemo(() => {
+    const fromQuery = String(searchParams.get("audience") || "").toLowerCase();
+    if (fromQuery === "employer" || fromQuery === "worker") return fromQuery;
+    return userRole === "empresa" || userRole === "admin_empresa" ? "employer" : "worker";
+  }, [searchParams, userRole]);
+  const specialtyOptions = useMemo(
+    () => SPECIALTIES_BY_AUDIENCE[viewerAudience] || SPECIALTIES_BY_AUDIENCE.worker,
+    [viewerAudience]
+  );
   const [filterTipo, setFilterTipo] = useState("");
   const [filterCategoria, setFilterCategoria] = useState("");
   const [filterNicho, setFilterNicho] = useState("");
@@ -116,6 +129,16 @@ function ApoiadoresList({ theme, toggleTheme }) {
   const filtered = useMemo(() => {
     let list = apoiadores;
     if (filterTipo) list = list.filter((a) => a.tipo === filterTipo);
+    /* Filtra por audiência do solicitante: o apoiador deve atender esse contexto.
+       Aceita o campo legado vazio (compatibilidade) ou os campos
+       `servesAudiences` (array) e `audiences` (array) com 'worker'/'employer'. */
+    list = list.filter((a) => {
+      const list1 = Array.isArray(a.servesAudiences) ? a.servesAudiences : [];
+      const list2 = Array.isArray(a.audiences) ? a.audiences : [];
+      const all = [...list1, ...list2].map((v) => String(v).toLowerCase());
+      if (all.length === 0) return true; // sem marcação = compatível com todos
+      return all.includes(viewerAudience);
+    });
     if (filterCategoria) list = list.filter((a) => getCategoriaApoiador(a) === filterCategoria);
     if (filterNicho) {
       list = list.filter((a) => {
@@ -141,7 +164,7 @@ function ApoiadoresList({ theme, toggleTheme }) {
 
     return [...premiumRated, ...premiumUnrated, ...freeRated, ...freeUnrated];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apoiadores, filterTipo, filterCategoria, filterNicho, filterMinRating, filterAdExitum, filterPlano, tipoToCategoria]);
+  }, [apoiadores, filterTipo, filterCategoria, filterNicho, filterMinRating, filterAdExitum, filterPlano, viewerAudience, tipoToCategoria]);
 
   const dismissAdExitumCard = () => {
     setAdExitumDismissed(true);
@@ -168,8 +191,8 @@ function ApoiadoresList({ theme, toggleTheme }) {
         <div className="flex flex-wrap items-center gap-3">
           <select value={filterTipo} onChange={(e) => setFilterTipo(e.target.value)}
             className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
-            <option value="">Todos os tipos</option>
-            {Object.entries(TIPO_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            <option value="">{viewerAudience === "employer" ? "Todas as especialidades (empresarial)" : "Todas as especialidades"}</option>
+            {specialtyOptions.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
           <select value={filterCategoria} onChange={(e) => setFilterCategoria(e.target.value)}
             disabled={categoriasDisponiveis.length === 0}
@@ -204,8 +227,8 @@ function ApoiadoresList({ theme, toggleTheme }) {
           </label>
         </div>
 
-        {/* ── Card educativo Ad Exitum (dismissível) ── */}
-        {!adExitumDismissed && (
+        {/* ── Card educativo Ad Exitum (dismissível) — apenas trabalhadores ── */}
+        {viewerAudience === "worker" && !adExitumDismissed && (
           <div className="rounded-2xl p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 flex items-start gap-3">
             <span className="text-2xl" aria-hidden>⚖️</span>
             <div className="flex-1 min-w-0">
