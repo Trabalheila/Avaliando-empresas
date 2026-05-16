@@ -515,34 +515,36 @@ function EscolhaPerfil({ theme, toggleTheme }) {
               <p className="text-2xl font-bold text-slate-900 dark:text-white mb-4">R$ 0</p>
               <ul className="space-y-3 text-sm text-slate-700 dark:text-slate-300 flex-1">
                 <FeatureRow ok>Ver nota geral da empresa</FeatureRow>
-                <FeatureRow ok>Acompanhar avaliações públicas</FeatureRow>
-                <FeatureRow>Painel completo de avaliações por critério</FeatureRow>
-                <FeatureRow>Relatório de reputação da empresa</FeatureRow>
-                <FeatureRow>Ferramenta de resposta a avaliações</FeatureRow>
-                <FeatureRow>Acesso prioritário a recursos em desenvolvimento</FeatureRow>
-                <FeatureRow>Conexão com consultores empresariais parceiros</FeatureRow>
+                <FeatureRow ok>Acompanhar avaliações públicas (resumo)</FeatureRow>
+                <FeatureRow>Nota geral da empresa por critério</FeatureRow>
+                <FeatureRow>Painel básico de avaliações recebidas</FeatureRow>
+                <FeatureRow>Resposta pública oficial a avaliações</FeatureRow>
+                <FeatureRow>Avaliar fornecedores e clientes por CNPJ</FeatureRow>
+                <FeatureRow>Reputação de parceiros (consulta por CNPJ)</FeatureRow>
+                <FeatureRow>Benchmark de setor (CNAE)</FeatureRow>
+                <FeatureRow>Relatório executivo mensal</FeatureRow>
               </ul>
             </div>
 
-            {/* Plano Fundador */}
+            {/* Plano Essencial Empresa (Fundador) */}
             <div className="rounded-2xl border-2 border-indigo-400 dark:border-indigo-600 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 p-6 relative overflow-hidden flex flex-col">
               <div className="absolute top-0 right-0 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
-                FUNDADOR
+                ESSENCIAL
               </div>
-              <h3 className="text-lg font-bold text-indigo-700 dark:text-indigo-400 mb-1">Plano Fundador</h3>
+              <h3 className="text-lg font-bold text-indigo-700 dark:text-indigo-400 mb-1">Plano Essencial Empresa</h3>
               <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Gratuito</p>
-              <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-4">Após 31 de julho de 2026: R$ 899,90/mês</p>
+              <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-4">Plano Fundador: gratuito até 31 de julho de 2026 · após essa data: R$ 899,90/mês</p>
               <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">
-                <FeatureRow ok>Painel completo de avaliações por critério (salário, cultura, liderança, benefícios e mais)</FeatureRow>
-                <FeatureRow ok>Relatório de reputação da empresa com visão geral por área</FeatureRow>
-                <FeatureRow ok>Ferramenta de resposta pública a avaliações, identificada como “Resposta oficial da empresa”</FeatureRow>
+                <FeatureRow ok>Visão da <span className="font-semibold">nota geral da empresa por critério</span> (salário, cultura, liderança, benefícios e mais)</FeatureRow>
+                <FeatureRow ok>Acesso ao <span className="font-semibold">painel básico de avaliações recebidas</span> com filtros simples</FeatureRow>
+                <FeatureRow ok><span className="font-semibold">Resposta pública oficial</span> a avaliações, identificada como “Resposta oficial da empresa”</FeatureRow>
                 <FeatureRow ok>Acesso prioritário aos próximos recursos (comparação com concorrentes, benchmarks de setor)</FeatureRow>
                 <FeatureRow ok><span className="font-semibold">Conexão com consultores empresariais parceiros</span> — Inclui <span className="font-semibold">5 Créditos de Contato/mês</span> para iniciar conversas com Apoiadores Premium e transformar dados em plano de ação</FeatureRow>
                 <FeatureRow ok>Acesso à página <span className="font-semibold">"Meus Contatos"</span> para gerenciar interações com Apoiadores</FeatureRow>
               </ul>
               <p className="mt-3 text-xs text-indigo-700 dark:text-indigo-300 italic">
                 {isEmployerFreeWindowActive
-                  ? "O Plano Fundador tem gratuidade válida até 31 de julho de 2026. A partir de agosto de 2026, o plano equivalente será R$ 1.499,90/mês — quem já estiver dentro mantém o preço de Fundador para sempre."
+                  ? "O Plano Fundador tem gratuidade válida até 31 de julho de 2026. A partir de agosto de 2026, o Plano Essencial Empresa será R$ 899,90/mês — quem entra dentro do período Fundador mantem o preço promocional para sempre."
                   : "Quem entra agora garante o preço Fundador para sempre. Quando os recursos avançados forem lançados, você não paga a diferença."}
               </p>
             </div>
@@ -554,13 +556,13 @@ function EscolhaPerfil({ theme, toggleTheme }) {
               </div>
               <h3 className="text-lg font-bold text-amber-700 dark:text-amber-400 mb-1">Empresa Premium</h3>
               <p className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-2">
-                Tudo do Plano Fundador + recursos avançados de inteligência de mercado.
+                Tudo do Plano Essencial Empresa + recursos avançados de inteligência de mercado.
               </p>
               <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Gratuito</p>
               <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-4">Após 31 de julho de 2026: R$ 1.649,90/mês</p>
               <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">
                 <li className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
-                  Tudo do Plano Fundador, em versão avançada:
+                  Tudo do Plano Essencial Empresa, em versão avançada:
                 </li>
                 <FeatureRow ok>Painel de avaliações por critério com filtros e séries históricas</FeatureRow>
                 <FeatureRow ok>Comparação de reputação por setor e concorrentes (benchmark CNAE)</FeatureRow>
@@ -571,6 +573,8 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 <li className="pt-2 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
                   E mais, exclusivo do Premium:
                 </li>
+                <FeatureRow ok><span className="font-semibold">Avaliar Fornecedores e Clientes por CNPJ</span> — publique avaliações verificadas em nome da sua empresa</FeatureRow>
+                <FeatureRow ok><span className="font-semibold">Reputação de Parceiros</span> — consulte CNPJ e veja nota geral, número de avaliações e data mais recente</FeatureRow>
                 <FeatureRow ok>Benchmark com até 3 concorrentes diretos do seu setor (cultura, liderança, salário e equilíbrio)</FeatureRow>
                 <FeatureRow ok>Dashboard dinâmico para análise de desempenho da reputação</FeatureRow>
                 <li className="pt-2 text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">

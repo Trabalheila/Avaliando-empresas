@@ -461,6 +461,31 @@ export default function EvaluatePartner({ theme, toggleTheme }) {
     return total / existingReviews.length;
   }, [existingReviews]);
 
+  // Gate de uso: avaliação de parceiros é exclusiva do Plano Premium Empresa.
+  // Considera plan === "premium", flag isPremium e trial Premium ativo.
+  const isPremiumCompany = useMemo(() => {
+    const c = companyAvaliadora || {};
+    if (String(c.plan || "").toLowerCase() === "premium") return true;
+    if (c.isPremium === true) return true;
+    if (c.isPremiumTrialActive === true) {
+      const end = c.premiumTrialEndDate;
+      try {
+        const endMs =
+          typeof end?.toMillis === "function"
+            ? end.toMillis()
+            : end?.seconds
+            ? end.seconds * 1000
+            : end
+            ? new Date(end).getTime()
+            : 0;
+        if (endMs > Date.now()) return true;
+      } catch {
+        /* ignore */
+      }
+    }
+    return false;
+  }, [companyAvaliadora]);
+
   // ── Render ─────────────────────────────────────────────────────────────
   if (!authReady || loadingCompany) {
     return (
@@ -520,6 +545,46 @@ export default function EvaluatePartner({ theme, toggleTheme }) {
             >
               Cadastrar empresa
             </button>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
+  if (!isPremiumCompany) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900">
+        <AppHeader theme={theme} toggleTheme={toggleTheme} />
+        <main className="max-w-3xl mx-auto px-4 py-12">
+          <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8 text-center">
+            <div className="inline-flex items-center gap-1.5 bg-blue-700 text-white text-[11px] font-bold tracking-wider px-3 py-1 rounded-full">
+              PLANO PREMIUM EMPRESA
+            </div>
+            <h1 className="mt-4 text-2xl font-bold text-slate-800 dark:text-slate-100">
+              Esta funcionalidade é exclusiva do Plano Premium Empresa
+            </h1>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 max-w-xl mx-auto">
+              A avaliação de fornecedores e clientes via CNPJ é um recurso exclusivo do
+              Plano Premium Empresa. Faça upgrade para publicar avaliações verificadas
+              em nome da sua empresa.
+            </p>
+            <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                type="button"
+                onClick={() => navigate("/empresa/dashboard")}
+                className="h-11 px-5 rounded-lg font-bold text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              >
+                Voltar ao painel
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/escolha-perfil")}
+                style={{ backgroundColor: "#1a237e" }}
+                className="h-11 px-5 rounded-lg font-bold text-white hover:brightness-110 transition"
+              >
+                Fazer upgrade
+              </button>
+            </div>
           </section>
         </main>
       </div>

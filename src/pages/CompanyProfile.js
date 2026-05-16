@@ -18,7 +18,7 @@ import {
 import { auth, db, storage } from "../firebase";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 
-const PREMIUM_PRICE_LABEL = "R$ 1.499,99/mês";
+const PREMIUM_PRICE_LABEL = "R$ 1.649,90/mês";
 const PREMIUM_AVAILABLE_AT = "01/08/2026";
 const FREE_REPLY_LIMIT = 3;
 

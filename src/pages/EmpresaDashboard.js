@@ -18,7 +18,7 @@ import CompanyCommentsManager from "../components/CompanyCommentsManager";
 import CompatibleApoiadoresSection from "../components/CompatibleApoiadoresSection";
 import { getCompanyContactCredits } from "../services/contactRequests";
 
-const PREMIUM_PRICE_LABEL = "R$ 1.499,99/mês";
+const PREMIUM_PRICE_LABEL = "R$ 1.649,90/mês";
 const PREMIUM_AVAILABLE_AT = "01/08/2026";
 
 // Duração do trial gratuito do Plano Premium Empresa.
@@ -170,6 +170,29 @@ export default function EmpresaDashboard() {
   });
   const [savingFinTransp, setSavingFinTransp] = useState(false);
   const [finTranspSaved, setFinTranspSaved] = useState(false);
+
+  // Modal de Upgrade para funcionalidades bloqueadas por plano.
+  // Estado: { open, requiredTier: 'essential'|'premium', featureLabel }
+  const [upgradeModal, setUpgradeModal] = useState({
+    open: false,
+    requiredTier: "premium",
+    featureLabel: "",
+  });
+  const openUpgradeModal = useCallback((requiredTier, featureLabel) => {
+    setUpgradeModal({ open: true, requiredTier, featureLabel });
+  }, []);
+  const closeUpgradeModal = useCallback(() => {
+    setUpgradeModal((prev) => ({ ...prev, open: false }));
+  }, []);
+
+  // Reputação de Parceiros (Premium): busca consolidada por CNPJ em
+  // /reviews (avaliações de trabalhadores) e /companyReviews (avaliações
+  // entre empresas). Retorna nota geral, número de avaliações e a data
+  // da avaliação mais recente.
+  const [partnerCnpjInput, setPartnerCnpjInput] = useState("");
+  const [partnerLookupLoading, setPartnerLookupLoading] = useState(false);
+  const [partnerLookupError, setPartnerLookupError] = useState("");
+  const [partnerReputation, setPartnerReputation] = useState(null);
 
   // Rascunhos de resposta da empresa por avaliação (apenas Premium).
   const [replyDrafts, setReplyDrafts] = useState({});
@@ -588,6 +611,18 @@ export default function EmpresaDashboard() {
   const isPremium = company?.plan === "premium" || company?.isPremium === true;
   const isGPTWCompatible = company?.isGPTWCompatible === true;
 
+  // Plano Essencial (Fundador) — abaixo de Premium, acima do Gratuito.
+  // Engloba `plan==='essential'|'essencial'|'founder'|'fundador'` ou flag
+  // legada `isFounderPlan`.
+  const planRaw = String(company?.plan || "").toLowerCase();
+  const isEssentialPlan =
+    planRaw === "essential" ||
+    planRaw === "essencial" ||
+    planRaw === "founder" ||
+    planRaw === "fundador" ||
+    company?.isFounderPlan === true ||
+    company?.isEssentialPlan === true;
+
   // ----- Trial gratuito do Plano Premium Empresa -----
   const trialEndMs = useMemo(() => {
     const v = company?.premiumTrialEndDate;
@@ -614,6 +649,8 @@ export default function EmpresaDashboard() {
     : 0;
   // Acesso efetivo aos recursos Premium = assinante Premium OU trial ativo.
   const effectivePremium = isPremium || trialActive;
+  // Acesso efetivo aos recursos do Essencial: Premium engloba Essencial.
+  const effectiveEssential = effectivePremium || isEssentialPlan;
 
   // Carrega quantidade de créditos de contato disponíveis para a empresa.
   useEffect(() => {
@@ -872,11 +909,112 @@ export default function EmpresaDashboard() {
     }
   };
 
-  // Salva a resposta da empresa a uma avaliação específica (Premium).
+  // Busca a reputação consolidada de um parceiro pelo CNPJ digitado.
+  // Combina:
+  //   - /reviews          (avaliações de trabalhadores; campo companyCnpj)
+  //   - /companyReviews   (avaliações entre empresas; campo cnpjAvaliado)
+  // Devolve nota geral média, total de avaliações e timestamp mais recente.
+  const handlePartnerLookup = useCallback(async () => {
+    setPartnerLookupError("");
+    setPartnerReputation(null);
+    const digits = String(partnerCnpjInput || "").replace(/\D+/g, "");
+    if (digits.length !== 14) {
+      setPartnerLookupError("Informe um CNPJ válido com 14 dígitos.");
+      return;
+    }
+    setPartnerLookupLoading(true);
+    try {
+      let totalSum = 0;
+      let totalCount = 0;
+      let latestMs = 0;
+
+      // 1) /reviews — avaliações públicas feitas por trabalhadores.
+      try {
+        const snap = await getDocs(
+          query(collection(db, "reviews"), where("companyCnpj", "==", digits))
+        );
+        snap.docs.forEach((d) => {
+          const r = d.data() || {};
+          const v = Number(r.rating) || Number(r.media) || 0;
+          if (v > 0) {
+            totalSum += v;
+            totalCount += 1;
+          }
+          const tsRaw = r.timestamp || r.createdAt || r.date;
+          try {
+            const ms =
+              typeof tsRaw?.toMillis === "function"
+                ? tsRaw.toMillis()
+                : tsRaw?.seconds
+                ? tsRaw.seconds * 1000
+                : tsRaw
+                ? new Date(tsRaw).getTime()
+                : 0;
+            if (Number.isFinite(ms) && ms > latestMs) latestMs = ms;
+          } catch {
+            /* ignore */
+          }
+        });
+      } catch (err) {
+        console.warn("[partner] erro ao consultar /reviews", err);
+      }
+
+      // 2) /companyReviews — avaliações feitas por outras empresas.
+      try {
+        const snap = await getDocs(
+          query(
+            collection(db, "companyReviews"),
+            where("cnpjAvaliado", "==", digits)
+          )
+        );
+        snap.docs.forEach((d) => {
+          const r = d.data() || {};
+          const v = Number(r.notaGeral) || 0;
+          if (v > 0) {
+            totalSum += v;
+            totalCount += 1;
+          }
+          const tsRaw = r.timestamp || r.createdAt;
+          try {
+            const ms =
+              typeof tsRaw?.toMillis === "function"
+                ? tsRaw.toMillis()
+                : tsRaw?.seconds
+                ? tsRaw.seconds * 1000
+                : tsRaw
+                ? new Date(tsRaw).getTime()
+                : 0;
+            if (Number.isFinite(ms) && ms > latestMs) latestMs = ms;
+          } catch {
+            /* ignore */
+          }
+        });
+      } catch (err) {
+        console.warn("[partner] erro ao consultar /companyReviews", err);
+      }
+
+      const avg = totalCount ? totalSum / totalCount : 0;
+      setPartnerReputation({
+        cnpj: digits,
+        count: totalCount,
+        avg,
+        latestMs,
+      });
+    } catch (err) {
+      console.error("Erro ao buscar reputação do parceiro:", err);
+      setPartnerLookupError(
+        "Não foi possível consultar agora. Tente novamente em instantes."
+      );
+    } finally {
+      setPartnerLookupLoading(false);
+    }
+  }, [partnerCnpjInput]);
+
+  // Salva a resposta da empresa a uma avaliação específica (Essencial+).
   // Persistimos diretamente no documento da review em `companyResponse`,
   // mantendo o mesmo padrão de acesso a Firestore usado no restante do dashboard.
   const handleSubmitReply = async (reviewId) => {
-    if (!effectivePremium) return;
+    if (!effectiveEssential) return;
     const text = (replyDrafts[reviewId] || "").trim();
     if (!text) return;
     setReplyingId(reviewId);
@@ -1472,7 +1610,8 @@ export default function EmpresaDashboard() {
           )}
         </section>
 
-        {/* Avaliações */}
+        {/* Avaliações (Essencial+) */}
+        {effectiveEssential ? (
         <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Avaliações recebidas</h2>
@@ -1508,9 +1647,31 @@ export default function EmpresaDashboard() {
             </p>
           )}
         </section>
+        ) : (
+        <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8 text-center">
+          <div className="inline-flex items-center gap-1.5 bg-blue-700 text-white text-[11px] font-bold tracking-wider px-3 py-1 rounded-full">
+            PLANO EMPRESA ESSENCIAL
+          </div>
+          <h2 className="mt-3 text-xl font-bold text-slate-800 dark:text-slate-100">
+            Painel de avaliações disponível no Essencial
+          </h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 max-w-xl mx-auto">
+            Veja a nota geral por critério, o painel básico de avaliações recebidas e responda publicamente como
+            “Resposta oficial da empresa”. Recursos liberados a partir do Plano Empresa Essencial.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate("/escolha-perfil")}
+            style={{ backgroundColor: "#1a237e" }}
+            className="mt-5 h-11 px-5 rounded-lg font-bold text-white hover:brightness-110 transition"
+          >
+            Ver planos e fazer upgrade
+          </button>
+        </section>
+        )}
 
-        {/* Resumo: pontos positivos e negativos */}
-        {reviews.length > 0 && (
+        {/* Resumo: pontos positivos e negativos (Essencial+) */}
+        {effectiveEssential && reviews.length > 0 && (
           <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
             <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Resumo das avaliações</h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -1668,9 +1829,11 @@ export default function EmpresaDashboard() {
             <>
               <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                 {PREMIUM_FEATURES_SHOWCASE.map((f) => (
-                  <div
+                  <button
                     key={f.title}
-                    className="rounded-2xl border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 p-5 shadow-sm"
+                    type="button"
+                    onClick={() => openUpgradeModal("premium", f.title)}
+                    className="text-left rounded-2xl border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 p-5 shadow-sm cursor-pointer transition hover:shadow-md hover:border-blue-400 dark:hover:border-blue-600 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <div className="flex items-start gap-3">
                       <span className="text-2xl leading-none" aria-hidden="true">{f.icon}</span>
@@ -1681,9 +1844,12 @@ export default function EmpresaDashboard() {
                         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                           {f.description}
                         </p>
+                        <p className="mt-2 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                          🔒 Disponível no Plano Premium
+                        </p>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
 
@@ -1850,10 +2016,10 @@ export default function EmpresaDashboard() {
         </section>
         )}
 
-        {/* Gerenciar comentários (Premium) */}
-        {effectivePremium && (
+        {/* Gerenciar comentários (Essencial+) */}
+        {effectiveEssential && (
         <CompanyCommentsManager
-          isPremium={effectivePremium}
+          isPremium={effectiveEssential}
           reviews={reviews}
           criteria={CRITERIA}
           replyDrafts={replyDrafts}
@@ -2227,6 +2393,204 @@ export default function EmpresaDashboard() {
           </div>
         </section>
 
+        {/* Ferramentas: Avaliar Parceiros + Reputação de Parceiros (Premium) */}
+        <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+            Ferramentas para Parceiros Comerciais
+          </h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Avalie fornecedores e clientes e consulte a reputação de empresas pelo CNPJ.
+          </p>
+
+          <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Card: Avaliar Fornecedor/Cliente (Premium) */}
+            <button
+              type="button"
+              onClick={() => {
+                if (effectivePremium) {
+                  navigate("/empresa/avaliar-parceiro");
+                } else {
+                  openUpgradeModal("premium", "Avaliar Fornecedor ou Cliente");
+                }
+              }}
+              className={`text-left rounded-2xl border p-5 shadow-sm cursor-pointer transition hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                effectivePremium
+                  ? "border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 hover:border-blue-400 dark:hover:border-blue-600"
+                  : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 hover:border-slate-400"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <span className="text-2xl leading-none" aria-hidden="true">📝</span>
+                <div className="min-w-0">
+                  <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100">
+                    Avaliar Fornecedor ou Cliente
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Publique avaliações verificadas sobre parceiros comerciais a partir do CNPJ.
+                  </p>
+                  <p
+                    className={`mt-2 text-xs font-bold uppercase tracking-wider ${
+                      effectivePremium
+                        ? "text-emerald-700 dark:text-emerald-300"
+                        : "text-amber-700 dark:text-amber-300"
+                    }`}
+                  >
+                    {effectivePremium
+                      ? "✓ Recurso liberado"
+                      : "🔒 Exclusivo do Plano Premium Empresa"}
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            {/* Card: Reputação de Parceiros (Premium) */}
+            <button
+              type="button"
+              onClick={() => {
+                if (!effectivePremium) {
+                  openUpgradeModal("premium", "Reputação de Parceiros");
+                  return;
+                }
+                // Premium: scroll para a área de consulta abaixo.
+                const el = document.getElementById("partner-reputation-section");
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              className={`text-left rounded-2xl border p-5 shadow-sm cursor-pointer transition hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                effectivePremium
+                  ? "border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 hover:border-blue-400 dark:hover:border-blue-600"
+                  : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 hover:border-slate-400"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <span className="text-2xl leading-none" aria-hidden="true">🔎</span>
+                <div className="min-w-0">
+                  <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100">
+                    Reputação de Parceiros
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Consulte a nota geral consolidada de qualquer empresa pelo CNPJ.
+                  </p>
+                  <p
+                    className={`mt-2 text-xs font-bold uppercase tracking-wider ${
+                      effectivePremium
+                        ? "text-emerald-700 dark:text-emerald-300"
+                        : "text-amber-700 dark:text-amber-300"
+                    }`}
+                  >
+                    {effectivePremium
+                      ? "✓ Recurso liberado"
+                      : "🔒 Exclusivo do Plano Premium Empresa"}
+                  </p>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          {/* Consulta de reputação (apenas Premium) */}
+          {effectivePremium && (
+            <div
+              id="partner-reputation-section"
+              className="mt-6 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-6"
+            >
+              <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100">
+                Consultar reputação por CNPJ
+              </h3>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Nota geral consolidada das avaliações recebidas na plataforma (trabalhadores e outras empresas).
+              </p>
+              <div className="mt-4 flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
+                <div className="flex-1">
+                  <label className="block mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
+                    CNPJ do parceiro
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={partnerCnpjInput}
+                    onChange={(e) => {
+                      const d = e.target.value.replace(/\D+/g, "").slice(0, 14);
+                      const formatted =
+                        d.length === 14
+                          ? `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12, 14)}`
+                          : d;
+                      setPartnerCnpjInput(formatted);
+                    }}
+                    placeholder="00.000.000/0000-00"
+                    maxLength={18}
+                    disabled={partnerLookupLoading}
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handlePartnerLookup}
+                  disabled={partnerLookupLoading}
+                  style={{ backgroundColor: partnerLookupLoading ? undefined : "#1a237e" }}
+                  className={`h-12 px-5 rounded-lg font-bold text-white transition ${
+                    partnerLookupLoading
+                      ? "bg-slate-400 dark:bg-slate-700 opacity-70 cursor-not-allowed"
+                      : "hover:brightness-110"
+                  }`}
+                >
+                  {partnerLookupLoading ? "Consultando…" : "Consultar"}
+                </button>
+              </div>
+
+              {partnerLookupError && (
+                <p className="mt-3 text-sm font-medium text-red-700 dark:text-red-300">
+                  {partnerLookupError}
+                </p>
+              )}
+
+              {partnerReputation && (
+                <div className="mt-5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5">
+                  {partnerReputation.count === 0 ? (
+                    <p className="text-sm text-slate-600 dark:text-slate-300">
+                      Este CNPJ ainda não recebeu avaliações na plataforma.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <div className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                          Nota geral
+                        </div>
+                        <div className="mt-1 text-3xl font-extrabold text-slate-800 dark:text-slate-100">
+                          {partnerReputation.avg.toFixed(1)}
+                          <span className="ml-1 text-base font-semibold text-slate-500 dark:text-slate-400">
+                            / 5
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                          Avaliações
+                        </div>
+                        <div className="mt-1 text-3xl font-extrabold text-slate-800 dark:text-slate-100">
+                          {partnerReputation.count}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                          Avaliação mais recente
+                        </div>
+                        <div className="mt-1 text-base font-bold text-slate-800 dark:text-slate-100">
+                          {partnerReputation.latestMs
+                            ? new Date(partnerReputation.latestMs).toLocaleDateString("pt-BR", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              })
+                            : "—"}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
         {/* Configurações */}
         <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
           <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Configurações do perfil</h2>
@@ -2288,6 +2652,69 @@ export default function EmpresaDashboard() {
           </div>
         </section>
       </div>
+
+      {/* Modal de Upgrade — funcionalidades bloqueadas por plano */}
+      {upgradeModal.open && (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4"
+          onClick={closeUpgradeModal}
+        >
+          <div
+            className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                  Recurso bloqueado
+                </div>
+                <h3 className="mt-1 text-lg font-bold text-slate-800 dark:text-slate-100">
+                  {upgradeModal.requiredTier === "essential"
+                    ? "Esta funcionalidade requer o Plano Empresa Essencial"
+                    : "Esta funcionalidade é exclusiva do Plano Premium Empresa"}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={closeUpgradeModal}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                aria-label="Fechar"
+              >
+                ✕
+              </button>
+            </div>
+            {upgradeModal.featureLabel && (
+              <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                <b>{upgradeModal.featureLabel}</b> está disponível para assinantes do plano{" "}
+                {upgradeModal.requiredTier === "essential"
+                  ? "Empresa Essencial"
+                  : "Premium Empresa"}
+                .
+              </p>
+            )}
+            <div className="mt-6 flex flex-col sm:flex-row justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeUpgradeModal}
+                className="h-11 px-4 rounded-lg font-bold text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              >
+                Fechar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  closeUpgradeModal();
+                  navigate("/escolha-perfil");
+                }}
+                style={{ backgroundColor: "#1a237e" }}
+                className="h-11 px-5 rounded-lg font-bold text-white hover:brightness-110 transition"
+              >
+                Ver planos e fazer upgrade
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
