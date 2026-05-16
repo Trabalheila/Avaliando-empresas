@@ -11,7 +11,7 @@ import {
   getDocs,
   limit,
 } from "firebase/firestore";
-import { slugifyCompany } from "../services/reviews";
+import { slugifyCompany, updateOwnReview } from "../services/reviews";
 import AppHeader from "../components/AppHeader";
 import AvailabilityToggleButton, {
   AvailabilityIndicator,
@@ -119,6 +119,32 @@ const CREDIBILITY_CONFIG = {
   },
 };
 
+// Rótulos dos critérios usados ao editar uma avaliação no perfil.
+// As chaves espelham os campos top-level salvos em /reviews (ver Home.js).
+const CRITERIA_LABELS = {
+  rating: "Nota geral",
+  salario: "Data do Pagamento",
+  beneficios: "Benefícios",
+  cultura: "Visão e valores da empresa",
+  oportunidades: "Oportunidades",
+  inovacao: "Inovação",
+  lideranca: "Acessibilidade e respeito da liderança",
+  diversidade: "Diversidade",
+  ambiente: "Estímulo ao respeito",
+  equilibrio: "Equilíbrio vida/trabalho",
+  reconhecimento: "Reconhecimento",
+  comunicacao: "Comunicação",
+  etica: "Ética",
+  desenvolvimento: "Desenvolvimento",
+  saudeBemEstar: "Saúde e bem-estar",
+  impactoSocial: "Impacto social",
+  reputacao: "Reputação",
+  estimacaoOrganizacao: "Estima/Organização",
+  discriminacao: "Não discriminação",
+  cargaHoraria: "Carga horária",
+  crescimento: "Crescimento",
+};
+
 // ─── Componente principal ───
 
 export default function WorkerProfile({ theme, toggleTheme }) {
@@ -128,6 +154,10 @@ export default function WorkerProfile({ theme, toggleTheme }) {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [reviews, setReviews] = useState([]);
+  const [editing, setEditing] = useState(null); // review sendo editada
+  const [editDraft, setEditDraft] = useState({ comment: "", criteria: {} });
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState("");
   const [citations, setCitations] = useState([]);
   const [credibility, setCredibility] = useState("atencao");
   const [copied, setCopied] = useState(false);
@@ -225,7 +255,65 @@ export default function WorkerProfile({ theme, toggleTheme }) {
     });
   }, [profileId]);
 
-  // ─── Avatar ───
+  // ─── Edição de avaliação (próprio autor) ───
+  const openEditReview = useCallback((review) => {
+    // Snapshot dos critérios numéricos top-level (notas 1–5), exceto `rating`
+    // que tratamos à parte como "Nota geral".
+    const criteria = {};
+    Object.entries(review || {}).forEach(([key, value]) => {
+      if (key === "rating") return;
+      if (typeof value !== "number") return;
+      if (value < 0 || value > 5) return;
+      if (!CRITERIA_LABELS[key]) return;
+      criteria[key] = value;
+    });
+    setEditing(review);
+    setEditDraft({
+      rating: Number(review?.rating) || 0,
+      comment: review?.comment || review?.generalComment || "",
+      criteria,
+    });
+    setEditError("");
+  }, []);
+
+  const closeEditReview = useCallback(() => {
+    setEditing(null);
+    setEditDraft({ comment: "", criteria: {} });
+    setEditError("");
+  }, []);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!editing?.id) return;
+    setSavingEdit(true);
+    setEditError("");
+    try {
+      const updates = {
+        ...editDraft.criteria,
+        rating: Number(editDraft.rating) || 0,
+        comment: (editDraft.comment || "").trim(),
+      };
+      await updateOwnReview({
+        reviewId: editing.id,
+        updates,
+        currentProfileId: profileId,
+        currentPseudonym: profile?.pseudonimo || profile?.name || "",
+      });
+      // Atualiza estado local sem recarregar a página
+      setReviews((prev) =>
+        prev.map((r) =>
+          r.id === editing.id
+            ? { ...r, ...updates, updatedAt: new Date() }
+            : r
+        )
+      );
+      closeEditReview();
+    } catch (err) {
+      console.error("[WorkerProfile] erro ao salvar edição:", err);
+      setEditError(err?.message || "Não foi possível salvar a edição.");
+    } finally {
+      setSavingEdit(false);
+    }
+  }, [editing, editDraft, profileId, profile, closeEditReview]);
   const avatarDisplay = useMemo(() => {
     const av = profile?.avatar || profile?.picture || "";
     if (av && (av.startsWith("data:") || av.startsWith("http"))) {
@@ -369,12 +457,24 @@ export default function WorkerProfile({ theme, toggleTheme }) {
                 const isVerified = exp?.verified === true || exp?.source === "linkedin";
 
                 return (
-                  <button
+                  <div
                     key={review.id}
-                    type="button"
-                    onClick={() => navigate(`/empresa?slug=${review.companySlug}`)}
-                    className="w-full text-left rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 transition p-4 flex flex-col sm:flex-row sm:items-center gap-3"
+                    className="relative w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 transition"
                   >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const companyName = review.company || review.companyName || "";
+                        console.log("[WorkerProfile] clicou card empresa:", {
+                          reviewId: review.id,
+                          companyName,
+                          companySlug: review.companySlug,
+                        });
+                        if (!companyName) return;
+                        navigate(`/empresa?name=${encodeURIComponent(companyName)}`);
+                      }}
+                      className="w-full text-left p-4 flex flex-col sm:flex-row sm:items-center gap-3"
+                    >
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-slate-800 dark:text-slate-100 truncate">
                         {review.company || review.companySlug}
@@ -410,7 +510,24 @@ export default function WorkerProfile({ theme, toggleTheme }) {
                         {isVerified ? "Certificado" : "Não certificado"}
                       </span>
                     </div>
-                  </button>
+                    </button>
+                    {isOwner && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditReview(review);
+                        }}
+                        title="Editar avaliação"
+                        aria-label="Editar avaliação"
+                        className="absolute top-2 right-2 p-1.5 rounded-full text-slate-400 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-900 transition"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 0110.414 16.5H8v-2.414a2 2 0 01.586-1.414z" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -478,6 +595,144 @@ export default function WorkerProfile({ theme, toggleTheme }) {
         </section>
 
       </div>
+
+      {/* Modal de edição da própria avaliação */}
+      {editing && isOwner && (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4"
+          onClick={closeEditReview}
+        >
+          <div
+            className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+                  Editar avaliação
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {editing.company || editing.companySlug}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeEditReview}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                aria-label="Fechar"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Nota geral */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
+                Nota geral
+              </label>
+              <div className="inline-flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setEditDraft((d) => ({ ...d, rating: star }))}
+                    className={`text-2xl leading-none transition ${
+                      star <= Number(editDraft.rating)
+                        ? "text-amber-400"
+                        : "text-slate-300 dark:text-slate-600 hover:text-amber-300"
+                    }`}
+                    aria-label={`${star} estrela${star > 1 ? "s" : ""}`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Critérios */}
+            {Object.keys(editDraft.criteria || {}).length > 0 && (
+              <div className="mb-4 space-y-2">
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  Notas por critério
+                </p>
+                {Object.entries(editDraft.criteria).map(([key, value]) => (
+                  <div
+                    key={key}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 px-3 py-2"
+                  >
+                    <span className="text-sm text-slate-700 dark:text-slate-200 flex-1 truncate">
+                      {CRITERIA_LABELS[key] || key}
+                    </span>
+                    <div className="inline-flex items-center gap-0.5 shrink-0">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() =>
+                            setEditDraft((d) => ({
+                              ...d,
+                              criteria: { ...d.criteria, [key]: star },
+                            }))
+                          }
+                          className={`text-lg leading-none transition ${
+                            star <= Number(value)
+                              ? "text-amber-400"
+                              : "text-slate-300 dark:text-slate-600 hover:text-amber-300"
+                          }`}
+                          aria-label={`${CRITERIA_LABELS[key] || key}: ${star} estrela${star > 1 ? "s" : ""}`}
+                        >
+                          ★
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Comentário */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
+                Comentário
+              </label>
+              <textarea
+                value={editDraft.comment}
+                onChange={(e) =>
+                  setEditDraft((d) => ({ ...d, comment: e.target.value }))
+                }
+                rows={4}
+                maxLength={2000}
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Atualize seu comentário sobre a empresa..."
+              />
+            </div>
+
+            {editError && (
+              <p className="text-sm text-rose-600 dark:text-rose-400 mb-3">{editError}</p>
+            )}
+
+            <div className="flex flex-col sm:flex-row justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeEditReview}
+                disabled={savingEdit}
+                className="h-10 px-4 rounded-lg font-bold text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEdit}
+                disabled={savingEdit}
+                style={{ backgroundColor: "#1a237e" }}
+                className="h-10 px-5 rounded-lg font-bold text-white hover:brightness-110 transition disabled:opacity-60"
+              >
+                {savingEdit ? "Salvando..." : "Salvar alterações"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
