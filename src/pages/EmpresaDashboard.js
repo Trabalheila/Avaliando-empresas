@@ -160,6 +160,17 @@ export default function EmpresaDashboard() {
   const [savingEmployees, setSavingEmployees] = useState(false);
   const [employeesSaved, setEmployeesSaved] = useState(false);
 
+  // Transparência Financeira (opcional, persistida no Firestore em
+  // companies/{id}.financialTransparency). Toggle + 3 campos auto-declarados.
+  const [financialTransparency, setFinancialTransparency] = useState({
+    enabled: false,
+    salaryHistory: "",
+    supplierRegularity: "",
+    financialHealth: "",
+  });
+  const [savingFinTransp, setSavingFinTransp] = useState(false);
+  const [finTranspSaved, setFinTranspSaved] = useState(false);
+
   // Rascunhos de resposta da empresa por avaliação (apenas Premium).
   const [replyDrafts, setReplyDrafts] = useState({});
   const [replyingId, setReplyingId] = useState(null);
@@ -417,6 +428,12 @@ export default function EmpresaDashboard() {
         setEmployees({
           pj: best.data?.funcionariosPJ != null ? String(best.data.funcionariosPJ) : "",
           clt: best.data?.funcionariosCLT != null ? String(best.data.funcionariosCLT) : "",
+        });
+        setFinancialTransparency({
+          enabled: !!best.data?.financialTransparency?.enabled,
+          salaryHistory: best.data?.financialTransparency?.salaryHistory || "",
+          supplierRegularity: best.data?.financialTransparency?.supplierRegularity || "",
+          financialHealth: best.data?.financialTransparency?.financialHealth || "",
         });
       } else if (queryErrors.length > 0) {
         // Houve falhas de leitura — não podemos afirmar que a empresa não
@@ -807,6 +824,51 @@ export default function EmpresaDashboard() {
       alert("Não foi possível salvar a quantidade de funcionários.");
     } finally {
       setSavingEmployees(false);
+    }
+  };
+
+  // Salva a Transparência Financeira da empresa (toggle + 3 campos).
+  // Quando o toggle está desativado, persistimos enabled=false e
+  // limpamos os valores para evitar dados antigos serem expostos no
+  // perfil público caso o badge volte a ser ativado depois.
+  const handleSaveFinancialTransparency = async () => {
+    if (!company?.id) return;
+    setSavingFinTransp(true);
+    setFinTranspSaved(false);
+    try {
+      const enabled = !!financialTransparency.enabled;
+      const payload = {
+        financialTransparency: {
+          enabled,
+          salaryHistory: enabled ? (financialTransparency.salaryHistory || "") : "",
+          supplierRegularity: enabled ? (financialTransparency.supplierRegularity || "") : "",
+          financialHealth: enabled ? (financialTransparency.financialHealth || "") : "",
+          updatedAt: serverTimestamp(),
+        },
+        updatedAt: serverTimestamp(),
+      };
+      await setDoc(doc(db, "companies", company.id), payload, { merge: true });
+      const nowDate = new Date();
+      setCompany((prev) =>
+        prev
+          ? {
+              ...prev,
+              financialTransparency: {
+                enabled,
+                salaryHistory: payload.financialTransparency.salaryHistory,
+                supplierRegularity: payload.financialTransparency.supplierRegularity,
+                financialHealth: payload.financialTransparency.financialHealth,
+                updatedAt: nowDate,
+              },
+            }
+          : prev
+      );
+      setFinTranspSaved(true);
+    } catch (err) {
+      console.error("Erro ao salvar transparência financeira:", err);
+      alert("Não foi possível salvar a transparência financeira.");
+    } finally {
+      setSavingFinTransp(false);
     }
   };
 
@@ -2057,6 +2119,113 @@ export default function EmpresaDashboard() {
             </div>
           </div>
         )}
+
+        {/* Transparência Financeira (opcional) */}
+        <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="min-w-0">
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Transparência Financeira</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Recurso opcional. Ao ativar, sua empresa exibe o badge <b>“Empresa Transparente”</b> no perfil público,
+                com os dados auto-declarados abaixo. Você pode desativar a qualquer momento.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={!!financialTransparency.enabled}
+              onClick={() =>
+                setFinancialTransparency((prev) => ({ ...prev, enabled: !prev.enabled }))
+              }
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+                financialTransparency.enabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"
+              }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                  financialTransparency.enabled ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+
+          {financialTransparency.enabled && (
+            <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <label className="block">
+                <span className="block mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Pagamento de salários (últimos 6 meses)
+                </span>
+                <select
+                  value={financialTransparency.salaryHistory}
+                  onChange={(e) =>
+                    setFinancialTransparency((prev) => ({ ...prev, salaryHistory: e.target.value }))
+                  }
+                  className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                >
+                  <option value="">Selecione…</option>
+                  <option value="sempre_em_dia">Sempre em dia</option>
+                  <option value="atraso_ocasional">Atraso ocasional</option>
+                  <option value="atraso_recorrente">Atraso recorrente</option>
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="block mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Regularidade com fornecedores
+                </span>
+                <select
+                  value={financialTransparency.supplierRegularity}
+                  onChange={(e) =>
+                    setFinancialTransparency((prev) => ({ ...prev, supplierRegularity: e.target.value }))
+                  }
+                  className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                >
+                  <option value="">Selecione…</option>
+                  <option value="sem_pendencias">Sem pendências</option>
+                  <option value="pendencias_pontuais">Pendências pontuais</option>
+                  <option value="pendencias_frequentes">Pendências frequentes</option>
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="block mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Saúde financeira autodeclarada
+                </span>
+                <select
+                  value={financialTransparency.financialHealth}
+                  onChange={(e) =>
+                    setFinancialTransparency((prev) => ({ ...prev, financialHealth: e.target.value }))
+                  }
+                  className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                >
+                  <option value="">Selecione…</option>
+                  <option value="estavel">Estável</option>
+                  <option value="em_reestruturacao">Em reestruturação</option>
+                  <option value="em_crescimento_acelerado">Em crescimento acelerado</option>
+                </select>
+              </label>
+            </div>
+          )}
+
+          <div className="mt-5 flex items-center justify-end gap-3 flex-wrap">
+            {finTranspSaved && (
+              <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                Alterações salvas.
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handleSaveFinancialTransparency}
+              disabled={savingFinTransp}
+              style={{ backgroundColor: savingFinTransp ? undefined : "#1a237e" }}
+              className={`h-11 px-5 rounded-lg font-bold text-white transition ${
+                savingFinTransp ? "bg-slate-400 dark:bg-slate-700 opacity-70 cursor-not-allowed" : "hover:brightness-110"
+              }`}
+            >
+              {savingFinTransp ? "Salvando..." : "Salvar"}
+            </button>
+          </div>
+        </section>
 
         {/* Configurações */}
         <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">

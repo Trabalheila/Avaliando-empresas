@@ -38,6 +38,7 @@ import CompanyConfirm from './pages/CompanyConfirm';
 import CompanyRegisterAwait from './pages/CompanyRegisterAwait';
 import CompanyProfile from './pages/CompanyProfile';
 import EmpresaDashboard from './pages/EmpresaDashboard';
+import EvaluatePartner from './pages/EvaluatePartner';
 import Login from './pages/Login';
 import SealDetailsPage from './pages/SealDetailsPage';
 import AuthAction from './pages/AuthAction';
@@ -237,6 +238,7 @@ function App() {
       <Route path="/empresa/confirmar" element={<CompanyConfirm />} />
       <Route path="/empresa/perfil" element={<CompanyProfile theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/empresa-dashboard" element={<EmpresaDashboard theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/empresa/avaliar-parceiro" element={<EvaluatePartner theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/selo-trabalheila" element={<SealDetailsPage />} />
       <Route path="/auth/action" element={<AuthAction />} />
       <Route path="/profissionais-apoio/cadastro" element={<ProfissionalApoioCadastro theme={theme} toggleTheme={toggleTheme} />} />
