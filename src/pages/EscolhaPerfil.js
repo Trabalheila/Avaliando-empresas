@@ -566,11 +566,11 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 Tudo do Plano Fundador + recursos avançados de inteligência de mercado.
               </p>
               <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
-                R$ 3.499,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/ano</span>
+                R$ 1.649,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
               </p>
               {isEmployerFreeWindowActive && (
                 <p className="mb-4 inline-flex items-center gap-1 text-xs font-bold text-amber-800 dark:text-amber-200 bg-amber-100 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 rounded-full px-2 py-1 self-start">
-                  Gratuito até 31 de julho de 2026 — depois R$ 3.499,90/ano
+                  Gratuito até 31 de julho de 2026 — depois R$ 899,90/mês
                 </p>
               )}
               <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">

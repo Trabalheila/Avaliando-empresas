@@ -651,7 +651,7 @@ export default function CompanyRegister() {
 
               <div className="mt-6 pt-6 border-t border-white/15">
                 <div className="text-xs text-blue-100/80">A partir de</div>
-                <div className="text-2xl font-extrabold tracking-tight">R$ 3.499,90<span className="text-sm font-semibold text-blue-100/80">/mês</span></div>
+                <div className="text-2xl font-extrabold tracking-tight">R$ 1.649,90<span className="text-sm font-semibold text-blue-100/80">/mês</span></div>
                 <div className="text-xs text-blue-100/80 mt-1">Disponível a partir de 01/08/2026</div>
               </div>
             </div>
