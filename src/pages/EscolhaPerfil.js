@@ -530,17 +530,8 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 FUNDADOR
               </div>
               <h3 className="text-lg font-bold text-indigo-700 dark:text-indigo-400 mb-1">Plano Fundador</h3>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
-                {isEmployerFreeWindowActive ? (
-                  <>
-                    R$ 0<span className="text-sm font-medium text-slate-600 dark:text-slate-400"> até {EMPLOYER_FREE_PERIOD_LABEL}</span>
-                  </>
-                ) : (
-                  <>
-                    R$ 1.499,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
-                  </>
-                )}
-              </p>
+              <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Gratuito</p>
+              <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-4">Após 31 de julho de 2026: R$ 899,90/mês</p>
               <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">
                 <FeatureRow ok>Painel completo de avaliações por critério (salário, cultura, liderança, benefícios e mais)</FeatureRow>
                 <FeatureRow ok>Relatório de reputação da empresa com visão geral por área</FeatureRow>
@@ -565,14 +556,8 @@ function EscolhaPerfil({ theme, toggleTheme }) {
               <p className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-2">
                 Tudo do Plano Fundador + recursos avançados de inteligência de mercado.
               </p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
-                R$ 1.649,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
-              </p>
-              {isEmployerFreeWindowActive && (
-                <p className="mb-4 inline-flex items-center gap-1 text-xs font-bold text-amber-800 dark:text-amber-200 bg-amber-100 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 rounded-full px-2 py-1 self-start">
-                  Gratuito até 31 de julho de 2026 — depois R$ 899,90/mês
-                </p>
-              )}
+              <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Gratuito</p>
+              <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-4">Após 31 de julho de 2026: R$ 1.649,90/mês</p>
               <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">
                 <li className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
                   Tudo do Plano Fundador, em versão avançada:
