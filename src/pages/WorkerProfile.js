@@ -317,12 +317,12 @@ export default function WorkerProfile({ theme, toggleTheme }) {
   const avatarDisplay = useMemo(() => {
     const av = profile?.avatar || profile?.picture || "";
     if (av && (av.startsWith("data:") || av.startsWith("http"))) {
-      return <img src={av} alt="avatar" className="h-20 w-20 rounded-full object-cover border-2 border-blue-200 dark:border-slate-600" referrerPolicy="no-referrer" />;
+      return <img src={av} alt="avatar" className="h-20 w-20 sm:h-32 sm:w-32 rounded-full object-cover border-2 border-blue-200 dark:border-slate-600" referrerPolicy="no-referrer" />;
     }
     if (av && av.length <= 4) {
-      return <span className="text-5xl">{av}</span>;
+      return <span className="text-5xl sm:text-7xl">{av}</span>;
     }
-    return <span className="h-20 w-20 rounded-full bg-blue-100 dark:bg-slate-700 flex items-center justify-center text-4xl">👤</span>;
+    return <span className="h-20 w-20 sm:h-32 sm:w-32 rounded-full bg-blue-100 dark:bg-slate-700 flex items-center justify-center text-4xl sm:text-6xl">👤</span>;
   }, [profile]);
 
   // ─── Credibilidade badge ───
