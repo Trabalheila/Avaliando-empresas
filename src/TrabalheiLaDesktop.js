@@ -735,14 +735,14 @@ function TrabalheiLaDesktop({
           </div>
         </div>
 
-        {/* CARD CENTRAL DE LOGIN â€” Google + LinkedIn (acima das colunas) */}
+        {/* CARD CENTRAL DE LOGIN — Google + LinkedIn (acima das colunas) */}
         {!isAuthenticated && (
           <div className="mx-auto max-w-2xl mb-6 bg-amber-100 dark:bg-amber-200/15 border-2 border-amber-400 dark:border-amber-500/60 rounded-2xl shadow-xl p-5">
             <h2 className="text-xl md:text-2xl font-extrabold text-amber-900 dark:text-amber-100 text-center mb-1 tracking-wide">
               Entre para avaliar
             </h2>
             <p className="text-sm text-amber-800 dark:text-amber-200 text-center mb-4">
-              Use sua conta Google ou LinkedIn â€” seu nome continua anÃ´nimo.
+              Use sua conta Google ou LinkedIn - seu nome continua anônimo.
             </p>
             <div className="flex flex-col sm:flex-row items-stretch justify-center gap-3">
               <button
@@ -772,7 +772,7 @@ function TrabalheiLaDesktop({
           {/* COLUNA ESQUERDA - CADASTRO + RANKING (flex-col ordem 1) */}
           <div className="w-full lg:basis-[20%] lg:max-w-[20%] lg:min-w-[220px] xl:basis-[19%] xl:max-w-[19%] xl:min-w-[240px] lg:shrink-0 flex flex-col gap-6 order-1 lg:order-1 break-words">
 
-            {/* CADASTRO POR PERFIL (sem login social â€” esse foi para o card central) */}
+            {/* CADASTRO POR PERFIL (sem login social — esse foi para o card central) */}
             <section
               className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 mb-6 border border-blue-100 dark:border-slate-700"
               style={{ animation: "homeLoginSectionIn 700ms ease-out both" }}
@@ -799,7 +799,7 @@ function TrabalheiLaDesktop({
                   to="/empresa/cadastro"
                   className="w-full text-center py-2 px-3 rounded-lg bg-amber-400 hover:bg-amber-500 text-amber-950 text-sm font-bold shadow transition"
                 >
-                  Sou EmpresÃ¡rio
+                  Sou Empresário
                 </Link>
                 <Link
                   to="/apoiadores"
@@ -809,7 +809,7 @@ function TrabalheiLaDesktop({
                 </Link>
               </div>
               {isAuthenticated && (
-                <p className="text-green-600 font-semibold text-center mt-4 text-sm">âœ“ VocÃª estÃ¡ autenticado!</p>
+                <p className="text-green-600 font-semibold text-center mt-4 text-sm">✔ Você está autenticado!</p>
               )}
             </section>
 

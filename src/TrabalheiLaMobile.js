@@ -836,14 +836,14 @@ function TrabalheiLaMobile({
           }
         `}</style>
 
-        {/* CARD CENTRAL DE LOGIN â€” Google + LinkedIn (acima do formulario) */}
+        {/* CARD CENTRAL DE LOGIN — Google + LinkedIn (acima do formulario) */}
         {!isAuthenticated && (
           <div className="mx-auto w-full bg-amber-100 dark:bg-amber-200/15 border-2 border-amber-400 dark:border-amber-500/60 rounded-2xl shadow-lg p-4">
             <h2 className="text-base font-extrabold text-amber-900 dark:text-amber-100 text-center mb-1 tracking-wide">
               Entre para avaliar
             </h2>
             <p className="text-xs text-amber-800 dark:text-amber-200 text-center mb-3">
-              Use Google ou LinkedIn â€” seu nome continua anonimo.
+              Use Google ou LinkedIn — seu nome continua anônimo.
             </p>
             <div className="flex flex-col sm:flex-row items-stretch justify-center gap-2">
               <button
