@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from "react-router-dom";
 import Select from "react-select";
@@ -11,6 +11,7 @@ import {
 } from "react-icons/fi";
 import LoginLinkedInButton from "./LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
+import LoginProfileModal from "./components/LoginProfileModal";
 import RestrictableTextarea from "./components/RestrictableTextarea";
 import WorkPeriodPicker from "./components/WorkPeriodPicker";
 import SpellCheckSuggestions from "./components/SpellCheckSuggestions";
@@ -176,6 +177,7 @@ function TrabalheiLaDesktop({
 
   const headerRef = React.useRef(null);
   const [headerSpacerHeight, setHeaderSpacerHeight] = React.useState(0);
+  const [loginModalOpen, setLoginModalOpen] = React.useState(false);
   const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
 
   React.useEffect(() => {
@@ -505,7 +507,7 @@ function TrabalheiLaDesktop({
               ) : (
                 <button
                   type="button"
-                  onClick={() => navigate("/login")}
+                  onClick={() => setLoginModalOpen(true)}
                   aria-label="Entrar"
                   className="px-4 py-2 rounded-full bg-blue-700 hover:bg-blue-800 text-white font-bold text-sm shadow-md whitespace-nowrap transition dark:bg-blue-600 dark:hover:bg-blue-700"
                 >
@@ -738,82 +740,8 @@ function TrabalheiLaDesktop({
         {/* CONTEÚDO - 3 COLUNAS NO DESKTOP (>1024px), 2 COLUNAS NO MOBILE (<1024px) */}
         <div className="flex flex-col lg:flex-row lg:flex-nowrap gap-6 mb-8">
 
-          {/* COLUNA ESQUERDA - LOGIN + RANKING (flex-col ordem 1) */}
+          {/* COLUNA ESQUERDA - RANKING (flex-col ordem 1) */}
           <div className="w-full lg:basis-[20%] lg:max-w-[20%] lg:min-w-[220px] xl:basis-[19%] xl:max-w-[19%] xl:min-w-[240px] lg:shrink-0 flex flex-col gap-6 order-1 lg:order-1 break-words">
-
-            {/* LOGIN ATUALIZADO (Sem Google, LinkedIn Corrigido) */}
-            <section
-              className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 mb-6 border border-blue-100 dark:border-slate-700"
-              style={{ animation: "homeLoginSectionIn 700ms ease-out both" }}
-            >
-              <style>{`
-                @keyframes homeLoginSectionIn {
-                  from { opacity: 0; transform: translateY(18px); }
-                  to { opacity: 1; transform: translateY(0); }
-                }
-                @keyframes homeCalloutIn {
-                  from { opacity: 0; transform: translateX(-18px); }
-                  to { opacity: 1; transform: translateX(0); }
-                }
-              `}</style>
-              <h2 className="text-3xl font-extrabold text-blue-900 dark:text-blue-200 text-center mb-2 tracking-wide font-azonix">Login para Avaliar</h2>
-              <div className="w-28 h-1 mx-auto mb-5 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
-              <div className="flex flex-col items-center space-y-4">
-                <div className="w-full max-w-xs -ml-3">
-                  <LoginLinkedInButton
-                    clientId={linkedInClientId}
-                    redirectUri={linkedInRedirectUri}
-                    onLoginSuccess={onLoginSuccess}
-                    onLoginFailure={(err) => setError(err?.message || String(err))}
-                    disabled={isLoading}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={onGoogleLogin}
-                  disabled={isLoading}
-                  className="w-full max-w-xs -ml-3 flex items-center justify-center gap-3 bg-white dark:bg-slate-900 border border-blue-200 dark:border-slate-700 text-blue-800 dark:text-blue-200 font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors text-sm md:text-base disabled:opacity-60"
-                >
-                  <FaGoogle className="text-lg" /> Cadastrar com Google
-                </button>
-                <p className="text-xs text-slate-500 dark:text-slate-300 text-center">
-                  Sem LinkedIn: entre com Google e complete seu perfil manualmente na próxima etapa.
-                </p>
-
-                {/* Bloco neutro de cadastro por perfil */}
-                <div className="w-full pt-4 mt-2 border-t border-blue-100 dark:border-slate-700">
-                  <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-100 text-center">
-                    Crie sua conta
-                  </h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 text-center mt-1 mb-3">
-                    Escolha seu perfil e comece a usar a plataforma!
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    <Link
-                      to="/pseudonym"
-                      className="w-full text-center py-2 px-3 rounded-lg bg-lime-400 hover:bg-lime-500 text-emerald-950 text-sm font-bold shadow transition"
-                    >
-                      Sou Trabalhador
-                    </Link>
-                    <Link
-                      to="/empresa/cadastro"
-                      className="w-full text-center py-2 px-3 rounded-lg bg-amber-400 hover:bg-amber-500 text-amber-950 text-sm font-bold shadow transition"
-                    >
-                      Sou Empresário
-                    </Link>
-                    <Link
-                      to="/apoiadores"
-                      className="w-full text-center py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow transition"
-                    >
-                      Sou Apoiador
-                    </Link>
-                  </div>
-                </div>
-              </div>
-              {isAuthenticated && (
-                <p className="text-green-600 font-semibold text-center mt-4">✓ Você está autenticado!</p>
-              )}
-            </section>
 
             {/* RANKING DE EMPRESAS */}
             <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-5 lg:p-6 border border-blue-100 dark:border-slate-700">
@@ -925,6 +853,82 @@ function TrabalheiLaDesktop({
                   </div>
                 </div>
               )}
+              {/* LOGIN INTEGRADO AO CARD AVALIE UMA EMPRESA */}
+            {/* LOGIN ATUALIZADO (Sem Google, LinkedIn Corrigido) */}
+            <section
+              className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 mb-6 border border-blue-100 dark:border-slate-700"
+              style={{ animation: "homeLoginSectionIn 700ms ease-out both" }}
+            >
+              <style>{`
+                @keyframes homeLoginSectionIn {
+                  from { opacity: 0; transform: translateY(18px); }
+                  to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes homeCalloutIn {
+                  from { opacity: 0; transform: translateX(-18px); }
+                  to { opacity: 1; transform: translateX(0); }
+                }
+              `}</style>
+              <h2 className="text-3xl font-extrabold text-blue-900 dark:text-blue-200 text-center mb-2 tracking-wide font-azonix">Login para Avaliar</h2>
+              <div className="w-28 h-1 mx-auto mb-5 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
+              <div className="flex flex-col items-center space-y-4">
+                <div className="w-full max-w-xs -ml-3">
+                  <LoginLinkedInButton
+                    clientId={linkedInClientId}
+                    redirectUri={linkedInRedirectUri}
+                    onLoginSuccess={onLoginSuccess}
+                    onLoginFailure={(err) => setError(err?.message || String(err))}
+                    disabled={isLoading}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={onGoogleLogin}
+                  disabled={isLoading}
+                  className="w-full max-w-xs -ml-3 flex items-center justify-center gap-3 bg-white dark:bg-slate-900 border border-blue-200 dark:border-slate-700 text-blue-800 dark:text-blue-200 font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors text-sm md:text-base disabled:opacity-60"
+                >
+                  <FaGoogle className="text-lg" /> Cadastrar com Google
+                </button>
+                <p className="text-xs text-slate-500 dark:text-slate-300 text-center">
+                  Sem LinkedIn: entre com Google e complete seu perfil manualmente na próxima etapa.
+                </p>
+
+                {/* Bloco neutro de cadastro por perfil */}
+                <div className="w-full pt-4 mt-2 border-t border-blue-100 dark:border-slate-700">
+                  <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-100 text-center">
+                    Crie sua conta
+                  </h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 text-center mt-1 mb-3">
+                    Escolha seu perfil e comece a usar a plataforma!
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <Link
+                      to="/pseudonym"
+                      className="w-full text-center py-2 px-3 rounded-lg bg-lime-400 hover:bg-lime-500 text-emerald-950 text-sm font-bold shadow transition"
+                    >
+                      Sou Trabalhador
+                    </Link>
+                    <Link
+                      to="/empresa/cadastro"
+                      className="w-full text-center py-2 px-3 rounded-lg bg-amber-400 hover:bg-amber-500 text-amber-950 text-sm font-bold shadow transition"
+                    >
+                      Sou Empresário
+                    </Link>
+                    <Link
+                      to="/apoiadores"
+                      className="w-full text-center py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow transition"
+                    >
+                      Sou Apoiador
+                    </Link>
+                  </div>
+                </div>
+              </div>
+              {isAuthenticated && (
+                <p className="text-green-600 font-semibold text-center mt-4">✓ Você está autenticado!</p>
+              )}
+            </section>
+              <div className="w-full h-px bg-blue-100 dark:bg-slate-700 my-4" />
+
               <form onSubmit={handleSubmit} className="space-y-4">
 
                 <div>
@@ -1370,6 +1374,7 @@ function TrabalheiLaDesktop({
           }}
         />
 
+      <LoginProfileModal open={loginModalOpen} onClose={() => setLoginModalOpen(false)} />
       </div>
     </div>
   );
