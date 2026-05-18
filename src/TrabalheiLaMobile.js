@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -12,7 +12,6 @@ import {
 import Select from "react-select";
 import LoginLinkedInButton from "./LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
-import LoginProfileModal from "./components/LoginProfileModal";
 import RestrictableTextarea from "./components/RestrictableTextarea";
 import WorkPeriodPicker from "./components/WorkPeriodPicker";
 import SpellCheckSuggestions from "./components/SpellCheckSuggestions";
@@ -544,7 +543,6 @@ function TrabalheiLaMobile({
   const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
   const headerRef = React.useRef(null);
   const [headerSpacerHeight, setHeaderSpacerHeight] = React.useState(0);
-  const [loginModalOpen, setLoginModalOpen] = React.useState(false);
 
   const getTopSliceLabel = (pieData) => {
     const topItem = pieData.items.reduce((best, current) => (current.percent > best.percent ? current : best), pieData.items[0]);
@@ -607,7 +605,7 @@ function TrabalheiLaMobile({
           {!isAuthenticated && (
             <button
               type="button"
-                  onClick={() => setLoginModalOpen(true)}
+              onClick={() => navigate("/login")}
               aria-label="Entrar"
               className="ml-2 px-3 py-1 rounded-full bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs shadow-md whitespace-nowrap transition dark:bg-blue-600 dark:hover:bg-blue-700"
               style={{ flexShrink: 0 }}
@@ -838,32 +836,6 @@ function TrabalheiLaMobile({
           }
         `}</style>
 
-        {/* FORMULÁRIO */}
-        <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700">
-          <h2 className="text-sm uppercase tracking-[0.14em] font-extrabold text-blue-800 dark:text-blue-200 text-center mb-3">Avaliar Empresa</h2>
-          {isAuthenticated && userVerificationLevel === "free" && (
-            <div className="mb-4 rounded-2xl border border-amber-300 bg-amber-50 dark:border-amber-500/40 dark:bg-amber-500/10 p-4 text-center">
-              <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
-                Para avaliar uma empresa, faça login com sua conta LinkedIn ou Google. Isso garante a autenticidade das avaliações sem revelar sua identidade.
-              </p>
-              <div className="mt-3 flex flex-col gap-2 items-stretch">
-                <LoginLinkedInButton
-                  clientId={linkedInClientId}
-                  redirectUri={linkedInRedirectUri}
-                  onLoginSuccess={onLoginSuccess}
-                  onLoginFailure={(err) => setError(err?.message || String(err))}
-                />
-                <button
-                  type="button"
-                  onClick={onGoogleLogin}
-                  className="w-full inline-flex items-center justify-center gap-2 bg-white dark:bg-slate-900 border border-blue-200 dark:border-slate-700 text-blue-800 dark:text-blue-200 font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors text-sm"
-                >
-                  <FaGoogle className="text-base" /> Entrar com Google
-                </button>
-              </div>
-            </div>
-          )}
-          {/* LOGIN INTEGRADO AO CARD AVALIAR EMPRESA */}
         {/* LOGIN */}
         <section
           className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700"
@@ -949,8 +921,32 @@ function TrabalheiLaMobile({
           </div>
           {isAuthenticated && <p className="text-green-600 font-semibold text-center mt-3 text-sm">✓ Autenticado!</p>}
         </section>
-          <div className="w-full h-px bg-blue-100 dark:bg-slate-700 my-3" />
 
+        {/* FORMULÁRIO */}
+        <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700">
+          <h2 className="text-sm uppercase tracking-[0.14em] font-extrabold text-blue-800 dark:text-blue-200 text-center mb-3">Avaliar Empresa</h2>
+          {isAuthenticated && userVerificationLevel === "free" && (
+            <div className="mb-4 rounded-2xl border border-amber-300 bg-amber-50 dark:border-amber-500/40 dark:bg-amber-500/10 p-4 text-center">
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                Para avaliar uma empresa, faça login com sua conta LinkedIn ou Google. Isso garante a autenticidade das avaliações sem revelar sua identidade.
+              </p>
+              <div className="mt-3 flex flex-col gap-2 items-stretch">
+                <LoginLinkedInButton
+                  clientId={linkedInClientId}
+                  redirectUri={linkedInRedirectUri}
+                  onLoginSuccess={onLoginSuccess}
+                  onLoginFailure={(err) => setError(err?.message || String(err))}
+                />
+                <button
+                  type="button"
+                  onClick={onGoogleLogin}
+                  className="w-full inline-flex items-center justify-center gap-2 bg-white dark:bg-slate-900 border border-blue-200 dark:border-slate-700 text-blue-800 dark:text-blue-200 font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors text-sm"
+                >
+                  <FaGoogle className="text-base" /> Entrar com Google
+                </button>
+              </div>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="font-semibold text-slate-700 dark:text-blue-200 mb-2 block text-sm">Selecione a Empresa</label>
@@ -1396,7 +1392,6 @@ function TrabalheiLaMobile({
           Qual o nosso propósito?
         </Link>
       </footer>
-      <LoginProfileModal open={loginModalOpen} onClose={() => setLoginModalOpen(false)} />
     </div>
   );
 }

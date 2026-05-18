@@ -26,12 +26,7 @@ const COMPANY_CONFIRMED_FLAG_KEY = "trabalheiLa_companyConfirmedFlag";
 // Tenta resolver a melhor rota padrão pós-login com base no perfil do usuário.
 // Se houver uma empresa cadastrada com o e-mail logado, leva para o painel da
 // empresa; caso contrário, leva para a área pessoal.
-// Se um `perfil` for fornecido (via querystring ?perfil=trabalhador|empresario|apoiador),
-// ele tem prioridade sobre a heurística padrão.
-async function resolveDefaultRouteForUser(user, perfil) {
-  if (perfil === "empresario") return "/empresa-dashboard";
-  if (perfil === "apoiador") return "/apoiadores";
-  if (perfil === "trabalhador") return "/minha-conta";
+async function resolveDefaultRouteForUser(user) {
   if (!user?.email) return "/minha-conta";
   try {
     const snap = await getDocs(
@@ -47,16 +42,6 @@ async function resolveDefaultRouteForUser(user, perfil) {
 export default function Login({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-
-  // Perfil escolhido na Home (modal "Entrar"): trabalhador | empresario | apoiador.
-  // Define o destino padrão pós-login e o link de cadastro mostrado abaixo do form.
-  const perfil = (searchParams.get("perfil") || "").toLowerCase();
-  const registerHref =
-    perfil === "trabalhador"
-      ? "/pseudonym"
-      : perfil === "apoiador"
-      ? "/apoiadores"
-      : "/empresa/cadastro";
 
   // Lê parâmetros e persiste em sessionStorage (sobrevive ao OAuth).
   const companyConfirmed = useMemo(() => {
@@ -142,7 +127,7 @@ export default function Login({ theme, toggleTheme }) {
 
   async function finishLogin(user, providerLabel) {
     persistUserProfile(user, providerLabel);
-    const target = getRedirectTarget() || (await resolveDefaultRouteForUser(user, perfil));
+    const target = getRedirectTarget() || (await resolveDefaultRouteForUser(user));
     clearRedirect();
     navigate(target, { replace: true });
   }
@@ -236,13 +221,7 @@ export default function Login({ theme, toggleTheme }) {
       localStorage.setItem("userProfile", JSON.stringify(merged));
       window.dispatchEvent(new Event("trabalheiLa_user_updated"));
 
-      const target =
-        getRedirectTarget() ||
-        (perfil === "empresario"
-          ? "/empresa-dashboard"
-          : perfil === "apoiador"
-          ? "/apoiadores"
-          : "/minha-conta");
+      const target = getRedirectTarget() || "/minha-conta";
       clearRedirect();
       navigate(target, { replace: true });
     } catch (err) {
@@ -402,7 +381,7 @@ export default function Login({ theme, toggleTheme }) {
 
           <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-300">
             Não tem conta?{" "}
-            <Link to={registerHref} className="font-bold text-blue-700 dark:text-blue-300 hover:underline">
+            <Link to="/empresa/cadastro" className="font-bold text-blue-700 dark:text-blue-300 hover:underline">
               Cadastre-se aqui
             </Link>
           </p>
