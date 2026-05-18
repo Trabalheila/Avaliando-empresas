@@ -17,26 +17,44 @@ import {
 } from "firebase/auth";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { auth, db, googleProvider } from "../firebase";
-import LoginLinkedInButton from "../components/LoginLinkedInButton";
+// Usa o LoginLinkedInButton "robusto" (suporta callback {code,state} e tem
+// onLoginFailure/disabled). O de src/components/ entrega só {profile} e quebra
+// com o callback atual de /auth/auth/ que devolve apenas {code,state}.
+import LoginLinkedInButton from "../LoginLinkedInButton";
 import AppHeader from "../components/AppHeader";
 
 const REDIRECT_AFTER_LOGIN_KEY = "trabalheiLa_redirectAfterLogin";
 const COMPANY_CONFIRMED_FLAG_KEY = "trabalheiLa_companyConfirmedFlag";
 
-// Tenta resolver a melhor rota padrão pós-login com base no perfil do usuário.
-// Se houver uma empresa cadastrada com o e-mail logado, leva para o painel da
-// empresa; caso contrário, leva para a área pessoal.
-async function resolveDefaultRouteForUser(user) {
-  if (!user?.email) return "/minha-conta";
+// Rotas padrão por tipo de perfil.
+const PROFILE_ROUTES = {
+  empresario: { label: "Sou Empresário", route: "/empresa-dashboard", color: "bg-amber-500 hover:bg-amber-600 text-amber-950" },
+  apoiador: { label: "Sou Apoiador", route: "/apoiador/my-contacts", color: "bg-blue-600 hover:bg-blue-700 text-white" },
+  trabalhador: { label: "Sou Trabalhador", route: "/minha-conta", color: "bg-lime-500 hover:bg-lime-600 text-emerald-950" },
+};
+
+// Detecta todos os perfis associados a um e-mail (empresário em `companies`,
+// trabalhador/apoiador em `users` via campo userType). Retorna lista ordenada
+// e sem duplicatas, sempre na ordem: empresário, apoiador, trabalhador.
+async function detectProfilesByEmail(email) {
+  const normalized = (email || "").toString().trim().toLowerCase();
+  if (!normalized) return [];
+  const found = new Set();
   try {
-    const snap = await getDocs(
-      query(collection(db, "companies"), where("email", "==", user.email))
-    );
-    if (!snap.empty) return "/empresa-dashboard";
-  } catch {
-    /* permissões/índice ausente — fallback abaixo */
+    const [compSnap, usersSnap] = await Promise.all([
+      getDocs(query(collection(db, "companies"), where("email", "==", normalized))).catch(() => ({ empty: true, forEach: () => {} })),
+      getDocs(query(collection(db, "users"), where("email", "==", normalized))).catch(() => ({ empty: true, forEach: () => {} })),
+    ]);
+    if (!compSnap.empty) found.add("empresario");
+    usersSnap.forEach((d) => {
+      const t = (d.data()?.userType || "").toString().toLowerCase();
+      if (t === "apoiador") found.add("apoiador");
+      else found.add("trabalhador");
+    });
+  } catch (err) {
+    console.warn("detectProfilesByEmail falhou:", err);
   }
-  return "/minha-conta";
+  return ["empresario", "apoiador", "trabalhador"].filter((t) => found.has(t));
 }
 
 export default function Login({ theme, toggleTheme }) {
@@ -75,6 +93,9 @@ export default function Login({ theme, toggleTheme }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [resetMessage, setResetMessage] = useState("");
+  // Quando o mesmo e-mail tem mais de um perfil cadastrado, abrimos um modal
+  // para o usuário escolher. profileChoice = { profiles: ["empresario", ...] }
+  const [profileChoice, setProfileChoice] = useState(null);
 
   function getRedirectTarget() {
     try {
@@ -127,9 +148,33 @@ export default function Login({ theme, toggleTheme }) {
 
   async function finishLogin(user, providerLabel) {
     persistUserProfile(user, providerLabel);
-    const target = getRedirectTarget() || (await resolveDefaultRouteForUser(user));
+    const explicitRedirect = getRedirectTarget();
+    if (explicitRedirect) {
+      clearRedirect();
+      navigate(explicitRedirect, { replace: true });
+      return;
+    }
+    // Sem redirect explícito: descobre quais perfis o e-mail tem.
+    const profiles = await detectProfilesByEmail(user?.email);
+    if (profiles.length >= 2) {
+      // Conflito: pergunta com qual perfil deseja entrar.
+      setProfileChoice({ profiles });
+      setSubmitting(false);
+      return;
+    }
+    const target = profiles[0]
+      ? PROFILE_ROUTES[profiles[0]].route
+      : "/minha-conta";
     clearRedirect();
     navigate(target, { replace: true });
+  }
+
+  function pickProfile(profileType) {
+    const cfg = PROFILE_ROUTES[profileType];
+    if (!cfg) return;
+    setProfileChoice(null);
+    clearRedirect();
+    navigate(cfg.route, { replace: true });
   }
 
   async function handleEmailLogin(e) {
@@ -186,16 +231,20 @@ export default function Login({ theme, toggleTheme }) {
     }
   }
 
-  // Callback do botão LinkedIn: o componente LoginLinkedInButton já abre popup
-  // e devolve o profile via postMessage. Aqui chamamos a API /api/linkedin-auth
-  // (mesmo backend usado em Home.js) e finalizamos o login.
-  async function handleLinkedInSuccess({ profile, code }) {
+  // Callback do botão LinkedIn. O componente robusto entrega ou
+  // { profile } (raro — só quando o callback do popup já enriqueceu o perfil)
+  // ou { code, state } (caso atual: a página /auth/auth/ só repassa o code).
+  // Aqui resolvemos o code chamando /api/linkedin-auth e seguimos o mesmo
+  // fluxo de finalização dos demais providers.
+  async function handleLinkedInSuccess({ profile, code } = {}) {
     setSubmitting(true);
     setError("");
     try {
       let data = profile;
       if (!data && code) {
-        const redirectUri = process.env.REACT_APP_LINKEDIN_REDIRECT_URI;
+        const redirectUri =
+          process.env.REACT_APP_LINKEDIN_REDIRECT_URI ||
+          `${window.location.origin}/auth/auth/`;
         const response = await fetch("/api/linkedin-auth", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -221,13 +270,18 @@ export default function Login({ theme, toggleTheme }) {
       localStorage.setItem("userProfile", JSON.stringify(merged));
       window.dispatchEvent(new Event("trabalheiLa_user_updated"));
 
-      const target = getRedirectTarget() || "/minha-conta";
-      clearRedirect();
-      navigate(target, { replace: true });
+      // Usa o mesmo fluxo de finishLogin para tratar conflito de perfis.
+      // Passa um "fake user" com email para a detecção funcionar.
+      const fakeUser = {
+        uid: data?.id || data?.sub || existing.uid || "",
+        email: data?.email || existing.email || "",
+        displayName: data?.name || existing.fullName || "",
+        photoURL: data?.picture || data?.avatar || "",
+      };
+      await finishLogin(fakeUser, "linkedin");
     } catch (err) {
       console.error("Erro no login com LinkedIn:", err);
       setError(`Falha ao conectar com LinkedIn: ${err?.message || ""}`);
-    } finally {
       setSubmitting(false);
     }
   }
@@ -376,6 +430,10 @@ export default function Login({ theme, toggleTheme }) {
               clientId={process.env.REACT_APP_LINKEDIN_CLIENT_ID}
               redirectUri={process.env.REACT_APP_LINKEDIN_REDIRECT_URI}
               onLoginSuccess={handleLinkedInSuccess}
+              onLoginFailure={(err) =>
+                setError(`Falha ao conectar com LinkedIn: ${err?.message || String(err)}`)
+              }
+              disabled={submitting}
             />
           </div>
 
@@ -387,6 +445,88 @@ export default function Login({ theme, toggleTheme }) {
           </p>
         </div>
       </div>
+
+      {profileChoice && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="profile-choice-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+        >
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6">
+            <h2
+              id="profile-choice-title"
+              className="text-xl font-extrabold text-slate-800 dark:text-slate-100 text-center"
+            >
+              Com qual perfil deseja entrar?
+            </h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 text-center">
+              Encontramos mais de um perfil vinculado a este e-mail. Escolha por
+              qual deles você quer acessar agora.
+            </p>
+
+            <div className="mt-5 flex flex-col gap-2">
+              {profileChoice.profiles.map((type) => {
+                const cfg = PROFILE_ROUTES[type];
+                if (!cfg) return null;
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => pickProfile(type)}
+                    className={`w-full py-2.5 px-4 rounded-lg font-bold shadow transition ${cfg.color}`}
+                  >
+                    {cfg.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Acesso a perfis ainda não cadastrados para este e-mail */}
+            {profileChoice.profiles.length < 3 && (
+              <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <p className="text-xs text-slate-500 dark:text-slate-400 text-center mb-2">
+                  Quer criar outro perfil com este e-mail?
+                </p>
+                <div className="flex flex-col gap-2">
+                  {["empresario", "apoiador", "trabalhador"]
+                    .filter((t) => !profileChoice.profiles.includes(t))
+                    .map((type) => {
+                      const cfg = PROFILE_ROUTES[type];
+                      const cadastroRoute = {
+                        empresario: "/empresa/cadastro",
+                        apoiador: "/apoiadores/cadastro",
+                        trabalhador: "/pseudonym",
+                      }[type];
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => {
+                            setProfileChoice(null);
+                            clearRedirect();
+                            navigate(cadastroRoute);
+                          }}
+                          className="w-full py-2 px-4 rounded-lg text-sm font-semibold border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                        >
+                          Cadastrar como {cfg.label.replace(/^Sou /, "")}
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setProfileChoice(null)}
+              className="mt-5 w-full text-xs text-slate-500 dark:text-slate-400 hover:underline"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
