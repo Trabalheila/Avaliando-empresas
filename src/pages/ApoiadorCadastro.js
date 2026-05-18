@@ -7,6 +7,7 @@ import AppHeader from "../components/AppHeader";
 import { isAdmin } from "../utils/rbac";
 import { buildDeclarationText } from "../components/ConflictDeclarationGate";
 import SECTORS from "../data/sectors";
+import WelcomeModal from "../components/WelcomeModal";
 
 /* ── Opções por tipo (lista abrangente de profissões) ── */
 const TIPOS = [
@@ -122,6 +123,8 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
   /* ── UI ── */
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [createdApoiadorId, setCreatedApoiadorId] = useState("");
+  const [showWelcome, setShowWelcome] = useState(false);
   const [error, setError] = useState("");
 
   /* ── Portfólio (Premium) ── */
@@ -343,6 +346,8 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
         console.warn("Falha ao espelhar apoiador em users:", mirrorErr);
       }
 
+      setCreatedApoiadorId(id);
+      setShowWelcome(true);
       setSuccess(true);
     } catch (err) {
       console.error("Erro ao salvar cadastro:", err);
@@ -365,6 +370,11 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
             Ver Apoiadores
           </button>
         </div>
+        <WelcomeModal
+          open={showWelcome}
+          apoiadorId={createdApoiadorId}
+          onClose={() => setShowWelcome(false)}
+        />
       </div>
     );
   }

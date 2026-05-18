@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import PlanosApoiador from "../components/PlanosApoiador";
@@ -11,6 +11,10 @@ import PlanosApoiador from "../components/PlanosApoiador";
  * de assinatura via preapproval_plan_id do Mercado Pago.
  */
 function Apoiadores({ theme, toggleTheme }) {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900">
       <AppHeader theme={theme} toggleTheme={toggleTheme} title="Seja um Apoiador" />
