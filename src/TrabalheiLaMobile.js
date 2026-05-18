@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -836,6 +836,37 @@ function TrabalheiLaMobile({
           }
         `}</style>
 
+        {/* CARD CENTRAL DE LOGIN â€” Google + LinkedIn (acima do formulario) */}
+        {!isAuthenticated && (
+          <div className="mx-auto w-full bg-amber-100 dark:bg-amber-200/15 border-2 border-amber-400 dark:border-amber-500/60 rounded-2xl shadow-lg p-4">
+            <h2 className="text-base font-extrabold text-amber-900 dark:text-amber-100 text-center mb-1 tracking-wide">
+              Entre para avaliar
+            </h2>
+            <p className="text-xs text-amber-800 dark:text-amber-200 text-center mb-3">
+              Use Google ou LinkedIn â€” seu nome continua anonimo.
+            </p>
+            <div className="flex flex-col sm:flex-row items-stretch justify-center gap-2">
+              <button
+                type="button"
+                onClick={onGoogleLogin}
+                disabled={isLoading}
+                className="flex-1 inline-flex items-center justify-center gap-2 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-500/40 text-blue-800 dark:text-blue-200 font-semibold py-2.5 px-3 rounded-lg shadow hover:bg-amber-50 dark:hover:bg-slate-800 transition-colors text-sm disabled:opacity-60"
+              >
+                <FaGoogle className="text-base" /> Entrar com Google
+              </button>
+              <div className="flex-1">
+                <LoginLinkedInButton
+                  clientId={linkedInClientId}
+                  redirectUri={linkedInRedirectUri}
+                  onLoginSuccess={onLoginSuccess}
+                  onLoginFailure={(err) => setError(err?.message || String(err))}
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* LOGIN */}
         <section
           className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700"
@@ -851,25 +882,8 @@ function TrabalheiLaMobile({
               to { opacity: 1; transform: translateY(0); }
             }
           `}</style>
-          <h2 className="text-sm uppercase tracking-[0.14em] font-extrabold text-blue-800 dark:text-blue-200 text-center mb-3">Acesso para Avaliar</h2>
+          <h2 className="text-sm uppercase tracking-[0.14em] font-extrabold text-blue-800 dark:text-blue-200 text-center mb-3">Crie sua conta</h2>
           <div className="flex flex-col items-center space-y-3">
-            <div className="w-full max-w-xs">
-              <LoginLinkedInButton 
-                clientId={linkedInClientId} 
-                redirectUri={linkedInRedirectUri}
-                onLoginSuccess={onLoginSuccess}
-                onLoginFailure={(err) => setError(err?.message || String(err))}
-                disabled={isLoading}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={onGoogleLogin}
-              disabled={isLoading}
-              className="w-full max-w-xs flex items-center justify-center gap-3 bg-white dark:bg-slate-900 border border-blue-200 dark:border-slate-700 text-blue-800 dark:text-blue-200 font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors text-sm md:text-base disabled:opacity-60"
-            >
-              <FaGoogle className="text-lg" /> Cadastrar com Google
-            </button>
             {/* Bloco neutro de cadastro por perfil */}
             <div className="w-full pt-3 mt-1 border-t border-blue-100 dark:border-slate-700">
               <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-100 text-center">
@@ -915,9 +929,6 @@ function TrabalheiLaMobile({
                 </button>
               </div>
             )}
-            <p className="text-xs text-slate-500 dark:text-slate-300 text-center">
-              Sem LinkedIn: entre com Google e complete seu perfil manualmente na etapa seguinte.
-            </p>
           </div>
           {isAuthenticated && <p className="text-green-600 font-semibold text-center mt-3 text-sm">✓ Autenticado!</p>}
         </section>
