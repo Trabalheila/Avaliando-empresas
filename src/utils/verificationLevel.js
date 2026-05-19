@@ -85,7 +85,37 @@ export function resolveUserVerificationDetail(userData, companyName) {
     const fromStored = (userData?.verification_provider || "").toString().toLowerCase();
     if (fromStored === "linkedin" || fromStored === "google") provider = fromStored;
   }
-  return { level, provider: provider || null };
+  const tier = resolveUserTier(userData);
+  return { level, provider: provider || null, tier };
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Sistema de selos em 3 níveis (independente do legado free/identity/proven):
+//   Nível 1 ("email")        → e-mail confirmado.
+//   Nível 2 ("professional") → ≥1 experiência importada via LinkedIn OAuth.
+//   Nível 3 ("complete")     → pseudônimo + e-mail verificado + ≥1 exp.
+//                              verificada via LinkedIn + 4 etapas concluídas.
+// Retorna null quando o usuário ainda não atingiu o Nível 1.
+// ────────────────────────────────────────────────────────────────────────────
+export function resolveUserTier(userData) {
+  if (!userData || typeof userData !== "object") return null;
+  if (userData.profileComplete === true) return "complete";
+  if (userData.professionalVerified === true) return "professional";
+  if (userData.emailVerified === true) return "email";
+  return null;
+}
+
+// Computa se o usuário tem ≥1 experiência vinda do LinkedIn OAuth.
+export function userHasLinkedInVerifiedExperience(userData) {
+  if (!userData || typeof userData !== "object") return false;
+  const structured = Array.isArray(userData?.resumeData?.experiencesStructured)
+    ? userData.resumeData.experiencesStructured
+    : [];
+  if (structured.some((e) => (e?.source || "").toString().toLowerCase() === "linkedin" && e?.verified)) {
+    return true;
+  }
+  const lkn = Array.isArray(userData.linkedinExperiences) ? userData.linkedinExperiences : [];
+  return lkn.length > 0;
 }
 
 // Resolve o nível a partir de um entry/review já carregado.
@@ -121,4 +151,20 @@ export function resolveEntryVerificationDetail(entry, cache, companyName) {
     return { level: "identity", provider: "google" };
   }
   return { level: "free", provider: null };
+}
+
+// Resolve o tier (sistema 3 níveis) a partir de um entry/review.
+// Prioriza flags persistidas no próprio entry; se ausentes, recorre ao cache
+// de docs de users.
+export function resolveEntryTier(entry, cache) {
+  if (!entry) return null;
+  if (entry.authorProfileComplete === true) return "complete";
+  if (entry.authorProfessionalVerified === true) return "professional";
+  if (entry.authorEmailVerified === true) return "email";
+  const cacheKey = entry.authorProfileId
+    ? entry.authorProfileId
+    : `pseudonym:${(entry.pseudonym || "").toLowerCase()}`;
+  const cached = cache?.[cacheKey];
+  if (cached && typeof cached === "object" && cached.tier) return cached.tier;
+  return null;
 }

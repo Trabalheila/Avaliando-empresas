@@ -49,8 +49,110 @@ function CheckIcon({ className = "w-3 h-3" }) {
   );
 }
 
+function EmailIcon({ className = "w-3 h-3" }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <polyline points="3 7 12 13 21 7" />
+    </svg>
+  );
+}
+
+function ShieldIcon({ className = "w-3 h-3" }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3z" />
+      <polyline points="9 12 11 14 15 10" />
+    </svg>
+  );
+}
+
+function StarIcon({ className = "w-3 h-3" }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className={className}
+      fill="currentColor"
+    >
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  );
+}
+
+// Renderiza um selo do sistema de 3 níveis (independente do legado
+// free/identity/proven). Retorna null para usuários sem nenhum selo.
+export function VerificationTierBadge({ tier, size = "sm" }) {
+  if (!tier) return null;
+  const sizing = size === "md" ? "px-2 py-1 text-xs" : "px-2 py-0.5 text-[10px]";
+  const iconSize = size === "md" ? "w-3.5 h-3.5" : "w-3 h-3";
+
+  if (tier === "complete") {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 rounded-full ${sizing} font-semibold bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-200 dark:border-amber-700`}
+        title="Perfil Completo — pseudônimo, e-mail verificado e experiência verificada via LinkedIn."
+      >
+        <StarIcon className={iconSize} />
+        Perfil Completo
+      </span>
+    );
+  }
+
+  if (tier === "professional") {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 rounded-full ${sizing} font-semibold bg-emerald-100 text-emerald-700 border border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-200 dark:border-emerald-700`}
+        title="Profissional Verificado — vínculo importado via LinkedIn."
+      >
+        <ShieldIcon className={iconSize} />
+        Verificado
+      </span>
+    );
+  }
+
+  if (tier === "email") {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 rounded-full ${sizing} font-semibold bg-blue-100 text-blue-700 border border-blue-300 dark:bg-blue-900/40 dark:text-blue-200 dark:border-blue-700`}
+        title="E-mail Verificado"
+      >
+        <EmailIcon className={iconSize} />
+        E-mail Verificado
+      </span>
+    );
+  }
+
+  return null;
+}
+
 // `size` em "sm" (padrão, para comentários) ou "md" (para painel admin).
-export default function VerificationLevelBadge({ level, provider, size = "sm" }) {
+// Quando `tier` é informado, prioriza a renderização no sistema de 3 níveis.
+export default function VerificationLevelBadge({ level, provider, size = "sm", tier }) {
+  if (tier) {
+    return <VerificationTierBadge tier={tier} size={size} />;
+  }
   const sizing =
     size === "md"
       ? "px-2 py-1 text-xs"

@@ -1251,6 +1251,12 @@ function Home({ theme, toggleTheme }) {
     const authorVerificationLevel = detail.level;
     const authorVerificationProvider = detail.provider;
 
+    // Sistema 3 níveis: persistido no entry para o display de avaliações
+    // mostrar o selo correspondente (Nível 1 e-mail, 2 LinkedIn, 3 completo).
+    const authorEmailVerified = Boolean(userProfile?.emailVerified);
+    const authorProfessionalVerified = Boolean(userProfile?.professionalVerified);
+    const authorProfileComplete = Boolean(userProfile?.profileComplete);
+
     const draft = {
       company: company?.value || "",
       pseudonym: pseudonym || "",
@@ -1260,6 +1266,9 @@ function Home({ theme, toggleTheme }) {
       authorHasResume,
       authorVerificationLevel,
       authorVerificationProvider,
+      authorEmailVerified,
+      authorProfessionalVerified,
+      authorProfileComplete,
       rating, commentRating, salario, commentSalario, beneficios, commentBeneficios,
       cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao,
       lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente,

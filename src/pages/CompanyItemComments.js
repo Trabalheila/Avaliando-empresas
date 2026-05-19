@@ -10,6 +10,7 @@ import VerificationLevelBadge from "../components/VerificationLevelBadge";
 import {
   resolveUserVerificationDetail,
   resolveEntryVerificationDetail,
+  resolveEntryTier,
 } from "../utils/verificationLevel";
 
 const ITEM_CONFIG = {
@@ -992,7 +993,13 @@ function CompanyItemComments({ theme, toggleTheme }) {
                     <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{entry.pseudonym}</p>
                     {(() => {
                       const detail = resolveEntryVerificationDetail(entry, verificationByProfile, companyName);
-                      return <VerificationLevelBadge level={detail.level} provider={detail.provider} />;
+                      const tier = resolveEntryTier(entry, verificationByProfile);
+                      return (
+                        <>
+                          <VerificationLevelBadge level={detail.level} provider={detail.provider} />
+                          {tier && <VerificationLevelBadge tier={tier} />}
+                        </>
+                      );
                     })()}
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">{toDateLabel(entry.createdAt)}</p>

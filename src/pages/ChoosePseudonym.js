@@ -1139,6 +1139,11 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       const vDetail = resolveUserVerificationDetail(nextProfile, "");
       nextProfile.verification_level = vDetail.level;
       nextProfile.verification_provider = vDetail.provider || null;
+      // Sistema 3 níveis: na Etapa 1 ainda não há e-mail confirmado nem
+      // experiências importadas — preserva flags se já existiam (re-edição).
+      nextProfile.emailVerified = Boolean(existingProfile?.emailVerified);
+      nextProfile.professionalVerified = Boolean(existingProfile?.professionalVerified);
+      nextProfile.profileComplete = false;
       localStorage.setItem("userPseudonym", trimmedPseudo);
       localStorage.setItem("userProfile", JSON.stringify(nextProfile));
 
@@ -1329,6 +1334,20 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       const vDetailFull = resolveUserVerificationDetail(nextProfile, "");
       nextProfile.verification_level = vDetailFull.level;
       nextProfile.verification_provider = vDetailFull.provider || null;
+
+      // Sistema 3 níveis (independente do legado):
+      //   Nível 1 → e-mail confirmado.
+      //   Nível 2 → ≥1 experiência importada via LinkedIn OAuth.
+      //   Nível 3 → pseudônimo + e-mail verificado + ≥1 exp. LinkedIn.
+      const linkedInVerifiedCount = (structuredExperiences || []).filter(
+        (exp) => (exp?.source || "").toString().toLowerCase() === "linkedin" && exp?.verified
+      ).length;
+      const professionalVerified = linkedInVerifiedCount > 0;
+      nextProfile.professionalVerified = professionalVerified;
+      nextProfile.emailVerified = keepVerified;
+      nextProfile.profileComplete = Boolean(
+        trimmed && keepVerified && professionalVerified
+      );
 
       localStorage.setItem("userProfile", JSON.stringify(nextProfile));
 
@@ -1659,6 +1678,12 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                     <span className="text-xs text-slate-600 dark:text-slate-300">{verificationStatus}</span>
                   )}
                 </div>
+              )}
+              {/* Faixa discreta lembrando que o e-mail precisa ser confirmado para ativar o perfil (Nível 1). */}
+              {email && !(emailVerified && verifiedEmailValue === email.trim().toLowerCase()) && (
+                <p className="mt-2 text-[11px] italic text-slate-500 dark:text-slate-400">
+                  Confirme seu e-mail para ativar seu perfil.
+                </p>
               )}
             </div>
             )}
@@ -2054,8 +2079,8 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                       let badgeClass = "bg-slate-100 text-slate-500 border border-slate-200";
                       let badgeTitle = "Experiência adicionada manualmente, sem confirmação externa.";
                       if (isLinkedInVerified) {
-                        badgeLabel = "✓ Selo Autenticado";
-                        badgeClass = "bg-blue-50 text-blue-800 border border-blue-300";
+                        badgeLabel = "✓ Verificado via LinkedIn";
+                        badgeClass = "bg-emerald-50 text-emerald-700 border border-emerald-300";
                         badgeTitle = "Vínculo profissional confirmado via login OAuth do LinkedIn.";
                       } else if (isCrossReferenced) {
                         badgeLabel = "✓ Vínculo Confirmado (currículo)";
@@ -2177,17 +2202,55 @@ function ChoosePseudonym({ theme, toggleTheme }) {
 
             {/* Confirmação humano (etapa 2 — opcional) */}
             {step === 2 && (
-            <div ref={(el) => assignSectionRef(el, 6)} className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="confirm-human"
-                checked={confirmedHuman}
-                onChange={(e) => setConfirmedHuman(e.target.checked)}
-                className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-              />
-              <label htmlFor="confirm-human" className="text-sm text-slate-700">
-                Não sou um robô e concordo em enviar uma avaliação sincera.
-              </label>
+            <div ref={(el) => assignSectionRef(el, 6)} className="space-y-3">
+              {/* Selo dourado "Perfil Verificado ✓" exibido quando o usuário
+                  cumpre todos os requisitos do Nível 3 (Perfil Completo). */}
+              {(() => {
+                const linkedInCount = (structuredExperiences || []).filter(
+                  (e) => (e?.source || "").toString().toLowerCase() === "linkedin" && e?.verified
+                ).length;
+                const isProfileComplete = Boolean(
+                  pseudonym.trim()
+                    && emailVerified
+                    && verifiedEmailValue === (email || "").trim().toLowerCase()
+                    && linkedInCount > 0
+                );
+                if (!isProfileComplete) return null;
+                return (
+                  <div className="rounded-xl border-2 border-amber-300 dark:border-amber-700 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/20 px-4 py-3 flex items-center gap-3">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      className="h-7 w-7 text-amber-500 shrink-0"
+                      fill="currentColor"
+                    >
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-amber-800 dark:text-amber-200">
+                        Perfil Verificado ✓
+                      </p>
+                      <p className="text-xs text-amber-700 dark:text-amber-300">
+                        Pseudônimo, e-mail confirmado e experiência LinkedIn — Nível 3 atingido.
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="confirm-human"
+                  checked={confirmedHuman}
+                  onChange={(e) => setConfirmedHuman(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                />
+                <label htmlFor="confirm-human" className="text-sm text-slate-700">
+                  Não sou um robô e concordo em enviar uma avaliação sincera.
+                </label>
+              </div>
             </div>
             )}
 
