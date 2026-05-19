@@ -927,14 +927,24 @@ function AdminPanel({ theme, toggleTheme }) {
                               · {it.pseudonym || "Anônimo"}
                             </span>
                             <span className="text-slate-500 dark:text-slate-400">· {date}</span>
-                            <a
-                              href={`/empresa/${it.companySlug}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 dark:text-blue-400 underline"
-                            >
-                              ver avaliação ↗
-                            </a>
+                            {(() => {
+                              const companyParam = encodeURIComponent(it.company || it.companySlug || "");
+                              const reviewHash = it.reviewId ? `#review-${encodeURIComponent(it.reviewId)}` : "";
+                              const href =
+                                it.source && it.source !== "general"
+                                  ? `/empresa/comentarios-item?name=${companyParam}&item=${encodeURIComponent(it.source)}${reviewHash}`
+                                  : `/empresa?name=${companyParam}${reviewHash}`;
+                              return (
+                                <a
+                                  href={href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 dark:text-blue-400 underline"
+                                >
+                                  ver avaliação ↗
+                                </a>
+                              );
+                            })()}
                           </div>
 
                           <div className="mt-2 text-sm">

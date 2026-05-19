@@ -669,6 +669,7 @@ function buildSegmentItems(reviewDoc) {
   const baseMeta = {
     reviewId: reviewDoc.id,
     companySlug: data.companySlug || "",
+    company: data.company || data.companyName || "",
     pseudonym:
       data.pseudonym || data.pseudonimo || data.userName || data.authorName || "",
     createdAt:

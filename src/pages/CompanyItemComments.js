@@ -402,6 +402,25 @@ function CompanyItemComments({ theme, toggleTheme }) {
     };
   }, [companyName, itemConfig, itemKey]);
 
+  // Após carregar os entries, se a URL tiver hash #review-<id>, rola até o
+  // comentário e destaca temporariamente (uso vindo do painel admin).
+  React.useEffect(() => {
+    if (isLoading || !entries || entries.length === 0) return;
+    const hash = (typeof window !== "undefined" && window.location.hash) || "";
+    if (!hash.startsWith("#review-")) return;
+    const id = hash.slice(1);
+    const el = document.getElementById(id);
+    if (!el) return;
+    const timer = setTimeout(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("ring-2", "ring-amber-400", "ring-offset-2");
+      setTimeout(() => {
+        el.classList.remove("ring-2", "ring-amber-400", "ring-offset-2");
+      }, 3000);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [isLoading, entries]);
+
   React.useEffect(() => {
     let alive = true;
     // Só buscamos no Firestore os entries que ainda não trazem informação de
@@ -986,7 +1005,8 @@ function CompanyItemComments({ theme, toggleTheme }) {
             {entries.map((entry) => (
               <article
                 key={entry.id}
-                className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-700"
+                id={`review-${entry.id}`}
+                className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-700 scroll-mt-24 transition-shadow"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2 flex-wrap">
