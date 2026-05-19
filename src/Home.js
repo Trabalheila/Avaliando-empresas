@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import TrabalheiLaMobile from "./TrabalheiLaMobile";
 import TrabalheiLaDesktop from "./TrabalheiLaDesktop";
 import { empresasBrasileiras } from "./empresas";
-import { saveReview, listRecentReviews } from "./services/reviews";
+import { saveReview, listRecentReviews, saveSelectionProcessReview, slugifyCompany } from "./services/reviews";
 import { saveCompany, listCompanies, enrichCompanyWithBrasilAPI } from "./services/companies";
 import { getUserProfile, saveUserProfile, findUnifiedProfile } from "./services/users";
 import { auth, db } from "./firebase";
@@ -348,6 +348,29 @@ function Home({ theme, toggleTheme }) {
   const [workPeriodEndMonth, setWorkPeriodEndMonth] = useState("");
   const [workPeriodEndYear, setWorkPeriodEndYear] = useState("");
   const [workPeriodStillWorking, setWorkPeriodStillWorking] = useState(false);
+
+  // Marca que o usuário NÃO foi contratado pela empresa. Ao ativar, oculta o
+  // formulário dos 18 critérios e mostra o formulário de Processo Seletivo;
+  // os campos de Data de Contratação (workPeriod) são resetados.
+  const [selectionProcessOnly, setSelectionProcessOnlyState] = useState(false);
+  const [spClarity, setSpClarity] = useState(0);
+  const [spCommunication, setSpCommunication] = useState(0);
+  const [spResponseTime, setSpResponseTime] = useState(0);
+  const [spDiscriminationFelt, setSpDiscriminationFelt] = useState(false);
+  const [spDiscriminationComment, setSpDiscriminationComment] = useState("");
+
+  const setSelectionProcessOnly = useCallback((next) => {
+    const value = Boolean(typeof next === "function" ? next(selectionProcessOnly) : next);
+    setSelectionProcessOnlyState(value);
+    if (value) {
+      // Reseta os campos de Data de Contratação ao marcar "Não se aplica".
+      setWorkPeriodStartMonth("");
+      setWorkPeriodStartYear("");
+      setWorkPeriodEndMonth("");
+      setWorkPeriodEndYear("");
+      setWorkPeriodStillWorking(false);
+    }
+  }, [selectionProcessOnly]);
   const didHydrateDraftRef = React.useRef(false);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -943,6 +966,12 @@ function Home({ theme, toggleTheme }) {
       setWorkPeriodEndMonth("");
       setWorkPeriodEndYear("");
       setWorkPeriodStillWorking(false);
+      setSelectionProcessOnlyState(false);
+      setSpClarity(0);
+      setSpCommunication(0);
+      setSpResponseTime(0);
+      setSpDiscriminationFelt(false);
+      setSpDiscriminationComment("");
       setManualCompanyName("");
       setManualSegment("");
       setManualRazaoSocial("");
@@ -1332,6 +1361,23 @@ function Home({ theme, toggleTheme }) {
       return;
     }
 
+    // Avaliação de Processo Seletivo (usuário NÃO contratado).
+    // Persiste em coleção separada, NÃO atualiza médias da empresa.
+    if (evaluationData?.type === "selectionProcess") {
+      console.log("Dados prontos para envio (Processo Seletivo):", evaluationData);
+      await saveSelectionProcessReview(evaluationData);
+      setEmailVerificationToast({
+        type: "success",
+        message:
+          "Avaliação do processo seletivo enviada! Obrigado por sua contribuição.",
+      });
+      localStorage.removeItem(REVIEW_DRAFT_STORAGE_KEY);
+      setTimeout(() => {
+        navigate(`/empresa?name=${encodeURIComponent(evaluationData.company)}`);
+      }, 1500);
+      return;
+    }
+
     // Não permite que o mesmo pseudônimo avalie a mesma empresa mais de uma vez (cache local rápido)
     const evaluationsKey = `evaluations_${evaluationData.company}`;
     const storedEvals = localStorage.getItem(evaluationsKey);
@@ -1513,6 +1559,53 @@ function Home({ theme, toggleTheme }) {
       console.warn("Falha na verificação de auto-avaliação:", err);
     }
 
+    // Branch "Não se aplica": usuário não foi contratado pela empresa. Em vez
+    // dos 18 critérios, validamos as 3 estrelas do processo seletivo e
+    // gravamos numa coleção separada (selectionProcessReviews).
+    if (selectionProcessOnly) {
+      const stars = [spClarity, spCommunication, spResponseTime];
+      if (stars.some((v) => !Number(v))) {
+        setError(
+          "Avalie de 1 a 5 estrelas: clareza das etapas, comunicação e tempo de resposta."
+        );
+        return;
+      }
+      const pseudonym = localStorage.getItem("userPseudonym");
+      if (!pseudonym) {
+        setError("Por favor, defina um pseudônimo antes de avaliar.");
+        return;
+      }
+      const authorProfileId = resolveProfileId(userProfile, { persistGeneratedId: false }) || "";
+      const companyId =
+        selectedCompanyData?.id ||
+        selectedCompanyData?.cnpj ||
+        company?.cnpj ||
+        slugifyCompany(company?.value || "");
+
+      const data = {
+        type: "selectionProcess",
+        company: company?.value || "",
+        companyId,
+        pseudonym,
+        authorProfileId,
+        profileId: authorProfileId,
+        clarity: Number(spClarity) || 0,
+        communication: Number(spCommunication) || 0,
+        responseTime: Number(spResponseTime) || 0,
+        discriminationFelt: Boolean(spDiscriminationFelt),
+        discriminationComment: spDiscriminationFelt
+          ? (spDiscriminationComment || "").trim()
+          : "",
+        timestamp: new Date().toISOString(),
+      };
+
+      setError(null);
+      setResponsibilityAccepted(false);
+      setPendingEvaluationData(data);
+      setShowResponsibilityModal(true);
+      return;
+    }
+
     if (!entrySource) {
       setError("Selecione como você entrou na empresa.");
       return;
@@ -1543,7 +1636,7 @@ function Home({ theme, toggleTheme }) {
     setResponsibilityAccepted(false);
     setPendingEvaluationData(buildEvaluationData());
     setShowResponsibilityModal(true);
-  }, [isAuthenticated, company, userProfile, entrySource, contractType, workModel, discriminacao, commentDiscriminacao, buildEvaluationData]);
+  }, [isAuthenticated, company, userProfile, entrySource, contractType, workModel, discriminacao, commentDiscriminacao, buildEvaluationData, selectionProcessOnly, spClarity, spCommunication, spResponseTime, spDiscriminationFelt, spDiscriminationComment, selectedCompanyData]);
 
   const handleSubmit = useCallback((e) => {
     e.preventDefault();
@@ -2168,6 +2261,12 @@ function Home({ theme, toggleTheme }) {
     workPeriodStartMonth, setWorkPeriodStartMonth, workPeriodStartYear, setWorkPeriodStartYear,
     workPeriodEndMonth, setWorkPeriodEndMonth, workPeriodEndYear, setWorkPeriodEndYear,
     workPeriodStillWorking, setWorkPeriodStillWorking,
+    selectionProcessOnly, setSelectionProcessOnly,
+    spClarity, setSpClarity,
+    spCommunication, setSpCommunication,
+    spResponseTime, setSpResponseTime,
+    spDiscriminationFelt, setSpDiscriminationFelt,
+    spDiscriminationComment, setSpDiscriminationComment,
     generalComment, setGeneralComment,
     generalCommentRestrictedSegments, setGeneralCommentRestrictedSegments,
     criterionRestrictedSegments, setSegmentsForCriterion,

@@ -98,6 +98,46 @@ export async function saveReview(review) {
   return { id: reviewId, ...payload };
 }
 
+/**
+ * Salva uma avaliação de processo seletivo (usuário NÃO contratado) em
+ * coleção separada (`selectionProcessReviews`). Mantém os mesmos princípios
+ * de identificação por pseudônimo + companySlug e impede duplicatas.
+ */
+export async function saveSelectionProcessReview(review) {
+  if (!review?.company || !review?.pseudonym) {
+    throw new Error(
+      "Empresa e pseudônimo são obrigatórios para salvar a avaliação."
+    );
+  }
+
+  if (!auth.currentUser) {
+    await signInAnonymously(auth);
+  }
+
+  const companySlug = slugifyCompany(review.company);
+  const pseudonymSlug = slugifyCompany(review.pseudonym);
+  const docId = `${companySlug}_${pseudonymSlug}`;
+  const ref = doc(db, "selectionProcessReviews", docId);
+
+  const existing = await getDoc(ref);
+  if (existing.exists()) {
+    throw new Error(
+      "Você já enviou uma avaliação de processo seletivo para esta empresa com este pseudônimo."
+    );
+  }
+
+  const payload = {
+    ...review,
+    type: "selectionProcess",
+    companySlug,
+    uid: auth.currentUser.uid,
+    createdAt: serverTimestamp(),
+  };
+
+  await setDoc(ref, payload);
+  return { id: docId, ...payload };
+}
+
 export async function updateOwnReview({ reviewId, updates, currentProfileId = "", currentPseudonym = "" }) {
   if (!reviewId) {
     throw new Error("Avaliação inválida para edição.");

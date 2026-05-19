@@ -14,6 +14,7 @@ import LoginLinkedInButton from "./LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
 import RestrictableTextarea from "./components/RestrictableTextarea";
 import WorkPeriodPicker from "./components/WorkPeriodPicker";
+import SelectionProcessReviewForm from "./components/SelectionProcessReviewForm";
 import SpellCheckSuggestions from "./components/SpellCheckSuggestions";
 import { getCompanyLogoCandidates } from "./utils/getCompanyLogo";
 import { handleAutoCorrectChange } from "./utils/ptBrAutoCorrect";
@@ -182,6 +183,12 @@ function TrabalheiLaMobile({
   workPeriodStartMonth, setWorkPeriodStartMonth, workPeriodStartYear, setWorkPeriodStartYear,
   workPeriodEndMonth, setWorkPeriodEndMonth, workPeriodEndYear, setWorkPeriodEndYear,
   workPeriodStillWorking, setWorkPeriodStillWorking,
+  selectionProcessOnly, setSelectionProcessOnly,
+  spClarity, setSpClarity,
+  spCommunication, setSpCommunication,
+  spResponseTime, setSpResponseTime,
+  spDiscriminationFelt, setSpDiscriminationFelt,
+  spDiscriminationComment, setSpDiscriminationComment,
   generalComment, setGeneralComment,
   generalCommentRestrictedSegments, setGeneralCommentRestrictedSegments,
   criterionRestrictedSegments, setSegmentsForCriterion,
@@ -1133,19 +1140,37 @@ function TrabalheiLaMobile({
                   </div>
                 </div>
 
-                <WorkPeriodPicker
-                  idPrefix="wp-mobile"
-                  startMonth={workPeriodStartMonth}
-                  setStartMonth={setWorkPeriodStartMonth}
-                  startYear={workPeriodStartYear}
-                  setStartYear={setWorkPeriodStartYear}
-                  endMonth={workPeriodEndMonth}
-                  setEndMonth={setWorkPeriodEndMonth}
-                  endYear={workPeriodEndYear}
-                  setEndYear={setWorkPeriodEndYear}
-                  stillWorking={workPeriodStillWorking}
-                  setStillWorking={setWorkPeriodStillWorking}
-                />
+                <fieldset
+                  disabled={selectionProcessOnly}
+                  className={`m-0 p-0 border-0 ${selectionProcessOnly ? "opacity-50" : ""}`}
+                >
+                  <WorkPeriodPicker
+                    idPrefix="wp-mobile"
+                    startMonth={workPeriodStartMonth}
+                    setStartMonth={setWorkPeriodStartMonth}
+                    startYear={workPeriodStartYear}
+                    setStartYear={setWorkPeriodStartYear}
+                    endMonth={workPeriodEndMonth}
+                    setEndMonth={setWorkPeriodEndMonth}
+                    endYear={workPeriodEndYear}
+                    setEndYear={setWorkPeriodEndYear}
+                    stillWorking={workPeriodStillWorking}
+                    setStillWorking={setWorkPeriodStillWorking}
+                  />
+                </fieldset>
+
+                <label className="mt-2 flex items-start gap-2 text-sm text-slate-700 dark:text-slate-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={Boolean(selectionProcessOnly)}
+                    onChange={(e) => setSelectionProcessOnly(e.target.checked)}
+                  />
+                  <span>
+                    <strong>Não se aplica</strong> — não fui contratado(a) por esta empresa
+                    (avaliar apenas o processo seletivo).
+                  </span>
+                </label>
               </div>
 
               {selectedCompanyData && (
@@ -1203,7 +1228,7 @@ function TrabalheiLaMobile({
 
             <div className="space-y-4">
               {/* Barra de progresso dos critérios */}
-              {visibleCriterionIdx >= 0 && (
+              {!selectionProcessOnly && visibleCriterionIdx >= 0 && (
                 <div
                   className="sticky top-0 z-10 mb-2 mx-auto w-full max-w-[380px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-lg border border-blue-100 dark:border-slate-700 px-3 py-2 shadow-sm"
                   style={{ left: 0, right: 0 }}
@@ -1218,7 +1243,21 @@ function TrabalheiLaMobile({
                 </div>
               )}
 
-              {campos.map((campo, idx) => (
+              {selectionProcessOnly ? (
+                <SelectionProcessReviewForm
+                  clarity={spClarity}
+                  setClarity={setSpClarity}
+                  communication={spCommunication}
+                  setCommunication={setSpCommunication}
+                  responseTime={spResponseTime}
+                  setResponseTime={setSpResponseTime}
+                  discriminationFelt={spDiscriminationFelt}
+                  setDiscriminationFelt={setSpDiscriminationFelt}
+                  discriminationComment={spDiscriminationComment}
+                  setDiscriminationComment={setSpDiscriminationComment}
+                />
+              ) : (
+                campos.map((campo, idx) => (
                 <div key={idx} ref={el => criterionRefs.current[idx] = el} data-criterion-idx={idx} className="bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border border-gray-200 dark:border-slate-700">
                   <label className="text-slate-700 dark:text-blue-200 font-semibold flex items-center gap-2 text-sm">
                     <span className={`w-9 h-9 rounded-xl border bg-gradient-to-br ${campo.iconBg} flex items-center justify-center shadow-sm`}>
@@ -1245,7 +1284,8 @@ function TrabalheiLaMobile({
                     ? renderYesNo(campo.value, campo.set, campo.comment, campo.setComment, campo.label)
                     : renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label, campo.restrictKey)}
                 </div>
-              ))}
+                ))
+              )}
             </div>
 
             <div className="bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border border-gray-200 dark:border-slate-700">

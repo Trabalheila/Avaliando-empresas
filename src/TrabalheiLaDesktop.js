@@ -13,6 +13,7 @@ import LoginLinkedInButton from "./LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
 import RestrictableTextarea from "./components/RestrictableTextarea";
 import WorkPeriodPicker from "./components/WorkPeriodPicker";
+import SelectionProcessReviewForm from "./components/SelectionProcessReviewForm";
 import SpellCheckSuggestions from "./components/SpellCheckSuggestions";
 import { handleAutoCorrectChange } from "./utils/ptBrAutoCorrect";
 import { resolveProfileId } from "./utils/profileIdentity";
@@ -103,6 +104,12 @@ function TrabalheiLaDesktop({
   workPeriodStartMonth, setWorkPeriodStartMonth, workPeriodStartYear, setWorkPeriodStartYear,
   workPeriodEndMonth, setWorkPeriodEndMonth, workPeriodEndYear, setWorkPeriodEndYear,
   workPeriodStillWorking, setWorkPeriodStillWorking,
+  selectionProcessOnly, setSelectionProcessOnly,
+  spClarity, setSpClarity,
+  spCommunication, setSpCommunication,
+  spResponseTime, setSpResponseTime,
+  spDiscriminationFelt, setSpDiscriminationFelt,
+  spDiscriminationComment, setSpDiscriminationComment,
   generalComment, setGeneralComment,
   generalCommentRestrictedSegments, setGeneralCommentRestrictedSegments,
   criterionRestrictedSegments, setSegmentsForCriterion,
@@ -1093,23 +1100,41 @@ function TrabalheiLaDesktop({
                   </div>
                 </div>
 
-                <WorkPeriodPicker
-                  idPrefix="wp-desktop"
-                  startMonth={workPeriodStartMonth}
-                  setStartMonth={setWorkPeriodStartMonth}
-                  startYear={workPeriodStartYear}
-                  setStartYear={setWorkPeriodStartYear}
-                  endMonth={workPeriodEndMonth}
-                  setEndMonth={setWorkPeriodEndMonth}
-                  endYear={workPeriodEndYear}
-                  setEndYear={setWorkPeriodEndYear}
-                  stillWorking={workPeriodStillWorking}
-                  setStillWorking={setWorkPeriodStillWorking}
-                />
+                <fieldset
+                  disabled={selectionProcessOnly}
+                  className={`m-0 p-0 border-0 ${selectionProcessOnly ? "opacity-50" : ""}`}
+                >
+                  <WorkPeriodPicker
+                    idPrefix="wp-desktop"
+                    startMonth={workPeriodStartMonth}
+                    setStartMonth={setWorkPeriodStartMonth}
+                    startYear={workPeriodStartYear}
+                    setStartYear={setWorkPeriodStartYear}
+                    endMonth={workPeriodEndMonth}
+                    setEndMonth={setWorkPeriodEndMonth}
+                    endYear={workPeriodEndYear}
+                    setEndYear={setWorkPeriodEndYear}
+                    stillWorking={workPeriodStillWorking}
+                    setStillWorking={setWorkPeriodStillWorking}
+                  />
+                </fieldset>
+
+                <label className="mt-2 flex items-start gap-2 text-sm text-slate-700 dark:text-slate-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={Boolean(selectionProcessOnly)}
+                    onChange={(e) => setSelectionProcessOnly(e.target.checked)}
+                  />
+                  <span>
+                    <strong>Não se aplica</strong> — não fui contratado(a) por esta empresa
+                    (avaliar apenas o processo seletivo).
+                  </span>
+                </label>
                 </div>
 
                 {/* Barra de progresso dos critérios */}
-                {visibleCriterionIdx >= 0 && (
+                {!selectionProcessOnly && visibleCriterionIdx >= 0 && (
                   <div
                     className="sticky z-10 mb-2 ml-auto w-full max-w-[380px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-lg border border-blue-100 dark:border-slate-700 px-3 py-2 shadow-sm"
                     style={{ top: stickyProgressTop }}
@@ -1124,7 +1149,21 @@ function TrabalheiLaDesktop({
                   </div>
                 )}
 
-                {campos.map((campo, idx) => (
+                {selectionProcessOnly ? (
+                  <SelectionProcessReviewForm
+                    clarity={spClarity}
+                    setClarity={setSpClarity}
+                    communication={spCommunication}
+                    setCommunication={setSpCommunication}
+                    responseTime={spResponseTime}
+                    setResponseTime={setSpResponseTime}
+                    discriminationFelt={spDiscriminationFelt}
+                    setDiscriminationFelt={setSpDiscriminationFelt}
+                    discriminationComment={spDiscriminationComment}
+                    setDiscriminationComment={setSpDiscriminationComment}
+                  />
+                ) : (
+                  campos.map((campo, idx) => (
                   <div key={idx} ref={el => criterionRefs.current[idx] = el} data-criterion-idx={idx} className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
                     <label className="w-full md:w-1/3 text-slate-700 dark:text-slate-100 font-semibold flex items-center gap-2 mb-2 md:mb-0">
                       <span className={`w-9 h-9 rounded-xl border bg-gradient-to-br ${campo.iconBg} flex items-center justify-center shadow-sm`}>
@@ -1151,7 +1190,8 @@ function TrabalheiLaDesktop({
                       ? renderYesNo(campo.value, campo.set, campo.comment, campo.setComment, campo.label)
                       : renderStars(campo.value, campo.set, campo.comment, campo.setComment, campo.label, campo.restrictKey)}
                   </div>
-                ))}
+                  ))
+                )}
 
                 <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
                   <label className="text-slate-700 dark:text-slate-100 font-semibold text-lg block mb-2">Algo que queira acrescentar?</label>
