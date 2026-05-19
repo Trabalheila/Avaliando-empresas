@@ -11,6 +11,7 @@ import { handleCheckout } from "../services/billing";
 import AppHeader from "../components/AppHeader";
 import ConflictDeclarationGate from "../components/ConflictDeclarationGate";
 import RelevantWorkersSection from "../components/RelevantWorkersSection";
+import SelectionProcessOverview from "../components/SelectionProcessOverview";
 // import PremiumPieCard from "../components/PremiumPieCard"; // removido pois não é mais usado
 // ...existing code...
 
@@ -176,6 +177,10 @@ function CompanyDetails({ theme, toggleTheme }) {
   const [searchParams] = useSearchParams();
   const name = searchParams.get("name");
   const [company, setCompany] = useState(null);
+
+  // Aba ativa do perfil da empresa: "overview" (Visão Geral) ou
+  // "selectionProcess" (Processo Seletivo).
+  const [activeTab, setActiveTab] = useState("overview");
 
   /* ── Apoiadores recomendados ── */
   const [apoiadoresRecomendados, setApoiadoresRecomendados] = useState([]);
@@ -1805,6 +1810,41 @@ function CompanyDetails({ theme, toggleTheme }) {
         </div>
       </div>
 
+      {/* ═══ NAVEGAÇÃO DE ABAS ═══ */}
+      <div className="w-full bg-white/70 dark:bg-slate-800/40 border-b border-blue-100 dark:border-slate-700">
+        <div className="max-w-5xl mx-auto px-4">
+          <nav className="flex gap-2 overflow-x-auto" role="tablist" aria-label="Seções do perfil da empresa">
+            {[
+              { key: "overview", label: "Visão Geral" },
+              { key: "selectionProcess", label: "Processo Seletivo" },
+            ].map((tab) => {
+              const isActive = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 transition ${
+                    isActive
+                      ? "border-blue-600 text-blue-700 dark:text-blue-300"
+                      : "border-transparent text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-300"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
+
+      {activeTab === "selectionProcess" ? (
+        <SelectionProcessOverview company={company} />
+      ) : (
+        <>
+
       {/* ═══ LINHA 3 — Banner Premium (só p/ não-premium e não-admin) ═══ */}
       {!userIsPremium && !isAdmin() && (
         <div className="w-full bg-gradient-to-r from-amber-600 to-yellow-500 dark:from-amber-800 dark:to-yellow-700">
@@ -2634,6 +2674,8 @@ function CompanyDetails({ theme, toggleTheme }) {
         </section>
       )}
 
+        </>
+      )}
     </div>
   );
 }
