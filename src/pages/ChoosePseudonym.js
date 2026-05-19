@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect, useRef, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { getUserProfile, getUserProfileByCpf, saveUserProfile, findUnifiedProfile } from "../services/users";
 import { normalizeEmail, resolveProfileId } from "../utils/profileIdentity";
 import { extractResumeText, parseResumeText } from "../utils/resumeParser";
@@ -1556,6 +1556,23 @@ function ChoosePseudonym({ theme, toggleTheme }) {
               </div>
             )}
 
+            {step === 1 && (
+              <div className="rounded-xl border border-amber-300/70 bg-amber-50 dark:bg-amber-900/30 dark:border-amber-600/60 px-4 py-3 text-sm text-amber-900 dark:text-amber-100 flex items-start gap-2">
+                <svg
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="w-5 h-5 flex-shrink-0 text-amber-500 dark:text-amber-300 mt-0.5"
+                >
+                  <path d="M12 2.5l2.92 5.92 6.53.95-4.72 4.6 1.11 6.5L12 17.77l-5.84 3.07 1.11-6.5L2.55 9.74l6.53-.95L12 2.5z" />
+                </svg>
+                <span>
+                  Complete seu cadastro e vincule suas experiências para ganhar o <strong>Selo de Perfil Verificado ✓</strong> — suas avaliações terão mais credibilidade e destaque na plataforma.
+                </span>
+              </div>
+            )}
+
             {/* Pseudônimo (etapa 1) */}
             {step === 1 && (
             <div ref={(el) => assignSectionRef(el, 0)}>
@@ -2274,15 +2291,6 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 </button>
               </>
             )}
-
-            <div className="pt-2 text-center">
-              <Link
-                to="/excluir-dados"
-                className="inline-block text-sm font-semibold text-red-700 hover:text-red-800 hover:underline"
-              >
-                Excluir meus dados
-              </Link>
-            </div>
           </form>
           </div>
         </div>
