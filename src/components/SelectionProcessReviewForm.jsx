@@ -119,13 +119,21 @@ export default function SelectionProcessReviewForm({
         </label>
 
         {discriminationFelt && (
-          <textarea
-            className="mt-3 w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-100 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            placeholder="Descreva sua percepção (opcional)"
-            rows={3}
-            value={discriminationComment}
-            onChange={(e) => setDiscriminationComment(e.target.value)}
-          />
+          <>
+            <textarea
+              className="mt-3 w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-100 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder="Descreva sua percepção e, se possível, inclua detalhes que possam servir como evidência (ex: datas, nomes, frases exatas)."
+              rows={3}
+              value={discriminationComment}
+              onChange={(e) => setDiscriminationComment(e.target.value)}
+            />
+            <p className="mt-2 text-[11px] leading-snug text-slate-500 dark:text-slate-400">
+              <strong className="font-semibold">Atenção:</strong> Para buscar ajuda
+              profissional (jurídica ou psicológica) através da plataforma, a
+              apresentação de provas ou evidências da discriminação será
+              necessária. Este campo serve para registrar sua percepção inicial.
+            </p>
+          </>
         )}
       </div>
     </div>
