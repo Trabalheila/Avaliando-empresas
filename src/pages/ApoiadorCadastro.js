@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { db, auth } from "../firebase";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { signInAnonymously } from "firebase/auth";
 import AppHeader from "../components/AppHeader";
 import { isAdmin } from "../utils/rbac";
@@ -124,7 +124,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [createdApoiadorId, setCreatedApoiadorId] = useState("");
-  const [showWelcome, setShowWelcome] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [error, setError] = useState("");
 
   /* ── Portfólio (Premium) ── */
@@ -347,7 +347,22 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
       }
 
       setCreatedApoiadorId(id);
-      setShowWelcome(true);
+
+      /* Verifica no Firestore se o modal de boas-vindas ja foi exibido
+         antes para este apoiador. Em um cadastro novo o campo nao existe,
+         logo o modal sera exibido. Em re-submissoes (admin), respeitamos
+         o estado anterior. */
+      try {
+        const snap = await getDoc(doc(db, "apoiadores", id));
+        const alreadyShown = snap.exists() && snap.data()?.welcomeModalShown === true;
+        if (!alreadyShown) setShowWelcomeModal(true);
+      } catch (welcomeErr) {
+        console.warn("Falha ao verificar welcomeModalShown:", welcomeErr);
+        // Em caso de falha de leitura, exibe o modal por padrao apos um
+        // cadastro recem-criado.
+        setShowWelcomeModal(true);
+      }
+
       setSuccess(true);
     } catch (err) {
       console.error("Erro ao salvar cadastro:", err);
@@ -356,26 +371,52 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
     setSubmitting(false);
   }, [tipo, nome, email, telefone, whatsapp, descricao, foto, arquivos, allTermosAceitos, conflictDeclarationAccepted, cnpj, segmentos, site, portfolio, nichos, adExitum, servesWorker, servesEmployer, ramoEspecializacao, credentialNumber, credentialStateOrRegion, credentialPortfolioUrl, credentialCertifications, credentialProof]);
 
+  /* Fecha o WelcomeModal e marca welcomeModalShown=true no Firestore.
+     O proprio WelcomeModal ja persiste o flag; aqui apenas garantimos
+     uma segunda gravacao defensiva e atualizamos o estado local. */
+  const handleWelcomeClose = useCallback(async () => {
+    setShowWelcomeModal(false);
+    if (!createdApoiadorId) return;
+    try {
+      await setDoc(
+        doc(db, "apoiadores", createdApoiadorId),
+        { welcomeModalShown: true },
+        { merge: true }
+      );
+    } catch (err) {
+      console.warn("Falha ao persistir welcomeModalShown ao fechar:", err);
+    }
+  }, [createdApoiadorId]);
+
   /* ═══ Tela de sucesso ═══ */
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center justify-center px-4">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-blue-100 dark:border-slate-700 p-8 max-w-md w-full text-center">
-          <div className="text-4xl mb-4">✅</div>
-          <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200 mb-2">Cadastro enviado!</h2>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-            Seu cadastro será analisado em até <strong>5 dias úteis</strong>. Após aprovação, seu perfil aparecerá na listagem de apoiadores.
-          </p>
-          <button type="button" onClick={() => navigate("/apoiadores/lista")} className="px-6 py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition">
-            Ver Apoiadores
-          </button>
+      <>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center justify-center px-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-blue-100 dark:border-slate-700 p-8 max-w-md w-full text-center">
+            <div className="text-4xl mb-4">✅</div>
+            <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200 mb-2">Cadastro enviado!</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+              Seu cadastro será analisado em até <strong>5 dias úteis</strong>. Após aprovação, seu perfil aparecerá na listagem de apoiadores.
+            </p>
+            <button
+              type="button"
+              disabled={showWelcomeModal}
+              onClick={() => navigate("/apoiadores/lista")}
+              className="px-6 py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
+            >
+              Ver Apoiadores
+            </button>
+          </div>
         </div>
-        <WelcomeModal
-          open={showWelcome}
-          apoiadorId={createdApoiadorId}
-          onClose={() => setShowWelcome(false)}
-        />
-      </div>
+        {showWelcomeModal && (
+          <WelcomeModal
+            open={showWelcomeModal}
+            apoiadorId={createdApoiadorId}
+            onClose={handleWelcomeClose}
+          />
+        )}
+      </>
     );
   }
 

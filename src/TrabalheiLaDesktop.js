@@ -1083,16 +1083,17 @@ function TrabalheiLaDesktop({
                     </div>
                   </div>
 
-                <div className="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-xl p-4">
+                <div className="bg-blue-50 dark:bg-slate-800/80 border border-blue-200 dark:border-slate-700 rounded-xl p-4">
                   <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-2">Modelo de trabalho</p>
-                  <div className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
+                  <div className="space-y-2 text-sm text-slate-700 dark:text-slate-100">
                     {workModelConfig.map((item) => (
-                      <label key={item.key} className="flex items-center gap-2 cursor-pointer">
+                      <label key={item.key} className="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-100">
                         <input
                           type="radio"
                           name="workModel"
                           checked={workModel === item.key}
                           onChange={() => setWorkModel(item.key)}
+                          className="accent-blue-600 dark:accent-blue-400"
                         />
                         {item.label}
                       </label>

@@ -274,6 +274,19 @@ export default function CompanyRegister() {
         </div>
       )}
       <div className="max-w-6xl mx-auto">
+        {/* Botão Voltar */}
+        <div className="mb-6 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            aria-label="Voltar para a página anterior"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-blue-700 dark:text-blue-300 font-bold text-sm shadow-sm hover:bg-blue-50 dark:hover:bg-slate-700 transition"
+          >
+            <span aria-hidden="true">←</span>
+            <span>Voltar</span>
+          </button>
+        </div>
+
         {/* Stepper visual (3 etapas) */}
         <ol className="mb-8 grid grid-cols-3 gap-2 sm:gap-4" aria-label="Progresso do cadastro">
           {[

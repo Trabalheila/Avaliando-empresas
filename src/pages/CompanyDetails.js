@@ -1157,26 +1157,32 @@ function CompanyDetails({ theme, toggleTheme }) {
     }
   };
 
-  const incrementReactionById = (items, targetId, reactionKey) => {
+  const applyReactionChangeById = (items, targetId, prevKey, nextKey) => {
     return items.map((item) => {
       if (item.id === targetId) {
+        const base = {
+          thumbsDown: item.reactions?.thumbsDown || 0,
+          laugh: item.reactions?.laugh || 0,
+          thumbsUp: item.reactions?.thumbsUp || 0,
+          cry: item.reactions?.cry || 0,
+          clap: item.reactions?.clap || 0,
+        };
+        if (prevKey && base[prevKey] != null) {
+          base[prevKey] = Math.max(0, base[prevKey] - 1);
+        }
+        if (nextKey && base[nextKey] != null) {
+          base[nextKey] = base[nextKey] + 1;
+        }
         return {
           ...item,
-          reactions: {
-            thumbsDown: item.reactions?.thumbsDown || 0,
-            laugh: item.reactions?.laugh || 0,
-            thumbsUp: item.reactions?.thumbsUp || 0,
-            cry: item.reactions?.cry || 0,
-            clap: item.reactions?.clap || 0,
-            [reactionKey]: (item.reactions?.[reactionKey] || 0) + 1,
-          },
+          reactions: base,
         };
       }
 
       if (item.replies && item.replies.length) {
         return {
           ...item,
-          replies: incrementReactionById(item.replies, targetId, reactionKey),
+          replies: applyReactionChangeById(item.replies, targetId, prevKey, nextKey),
         };
       }
 
@@ -1184,29 +1190,49 @@ function CompanyDetails({ theme, toggleTheme }) {
     });
   };
 
+  const getUserReactionFor = (targetId) => {
+    const pseudonym = localStorage.getItem("userPseudonym") || "anon";
+    const registryKey = `${targetId}__${pseudonym}`;
+    return reactionRegistry[registryKey] || null;
+  };
+
   const handleReact = (targetId, reactionKey) => {
     const pseudonym = localStorage.getItem("userPseudonym") || "anon";
     const registryKey = `${targetId}__${pseudonym}`;
+    const prevReaction = reactionRegistry[registryKey] || null;
+    const isSame = prevReaction === reactionKey;
+    const nextReaction = isSame ? null : reactionKey;
 
-    // Uma reação por usuário por post/resposta.
-    if (reactionRegistry[registryKey]) return;
-
-    const nextComments = incrementReactionById(comments, targetId, reactionKey);
+    const nextComments = applyReactionChangeById(
+      comments,
+      targetId,
+      prevReaction,
+      nextReaction
+    );
     saveComments(nextComments);
     syncCommentsToFirestore(nextComments);
     setOpenReactionPickerId(null);
-    const animationKey = `${targetId}__${reactionKey}`;
-    setAnimatedReactionKey(animationKey);
-    if (reactionAnimationTimeout.current) {
-      clearTimeout(reactionAnimationTimeout.current);
-    }
-    reactionAnimationTimeout.current = setTimeout(() => {
+
+    if (nextReaction) {
+      const animationKey = `${targetId}__${nextReaction}`;
+      setAnimatedReactionKey(animationKey);
+      if (reactionAnimationTimeout.current) {
+        clearTimeout(reactionAnimationTimeout.current);
+      }
+      reactionAnimationTimeout.current = setTimeout(() => {
+        setAnimatedReactionKey("");
+      }, 450);
+    } else {
       setAnimatedReactionKey("");
-    }, 450);
-    saveReactionRegistry({
-      ...reactionRegistry,
-      [registryKey]: reactionKey,
-    });
+    }
+
+    const nextRegistry = { ...reactionRegistry };
+    if (nextReaction) {
+      nextRegistry[registryKey] = nextReaction;
+    } else {
+      delete nextRegistry[registryKey];
+    }
+    saveReactionRegistry(nextRegistry);
   };
 
   const addReplyToItem = (items, targetId, replyObj) => {
@@ -1577,16 +1603,23 @@ function CompanyDetails({ theme, toggleTheme }) {
                   {reactions.map((reaction) => {
                     const animKey = `${reply.id}__${reaction.key}`;
                     const isAnimated = animatedReactionKey === animKey;
+                    const isSelected = getUserReactionFor(reply.id) === reaction.key;
                     return (
                       <button
                         key={reaction.key}
                         type="button"
                         onClick={() => handleReact(reply.id, reaction.key)}
-                        className={`flex items-center gap-1 px-2 py-1 border border-gray-200 dark:border-slate-700 rounded-full bg-white dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 transition-transform ${isAnimated ? "reaction-burst" : ""}`}
+                        aria-pressed={isSelected}
+                        className={`flex items-center gap-1 px-2 py-1 border rounded-full transition-transform ${
+                          isSelected
+                            ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/40 ring-1 ring-blue-400"
+                            : "border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600"
+                        } ${isAnimated ? "reaction-burst" : ""}`}
                         aria-label={`Reagir com ${reaction.label}`}
+                        title={isSelected ? "Clique para remover sua reação" : `Reagir com ${reaction.label}`}
                       >
                         <span className="text-base">{reaction.label}</span>
-                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-100">
+                        <span className={`text-xs font-semibold ${isSelected ? "text-blue-700 dark:text-blue-200" : "text-slate-700 dark:text-slate-100"}`}>
                           {reply.reactions?.[reaction.key] || 0}
                         </span>
                       </button>
@@ -2351,16 +2384,23 @@ function CompanyDetails({ theme, toggleTheme }) {
                             {reactions.map((reaction) => {
                               const animKey = `${comment.id}__${reaction.key}`;
                               const isAnimated = animatedReactionKey === animKey;
+                              const isSelected = getUserReactionFor(comment.id) === reaction.key;
                               return (
                                 <button
                                   key={reaction.key}
                                   type="button"
                                   onClick={() => handleReact(comment.id, reaction.key)}
-                                  className={`flex items-center gap-1 px-2 py-1 border border-gray-200 dark:border-slate-700 rounded-full bg-white dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 transition-transform ${isAnimated ? "reaction-burst" : ""}`}
+                                  aria-pressed={isSelected}
+                                  className={`flex items-center gap-1 px-2 py-1 border rounded-full transition-transform ${
+                                    isSelected
+                                      ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/40 ring-1 ring-blue-400"
+                                      : "border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600"
+                                  } ${isAnimated ? "reaction-burst" : ""}`}
                                   aria-label={`Reagir com ${reaction.label}`}
+                                  title={isSelected ? "Clique para remover sua reação" : `Reagir com ${reaction.label}`}
                                 >
                                   <span className="text-base">{reaction.label}</span>
-                                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-100">
+                                  <span className={`text-xs font-semibold ${isSelected ? "text-blue-700 dark:text-blue-200" : "text-slate-700 dark:text-slate-100"}`}>
                                     {comment.reactions?.[reaction.key] || 0}
                                   </span>
                                 </button>
