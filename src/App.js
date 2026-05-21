@@ -13,6 +13,7 @@ import TermsOfUse from './pages/TermsOfUse';
 import EscolhaPerfil from './pages/EscolhaPerfil';
 import BusinessDashboard from './pages/BusinessDashboard';
 import AdminPanel from './pages/AdminPanel';
+import AdminUserDetail from './pages/AdminUserDetail';
 import AdminSupportersDashboard from './pages/AdminSupportersDashboard';
 import AdminProfessionsManager from './pages/AdminProfessionsManager';
 import AdminDashboardPreview from './pages/AdminDashboardPreview';
@@ -210,6 +211,7 @@ function App() {
       <Route path="/empresa" element={<CompanyDetails theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/empresa/dashboard" element={<BusinessDashboard theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/admin" element={<AdminPanel theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/admin/avaliador/:profileId" element={<AdminUserDetail theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/admin/apoiadores" element={<AdminSupportersDashboard theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/admin/profissoes" element={<AdminProfessionsManager theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/admin/preview-apoiador" element={<AdminDashboardPreview theme={theme} toggleTheme={toggleTheme} />} />

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { db } from "../firebase";
 import {
   collection,
@@ -16,6 +16,7 @@ import { slugifyCompany, listReviewsByCompanySlug } from "../services/reviews";
 import { buildApiUrl } from "../utils/apiBase";
 import AppHeader from "../components/AppHeader";
 import AdminQuickAccess from "../components/AdminQuickAccess";
+import { VerificationTierBadge } from "../components/VerificationLevelBadge";
 
 /* ────────────────────────────────────────────────
    Critérios — mesmos do BusinessDashboard
@@ -35,6 +36,59 @@ const SCORE_FIELDS = [
   { key: "reconhecimento", label: "Reconhecimento" },
   { key: "desenvolvimento", label: "Plano de carreira" },
 ];
+
+/* Campos completos exibidos no detalhe expandido da avaliação de funcionário. */
+const FULL_SCORE_FIELDS = [
+  ...SCORE_FIELDS,
+  { key: "beneficios", label: "Benefícios" },
+  { key: "oportunidades", label: "Oportunidades" },
+  { key: "inovacao", label: "Inovação" },
+  { key: "impactoSocial", label: "Impacto social" },
+  { key: "reputacao", label: "Reputação" },
+];
+
+/* Campos de avaliação de processo seletivo. */
+const SELECTION_FIELDS = [
+  { key: "clarity", label: "Clareza das etapas" },
+  { key: "communication", label: "Comunicação e feedback" },
+  { key: "responseTime", label: "Tempo de resposta" },
+];
+
+const REVIEW_FLAG_REASONS = [
+  "Linguagem ofensiva",
+  "Dados pessoais expostos",
+  "Informação irrelevante",
+  "Suspeita de fraude",
+  "Outro",
+];
+
+function computeReviewerTier(r) {
+  if (!r) return null;
+  if (r.authorProfileComplete) return "complete";
+  if (r.authorProfessionalVerified || r.authorHasLinkedIn || r.authorLoginProvider === "linkedin") return "professional";
+  if (r.authorEmailVerified) return "email";
+  return null;
+}
+
+function EmployeeReviewIcon({ className = "w-4 h-4" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="4" y="6" width="16" height="14" rx="2" />
+      <path d="M9 3h6v3H9z" />
+      <circle cx="12" cy="12" r="2" />
+      <path d="M8 17c.8-1.5 2.3-2.5 4-2.5s3.2 1 4 2.5" />
+    </svg>
+  );
+}
+
+function SelectionProcessIcon({ className = "w-4 h-4" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      <path d="M8 9h8M8 13h5" />
+    </svg>
+  );
+}
 
 /* ────────────────────────────────────────────────
    Helpers
@@ -103,6 +157,10 @@ function AdminPanel({ theme, toggleTheme }) {
   const [reviews, setReviews] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [filterCompany, setFilterCompany] = useState("");
+  const [filterReviewType, setFilterReviewType] = useState("all");
+  const [expandedReviewId, setExpandedReviewId] = useState(null);
+  const [reviewActionToast, setReviewActionToast] = useState(null);
+  const [reviewBusyId, setReviewBusyId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null); // { type, id, label, companySlug? }
   const [deleting, setDeleting] = useState(false);
@@ -115,7 +173,8 @@ function AdminPanel({ theme, toggleTheme }) {
   useEffect(() => {
     setSelectedComments(new Set());
     setSelectedReviews(new Set());
-  }, [activeTab, filterCompany]);
+    setExpandedReviewId(null);
+  }, [activeTab, filterCompany, filterReviewType]);
 
   /* ── Estado apoiadores (unificado) ── */
   const [apoiadores, setApoiadores] = useState([]);
@@ -150,12 +209,29 @@ function AdminPanel({ theme, toggleTheme }) {
     (async () => {
       setLoading(true);
       try {
-        const [commSnap, revSnap] = await Promise.all([
+        const [commSnap, revSnap, selSnap] = await Promise.all([
           getDocs(query(collection(db, "comments"), orderBy("createdAt", "desc"), limit(2000))),
           getDocs(query(collection(db, "reviews"), orderBy("createdAt", "desc"), limit(2000))),
+          getDocs(query(collection(db, "selectionProcessReviews"), orderBy("createdAt", "desc"), limit(2000))).catch(() => ({ docs: [] })),
         ]);
         const commList = commSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        const revList = revSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const empReviews = revSnap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+          _collection: "reviews",
+          _reviewType: "employeeReview",
+        }));
+        const selReviews = (selSnap.docs || []).map((d) => ({
+          id: d.id,
+          ...d.data(),
+          _collection: "selectionProcessReviews",
+          _reviewType: "selectionProcess",
+        }));
+        const revList = [...empReviews, ...selReviews].sort((a, b) => {
+          const at = a?.createdAt?.toMillis?.() ?? new Date(a?.timestamp || 0).getTime();
+          const bt = b?.createdAt?.toMillis?.() ?? new Date(b?.timestamp || 0).getTime();
+          return bt - at;
+        });
         setComments(commList);
         setReviews(revList);
 
@@ -436,17 +512,17 @@ function AdminPanel({ theme, toggleTheme }) {
   }, [adminDeleteDoc, comments]);
 
   /* ── Apagar avaliação ── */
-  const deleteReview = useCallback(async (reviewId, companySlug) => {
+  const deleteReview = useCallback(async (reviewId, companySlug, collectionName = "reviews") => {
     setDeleting(true);
     try {
-      await adminDeleteDoc("reviews", reviewId);
+      await adminDeleteDoc(collectionName, reviewId);
       clearLocalStorageKeysWith(reviewId);
       // Limpa localStorage de avaliações da empresa
       if (companySlug) {
         clearLocalStorageKeysWith(`evaluations_`);
       }
       setReviews((prev) => prev.filter((r) => r.id !== reviewId));
-      if (companySlug) await recalcCompanyAverages(companySlug);
+      if (companySlug && collectionName === "reviews") await recalcCompanyAverages(companySlug);
     } catch (err) {
       console.error("Erro ao apagar avaliação:", err);
     }
@@ -544,9 +620,10 @@ function AdminPanel({ theme, toggleTheme }) {
     for (const reviewId of ids) {
       try {
         const targetReview = reviews.find((r) => r.id === reviewId);
-        await adminDeleteDoc("reviews", reviewId);
+        const collectionName = targetReview?._collection || "reviews";
+        await adminDeleteDoc(collectionName, reviewId);
         clearLocalStorageKeysWith(reviewId);
-        if (targetReview?.companySlug) {
+        if (targetReview?.companySlug && collectionName === "reviews") {
           clearLocalStorageKeysWith("evaluations_");
           slugsToRecalc.add(targetReview.companySlug);
         }
@@ -569,16 +646,77 @@ function AdminPanel({ theme, toggleTheme }) {
   const confirmModal = useCallback(() => {
     if (!modal) return;
     if (modal.type === "comment") deleteComment(modal.id);
-    if (modal.type === "review") deleteReview(modal.id, modal.companySlug);
+    if (modal.type === "review") deleteReview(modal.id, modal.companySlug, modal.collectionName || "reviews");
     if (modal.type === "bulk-comments") deleteBulkComments(modal.ids);
     if (modal.type === "bulk-reviews") deleteBulkReviews(modal.ids);
   }, [modal, deleteComment, deleteReview, deleteBulkComments, deleteBulkReviews]);
 
+  /* ── Marcar avaliação para revisão (moderação) ── */
+  const flagReviewForReview = useCallback(async (review, reason) => {
+    if (!review?.id) return;
+    const collectionName = review._collection || "reviews";
+    setReviewBusyId(review.id);
+    try {
+      const adminUid = getAdminUid();
+      const payload = {
+        flaggedForReview: true,
+        flaggedAt: new Date().toISOString(),
+        flaggedReason: reason || "",
+        flaggedBy: adminUid,
+      };
+      await updateDoc(doc(db, collectionName, review.id), payload);
+      setReviews((prev) => prev.map((r) => (r.id === review.id ? { ...r, ...payload } : r)));
+      setReviewActionToast({ kind: "success", msg: "Avaliação marcada para revisão." });
+    } catch (err) {
+      console.error("[AdminPanel] Falha ao marcar avaliação:", err);
+      setReviewActionToast({ kind: "error", msg: "Não foi possível marcar a avaliação." });
+    }
+    setReviewBusyId(null);
+    setTimeout(() => setReviewActionToast(null), 3500);
+  }, []);
+
+  /* ── Atualizar motivo de restrição em segmento de comentário ── */
+  const setRestrictedSegmentReason = useCallback(async (review, scope, segmentIndex, criterionKey, reason) => {
+    if (!review?.id) return;
+    const collectionName = review._collection || "reviews";
+    setReviewBusyId(review.id);
+    try {
+      let updates = {};
+      if (scope === "general") {
+        const segments = Array.isArray(review.restrictedSegments) ? [...review.restrictedSegments] : [];
+        if (!segments[segmentIndex]) throw new Error("Segmento inválido.");
+        segments[segmentIndex] = { ...segments[segmentIndex], restrictionReason: reason };
+        updates = { restrictedSegments: segments };
+      } else if (scope === "criterion" && criterionKey) {
+        const groups = { ...(review.criterionRestrictedSegments || {}) };
+        const list = Array.isArray(groups[criterionKey]) ? [...groups[criterionKey]] : [];
+        if (!list[segmentIndex]) throw new Error("Segmento inválido.");
+        list[segmentIndex] = { ...list[segmentIndex], restrictionReason: reason };
+        groups[criterionKey] = list;
+        updates = { criterionRestrictedSegments: groups };
+      } else {
+        return;
+      }
+      await updateDoc(doc(db, collectionName, review.id), updates);
+      setReviews((prev) => prev.map((r) => (r.id === review.id ? { ...r, ...updates } : r)));
+      setReviewActionToast({ kind: "success", msg: "Motivo da restrição atualizado." });
+    } catch (err) {
+      console.error("[AdminPanel] Falha ao atualizar motivo de restrição:", err);
+      setReviewActionToast({ kind: "error", msg: "Não foi possível atualizar o motivo." });
+    }
+    setReviewBusyId(null);
+    setTimeout(() => setReviewActionToast(null), 3500);
+  }, []);
+
   /* ── Filtragem ── */
   const filteredReviews = useMemo(() => {
-    if (!filterCompany) return reviews;
-    return reviews.filter((r) => r.companySlug === filterCompany);
-  }, [reviews, filterCompany]);
+    return reviews.filter((r) => {
+      if (filterCompany && r.companySlug !== filterCompany) return false;
+      if (filterReviewType === "employeeReview" && r._reviewType !== "employeeReview") return false;
+      if (filterReviewType === "selectionProcess" && r._reviewType !== "selectionProcess") return false;
+      return true;
+    });
+  }, [reviews, filterCompany, filterReviewType]);
 
   const filteredComments = useMemo(() => {
     if (!filterCompany) return comments;
@@ -692,6 +830,20 @@ function AdminPanel({ theme, toggleTheme }) {
                 <option key={slug} value={slug}>{slug}</option>
               ))}
             </select>
+            {activeTab === "Avaliações" && (
+              <>
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-200 ml-2">Tipo:</label>
+                <select
+                  value={filterReviewType}
+                  onChange={(e) => setFilterReviewType(e.target.value)}
+                  className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200"
+                >
+                  <option value="all">Todos</option>
+                  <option value="employeeReview">Funcionários</option>
+                  <option value="selectionProcess">Processo Seletivo</option>
+                </select>
+              </>
+            )}
           </div>
         )}
 
@@ -810,34 +962,246 @@ function AdminPanel({ theme, toggleTheme }) {
               <p className="text-sm text-slate-500">Nenhuma avaliação encontrada.</p>
             ) : (
               <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                {reviewActionToast && (
+                  <div className={`text-xs font-semibold px-3 py-2 rounded-lg ${reviewActionToast.kind === "error" ? "bg-red-50 text-red-700 border border-red-200" : "bg-emerald-50 text-emerald-700 border border-emerald-200"}`}>
+                    {reviewActionToast.msg}
+                  </div>
+                )}
                 {filteredReviews.map((r) => {
-                  const vals = SCORE_FIELDS.map((f) => parseFloat(r?.[f.key])).filter((v) => Number.isFinite(v) && v > 0);
+                  const isSelection = r._reviewType === "selectionProcess";
+                  const fields = isSelection ? SELECTION_FIELDS : SCORE_FIELDS;
+                  const vals = fields.map((f) => parseFloat(r?.[f.key])).filter((v) => Number.isFinite(v) && v > 0);
                   const avg = vals.length > 0 ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : "--";
+                  const isExpanded = expandedReviewId === r.id;
+                  const tier = computeReviewerTier(r);
+                  const profileId = r.authorProfileId || r.profileId || "";
+                  const generalRestricted = Array.isArray(r.restrictedSegments) ? r.restrictedSegments : [];
+                  const criterionRestricted = r.criterionRestrictedSegments || {};
                   return (
-                    <div key={r.id} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
-                      <input
-                        type="checkbox"
-                        checked={selectedReviews.has(r.id)}
-                        onChange={() => setSelectedReviews((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(r.id)) next.delete(r.id); else next.add(r.id);
-                          return next;
-                        })}
-                        className="accent-blue-600 w-4 h-4 mt-1 shrink-0 cursor-pointer"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                          {r.companySlug || "—"} · {r.pseudonym || r.company || "?"} · Média: {avg}
-                        </p>
-                        {r.comment && <p className="text-sm text-slate-700 dark:text-slate-200 mt-1 break-words">{r.comment}</p>}
+                    <div
+                      key={r.id}
+                      className={`rounded-xl border ${isExpanded ? "border-blue-300 dark:border-blue-700 ring-1 ring-blue-200 dark:ring-blue-900/40" : "border-slate-100 dark:border-slate-700"} bg-slate-50 dark:bg-slate-900`}
+                    >
+                      <div className="flex items-start gap-3 p-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedReviews.has(r.id)}
+                          onChange={() => setSelectedReviews((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(r.id)) next.delete(r.id); else next.add(r.id);
+                            return next;
+                          })}
+                          onClick={(e) => e.stopPropagation()}
+                          className="accent-blue-600 w-4 h-4 mt-1 shrink-0 cursor-pointer"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setExpandedReviewId((cur) => (cur === r.id ? null : r.id))}
+                          className="min-w-0 flex-1 text-left"
+                          aria-expanded={isExpanded}
+                          aria-label={`${isExpanded ? "Recolher" : "Expandir"} detalhes da avaliação`}
+                        >
+                          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2 flex-wrap">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${isSelection ? "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-200" : "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-200"}`}
+                              title={isSelection ? "Avaliação de Processo Seletivo" : "Avaliação de Funcionário"}
+                            >
+                              {isSelection ? <SelectionProcessIcon className="w-3.5 h-3.5" /> : <EmployeeReviewIcon className="w-3.5 h-3.5" />}
+                              {isSelection ? "Processo Seletivo" : "Funcionário"}
+                            </span>
+                            <span>{r.companySlug || "—"}</span>
+                            <span>·</span>
+                            <span>{r.pseudonym || r.company || "?"}</span>
+                            <span>·</span>
+                            <span>Média: {avg}</span>
+                            {r.flaggedForReview && (
+                              <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 rounded-full">EM REVISÃO</span>
+                            )}
+                            {tier && <VerificationTierBadge tier={tier} size="sm" />}
+                          </p>
+                          {r.comment && <p className="text-sm text-slate-700 dark:text-slate-200 mt-1 break-words line-clamp-2">{r.comment}</p>}
+                          {!r.comment && r.generalComment && <p className="text-sm text-slate-700 dark:text-slate-200 mt-1 break-words line-clamp-2">{r.generalComment}</p>}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setModal({ type: "review", id: r.id, companySlug: r.companySlug, collectionName: r._collection || "reviews", label: `Avaliação de "${r.pseudonym || "?"}" em ${r.companySlug || "?"}` });
+                          }}
+                          className="shrink-0 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition"
+                        >
+                          Apagar avaliação
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setModal({ type: "review", id: r.id, companySlug: r.companySlug, label: `Avaliação de "${r.pseudonym || "?"}" em ${r.companySlug || "?"}` })}
-                        className="shrink-0 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition"
-                      >
-                        Apagar avaliação
-                      </button>
+
+                      {isExpanded && (
+                        <div className="px-4 pb-4 pt-1 border-t border-slate-200 dark:border-slate-700 space-y-4">
+                          {/* Verificação do avaliador */}
+                          <div>
+                            <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Status de verificação do avaliador</p>
+                            <div className="flex flex-wrap gap-2">
+                              {r.authorEmailVerified && <VerificationTierBadge tier="email" size="md" />}
+                              {(r.authorProfessionalVerified || r.authorHasLinkedIn || r.authorLoginProvider === "linkedin") && <VerificationTierBadge tier="professional" size="md" />}
+                              {r.authorProfileComplete && <VerificationTierBadge tier="complete" size="md" />}
+                              {!r.authorEmailVerified && !r.authorProfessionalVerified && !r.authorProfileComplete && !r.authorHasLinkedIn && (
+                                <span className="text-xs text-slate-500 italic">Sem selos de verificação registrados.</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Tipo */}
+                          <div>
+                            <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Tipo de avaliação</p>
+                            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                              {isSelection ? <SelectionProcessIcon className="w-4 h-4" /> : <EmployeeReviewIcon className="w-4 h-4" />}
+                              {isSelection ? "Avaliação de Processo Seletivo" : "Avaliação de Funcionário"}
+                            </p>
+                          </div>
+
+                          {/* Critérios / Processo seletivo */}
+                          {isSelection ? (
+                            <div>
+                              <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Avaliações de Processo Seletivo</p>
+                              <ul className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                {SELECTION_FIELDS.map((f) => {
+                                  const v = parseFloat(r?.[f.key]);
+                                  return (
+                                    <li key={f.key} className="flex items-center justify-between text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2">
+                                      <span className="text-slate-600 dark:text-slate-300">{f.label}</span>
+                                      <span className="font-bold text-slate-800 dark:text-slate-100">{Number.isFinite(v) && v > 0 ? v.toFixed(1) : "—"}</span>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                              {(r.discriminationFelt || r.discriminationComment) && (
+                                <div className="mt-3 p-3 rounded-lg bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-700/40">
+                                  <p className="text-xs font-bold uppercase tracking-wide text-rose-700 dark:text-rose-300">Discriminação relatada</p>
+                                  {r.discriminationComment && (
+                                    <p className="mt-1 text-sm text-rose-900 dark:text-rose-100 whitespace-pre-wrap break-words">{r.discriminationComment}</p>
+                                  )}
+                                </div>
+                              )}
+                              {r.generalComment && (
+                                <div className="mt-3">
+                                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Comentário</p>
+                                  <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words">{r.generalComment}</p>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">18 critérios avaliados</p>
+                              <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                {FULL_SCORE_FIELDS.map((f) => {
+                                  const v = parseFloat(r?.[f.key]);
+                                  const ck = r?.[`comment${f.key.charAt(0).toUpperCase()}${f.key.slice(1)}`];
+                                  return (
+                                    <li key={f.key} className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-slate-600 dark:text-slate-300">{f.label}</span>
+                                        <span className="font-bold text-slate-800 dark:text-slate-100">{Number.isFinite(v) && v > 0 ? v.toFixed(1) : "—"}</span>
+                                      </div>
+                                      {ck && <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 whitespace-pre-wrap break-words">{ck}</p>}
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                              {(r.discriminacao === "sim" || r.commentDiscriminacao) && (
+                                <div className="mt-3 p-3 rounded-lg bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-700/40">
+                                  <p className="text-xs font-bold uppercase tracking-wide text-rose-700 dark:text-rose-300">Discriminação relatada</p>
+                                  {r.commentDiscriminacao && (
+                                    <p className="mt-1 text-sm text-rose-900 dark:text-rose-100 whitespace-pre-wrap break-words">{r.commentDiscriminacao}</p>
+                                  )}
+                                </div>
+                              )}
+                              {r.generalComment && (
+                                <div className="mt-3">
+                                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Comentário geral</p>
+                                  <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words">{r.generalComment}</p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Trechos restritos */}
+                          {(generalRestricted.length > 0 || Object.keys(criterionRestricted).length > 0) && (
+                            <div>
+                              <p className="text-xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300 mb-2">Comentários restritos</p>
+                              <div className="space-y-2">
+                                {generalRestricted.map((seg, idx) => (
+                                  <div key={`gen_${idx}`} className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40">
+                                    <p className="text-xs text-amber-900 dark:text-amber-100"><strong>Trecho:</strong> {seg.summary || `pos ${seg.start}-${seg.end}`}</p>
+                                    <label className="block mt-2 text-[11px] font-semibold text-amber-800 dark:text-amber-200">Motivo da restrição</label>
+                                    <select
+                                      defaultValue={seg.restrictionReason || ""}
+                                      disabled={reviewBusyId === r.id}
+                                      onChange={(e) => setRestrictedSegmentReason(r, "general", idx, null, e.target.value)}
+                                      className="mt-1 w-full p-2 rounded-lg border border-amber-300 dark:border-amber-700/60 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-200"
+                                    >
+                                      <option value="">— Selecionar motivo —</option>
+                                      {REVIEW_FLAG_REASONS.map((reason) => (
+                                        <option key={reason} value={reason}>{reason}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                ))}
+                                {Object.entries(criterionRestricted).map(([ck, list]) => (
+                                  Array.isArray(list) ? list.map((seg, idx) => (
+                                    <div key={`crit_${ck}_${idx}`} className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40">
+                                      <p className="text-xs text-amber-900 dark:text-amber-100"><strong>Critério:</strong> {ck} — <strong>Trecho:</strong> {seg.summary || `pos ${seg.start}-${seg.end}`}</p>
+                                      <label className="block mt-2 text-[11px] font-semibold text-amber-800 dark:text-amber-200">Motivo da restrição</label>
+                                      <select
+                                        defaultValue={seg.restrictionReason || ""}
+                                        disabled={reviewBusyId === r.id}
+                                        onChange={(e) => setRestrictedSegmentReason(r, "criterion", idx, ck, e.target.value)}
+                                        className="mt-1 w-full p-2 rounded-lg border border-amber-300 dark:border-amber-700/60 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-200"
+                                      >
+                                        <option value="">— Selecionar motivo —</option>
+                                        {REVIEW_FLAG_REASONS.map((reason) => (
+                                          <option key={reason} value={reason}>{reason}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  )) : null
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Ações */}
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            <button
+                              type="button"
+                              disabled={reviewBusyId === r.id}
+                              onClick={() => {
+                                const reason = window.prompt("Motivo para revisão (opcional):", r.flaggedReason || "");
+                                if (reason === null) return;
+                                flagReviewForReview(r, reason.trim());
+                              }}
+                              className="px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-300 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/50 transition disabled:opacity-60"
+                            >
+                              {r.flaggedForReview ? "Atualizar revisão" : "Marcar para Revisão"}
+                            </button>
+                            {profileId ? (
+                              <Link
+                                to={`/admin/avaliador/${encodeURIComponent(profileId)}`}
+                                className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition"
+                              >
+                                Ver Perfil do Avaliador
+                              </Link>
+                            ) : (
+                              <span className="px-3 py-1.5 text-xs font-semibold text-slate-400 italic">profileId indisponível</span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setModal({ type: "review", id: r.id, companySlug: r.companySlug, collectionName: r._collection || "reviews", label: `Avaliação de "${r.pseudonym || "?"}" em ${r.companySlug || "?"}` })}
+                              className="px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-300 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition"
+                            >
+                              Apagar Avaliação
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
