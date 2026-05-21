@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { getCompanyLogoCandidates } from "../utils/getCompanyLogo";
-import { db } from "../firebase";
-import { collection, doc, getDocs, limit, orderBy, query, setDoc, where, updateDoc } from "firebase/firestore";
+import { db, auth } from "../firebase";
+import { collection, doc, deleteDoc, getDocs, getDoc, limit, orderBy, query, setDoc, where, updateDoc } from "firebase/firestore";
 import { hasCompanyInResumeExperiences } from "../utils/resumeParser";
 import { listReviewsByCompanySlug } from "../services/reviews";
 import { listCompanies, enrichCompanyWithBrasilAPI } from "../services/companies";
@@ -966,14 +966,47 @@ function CompanyDetails({ theme, toggleTheme }) {
       return;
     }
 
+    let cancelled = false;
+    let initial = {};
     try {
       const stored = localStorage.getItem(key);
-      setReactionRegistry(stored ? JSON.parse(stored) : {});
+      initial = stored ? JSON.parse(stored) : {};
     } catch (err) {
       console.warn("Falha ao carregar reações:", err);
-      setReactionRegistry({});
+      initial = {};
     }
-  }, [getReactionsKey]);
+    setReactionRegistry(initial);
+
+    // Sincroniza reações do usuário a partir do Firestore para impor "1 reação por usuário".
+    (async () => {
+      try {
+        const userId = getStableUserId();
+        const companySlug = getCompanySlug();
+        if (!userId || !companySlug) return;
+        const q = query(
+          collection(db, "commentReactions"),
+          where("userId", "==", userId),
+          where("companySlug", "==", companySlug)
+        );
+        const snap = await getDocs(q);
+        if (cancelled) return;
+        const merged = { ...initial };
+        const pseudonym = localStorage.getItem("userPseudonym") || "anon";
+        snap.forEach((d) => {
+          const data = d.data() || {};
+          if (data.commentId && data.reaction) {
+            merged[`${data.commentId}__${pseudonym}`] = data.reaction;
+          }
+        });
+        setReactionRegistry(merged);
+        try { localStorage.setItem(key, JSON.stringify(merged)); } catch {}
+      } catch (err) {
+        console.warn("Falha ao carregar reações do Firestore:", err);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [getReactionsKey, getCompanySlug]);
 
   React.useEffect(() => {
     const key = getBlockedAuthorsKey();
@@ -1190,6 +1223,22 @@ function CompanyDetails({ theme, toggleTheme }) {
     });
   };
 
+  const getStableUserId = React.useCallback(() => {
+    try {
+      const uid = auth?.currentUser?.uid;
+      if (uid) return `uid:${uid}`;
+    } catch {}
+    try {
+      const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      if (profile?.id) return `pid:${profile.id}`;
+      if (profile?.uid) return `uid:${profile.uid}`;
+      if (profile?.email) return `email:${String(profile.email).toLowerCase()}`;
+    } catch {}
+    const pseudonym = localStorage.getItem("userPseudonym");
+    if (pseudonym) return `pseudo:${pseudonym}`;
+    return "";
+  }, []);
+
   const getUserReactionFor = (targetId) => {
     const pseudonym = localStorage.getItem("userPseudonym") || "anon";
     const registryKey = `${targetId}__${pseudonym}`;
@@ -1233,6 +1282,35 @@ function CompanyDetails({ theme, toggleTheme }) {
       delete nextRegistry[registryKey];
     }
     saveReactionRegistry(nextRegistry);
+
+    // Persiste a reação no Firestore para impor unicidade por usuário/comentário.
+    (async () => {
+      try {
+        const userId = getStableUserId();
+        const companySlug = getCompanySlug();
+        if (!userId || !companySlug) return;
+        const safeUserId = userId.replace(/[^a-zA-Z0-9_:.-]/g, "_");
+        const docId = `${targetId}__${safeUserId}`;
+        const ref = doc(db, "commentReactions", docId);
+        if (nextReaction) {
+          await setDoc(
+            ref,
+            {
+              commentId: targetId,
+              userId,
+              companySlug,
+              reaction: nextReaction,
+              updatedAt: new Date().toISOString(),
+            },
+            { merge: true }
+          );
+        } else {
+          await deleteDoc(ref);
+        }
+      } catch (err) {
+        console.warn("Falha ao persistir reação no Firestore:", err);
+      }
+    })();
   };
 
   const addReplyToItem = (items, targetId, replyObj) => {
@@ -2147,11 +2225,11 @@ function CompanyDetails({ theme, toggleTheme }) {
             )}
           </div>
         ) : (
-          <div className="mt-8 bg-gradient-to-br from-slate-50 to-indigo-50 rounded-2xl p-6 border border-indigo-200 flex items-center gap-4">
+          <div className="mt-8 bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-slate-800 dark:to-slate-900 rounded-2xl p-6 border border-indigo-200 dark:border-slate-700 flex items-center gap-4">
             <div className="text-3xl">🔒</div>
             <div>
-              <p className="font-bold text-indigo-800 text-sm">Dashboard Detalhado — Premium</p>
-              <p className="text-xs text-indigo-600 mt-0.5">
+              <p className="font-bold text-indigo-800 dark:text-indigo-200 text-sm">Dashboard Detalhado — Premium</p>
+              <p className="text-xs text-indigo-600 dark:text-indigo-300 mt-0.5">
                 {userIsLoggedIn
                   ? "Assine o Premium Trabalhador para desbloquear o Dashboard Detalhado."
                   : "Faça login para ver mais."}
@@ -2160,11 +2238,11 @@ function CompanyDetails({ theme, toggleTheme }) {
           </div>
         )}
 
-        <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
+        <div className="mt-8 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 border border-blue-100 dark:border-slate-700">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div>
-              <h2 className="text-lg font-bold text-blue-800">Radar de decisão Premium</h2>
-              <p className="text-xs text-slate-600">Resumo prático para apoiar sua decisão de candidatura.</p>
+              <h2 className="text-lg font-bold text-blue-800 dark:text-blue-200">Radar de decisão Premium</h2>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Resumo prático para apoiar sua decisão de candidatura.</p>
             </div>
             {!userIsPremium && (
               <button
@@ -2182,17 +2260,17 @@ function CompanyDetails({ theme, toggleTheme }) {
 
           <div className={userIsPremium ? "" : "pointer-events-none select-none blur-[5px] opacity-80"}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Pontos fortes</p>
-                <ul className="mt-2 space-y-1 text-sm text-emerald-900">
+              <div className="rounded-xl border border-emerald-200 dark:border-emerald-700/40 bg-emerald-50 dark:bg-emerald-900/20 p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Pontos fortes</p>
+                <ul className="mt-2 space-y-1 text-sm text-emerald-900 dark:text-emerald-100">
                   {premiumRadar.strengths.map((item) => (
                     <li key={`strength_${item.key}`}>{item.label}: {item.value.toFixed(1)}</li>
                   ))}
                 </ul>
               </div>
-              <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
-                <p className="text-xs font-bold uppercase tracking-wide text-rose-700">Pontos de atenção</p>
-                <ul className="mt-2 space-y-1 text-sm text-rose-900">
+              <div className="rounded-xl border border-rose-200 dark:border-rose-700/40 bg-rose-50 dark:bg-rose-900/20 p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-rose-700 dark:text-rose-300">Pontos de atenção</p>
+                <ul className="mt-2 space-y-1 text-sm text-rose-900 dark:text-rose-100">
                   {premiumRadar.risks.map((item) => (
                     <li key={`risk_${item.key}`}>{item.label}: {item.value.toFixed(1)}</li>
                   ))}
@@ -2200,9 +2278,9 @@ function CompanyDetails({ theme, toggleTheme }) {
               </div>
             </div>
 
-            <div className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
-              <p className="text-xs font-bold uppercase tracking-wide text-indigo-700">Sinal de tendência</p>
-              <p className="mt-1 text-sm text-indigo-900">
+            <div className="mt-4 rounded-xl border border-indigo-200 dark:border-indigo-700/40 bg-indigo-50 dark:bg-indigo-900/20 p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">Sinal de tendência</p>
+              <p className="mt-1 text-sm text-indigo-900 dark:text-indigo-100">
                 {trendData.length >= 2
                   ? `No período analisado, a métrica de segurança e integridade variou ${premiumRadar.trendDelta >= 0 ? "+" : ""}${premiumRadar.trendDelta.toFixed(2)} ponto(s).`
                   : "Ative o Dashboard Detalhado para capturar tendência mensal e enriquecer este radar."}
@@ -2211,7 +2289,7 @@ function CompanyDetails({ theme, toggleTheme }) {
           </div>
         </div>
 
-        <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
+        <div className="mt-8 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 border border-blue-100 dark:border-slate-700">
           <h2 className="text-lg font-bold text-[#1a237e] dark:text-blue-300 font-azonix tracking-[0.08em] mb-4">Sobre a empresa</h2>
           <div className="bg-blue-50 dark:bg-slate-800 rounded-xl p-4 border border-blue-100 dark:border-slate-700 space-y-3">
             {insightsLoading && (
@@ -2284,10 +2362,10 @@ function CompanyDetails({ theme, toggleTheme }) {
           }
         />
 
-        <div id="secao-comentarios" className="mt-8 bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
-          <h2 className="text-lg font-bold text-blue-800 font-azonix tracking-[0.08em] mb-4">Comentários</h2>
+        <div id="secao-comentarios" className="mt-8 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 border border-blue-100 dark:border-slate-700">
+          <h2 className="text-lg font-bold text-blue-800 dark:text-blue-200 font-azonix tracking-[0.08em] mb-4">Comentários</h2>
           <div className="space-y-4">
-            <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+            <p className="text-xs text-blue-700 dark:text-blue-200 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-lg px-3 py-2">
               Após publicar, você pode editar ou apagar seu comentário/resposta por até 5 minutos.
             </p>
 
