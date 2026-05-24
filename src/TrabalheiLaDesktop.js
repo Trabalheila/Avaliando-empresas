@@ -779,6 +779,19 @@ function TrabalheiLaDesktop({
           {/* COLUNA ESQUERDA - CADASTRO + RANKING (flex-col ordem 1) */}
           <div className="w-full lg:basis-[20%] lg:max-w-[20%] lg:min-w-[220px] xl:basis-[19%] xl:max-w-[19%] xl:min-w-[240px] lg:shrink-0 flex flex-col gap-6 order-1 lg:order-1 break-words">
 
+            {/* LOGO LATERAL — favicon + "Trabalhei Lá" */}
+            <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-4 border border-blue-100 dark:border-slate-700 flex flex-col items-center">
+              <img
+                src="/favicon.png"
+                alt="Trabalhei Lá"
+                className="w-24 h-24 md:w-28 md:h-28 object-contain select-none"
+                draggable="false"
+              />
+              <span className="mt-2 text-lg md:text-xl font-extrabold text-blue-900 dark:text-blue-100 tracking-wide text-center">
+                Trabalhei Lá
+              </span>
+            </section>
+
             {/* CADASTRO POR PERFIL (sem login social — esse foi para o card central) */}
             <section
               className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 mb-6 border border-blue-100 dark:border-slate-700"
