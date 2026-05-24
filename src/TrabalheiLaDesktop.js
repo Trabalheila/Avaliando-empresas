@@ -779,17 +779,33 @@ function TrabalheiLaDesktop({
           {/* COLUNA ESQUERDA - CADASTRO + RANKING (flex-col ordem 1) */}
           <div className="w-full lg:basis-[20%] lg:max-w-[20%] lg:min-w-[220px] xl:basis-[19%] xl:max-w-[19%] xl:min-w-[240px] lg:shrink-0 flex flex-col gap-6 order-1 lg:order-1 break-words">
 
-            {/* LOGO LATERAL — favicon + "Trabalhei Lá" */}
-            <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-4 border border-blue-100 dark:border-slate-700 flex flex-col items-center">
-              <img
-                src="/favicon.png"
-                alt="Trabalhei Lá"
-                className="w-24 h-24 md:w-28 md:h-28 object-contain select-none"
-                draggable="false"
+            {/* LOGO LATERAL — favicon + "Trabalhei Lá" (destaque visual) */}
+            <section
+              className="relative overflow-hidden rounded-3xl p-6 md:p-7 flex flex-col items-center border-2 border-blue-300/70 dark:border-blue-500/40 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 dark:from-slate-800 dark:via-slate-900 dark:to-blue-950 shadow-2xl shadow-blue-900/40 dark:shadow-black/60 ring-1 ring-white/10"
+              style={{ animation: "homeLoginSectionIn 700ms ease-out both" }}
+            >
+              {/* brilho decorativo */}
+              <div
+                className="pointer-events-none absolute -top-10 -right-10 w-32 h-32 rounded-full bg-white/10 blur-2xl"
+                aria-hidden="true"
               />
-              <span className="mt-2 text-lg md:text-xl font-extrabold text-blue-900 dark:text-blue-100 tracking-wide text-center">
+              <div
+                className="pointer-events-none absolute -bottom-12 -left-10 w-32 h-32 rounded-full bg-blue-300/20 dark:bg-blue-400/10 blur-2xl"
+                aria-hidden="true"
+              />
+
+              <div className="relative bg-white dark:bg-slate-100 rounded-2xl p-3 shadow-xl shadow-black/30 ring-1 ring-white/40">
+                <img
+                  src="/favicon.png"
+                  alt="Trabalhei Lá"
+                  className="w-32 h-32 md:w-36 md:h-36 object-contain select-none drop-shadow-md"
+                  draggable="false"
+                />
+              </div>
+              <span className="relative mt-4 text-2xl md:text-3xl font-black text-white tracking-wide text-center leading-tight drop-shadow-[0_2px_0_rgba(15,23,42,0.5)]">
                 Trabalhei Lá
               </span>
+              <span className="relative mt-1 h-1 w-16 rounded-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.6)]" />
             </section>
 
             {/* CADASTRO POR PERFIL (sem login social — esse foi para o card central) */}
