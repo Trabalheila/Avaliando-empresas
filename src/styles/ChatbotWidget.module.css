@@ -3,10 +3,10 @@
   position: fixed;
   bottom: 20px;
   left: 20px;
-  width: 275px;
-  height: 275px;
-  max-width: 22vw;
-  max-height: 22vw;
+  width: 410px;
+  height: 410px;
+  max-width: 33vw;
+  max-height: 33vw;
   border-radius: 50%;
   /* Sem cor de fundo, sem sombra do botão — o avatar fica "solto" */
   background: transparent;
@@ -61,15 +61,15 @@
   position: fixed;
   /* Ancorado próximo ao avatar (canto inferior direito), aparecendo
      à ESQUERDA e ACIMA dele — efeito de balão de fala. */
-  bottom: 230px;
+  bottom: 340px;
   right: 32px;
   left: auto;
   width: 420px;
   height: 560px;
   max-width: calc(100vw - 32px);
-  /* Considera o offset `bottom: 230px` + uma folga de 16px no topo,
+  /* Considera o offset `bottom: 340px` + uma folga de 16px no topo,
      para que o painel nunca ultrapasse a borda superior da viewport. */
-  max-height: calc(100vh - 230px - 16px);
+  max-height: calc(100vh - 340px - 16px);
   /* Background translúcido para integrar-se ao tema da página.
      Mantém legibilidade graças ao backdrop-filter. */
   background-color: rgba(255, 255, 255, 0.94);
@@ -89,17 +89,17 @@
    para garantir que o cabeçalho com o botão "X" sempre apareça. */
 @media (max-height: 820px) {
   .chatbotWindow {
-    bottom: 180px;
+    bottom: 270px;
     height: 480px;
-    max-height: calc(100vh - 180px - 16px);
+    max-height: calc(100vh - 270px - 16px);
   }
 }
 
 @media (max-height: 680px) {
   .chatbotWindow {
-    bottom: 140px;
+    bottom: 210px;
     height: 400px;
-    max-height: calc(100vh - 140px - 12px);
+    max-height: calc(100vh - 210px - 12px);
   }
 }
 
