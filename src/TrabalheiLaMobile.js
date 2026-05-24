@@ -189,6 +189,7 @@ function TrabalheiLaMobile({
   spResponseTime, setSpResponseTime,
   spDiscriminationFelt, setSpDiscriminationFelt,
   spDiscriminationComment, setSpDiscriminationComment,
+  spEvidenceFiles, setSpEvidenceFiles,
   generalComment, setGeneralComment,
   generalCommentRestrictedSegments, setGeneralCommentRestrictedSegments,
   criterionRestrictedSegments, setSegmentsForCriterion,
@@ -1256,6 +1257,8 @@ function TrabalheiLaMobile({
                   setDiscriminationFelt={setSpDiscriminationFelt}
                   discriminationComment={spDiscriminationComment}
                   setDiscriminationComment={setSpDiscriminationComment}
+                  evidenceFiles={spEvidenceFiles}
+                  setEvidenceFiles={setSpEvidenceFiles}
                 />
               ) : (
                 campos.map((campo, idx) => (

@@ -10,6 +10,8 @@ import { auth, db } from "./firebase";
 import { signInAnonymously, signInWithPopup, signOut } from "firebase/auth";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "./firebase";
 import { googleProvider } from "./firebase";
 import { isAdmin, getUserRole } from "./utils/rbac";
 import {
@@ -358,6 +360,7 @@ function Home({ theme, toggleTheme }) {
   const [spResponseTime, setSpResponseTime] = useState(0);
   const [spDiscriminationFelt, setSpDiscriminationFelt] = useState(false);
   const [spDiscriminationComment, setSpDiscriminationComment] = useState("");
+  const [spEvidenceFiles, setSpEvidenceFiles] = useState([]);
 
   const setSelectionProcessOnly = useCallback((next) => {
     const value = Boolean(typeof next === "function" ? next(selectionProcessOnly) : next);
@@ -972,6 +975,7 @@ function Home({ theme, toggleTheme }) {
       setSpResponseTime(0);
       setSpDiscriminationFelt(false);
       setSpDiscriminationComment("");
+      setSpEvidenceFiles([]);
       setManualCompanyName("");
       setManualSegment("");
       setManualRazaoSocial("");
@@ -1596,6 +1600,10 @@ function Home({ theme, toggleTheme }) {
         discriminationComment: spDiscriminationFelt
           ? (spDiscriminationComment || "").trim()
           : "",
+        // Os arquivos (File[]) seguem no payload em memória apenas para serem
+        // enviados ao Storage no momento da confirmação. URLs resultantes são
+        // gravadas em `evidenceFiles` antes do setDoc.
+        _pendingEvidenceFiles: spDiscriminationFelt ? (spEvidenceFiles || []) : [],
         timestamp: new Date().toISOString(),
       };
 
@@ -1636,7 +1644,7 @@ function Home({ theme, toggleTheme }) {
     setResponsibilityAccepted(false);
     setPendingEvaluationData(buildEvaluationData());
     setShowResponsibilityModal(true);
-  }, [isAuthenticated, company, userProfile, entrySource, contractType, workModel, discriminacao, commentDiscriminacao, buildEvaluationData, selectionProcessOnly, spClarity, spCommunication, spResponseTime, spDiscriminationFelt, spDiscriminationComment, selectedCompanyData]);
+  }, [isAuthenticated, company, userProfile, entrySource, contractType, workModel, discriminacao, commentDiscriminacao, buildEvaluationData, selectionProcessOnly, spClarity, spCommunication, spResponseTime, spDiscriminationFelt, spDiscriminationComment, spEvidenceFiles, selectedCompanyData]);
 
   const handleSubmit = useCallback((e) => {
     e.preventDefault();
@@ -1677,17 +1685,54 @@ function Home({ theme, toggleTheme }) {
   const handleConfirmResponsibility = useCallback(async () => {
     if (!responsibilityAccepted || !pendingEvaluationData) return;
 
-    const evaluationData = {
-      ...pendingEvaluationData,
-      termsAccepted: true,
-      termsAcceptedAt: new Date().toISOString(),
-    };
-
     setIsLoading(true);
     setShowResponsibilityModal(false);
     setError(null);
 
     try {
+      // Garante usuário autenticado (anônimo se necessário) ANTES de tentar
+      // upload no Storage — as regras costumam exigir request.auth != null.
+      if (!auth.currentUser) {
+        try { await signInAnonymously(auth); } catch { /* segue mesmo assim */ }
+      }
+
+      // Upload das evidências (fotos/vídeos) para o Firebase Storage. Em caso
+      // de falha individual, registra o erro e continua com os demais.
+      const pendingFiles = Array.isArray(pendingEvaluationData?._pendingEvidenceFiles)
+        ? pendingEvaluationData._pendingEvidenceFiles
+        : [];
+      const uploadedEvidence = [];
+      if (pendingFiles.length > 0) {
+        const ownerSlug = slugifyCompany(pendingEvaluationData?.pseudonym || "anon");
+        const companySlugForPath = slugifyCompany(pendingEvaluationData?.company || "empresa");
+        for (const file of pendingFiles) {
+          try {
+            const safeName = (file?.name || "arquivo").replace(/[^\w.\-]+/g, "_");
+            const path = `evaluationEvidence/${companySlugForPath}/${ownerSlug}/${Date.now()}-${safeName}`;
+            const sRef = storageRef(storage, path);
+            await uploadBytes(sRef, file, { contentType: file.type || "application/octet-stream" });
+            const url = await getDownloadURL(sRef);
+            uploadedEvidence.push({
+              url,
+              name: file.name || safeName,
+              type: file.type || "",
+              size: file.size || 0,
+              path,
+            });
+          } catch (uploadErr) {
+            console.warn("[Home] falha ao enviar evidência", uploadErr);
+          }
+        }
+      }
+
+      const { _pendingEvidenceFiles, ...cleanPending } = pendingEvaluationData;
+      const evaluationData = {
+        ...cleanPending,
+        evidenceFiles: uploadedEvidence,
+        termsAccepted: true,
+        termsAcceptedAt: new Date().toISOString(),
+      };
+
       await submitEvaluation(evaluationData);
     } catch (err) {
       const rawMessage = String(err?.message || "Erro desconhecido");
@@ -1703,6 +1748,7 @@ function Home({ theme, toggleTheme }) {
       setResponsibilityAccepted(false);
       setIsLoading(false);
       setCaptchaConfirmed(false);
+      setSpEvidenceFiles([]);
     }
   }, [responsibilityAccepted, pendingEvaluationData, submitEvaluation]);
 
@@ -2267,6 +2313,7 @@ function Home({ theme, toggleTheme }) {
     spResponseTime, setSpResponseTime,
     spDiscriminationFelt, setSpDiscriminationFelt,
     spDiscriminationComment, setSpDiscriminationComment,
+    spEvidenceFiles, setSpEvidenceFiles,
     generalComment, setGeneralComment,
     generalCommentRestrictedSegments, setGeneralCommentRestrictedSegments,
     criterionRestrictedSegments, setSegmentsForCriterion,
