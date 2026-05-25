@@ -714,7 +714,12 @@ function TrabalheiLaMobile({
         <div className="w-full flex items-center justify-between gap-2">
           {isAuthenticated ? (
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-slate-700 flex items-center justify-center text-lg overflow-hidden">
+              <button
+                type="button"
+                onClick={() => navigate("/minha-conta")}
+                title="Ir para Minha conta"
+                className="w-9 h-9 rounded-full bg-blue-100 dark:bg-slate-700 flex items-center justify-center text-lg overflow-hidden hover:opacity-80 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400"
+              >
                 {userProfile?.avatar ? (
                   typeof userProfile.avatar === "string" && (userProfile.avatar.startsWith("data:") || userProfile.avatar.startsWith("http")) ? (
                     <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
@@ -724,9 +729,16 @@ function TrabalheiLaMobile({
                 ) : (
                   <span className="text-blue-600">👤</span>
                 )}
-              </div>
+              </button>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-slate-700 dark:text-blue-100 truncate">{userPseudonym || "Anônimo"}</p>
+                <button
+                  type="button"
+                  onClick={() => navigate("/minha-conta")}
+                  title="Ir para Minha conta"
+                  className="text-sm font-semibold text-slate-700 dark:text-blue-100 truncate hover:underline focus:outline-none focus:ring-2 focus:ring-blue-400 rounded"
+                >
+                  {userPseudonym || "Anônimo"}
+                </button>
                 {userProfile?.verification?.certified && (
                   <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
                     ✓ Certificado

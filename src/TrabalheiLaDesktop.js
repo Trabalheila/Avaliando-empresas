@@ -127,8 +127,6 @@ function TrabalheiLaDesktop({
   handleLogout,
   onGoogleLogin,
   userVerificationLevel,
-  globalContractStats,
-  globalWorkModelStats,
   getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
   handleCaptchaConfirmed,
@@ -427,9 +425,7 @@ function TrabalheiLaDesktop({
 
   const sourcePieData = buildPieData(selectedCompanyData?.sourceStats, sourceConfig);
   const contractPieData = buildPieData(selectedCompanyData?.contractStats, contractConfig);
-  const globalContractPieData = buildPieData(globalContractStats, contractConfig);
   const workModelPieData = buildPieData(selectedCompanyData?.workModelStats, workModelConfig);
-  const globalWorkModelPieData = buildPieData(globalWorkModelStats, workModelConfig);
 
   const getTopSliceLabel = (pieData) => {
     const topItem = pieData.items.reduce((best, current) => (current.percent > best.percent ? current : best), pieData.items[0]);
@@ -488,7 +484,12 @@ function TrabalheiLaDesktop({
             <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-3">
               {isAuthenticated ? (
                 <>
-                  <div className="hidden sm:flex flex-col items-end leading-tight max-w-[220px]">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/minha-conta")}
+                    title="Ir para Minha conta"
+                    className="hidden sm:flex flex-col items-end leading-tight max-w-[220px] hover:opacity-80 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 rounded"
+                  >
                     <span className="text-base md:text-lg font-bold text-blue-900 dark:text-blue-100 truncate max-w-[220px]">
                       {userPseudonym || "Anônimo"}
                     </span>
@@ -497,8 +498,13 @@ function TrabalheiLaDesktop({
                         ✓ Certificado
                       </span>
                     )}
-                  </div>
-                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-blue-100 dark:bg-slate-700 flex items-center justify-center text-2xl overflow-hidden border-2 border-blue-300 dark:border-slate-600 shadow">
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/minha-conta")}
+                    title="Ir para Minha conta"
+                    className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-blue-100 dark:bg-slate-700 flex items-center justify-center text-2xl overflow-hidden border-2 border-blue-300 dark:border-slate-600 shadow hover:opacity-80 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  >
                     {userProfile?.avatar ? (
                       typeof userProfile.avatar === "string" && (userProfile.avatar.startsWith("data:") || userProfile.avatar.startsWith("http")) ? (
                         <img src={userProfile.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
@@ -508,7 +514,7 @@ function TrabalheiLaDesktop({
                     ) : (
                       <span className="text-blue-600">👤</span>
                     )}
-                  </div>
+                  </button>
                 </>
               ) : (
                 <button
@@ -774,6 +780,49 @@ function TrabalheiLaDesktop({
           </div>
         )}
 
+        {/* CARD CENTRAL "CRIE SUA CONTA" — destaque equiparado ao card de login */}
+        <div
+          className="mx-auto max-w-2xl mb-6 rounded-2xl shadow-xl p-5 md:p-6 border-2 border-blue-400 dark:border-blue-500/60 bg-gradient-to-br from-blue-600 via-indigo-700 to-blue-800 dark:from-slate-800 dark:via-slate-900 dark:to-blue-950 ring-1 ring-white/10"
+          style={{ animation: "homeLoginSectionIn 700ms ease-out both" }}
+        >
+          <style>{`
+            @keyframes homeLoginSectionIn {
+              from { opacity: 0; transform: translateY(18px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+          `}</style>
+          <h2 className="text-xl md:text-2xl font-extrabold text-white text-center mb-1 tracking-wide font-azonix drop-shadow">
+            Crie sua conta
+          </h2>
+          <div className="w-28 h-1 mx-auto mb-3 rounded-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.6)]" />
+          <p className="text-sm text-blue-100 dark:text-blue-200 text-center mb-4">
+            Escolha seu perfil e comece a usar a plataforma!
+          </p>
+          <div className="flex flex-col sm:flex-row items-stretch justify-center gap-3">
+            <Link
+              to="/pseudonym"
+              className="flex-1 sm:max-w-xs text-center py-2.5 px-4 rounded-lg bg-lime-400 hover:bg-lime-500 text-emerald-950 text-sm md:text-base font-bold shadow transition-colors"
+            >
+              Sou Trabalhador
+            </Link>
+            <Link
+              to="/empresa/cadastro"
+              className="flex-1 sm:max-w-xs text-center py-2.5 px-4 rounded-lg bg-amber-400 hover:bg-amber-500 text-amber-950 text-sm md:text-base font-bold shadow transition-colors"
+            >
+              Sou Empresário
+            </Link>
+            <Link
+              to="/apoiadores"
+              className="flex-1 sm:max-w-xs text-center py-2.5 px-4 rounded-lg bg-white hover:bg-blue-50 text-blue-800 text-sm md:text-base font-bold shadow transition-colors"
+            >
+              Sou Apoiador
+            </Link>
+          </div>
+          {isAuthenticated && (
+            <p className="text-green-300 font-semibold text-center mt-4 text-sm">✔ Você está autenticado!</p>
+          )}
+        </div>
+
         {/* CONTEÚDO - 3 COLUNAS NO DESKTOP (>1024px), 2 COLUNAS NO MOBILE (<1024px) */}
         <div className="flex flex-col lg:flex-row lg:flex-nowrap gap-6 mb-8">
 
@@ -809,46 +858,7 @@ function TrabalheiLaDesktop({
               <span className="relative mt-1 h-1 w-16 rounded-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.6)]" />
             </section>
 
-            {/* CADASTRO POR PERFIL (sem login social — esse foi para o card central) */}
-            <section
-              className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 mb-6 border border-blue-100 dark:border-slate-700"
-              style={{ animation: "homeLoginSectionIn 700ms ease-out both" }}
-            >
-              <style>{`
-                @keyframes homeLoginSectionIn {
-                  from { opacity: 0; transform: translateY(18px); }
-                  to { opacity: 1; transform: translateY(0); }
-                }
-              `}</style>
-              <h2 className="text-2xl font-extrabold text-blue-900 dark:text-blue-200 text-center mb-2 tracking-wide font-azonix">Crie sua conta</h2>
-              <div className="w-28 h-1 mx-auto mb-4 rounded-full bg-gradient-to-r from-blue-300 via-blue-600 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500" />
-              <p className="text-xs text-slate-600 dark:text-slate-300 text-center mb-3">
-                Escolha seu perfil e comece a usar a plataforma!
-              </p>
-              <div className="flex flex-col gap-2">
-                <Link
-                  to="/pseudonym"
-                  className="w-full text-center py-2 px-3 rounded-lg bg-lime-400 hover:bg-lime-500 text-emerald-950 text-sm font-bold shadow transition"
-                >
-                  Sou Trabalhador
-                </Link>
-                <Link
-                  to="/empresa/cadastro"
-                  className="w-full text-center py-2 px-3 rounded-lg bg-amber-400 hover:bg-amber-500 text-amber-950 text-sm font-bold shadow transition"
-                >
-                  Sou Empresário
-                </Link>
-                <Link
-                  to="/apoiadores"
-                  className="w-full text-center py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow transition"
-                >
-                  Sou Apoiador
-                </Link>
-              </div>
-              {isAuthenticated && (
-                <p className="text-green-600 font-semibold text-center mt-4 text-sm">✔ Você está autenticado!</p>
-              )}
-            </section>
+            {/* CADASTRO POR PERFIL — movido para o card central destacado acima */}
 
             {/* RANKING DE EMPRESAS */}
             <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-5 lg:p-6 border border-blue-100 dark:border-slate-700">
@@ -1305,44 +1315,6 @@ function TrabalheiLaDesktop({
                     <div className="w-full grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                       {contractPieData.items.map((item) => (
                         <p key={`company_contract_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200 break-words">
-                          <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
-                          <span className="flex-1">{item.label}: {item.percent.toFixed(0)}%</span>
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
-                  <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Classificação profissional geral</p>
-                  <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(globalContractPieData)}</p>
-                  <div className="flex flex-col items-center gap-3">
-                    <div
-                      className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square"
-                      style={{ background: `conic-gradient(${globalContractPieData.chart})` }}
-                    />
-                    <div className="w-full grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-                      {globalContractPieData.items.map((item) => (
-                        <p key={`global_contract_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200 break-words">
-                          <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
-                          <span className="flex-1">{item.label}: {item.percent.toFixed(0)}%</span>
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl p-4">
-                  <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Modelo de trabalho geral</p>
-                  <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">{getTopSliceLabel(globalWorkModelPieData)}</p>
-                  <div className="flex flex-col items-center gap-3">
-                    <div
-                      className="w-24 h-24 rounded-full border border-gray-200 flex-shrink-0 aspect-square"
-                      style={{ background: `conic-gradient(${globalWorkModelPieData.chart})` }}
-                    />
-                    <div className="w-full grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-                      {globalWorkModelPieData.items.map((item) => (
-                        <p key={`global_work_model_${item.key}`} className="flex items-center gap-2 text-slate-700 dark:text-slate-200 break-words">
                           <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
                           <span className="flex-1">{item.label}: {item.percent.toFixed(0)}%</span>
                         </p>

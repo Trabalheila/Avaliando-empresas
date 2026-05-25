@@ -2695,7 +2695,7 @@ function CompanyDetails({ theme, toggleTheme }) {
               <h2 className="text-xl font-extrabold text-purple-800 dark:text-purple-200">Assessoria Jurídica Trabalhista</h2>
             </div>
             <p className="text-sm text-purple-600 dark:text-purple-400 mb-6">
-              Sentiu que algo não foi justo? Advogados trabalhistas parceiros oferecem primeira consulta gratuita para assinantes Premium.
+              Sentiu que algo não foi justo? Advogados trabalhistas parceiros oferecem consulta gratuita para assinantes Essencial e Premium Trabalhador. Premium tem 1 consulta por mês com atendimento prioritário; Essencial tem 1 consulta gratuita única.
             </p>
 
             {userIsPremium ? (
@@ -2735,9 +2735,9 @@ function CompanyDetails({ theme, toggleTheme }) {
               <div className="flex items-center gap-4 bg-white dark:bg-slate-800 rounded-xl border border-purple-200 dark:border-slate-700 p-5">
                 <div className="text-3xl">🔒</div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-purple-800 dark:text-purple-200 text-sm">Exclusivo para assinantes Premium</p>
+                  <p className="font-bold text-purple-800 dark:text-purple-200 text-sm">Exclusivo para assinantes Essencial ou Premium Trabalhador</p>
                   <p className="text-xs text-purple-600 dark:text-purple-400 mt-0.5">
-                    Assine o Premium Trabalhador e tenha acesso a {advogadosTrabalhistas.length} advogado{advogadosTrabalhistas.length > 1 ? "s" : ""} trabalhista{advogadosTrabalhistas.length > 1 ? "s" : ""} com primeira consulta gratuita.
+                    Assine o Essencial para 1 consulta gratuita única ou o Premium Trabalhador para 1 consulta gratuita por mês com atendimento prioritário — acesso a {advogadosTrabalhistas.length} advogado{advogadosTrabalhistas.length > 1 ? "s" : ""} trabalhista{advogadosTrabalhistas.length > 1 ? "s" : ""} parceiro{advogadosTrabalhistas.length > 1 ? "s" : ""}.
                   </p>
                 </div>
                 <button

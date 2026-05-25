@@ -410,8 +410,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 <FeatureRow ok>Relatórios executivos completos</FeatureRow>
                 <FeatureRow ok>Dashboard de cultura e ambiente</FeatureRow>
                 <FeatureRow ok>Tendências e análises exclusivas</FeatureRow>
-                <FeatureRow ok>Assessoria jurídica trabalhista — primeira consulta gratuita com advogados parceiros</FeatureRow>
-                <FeatureRow ok>Primeira consulta gratuita com advogado trabalhista parceiro verificado</FeatureRow>
+                <FeatureRow ok>Assessoria jurídica trabalhista — 1 consulta gratuita única com advogado parceiro</FeatureRow>
                 <FeatureRow ok>Orientação sobre rescisão indevida, assédio moral e discriminação</FeatureRow>
                 <FeatureRow ok>Acesso ao marketplace de advogados com OAB verificada</FeatureRow>
                 <FeatureRow ok>Avaliações de outros usuários Essencial sobre advogados parceiros</FeatureRow>
@@ -450,8 +449,8 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 <FeatureRow ok>Relatórios executivos completos</FeatureRow>
                 <FeatureRow ok>Dashboard de cultura e ambiente</FeatureRow>
                 <FeatureRow ok>Tendências e análises exclusivas</FeatureRow>
-                <FeatureRow ok>Assessoria jurídica trabalhista — acesso estendido a advogados parceiros (mais consultas e horas inclusas)</FeatureRow>
-                <FeatureRow ok>Primeira consulta gratuita com advogado trabalhista parceiro verificado</FeatureRow>
+                <FeatureRow ok>Assessoria jurídica trabalhista — 1 consulta gratuita por mês com advogado parceiro + atendimento prioritário</FeatureRow>
+                <FeatureRow ok>Acesso estendido a advogados parceiros (mais consultas e horas inclusas)</FeatureRow>
                 <FeatureRow ok>Orientação sobre rescisão indevida, assédio moral e discriminação</FeatureRow>
                 <FeatureRow ok>Acesso ao marketplace de advogados com OAB verificada</FeatureRow>
                 <FeatureRow ok>Avaliações de outros usuários Premium sobre advogados parceiros</FeatureRow>
