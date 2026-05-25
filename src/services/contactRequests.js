@@ -109,6 +109,7 @@ export async function createContactRequest({
   toUid,
   toPseudonym,
   message,
+  evidenceFiles,
 }) {
   if (!fromUid) throw new Error("fromUid obrigatório");
   if (!toUid) throw new Error("toUid obrigatório");
@@ -116,12 +117,25 @@ export async function createContactRequest({
     throw new Error("Mensagem obrigatória.");
   }
 
+  const safeEvidence = Array.isArray(evidenceFiles)
+    ? evidenceFiles
+        .filter((f) => f && /^https?:\/\//i.test(String(f.url || "")))
+        .slice(0, 10)
+        .map((f) => ({
+          url: String(f.url),
+          name: String(f.name || "arquivo").slice(0, 160),
+          type: String(f.type || ""),
+          size: Number(f.size) || 0,
+        }))
+    : [];
+
   const payload = {
     fromUid: String(fromUid),
     fromCompanyName: String(fromCompanyName || "").slice(0, 200),
     toUid: String(toUid),
     toPseudonym: String(toPseudonym || "").slice(0, 120),
     message: String(message).trim().slice(0, 2000),
+    evidenceFiles: safeEvidence,
     status: "pending",
     readByWorker: false,
     revealEmail: false,
@@ -246,6 +260,7 @@ export async function createApoiadorContactRequest({
   toApoiadorId,
   toApoiadorName,
   message,
+  evidenceFiles,
 }) {
   if (!fromCompanyId) throw new Error("fromCompanyId obrigatório");
   if (!toApoiadorId) throw new Error("toApoiadorId obrigatório");
@@ -274,6 +289,17 @@ export async function createApoiadorContactRequest({
     toApoiadorUid,
     toApoiadorName: String(toApoiadorName || "").slice(0, 200),
     message: String(message).trim().slice(0, 2000),
+    evidenceFiles: Array.isArray(evidenceFiles)
+      ? evidenceFiles
+          .filter((f) => f && /^https?:\/\//i.test(String(f.url || "")))
+          .slice(0, 10)
+          .map((f) => ({
+            url: String(f.url),
+            name: String(f.name || "arquivo").slice(0, 160),
+            type: String(f.type || ""),
+            size: Number(f.size) || 0,
+          }))
+      : [],
     status: "pending",
     readByApoiador: false,
     revealEmail: false,

@@ -25,6 +25,56 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+// Normaliza um array de evidências [{url,name,type,size}] removendo entradas
+// inválidas e limitando a 10 itens para evitar e-mails enormes.
+function sanitizeEvidence(raw) {
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  for (const item of raw) {
+    if (!item) continue;
+    const url = String(item.url || "").trim();
+    if (!/^https?:\/\//i.test(url)) continue;
+    out.push({
+      url,
+      name: String(item.name || "arquivo").slice(0, 160),
+      type: String(item.type || ""),
+      size: Number(item.size) || 0,
+    });
+    if (out.length >= 10) break;
+  }
+  return out;
+}
+
+function evidenceHtmlBlock(evidence, accentColor) {
+  if (!evidence.length) return "";
+  const items = evidence
+    .map((f) => {
+      const isVideo = (f.type || "").startsWith("video/");
+      const icon = isVideo ? "🎬" : "🖼️";
+      const sizeMb = f.size ? ` (${(f.size / (1024 * 1024)).toFixed(2)} MB)` : "";
+      return `<li style="margin:4px 0;"><a href="${escapeHtml(f.url)}" style="color:${accentColor};word-break:break-all;">${icon} ${escapeHtml(f.name)}</a><span style="color:#64748b;font-size:12px;">${escapeHtml(sizeMb)}</span></li>`;
+    })
+    .join("");
+  return `
+      <h3 style="margin-top:20px;margin-bottom:6px;color:${accentColor};font-size:15px;">
+        Provas e Evidências anexadas (${evidence.length})
+      </h3>
+      <p style="font-size:12px;color:#475569;margin:0 0 6px;">
+        Os links abaixo apontam para arquivos no Firebase Storage do Trabalhei Lá.
+        Trate o material como confidencial.
+      </p>
+      <ul style="padding-left:18px;margin:0;">${items}</ul>
+  `;
+}
+
+function evidenceTextBlock(evidence) {
+  if (!evidence.length) return "";
+  const lines = evidence.map(
+    (f) => `- ${f.name}${f.size ? ` (${(f.size / (1024 * 1024)).toFixed(2)} MB)` : ""}: ${f.url}`
+  );
+  return ["", `Provas e Evidências anexadas (${evidence.length}):`, ...lines].join("\n");
+}
+
 async function tryResolveEmail(collectionName, docId, tag) {
   try {
     const projectId =
@@ -66,6 +116,7 @@ export default async function handler(req, res) {
   const fromCompanyName = String(body.fromCompanyName || "").trim();
   const message = String(body.message || "").trim();
   const requestId = String(body.requestId || "").trim();
+  const evidence = sanitizeEvidence(body.evidenceFiles);
 
   const resendKey = process.env.RESEND_API_KEY;
   const fromAddress = process.env.EMAIL_FROM_ADDRESS;
@@ -112,6 +163,7 @@ export default async function handler(req, res) {
       <blockquote style="border-left:4px solid #5eead4;padding:8px 12px;background:#f0fdfa;color:#134e4a;">
         ${escapeHtml(message).replace(/\n/g, "<br>")}
       </blockquote>
+      ${evidenceHtmlBlock(evidence, "#0f766e")}
       <p>Sua identidade e e-mail <strong>permanecem privados</strong>. Acesse a
       área "Meus Contatos" para responder ou recusar:</p>
       <p style="text-align:center;margin:24px 0;">
@@ -133,9 +185,10 @@ export default async function handler(req, res) {
       "",
       "Mensagem:",
       message,
+      evidenceTextBlock(evidence),
       "",
       `Acesse para responder: ${link}`,
-    ].join("\n");
+    ].filter(Boolean).join("\n");
 
     try {
       const resend = new Resend(resendKey);
@@ -197,6 +250,7 @@ export default async function handler(req, res) {
       <blockquote style="border-left:4px solid #c4b5fd;padding:8px 12px;background:#f5f3ff;color:#312e81;">
         ${escapeHtml(message).replace(/\n/g, "<br>")}
       </blockquote>
+      ${evidenceHtmlBlock(evidence, "#7e22ce")}
       <p>Sua identidade real <strong>permanece privada</strong>. Acesse a área
       "Meus Contatos" para responder ou recusar:</p>
       <p style="text-align:center;margin:24px 0;">
@@ -219,9 +273,10 @@ export default async function handler(req, res) {
     "",
     "Mensagem:",
     message,
+    evidenceTextBlock(evidence),
     "",
     `Acesse para responder: ${link}`,
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 
   try {
     const resend = new Resend(resendKey);
