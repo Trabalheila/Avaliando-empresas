@@ -66,8 +66,8 @@ export default function AvailabilityToggleButton({
       disabled={loading || saving}
       title={
         available
-          ? "Você está disponível para receber contatos de Apoiadores Premium. Clique para desativar."
-          : "Ative para permitir que Apoiadores Premium entrem em contato com você."
+          ? "Você está disponível para receber contatos de Especialistas Premium. Clique para desativar."
+          : "Ative para permitir que Especialistas Premium entrem em contato com você."
       }
       className={
         baseClasses +
@@ -94,7 +94,7 @@ export function AvailabilityIndicator({ visible, className = "" }) {
   if (!visible) return null;
   return (
     <span
-      title="Disponível para Contato por Apoiadores Premium"
+      title="Disponível para Contato por Especialistas Premium"
       aria-label="Disponível para Contato"
       className={
         "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold " +

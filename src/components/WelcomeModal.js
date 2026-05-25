@@ -97,13 +97,13 @@ export default function WelcomeModal({ open, apoiadorId, onClose }) {
             id="welcome-modal-title"
             className="text-2xl font-extrabold text-slate-800 dark:text-white"
           >
-            Bem-vindo ao Trabalhei Lá, Apoiador!
+            Bem-vindo ao Trabalhei Lá, Especialista!
           </h2>
         </div>
 
         <div className="px-6 py-5 space-y-5">
           <p className="text-sm md:text-base text-slate-700 dark:text-slate-300 leading-relaxed">
-            Apoiadores são profissionais especializados que contribuem com sua
+            Especialistas são profissionais especializados que contribuem com sua
             expertise para ajudar trabalhadores a entenderem melhor seus
             direitos, saúde, carreira e finanças. Sua presença torna a
             plataforma mais completa e confiável.

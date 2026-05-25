@@ -60,7 +60,7 @@ const PREMIUM_SUPPORTER_BENEFITS = [
   "Documentos e certificações visíveis no perfil",
   "Destaque nas páginas de benefícios e empresas",
   "Receber avaliações e estrelas de clientes",
-  "Selo \"Apoiador Premium Verificado\"",
+  "Selo \"Especialista Premium Verificado\"",
   "Posicionamento prioritário por média de avaliações",
   "Relatório mensal de visualizações e cliques",
 ];
@@ -192,11 +192,11 @@ export default function Purpose({ theme, toggleTheme }) {
         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-lg">
           <img
             src="/plans-banner.jpg"
-            alt="Sou Apoiador"
+            alt="Sou Especialista"
             className="w-full h-[160px] object-cover rounded-xl mb-4"
           />
           <div className="flex items-center gap-3 mb-1">
-            <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-100">Apoiador Premium</h2>
+            <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-100">Especialista Premium</h2>
             <span className="px-2.5 py-0.5 text-xs font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400 rounded-full">
               APOIADORES
             </span>
@@ -216,7 +216,7 @@ export default function Purpose({ theme, toggleTheme }) {
 
           <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-3 mb-6 text-center">
             <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
-              Apoiadores Premium recebem até 3x mais contatos de potenciais clientes.
+              Especialistas Premium recebem até 3x mais contatos de potenciais clientes.
             </p>
           </div>
 
@@ -224,7 +224,7 @@ export default function Purpose({ theme, toggleTheme }) {
             to="/apoiadores/cadastro"
             className="block w-full text-center py-3 rounded-xl font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition"
           >
-            Seja um Apoiador
+            Seja um Especialista
           </Link>
         </div>
 

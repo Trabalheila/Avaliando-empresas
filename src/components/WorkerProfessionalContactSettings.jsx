@@ -201,7 +201,7 @@ export default function WorkerProfessionalContactSettings({
       {/* Aviso de privacidade */}
       <p className="mt-4 text-xs leading-relaxed text-slate-500 dark:text-slate-400 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 p-3">
         Ao ativar esta funcionalidade, você concorda que profissionais parceiros do Trabalhei Lá
-        (Apoiadores Premium) possam ter acesso a informações anonimizadas sobre suas necessidades
+        (Especialistas Premium) possam ter acesso a informações anonimizadas sobre suas necessidades
         (baseadas em suas avaliações e perfil) para entrar em contato. Sua identidade real nunca
         será revelada sem seu consentimento explícito.
       </p>

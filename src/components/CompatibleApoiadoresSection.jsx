@@ -98,7 +98,7 @@ export default function CompatibleApoiadoresSection({
             Profissionais compatíveis
           </h3>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Apoiadores Premium selecionados conforme o perfil e o ramo da sua empresa.
+            Especialistas Premium selecionados conforme o perfil e o ramo da sua empresa.
           </p>
         </div>
         <label className="flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300">
@@ -119,11 +119,11 @@ export default function CompatibleApoiadoresSection({
 
       {loading ? (
         <p className="mt-4 text-sm text-slate-500 dark:text-slate-400 animate-pulse">
-          Carregando apoiadores…
+          Carregando especialistas…
         </p>
       ) : items.length === 0 ? (
         <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-          Nenhum apoiador encontrado para este filtro.
+          Nenhum especialista encontrado para este filtro.
         </p>
       ) : (
         <ul className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -150,10 +150,10 @@ export default function CompatibleApoiadoresSection({
                   )}
                   <div className="min-w-0">
                     <div className="text-sm font-extrabold text-slate-800 dark:text-slate-100 truncate">
-                      {a.nome || "Apoiador"}
+                      {a.nome || "Especialista"}
                     </div>
                     <div className="text-xs font-semibold text-blue-700 dark:text-blue-300 mt-0.5 truncate">
-                      {a.especialidade || a.tipo || "Apoiador Premium"}
+                      {a.especialidade || a.tipo || "Especialista Premium"}
                     </div>
                   </div>
                 </div>

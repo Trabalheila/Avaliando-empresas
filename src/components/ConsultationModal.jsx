@@ -52,7 +52,7 @@ export default function ConsultationModal({ open, onClose, apoiador = null, audi
           <p className="text-sm text-slate-600 dark:text-slate-300">
             {isEmployer ? (
               <>
-                Solicitar consultas com apoiadores especializados em gestão empresarial —
+                Solicitar consultas com especialistas especializados em gestão empresarial —
                 consultores de RH, contadores e advogados — é um benefício dos planos
                 <strong> Fundador</strong> e <strong>Premium</strong> para empresas.
               </>
@@ -98,7 +98,7 @@ export default function ConsultationModal({ open, onClose, apoiador = null, audi
       <Backdrop onClose={onClose}>
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-2xl w-full p-6 border border-slate-200 dark:border-slate-700">
           <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 mb-1">
-            Qual tipo de Apoiador você prefere?
+            Qual tipo de Especialista você prefere?
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
             Escolha o formato que combina mais com sua necessidade.
@@ -114,7 +114,7 @@ export default function ConsultationModal({ open, onClose, apoiador = null, audi
               className="text-left p-4 rounded-xl border-2 border-emerald-500 bg-emerald-50/40 dark:bg-emerald-900/10 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition"
             >
               <p className="text-sm font-extrabold text-emerald-700 dark:text-emerald-300">
-                Apoiador Essencial
+                Especialista Essencial
               </p>
               <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
                 Preço tabelado pela plataforma — você sabe exatamente o que vai pagar.
@@ -130,7 +130,7 @@ export default function ConsultationModal({ open, onClose, apoiador = null, audi
               className="text-left p-4 rounded-xl border-2 border-amber-500 bg-amber-50/40 dark:bg-amber-900/10 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition"
             >
               <p className="text-sm font-extrabold text-amber-700 dark:text-amber-300">
-                Apoiador Premium
+                Especialista Premium
               </p>
               <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
                 Preço definido pelo profissional — mais flexibilidade e especialização.
@@ -153,7 +153,7 @@ export default function ConsultationModal({ open, onClose, apoiador = null, audi
   /* ── Estado 3: Premium com apoiador → Confirmar ── */
   const handleConfirm = async () => {
     if (!price) {
-      setError("Este apoiador não oferece consultas intermediadas.");
+      setError("Este especialista não oferece consultas intermediadas.");
       return;
     }
     setError("");

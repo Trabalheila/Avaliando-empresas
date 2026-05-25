@@ -17,11 +17,11 @@ function Apoiadores({ theme, toggleTheme }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900">
-      <AppHeader theme={theme} toggleTheme={toggleTheme} title="Seja um Apoiador" />
+      <AppHeader theme={theme} toggleTheme={toggleTheme} title="Seja um Especialista" />
 
       <main className="max-w-5xl mx-auto px-4 pt-10 pb-4 text-center">
         <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white mb-3">
-          Planos para Apoiadores a de Trabalhadores e Empresas
+          Planos para Especialistas de Trabalhadores e Empresas
         </h1>
         <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-base">
           Profissionais como <strong>Advogados Trabalhistas, Psicólogos, Consultores Empresariais e outros especialistas</strong>:
@@ -48,7 +48,7 @@ function Apoiadores({ theme, toggleTheme }) {
             to="/apoiadores/lista"
             className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-300 underline-offset-2 hover:underline transition"
           >
-            Ver apoiadores ativos
+            Ver especialistas ativos
           </Link>
         </div>
       </main>

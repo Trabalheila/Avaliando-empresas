@@ -36,7 +36,7 @@ export default function SupporterContactButton({
     [
       "Olá, equipe Trabalhei Lá!",
       "",
-      "Sou Apoiador Premium e gostaria de solicitar contato com o(a) avaliador(a) abaixo,",
+      "Sou Especialista Premium e gostaria de solicitar contato com o(a) avaliador(a) abaixo,",
       "caso ele(a) tenha autorizado contato profissional em seu perfil:",
       "",
       `• Pseudônimo: ${pseudonym || "—"}`,
@@ -54,7 +54,7 @@ export default function SupporterContactButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        title="Solicitar contato profissional com este avaliador (recurso exclusivo Apoiador Premium)"
+        title="Solicitar contato profissional com este avaliador (recurso exclusivo Especialista Premium)"
         className={
           "inline-flex items-center gap-1 text-[11px] font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-full px-3 py-1 transition shadow-sm " +
           className
@@ -95,7 +95,7 @@ export default function SupporterContactButton({
               📩 Solicitar contato com avaliador
             </h2>
             <p style={{ marginTop: 10, fontSize: 14, lineHeight: 1.5 }}>
-              Como recurso exclusivo de <strong>Apoiador Premium</strong>, você pode solicitar
+              Como recurso exclusivo de <strong>Especialista Premium</strong>, você pode solicitar
               contato profissional com este(a) avaliador(a). A intermediação é feita pela
               equipe Trabalhei Lá, que verifica se o(a) avaliador(a) autorizou contato
               em seu perfil — preservando o anonimato.

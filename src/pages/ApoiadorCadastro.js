@@ -69,8 +69,8 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_FILES = 3;
 
 const TERMOS = [
-  "A plataforma atua exclusivamente como intermediadora e não é parte de nenhuma relação contratual estabelecida entre Apoiador e cliente.",
-  "O Apoiador é inteiramente responsável pelos serviços prestados e pela conduta ética conforme regulamentação da sua categoria profissional.",
+  "A plataforma atua exclusivamente como intermediadora e não é parte de nenhuma relação contratual estabelecida entre Especialista e cliente.",
+  "O Especialista é inteiramente responsável pelos serviços prestados e pela conduta ética conforme regulamentação da sua categoria profissional.",
   "A plataforma retém 10% sobre contratos fechados por indicação direta da plataforma.",
   "Dados falsos ou documentos inválidos resultam em exclusão imediata e possível comunicação aos órgãos reguladores competentes.",
   "O cadastro no plano gratuito não garante visibilidade e o destaque é exclusivo do plano Premium.",
@@ -228,7 +228,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
     e.preventDefault();
     setError("");
 
-    if (!tipo) { setError("Selecione o tipo de apoiador."); return; }
+    if (!tipo) { setError("Selecione o tipo de especialista."); return; }
     if (!nome.trim() || !email.trim() || !telefone.trim()) { setError("Preencha todos os campos obrigatórios."); return; }
     if (!ramoEspecializacao) { setError("Selecione o Ramo de Especialização."); return; }
 
@@ -291,7 +291,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
         createdAt: serverTimestamp(),
 
         /* Credenciais (PRIVADO - nao exibir publicamente).
-           Apenas o selo "Apoiador Verificado" sera exposto quando
+           Apenas o selo "Especialista Verificado" sera exposto quando
            verificationStatus for definido como "verified" manualmente. */
         credential: {
           number: REGULATED_PROFESSIONS.has(tipo) ? credentialNumber.trim() : "",
@@ -397,7 +397,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
             <div className="text-4xl mb-4">✅</div>
             <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200 mb-2">Cadastro enviado!</h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-              Seu cadastro será analisado em até <strong>5 dias úteis</strong>. Após aprovação, seu perfil aparecerá na listagem de apoiadores.
+              Seu cadastro será analisado em até <strong>5 dias úteis</strong>. Após aprovação, seu perfil aparecerá na listagem de especialistas.
             </p>
             <button
               type="button"
@@ -405,7 +405,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
               onClick={() => navigate("/apoiadores/lista")}
               className="px-6 py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
             >
-              Ver Apoiadores
+              Ver Especialistas
             </button>
           </div>
         </div>
@@ -427,9 +427,9 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
 
       <form onSubmit={handleSubmit} className="w-full max-w-4xl px-4 py-8">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-blue-100 dark:border-slate-700 p-6 md:p-8">
-          <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white mb-1">Cadastro de Apoiador</h1>
+          <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white mb-1">Cadastro de Especialista</h1>
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-            Consultores de RH, advogados trabalhistas e prestadores de serviços corporativos podem se cadastrar como apoiadores da plataforma.
+            Consultores de RH, advogados trabalhistas e prestadores de serviços corporativos podem se cadastrar como especialistas da plataforma.
           </p>
 
           {admin && (
@@ -452,7 +452,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
 
           {/* ── Seletor de tipo (profissão) ── */}
           <div className="mb-6">
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Tipo de apoiador *</label>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Tipo de especialista *</label>
             <select
               value={tipo}
               onChange={(e) => handleTipoChange(e.target.value)}
@@ -537,7 +537,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                 </select>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Ramo principal em que você presta consultoria. Empresas Premium poderão filtrar
-                  apoiadores compatíveis por este ramo.
+                  especialistas compatíveis por este ramo.
                 </p>
               </div>
 
@@ -650,7 +650,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                 <p className="text-xs text-slate-600 dark:text-slate-400 mb-4">
                   Esses dados são usados apenas para verificação interna. Não aparecem
                   publicamente. Após análise, seu perfil pode receber o selo
-                  <span className="font-semibold"> "Apoiador Verificado"</span>.
+                  <span className="font-semibold"> "Especialista Verificado"</span>.
                 </p>
 
                 {REGULATED_PROFESSIONS.has(tipo) && CREDENTIAL_LABELS[tipo] && (
@@ -803,7 +803,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                     </span>
                     <span className="block text-xs text-slate-600 dark:text-slate-300 leading-relaxed mt-1">
                       Ad exitum significa que você só recebe se ganhar a causa do cliente.
-                      Apoiadores que aceitam esse modelo ganham um selo destacado no perfil
+                      Especialistas que aceitam esse modelo ganham um selo destacado no perfil
                       e aparecem em buscas filtradas por essa modalidade.
                     </span>
                   </span>

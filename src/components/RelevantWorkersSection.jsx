@@ -46,7 +46,7 @@ export default function RelevantWorkersSection({
     userProfile?.empresa ||
     userProfile?.razaoSocial ||
     userProfile?.name ||
-    "Apoiador Premium";
+    "Especialista Premium";
 
   const visible = isPremiumSupporter();
 

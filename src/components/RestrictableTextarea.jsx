@@ -422,7 +422,7 @@ export default function RestrictableTextarea({
           Ocultar trecho selecionado (opcional)
         </button>
         <span className="text-[11px] text-slate-500 dark:text-slate-400">
-          Por padrão, seu comentário é <strong>visível para todos</strong>. Use este botão somente se quiser ocultar um trecho específico — nesse caso, o trecho marcado fica visível na íntegra apenas para <strong>Apoiadores</strong>, e <strong>Trabalhadores Premium</strong> veem só um resumo do assunto. O restante do texto continua público.
+          Por padrão, seu comentário é <strong>visível para todos</strong>. Use este botão somente se quiser ocultar um trecho específico — nesse caso, o trecho marcado fica visível na íntegra apenas para <strong>Especialistas</strong>, e <strong>Trabalhadores Premium</strong> veem só um resumo do assunto. O restante do texto continua público.
         </span>
       </div>
 
@@ -433,7 +433,7 @@ export default function RestrictableTextarea({
       {pendingRange && (
         <div className="rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-900/20 p-3 space-y-2">
           <p className="text-xs font-semibold text-amber-900 dark:text-amber-200">
-            Trecho selecionado <span className="font-normal">(visível apenas para Apoiadores)</span>:
+            Trecho selecionado <span className="font-normal">(visível apenas para Especialistas)</span>:
           </p>
           <p className="text-xs italic text-amber-900/90 dark:text-amber-100/90 break-words">
             "{previewText}"
@@ -500,7 +500,7 @@ export default function RestrictableTextarea({
             Resumo Curto do assunto
           </label>
           <p className="text-[11px] text-slate-600 dark:text-slate-300 -mt-1">
-            Este resumo é o que <strong>Trabalhadores Premium</strong> verão no lugar do trecho original. Apoiadores continuam vendo o texto integral.
+            Este resumo é o que <strong>Trabalhadores Premium</strong> verão no lugar do trecho original. Especialistas continuam vendo o texto integral.
           </p>
           <input
             type="text"

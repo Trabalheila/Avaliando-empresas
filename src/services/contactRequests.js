@@ -88,7 +88,7 @@ export async function consumeContactCredit(apoiadorUid) {
   if (!apoiadorUid) throw new Error("apoiadorUid obrigatório");
   const ref = doc(db, "apoiadores", apoiadorUid);
   const snap = await getDoc(ref);
-  if (!snap.exists()) throw new Error("Apoiador não encontrado.");
+  if (!snap.exists()) throw new Error("Especialista não encontrado.");
   const current = Number(snap.data()?.contactCredits || 0);
   if (current <= 0) {
     const err = new Error("NO_CREDITS");

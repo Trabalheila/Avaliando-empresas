@@ -60,7 +60,7 @@ export default function WorkPeriodPicker({
       </p>
       <p className="text-xs text-purple-700 dark:text-purple-300 mb-3 leading-snug">
         🔒 Esta informação é <strong>privada</strong>: visível apenas para
-        Apoiadores da plataforma. Não aparece para outros usuários.
+        Especialistas da plataforma. Não aparece para outros usuários.
       </p>
 
       <div className="space-y-2 text-sm text-slate-700 dark:text-slate-200">

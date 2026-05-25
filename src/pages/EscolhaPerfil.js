@@ -342,13 +342,13 @@ function EscolhaPerfil({ theme, toggleTheme }) {
             <div className="w-full overflow-hidden" style={{ height: 280 }}>
               <img
                 src="/plans-banner.jpg"
-                alt="Apoiadores"
+                alt="Especialistas"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 style={{ objectPosition: 'center 15%' }}
               />
             </div>
             <div className="p-6 flex flex-col items-center text-center flex-1">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Sou Apoiador</h2>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Sou Especialista</h2>
               <p className="text-slate-600 dark:text-slate-400 text-sm">
                 Ofereça seus serviços a trabalhadores e empresas que precisam de apoio especializado.
                 Receba requisições de consulta diretamente pela plataforma com split automático de
@@ -538,8 +538,8 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 <FeatureRow ok>Acesso ao <span className="font-semibold">painel básico de avaliações recebidas</span> com filtros simples</FeatureRow>
                 <FeatureRow ok><span className="font-semibold">Resposta pública oficial</span> a avaliações, identificada como “Resposta oficial da empresa”</FeatureRow>
                 <FeatureRow ok>Acesso prioritário aos próximos recursos (comparação com concorrentes, benchmarks de setor)</FeatureRow>
-                <FeatureRow ok><span className="font-semibold">Conexão com consultores empresariais parceiros</span> — Inclui <span className="font-semibold">5 Créditos de Contato/mês</span> para iniciar conversas com Apoiadores Premium e transformar dados em plano de ação</FeatureRow>
-                <FeatureRow ok>Acesso à página <span className="font-semibold">"Meus Contatos"</span> para gerenciar interações com Apoiadores</FeatureRow>
+                <FeatureRow ok><span className="font-semibold">Conexão com consultores empresariais parceiros</span> — Inclui <span className="font-semibold">5 Créditos de Contato/mês</span> para iniciar conversas com Especialistas Premium e transformar dados em plano de ação</FeatureRow>
+                <FeatureRow ok>Acesso à página <span className="font-semibold">"Meus Contatos"</span> para gerenciar interações com Especialistas</FeatureRow>
               </ul>
               <p className="mt-3 text-xs text-indigo-700 dark:text-indigo-300 italic">
                 {isEmployerFreeWindowActive
@@ -567,8 +567,8 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 <FeatureRow ok>Comparação de reputação por setor e concorrentes (benchmark CNAE)</FeatureRow>
                 <FeatureRow ok>Ferramenta de resposta pública oficial a avaliações</FeatureRow>
                 <FeatureRow ok>Acesso antecipado a todos os recursos em desenvolvimento, sem custo adicional</FeatureRow>
-                <FeatureRow ok><span className="font-semibold">Conexão com consultores empresariais parceiros</span> — Inclui <span className="font-semibold">20 Créditos de Contato/mês</span> para iniciar conversas com Apoiadores Premium e transformar dados em plano de ação</FeatureRow>
-                <FeatureRow ok>Acesso à página <span className="font-semibold">"Meus Contatos"</span> para gerenciar interações com Apoiadores</FeatureRow>
+                <FeatureRow ok><span className="font-semibold">Conexão com consultores empresariais parceiros</span> — Inclui <span className="font-semibold">20 Créditos de Contato/mês</span> para iniciar conversas com Especialistas Premium e transformar dados em plano de ação</FeatureRow>
+                <FeatureRow ok>Acesso à página <span className="font-semibold">"Meus Contatos"</span> para gerenciar interações com Especialistas</FeatureRow>
                 <li className="pt-2 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
                   E mais, exclusivo do Premium:
                 </li>

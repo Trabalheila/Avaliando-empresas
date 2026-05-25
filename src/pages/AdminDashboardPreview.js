@@ -22,7 +22,7 @@ const STARS = [1, 2, 3, 4, 5];
 const CATEGORY_CONTENT = {
   Jurídico: {
     blurb:
-      "Recursos para apoiadores que atuam com Direito do Trabalho, OAB e contencioso trabalhista.",
+      "Recursos para especialistas que atuam com Direito do Trabalho, OAB e contencioso trabalhista.",
     metrics: ["Casos respondidos", "Tempo médio de resposta", "Indicadores OAB"],
     tips: [
       "Mantenha sua OAB atualizada no perfil para o selo verificado.",
@@ -82,7 +82,7 @@ const CATEGORY_CONTENT = {
   },
   Outros: {
     blurb:
-      "Conteúdo genérico para apoiadores. Configure uma categoria para ver dicas específicas.",
+      "Conteúdo genérico para especialistas. Configure uma categoria para ver dicas específicas.",
     metrics: ["Visualizações", "Cliques de contato", "Avaliações"],
     tips: [
       "Defina uma categoria na página de Profissões para ver dicas direcionadas.",
@@ -231,7 +231,7 @@ function SimulatedSupporterDashboard({ profession }) {
               </h2>
               {isPremium && (
                 <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 rounded-full whitespace-nowrap">
-                  ✓ Apoiador Premium Verificado
+                  ✓ Especialista Premium Verificado
                 </span>
               )}
               <span className="px-2 py-0.5 text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full">

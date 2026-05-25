@@ -134,7 +134,7 @@ function AdminPanel({ theme, toggleTheme }) {
   }, [admin, navigate]);
 
   /* ── Abas ── */
-  const TABS = ["Comentários", "Avaliações", "Apoiadores", "Restritos", "Verificações", "Planos", "Crescimento"];
+  const TABS = ["Comentários", "Avaliações", "Especialistas", "Restritos", "Verificações", "Planos", "Crescimento"];
   const [activeTab, setActiveTab] = useState("Comentários");
 
   /* Permite linkar diretamente para uma aba via ?tab=apoiadores|verif|restritos|comentarios|avaliacoes */
@@ -142,7 +142,7 @@ function AdminPanel({ theme, toggleTheme }) {
     const params = new URLSearchParams(location.search || "");
     const t = String(params.get("tab") || "").toLowerCase();
     const map = {
-      apoiadores: "Apoiadores",
+      apoiadores: "Especialistas",
       verif: "Verificações",
       verificacoes: "Verificações",
       restritos: "Restritos",
@@ -540,18 +540,18 @@ function AdminPanel({ theme, toggleTheme }) {
       );
       const msg =
         newStatus === "ativo"
-          ? "Apoiador aprovado."
+          ? "Especialista aprovado."
           : newStatus === "rejeitado"
-          ? "Apoiador rejeitado."
+          ? "Especialista rejeitado."
           : newStatus === "pendente"
-          ? "Decisão revertida. Apoiador voltou para análise."
+          ? "Decisão revertida. Especialista voltou para análise."
           : "Status atualizado.";
       setApoiadorToast({ type: "success", message: msg });
     } catch (err) {
       console.error("Erro ao atualizar apoiador:", err);
       setApoiadorToast({
         type: "error",
-        message: "Não foi possível atualizar o apoiador.",
+        message: "Não foi possível atualizar o especialista.",
       });
     }
     setApoiadorBusyId(null);
@@ -569,7 +569,7 @@ function AdminPanel({ theme, toggleTheme }) {
         type: "success",
         message:
           newPlano === "premium"
-            ? "Apoiador promovido ao plano Premium."
+            ? "Especialista promovido ao plano Premium."
             : "Plano Premium removido.",
       });
     } catch (err) {
@@ -807,7 +807,7 @@ function AdminPanel({ theme, toggleTheme }) {
               }`}
             >
               {tab}
-              {tab === "Apoiadores" && apoiadoresPendentes.length > 0 && (
+              {tab === "Especialistas" && apoiadoresPendentes.length > 0 && (
                 <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 rounded-full">
                   {apoiadoresPendentes.length}
                 </span>
@@ -1548,11 +1548,11 @@ function AdminPanel({ theme, toggleTheme }) {
         )}
 
         {/* ═══ ABA Apoiadores (unificada) ═══ */}
-        {activeTab === "Apoiadores" && (
+        {activeTab === "Especialistas" && (
           <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
             <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
               <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200">
-                Apoiadores
+                Especialistas
                 <span className="ml-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
                   ({filteredApoiadores.length})
                 </span>
@@ -1600,16 +1600,16 @@ function AdminPanel({ theme, toggleTheme }) {
             )}
 
             {apoiadoresLoading ? (
-              <p className="text-sm text-slate-500">Carregando apoiadores…</p>
+              <p className="text-sm text-slate-500">Carregando especialistas…</p>
             ) : filteredApoiadores.length === 0 ? (
               <p className="text-sm text-slate-500">
                 {apoiadoresSearch
-                  ? "Nenhum apoiador corresponde à busca."
+                  ? "Nenhum especialista corresponde à busca."
                   : apoiadoresStatusFilter === "rejeitado"
-                  ? "Nenhum apoiador rejeitado."
+                  ? "Nenhum especialista rejeitado."
                   : apoiadoresStatusFilter === "ativo"
-                  ? "Nenhum apoiador aprovado."
-                  : "Nenhum apoiador pendente de aprovação."}
+                  ? "Nenhum especialista aprovado."
+                  : "Nenhum especialista pendente de aprovação."}
               </p>
             ) : (
               <div className="space-y-4 max-h-[600px] overflow-y-auto">

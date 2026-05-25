@@ -123,14 +123,14 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
 
       /* Verificar se é Premium */
       if (!userIsPremium) {
-        setReviewError("Apenas usuários Premium podem avaliar Apoiadores.");
+        setReviewError("Apenas usuários Premium podem avaliar Especialistas.");
         setSubmittingReview(false);
         return;
       }
 
       /* Só pode avaliar quem teve consulta intermediada com este apoiador. */
       if (!hasConsultation) {
-        setReviewError("Você precisa realizar uma consulta com este Apoiador antes de avaliá-lo.");
+        setReviewError("Você precisa realizar uma consulta com este Especialista antes de avaliá-lo.");
         setSubmittingReview(false);
         return;
       }
@@ -141,7 +141,7 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
         const dupSnap = await getDocs(query(collection(db, "apoiadores", id, "avaliacoes"), where("autorId", "==", uid)));
         if (!dupSnap.empty) {
           setAlreadyReviewed(true);
-          setReviewError("Você já avaliou este Apoiador.");
+          setReviewError("Você já avaliou este Especialista.");
           setSubmittingReview(false);
           return;
         }
@@ -193,7 +193,7 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900">
         <AppHeader theme={theme} toggleTheme={toggleTheme} />
-        <p className="text-center py-20 text-slate-500">Apoiador não encontrado.</p>
+        <p className="text-center py-20 text-slate-500">Especialista não encontrado.</p>
       </div>
     );
   }
@@ -239,7 +239,7 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
                 <h1 className="text-xl font-extrabold text-slate-800 dark:text-slate-100">{apoiador.nome}</h1>
                 {isPremium && (
                   <span className="px-2.5 py-0.5 text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 rounded-full">
-                    ✓ Apoiador Premium Verificado
+                    ✓ Especialista Premium Verificado
                   </span>
                 )}
                 {isVerifiedWithDiploma && !isPremium && (
@@ -261,15 +261,15 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
                 {isDiplomaVerified && (
                   <span
                     className="px-2.5 py-0.5 text-[11px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-full"
-                    title="Diploma verificado pela equipe — você é elegível a 10% de desconto no Plano Apoiador Essencial."
+                    title="Diploma verificado pela equipe — você é elegível a 10% de desconto no Plano Especialista Essencial."
                   >
-                    🎉 Elegível a 10% de desconto no Plano Apoiador Essencial
+                    🎉 Elegível a 10% de desconto no Plano Especialista Essencial
                   </span>
                 )}
                 {apoiador.adExitum === true && (
                   <span
                     className="px-2.5 py-0.5 text-[11px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-full"
-                    title="Este apoiador aceita o modelo Ad Exitum — você só paga se ganhar a causa."
+                    title="Este especialista aceita o modelo Ad Exitum — você só paga se ganhar a causa."
                   >
                     ⚖️ Aceita Ad Exitum
                   </span>
@@ -446,7 +446,7 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
               </div>
             ) : alreadyReviewed ? (
               <div className="mb-6 p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800">
-                <p className="text-sm text-green-700 dark:text-green-400">Você já avaliou este Apoiador.</p>
+                <p className="text-sm text-green-700 dark:text-green-400">Você já avaliou este Especialista.</p>
               </div>
             ) : (
             <form onSubmit={handleSubmitReview} className="mb-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">

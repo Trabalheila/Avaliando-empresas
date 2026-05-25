@@ -102,7 +102,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
   if (!apoiadorId) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
-        <AppHeader theme={theme} toggleTheme={toggleTheme} title="Meus Contatos (Apoiador)" />
+        <AppHeader theme={theme} toggleTheme={toggleTheme} title="Meus Contatos (Especialista)" />
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4">
           <p className="text-slate-600 dark:text-slate-300 text-center">
             Você precisa estar logado como Apoiador para ver seus pedidos de contato.
@@ -121,7 +121,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
-      <AppHeader theme={theme} toggleTheme={toggleTheme} title="Meus Contatos (Apoiador)" />
+      <AppHeader theme={theme} toggleTheme={toggleTheme} title="Meus Contatos (Especialista)" />
 
       <div className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-4">
         <header className="bg-white dark:bg-slate-900 rounded-2xl shadow p-5 border border-blue-100 dark:border-slate-700">

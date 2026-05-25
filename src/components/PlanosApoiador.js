@@ -47,7 +47,7 @@ export default function PlanosApoiador() {
         if (!uid) { setError("Faça login para continuar."); setLoadingTier(""); return; }
         const snap = await getDocs(query(collection(db, "apoiadores"), where("uid", "==", uid)));
         if (snap.empty) {
-          setError("Você precisa ter um cadastro de apoiador antes de assinar Premium. Cadastre-se primeiro.");
+          setError("Você precisa ter um cadastro de especialista antes de assinar Premium. Cadastre-se primeiro.");
           setLoadingTier("");
           return;
         }
@@ -64,7 +64,7 @@ export default function PlanosApoiador() {
       if (!uid) { setError("Faça login para continuar."); setLoadingTier(""); return; }
       const snap = await getDocs(query(collection(db, "apoiadores"), where("uid", "==", uid)));
       if (snap.empty) {
-        setError("Você precisa ter um cadastro de apoiador antes de assinar Premium. Cadastre-se primeiro.");
+        setError("Você precisa ter um cadastro de especialista antes de assinar Premium. Cadastre-se primeiro.");
         setLoadingTier("");
         return;
       }
@@ -98,7 +98,7 @@ export default function PlanosApoiador() {
       if (!uid) { setError("Faça login para continuar."); return; }
       const snap = await getDocs(query(collection(db, "apoiadores"), where("uid", "==", uid)));
       if (snap.empty) {
-        setError("Você precisa ter um cadastro de apoiador antes de assinar. Cadastre-se primeiro.");
+        setError("Você precisa ter um cadastro de especialista antes de assinar. Cadastre-se primeiro.");
         return;
       }
       const data = snap.docs[0].data() || {};
@@ -142,11 +142,11 @@ export default function PlanosApoiador() {
               <FeatureRow ok>Perfil público visível na plataforma</FeatureRow>
               <FeatureRow ok>Nome e especialidade exibidos</FeatureRow>
               <FeatureRow ok>Botão de contato por e-mail e WhatsApp disponível para visitantes</FeatureRow>
-              <FeatureRow ok>Aparece na listagem geral de Apoiadores</FeatureRow>
+              <FeatureRow ok>Aparece na listagem geral de Especialistas</FeatureRow>
               <FeatureRow>Seleção de nichos de atuação</FeatureRow>
               <FeatureRow>Destaque na listagem</FeatureRow>
               <FeatureRow>Aparece em seções de recomendação</FeatureRow>
-              <FeatureRow>Selo "Apoiador Verificado"</FeatureRow>
+              <FeatureRow>Selo "Especialista Verificado"</FeatureRow>
               <FeatureRow>Portfólio de casos e projetos</FeatureRow>
               <FeatureRow>Avaliações e estrelas de clientes</FeatureRow>
               <FeatureRow>Relatório mensal de visualizações e cliques</FeatureRow>
@@ -159,7 +159,7 @@ export default function PlanosApoiador() {
             <div className="absolute top-0 right-0 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
               RECOMENDADO
             </div>
-            <h3 className="text-lg font-bold text-blue-700 dark:text-blue-400 mb-1">Apoiador Essencial</h3>
+            <h3 className="text-lg font-bold text-blue-700 dark:text-blue-400 mb-1">Especialista Essencial</h3>
             <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
               R$ 199,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
             </p>
@@ -173,11 +173,11 @@ export default function PlanosApoiador() {
               <FeatureRow ok>Perfil público visível na plataforma</FeatureRow>
               <FeatureRow ok>Nome e especialidade exibidos</FeatureRow>
               <FeatureRow ok>Botão de contato por e-mail e WhatsApp disponível para visitantes</FeatureRow>
-              <FeatureRow ok>Aparece na listagem geral de Apoiadores</FeatureRow>
+              <FeatureRow ok>Aparece na listagem geral de Especialistas</FeatureRow>
               <FeatureRow ok>Seleção de até 3 nichos de atuação (recrutamento, direito trabalhista, saúde ocupacional, benefícios corporativos, treinamento)</FeatureRow>
               <FeatureRow ok>Posição de destaque na listagem ordenada por avaliação</FeatureRow>
               <FeatureRow ok>Aparece nas seções de recomendação da página de empresas e de benefícios Premium</FeatureRow>
-              <FeatureRow ok>Selo visual "Apoiador Essencial Verificado" no perfil</FeatureRow>
+              <FeatureRow ok>Selo visual "Especialista Essencial Verificado" no perfil</FeatureRow>
               <FeatureRow ok>Portfólio com até 5 casos ou projetos</FeatureRow>
               <FeatureRow ok>Avaliações e estrelas de clientes Premium</FeatureRow>
               <FeatureRow ok>Relatório mensal de visualizações e cliques no perfil</FeatureRow>
@@ -199,7 +199,7 @@ export default function PlanosApoiador() {
             <div className="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
               COMPLETO
             </div>
-            <h3 className="text-lg font-bold text-amber-700 dark:text-amber-400 mb-1">Apoiador Premium</h3>
+            <h3 className="text-lg font-bold text-amber-700 dark:text-amber-400 mb-1">Especialista Premium</h3>
             <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
               R$ 399,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
             </p>
@@ -207,11 +207,11 @@ export default function PlanosApoiador() {
               Máximo destaque e parceria estratégica com a plataforma
             </p>
             <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">
-              <FeatureRow ok><span className="font-semibold">Todos os benefícios do plano Apoiador Essencial</span></FeatureRow>
+              <FeatureRow ok><span className="font-semibold">Todos os benefícios do plano Especialista Essencial</span></FeatureRow>
               <FeatureRow ok><span className="font-semibold">10 Créditos de Contato/mês</span> para iniciar conversas com Empresas Premium</FeatureRow>
               <FeatureRow ok>Acesso à página <span className="font-semibold">"Meus Contatos"</span> para gerenciar interações e responder pedidos de empresas</FeatureRow>
               <FeatureRow ok><span className="font-semibold">Notificações Prioritárias</span> sobre novas oportunidades e pedidos de contato (sininho na plataforma)</FeatureRow>
-              <FeatureRow ok>Selo visual <span className="font-semibold">"Apoiador Premium Verificado"</span> no perfil (substitui o Essencial)</FeatureRow>
+              <FeatureRow ok>Selo visual <span className="font-semibold">"Especialista Premium Verificado"</span> no perfil (substitui o Essencial)</FeatureRow>
               <FeatureRow ok><span className="font-semibold">Controle de Disponibilidade:</span> ative/desative seu status para receber novos contatos</FeatureRow>
               <FeatureRow ok><span className="font-semibold">Analytics do Perfil:</span> veja visualizações, cliques e taxa de resposta</FeatureRow>
               <FeatureRow ok><span className="font-semibold">Relatórios de Mercado Avançados</span> com insights específicos por especialidade e ramo de atuação</FeatureRow>
@@ -235,7 +235,7 @@ export default function PlanosApoiador() {
         {/* Destaque */}
         <div className="max-w-md mx-auto text-center">
           <div className="bg-blue-100 dark:bg-blue-900/30 rounded-xl p-4 mb-4 text-blue-900 dark:text-blue-200 text-sm font-medium shadow-inner">
-            <span className="font-bold">Destaque:</span> Apoiadores Essencial e Premium recebem até{" "}
+            <span className="font-bold">Destaque:</span> Especialistas Essencial e Premium recebem até{" "}
             <span className="font-bold">3× mais contatos</span> de potenciais clientes.
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
@@ -263,7 +263,7 @@ export default function PlanosApoiador() {
                 id="confirm-essencial-title"
                 className="text-lg font-extrabold text-slate-800 dark:text-slate-100 mb-2"
               >
-                Confirmar assinatura — Apoiador Essencial
+                Confirmar assinatura — Especialista Essencial
               </h3>
               {confirmEssencial.isDiplomaVerified ? (
                 <div className="mb-4">

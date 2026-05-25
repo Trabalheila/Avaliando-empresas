@@ -34,9 +34,9 @@ export default function AdminQuickAccess({ position = "top-right" }) {
     },
     {
       to: "/admin/apoiadores",
-      label: "Apoiadores",
+      label: "Especialistas",
       icon: "🤝",
-      hint: "Dashboard de apoiadores",
+      hint: "Dashboard de especialistas",
     },
     {
       to: "/admin/plans",

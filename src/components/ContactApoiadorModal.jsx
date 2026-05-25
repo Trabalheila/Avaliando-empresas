@@ -79,7 +79,7 @@ export default function ContactApoiadorModal({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Entrar em contato com apoiador"
+      aria-label="Entrar em contato com especialista"
       style={{
         position: "fixed",
         inset: 0,
@@ -107,13 +107,13 @@ export default function ContactApoiadorModal({
           style={{ margin: 0, fontSize: 18, fontWeight: 800 }}
           className="text-emerald-700 dark:text-emerald-300"
         >
-          💬 Contactar {apoiadorName || "Apoiador Premium"}
+          💬 Contactar {apoiadorName || "Especialista Premium"}
         </h2>
 
         {success ? (
           <div className="mt-4">
             <p className="text-sm text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 rounded-lg px-3 py-2">
-              ✅ Mensagem enviada! O apoiador será notificado e poderá responder
+              ✅ Mensagem enviada! O especialista será notificado e poderá responder
               através da plataforma.
             </p>
             <div className="mt-4 flex justify-end">
@@ -130,7 +130,7 @@ export default function ContactApoiadorModal({
           <div className="mt-4">
             <p className="text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg px-3 py-2">
               Sua empresa não possui mais créditos de contato no plano Premium.
-              Adquira mais créditos para continuar contactando apoiadores.
+              Adquira mais créditos para continuar contactando especialistas.
             </p>
             <div className="mt-4 flex justify-end gap-2">
               <button

@@ -50,7 +50,7 @@ const PLAN_BADGE = {
 const USER_TYPE_LABEL = {
   trabalhador: "Trabalhador",
   empresa: "Empresa",
-  apoiador: "Apoiador",
+  apoiador: "Especialista",
 };
 
 /* O filtro de "plano" exposto na UI mistura tipo de usuário com plano,
@@ -72,7 +72,7 @@ const APPROVAL_FILTER_OPTIONS = [
 const TYPE_FILTER_OPTIONS = [
   { value: "todos", label: "Todos os tipos" },
   { value: "trabalhador", label: "Usuários" },
-  { value: "apoiador", label: "Apoiadores" },
+  { value: "apoiador", label: "Especialistas" },
   { value: "empresa", label: "Empresas" },
 ];
 

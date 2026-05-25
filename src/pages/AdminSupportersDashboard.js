@@ -97,7 +97,7 @@ export default function AdminSupportersDashboard({ theme, toggleTheme }) {
       setSupporters(list);
     } catch (err) {
       console.error("Falha ao carregar apoiadores:", err);
-      setErrorMsg("Não foi possível carregar a lista de apoiadores.");
+      setErrorMsg("Não foi possível carregar a lista de especialistas.");
     } finally {
       setLoading(false);
     }
@@ -147,7 +147,7 @@ export default function AdminSupportersDashboard({ theme, toggleTheme }) {
       setSupporters((prev) => prev.map((x) => (x.id === s.id ? { ...x, status: next } : x)));
     } catch (err) {
       console.error("Falha ao atualizar status:", err);
-      alert("Não foi possível atualizar o status do apoiador.");
+      alert("Não foi possível atualizar o status do especialista.");
     } finally {
       setBusyId(null);
     }
@@ -187,7 +187,7 @@ export default function AdminSupportersDashboard({ theme, toggleTheme }) {
       setConfirmDeleteOf(null);
     } catch (err) {
       console.error("Falha ao excluir:", err);
-      alert("Não foi possível excluir o apoiador.");
+      alert("Não foi possível excluir o especialista.");
     } finally {
       setBusyId(null);
     }
@@ -387,7 +387,7 @@ export default function AdminSupportersDashboard({ theme, toggleTheme }) {
 
       {/* Modal Detalhes */}
       {detailsOf && (
-        <Modal title="Detalhes do apoiador" onClose={() => setDetailsOf(null)}>
+        <Modal title="Detalhes do especialista" onClose={() => setDetailsOf(null)}>
           <DetailRow label="Nome" value={detailsOf.name} />
           <DetailRow label="E-mail" value={detailsOf.email} />
           <DetailRow label="WhatsApp" value={detailsOf.whatsapp} />
@@ -414,7 +414,7 @@ export default function AdminSupportersDashboard({ theme, toggleTheme }) {
 
       {/* Modal Confirmar Exclusão */}
       {confirmDeleteOf && (
-        <Modal title="Excluir apoiador" onClose={() => setConfirmDeleteOf(null)}>
+        <Modal title="Excluir especialista" onClose={() => setConfirmDeleteOf(null)}>
           <p className="text-sm text-slate-600 dark:text-slate-300">
             Tem certeza que deseja excluir{" "}
             <strong>{confirmDeleteOf.name || confirmDeleteOf.email || confirmDeleteOf.id}</strong>? Esta ação não pode
@@ -496,7 +496,7 @@ function EditModal({ supporter, busy, onClose, onSave }) {
   const setField = (k) => (e) => setForm((prev) => ({ ...prev, [k]: e.target.value }));
 
   return (
-    <Modal title="Editar apoiador" onClose={onClose}>
+    <Modal title="Editar especialista" onClose={onClose}>
       <div className="space-y-3">
         <Field label="Nome">
           <input

@@ -29,7 +29,7 @@ const COMPANY_CONFIRMED_FLAG_KEY = "trabalheiLa_companyConfirmedFlag";
 // Rotas padrão por tipo de perfil.
 const PROFILE_ROUTES = {
   empresario: { label: "Sou Empresário", route: "/empresa-dashboard", color: "bg-amber-500 hover:bg-amber-600 text-amber-950" },
-  apoiador: { label: "Sou Apoiador", route: "/apoiador/my-contacts", color: "bg-blue-600 hover:bg-blue-700 text-white" },
+  apoiador: { label: "Sou Especialista", route: "/apoiador/my-contacts", color: "bg-blue-600 hover:bg-blue-700 text-white" },
   trabalhador: { label: "Sou Trabalhador", route: "/minha-conta", color: "bg-lime-500 hover:bg-lime-600 text-emerald-950" },
 };
 

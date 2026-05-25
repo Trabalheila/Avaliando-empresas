@@ -331,7 +331,7 @@ function TrabalheiLaDesktop({
     { restrictKey: "lideranca", label: t('Acessibilidade e respeito da liderança'), value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca, icon: <FiUsers className="text-indigo-600" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200" },
     { restrictKey: "estimacaoOrganizacao", label: t('Condições de trabalho'), value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao, icon: <FiBriefcase className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200" },
     { restrictKey: "ambiente", label: t('Estímulo ao respeito'), value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente, icon: <FiUsers className="text-violet-600" />, iconBg: "from-violet-50 to-fuchsia-100 border-violet-200" },
-    { type: "yesno", label: t('Sofreu discriminação?'), restrictedNote: "Informação de visualização restrita a apoiadores.", value: discriminacao, set: setDiscriminacao, comment: commentDiscriminacao, setComment: setCommentDiscriminacao, icon: <FiAlertCircle className="text-teal-600" />, iconBg: "from-teal-50 to-cyan-100 border-teal-200" },
+    { type: "yesno", label: t('Sofreu discriminação?'), restrictedNote: "Informação de visualização restrita a especialistas.", value: discriminacao, set: setDiscriminacao, comment: commentDiscriminacao, setComment: setCommentDiscriminacao, icon: <FiAlertCircle className="text-teal-600" />, iconBg: "from-teal-50 to-cyan-100 border-teal-200" },
     { restrictKey: "diversidade", label: t('Diversidade e Inclusão'), value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade, icon: <FiUsers className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200" },
     { restrictKey: "cargaHoraria", label: t('Carga Horária / Jornada de Trabalho'), value: cargaHoraria, set: setCargaHoraria, comment: commentCargaHoraria, setComment: setCommentCargaHoraria, icon: <FiClock className="text-indigo-700" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200" },
     { restrictKey: "crescimento", label: t('Oportunidades de Desenvolvimento / Crescimento'), value: crescimento, set: setCrescimento, comment: commentCrescimento, setComment: setCommentCrescimento, icon: <FiArrowUpCircle className="text-emerald-700" />, iconBg: "from-emerald-50 to-teal-100 border-emerald-200" },
@@ -738,7 +738,7 @@ function TrabalheiLaDesktop({
               aria-label="Ver benefícios do plano Premium"
             >
               <span className="text-base leading-none" aria-hidden="true">⭐</span>
-              <span>Premium para trabalhadores, empresas e apoiadores</span>
+              <span>Premium para trabalhadores, empresas e especialistas</span>
               <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/30 text-amber-950 text-[10px] font-bold uppercase tracking-wider">
                 Ver benefícios
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -815,7 +815,7 @@ function TrabalheiLaDesktop({
               to="/apoiadores"
               className="flex-1 sm:max-w-xs text-center py-2.5 px-4 rounded-lg bg-white hover:bg-blue-50 text-blue-800 text-sm md:text-base font-bold shadow transition-colors"
             >
-              Sou Apoiador
+              Sou Especialista
             </Link>
           </div>
           {isAuthenticated && (
@@ -1222,7 +1222,7 @@ function TrabalheiLaDesktop({
                               className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-full px-2 py-0.5 cursor-help"
                             >
                               <FiInfo className="w-3 h-3" aria-hidden="true" />
-                              <span>Restrito a apoiadores</span>
+                              <span>Restrito a especialistas</span>
                             </span>
                           )}
                         </span>

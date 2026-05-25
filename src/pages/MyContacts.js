@@ -132,7 +132,7 @@ export default function MyContacts({ theme, toggleTheme }) {
             Meus Contatos
           </h1>
           <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
-            Pedidos de contato recebidos de empresas Apoiadoras Premium. Sua
+            Pedidos de contato recebidos de Especialistas Premium. Sua
             identidade real (incluindo e-mail) só é compartilhada quando você
             decide responder e marcar a opção de revelar.
           </p>
@@ -161,7 +161,7 @@ export default function MyContacts({ theme, toggleTheme }) {
                       Pedido de contato
                     </p>
                     <p className="font-bold text-slate-800 dark:text-slate-100 mt-0.5">
-                      {r.fromCompanyName || "Empresa Apoiadora"}
+                      {r.fromCompanyName || "Empresa Especialista"}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       {r.createdAt ? new Date(r.createdAt).toLocaleString("pt-BR") : ""}

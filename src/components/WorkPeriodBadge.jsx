@@ -52,7 +52,7 @@ export default function WorkPeriodBadge({ workPeriod, className = "" }) {
 
   return (
     <span
-      title="Período de trabalho — visível apenas para Apoiadores"
+      title="Período de trabalho — visível apenas para Especialistas"
       className={
         "inline-flex items-center gap-1 text-[11px] font-semibold text-purple-800 bg-purple-100 border border-purple-300 rounded-full px-2 py-0.5 dark:bg-purple-900/30 dark:text-purple-200 dark:border-purple-700 " +
         className

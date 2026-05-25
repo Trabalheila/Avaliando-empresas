@@ -82,7 +82,7 @@ export async function handleCheckout({ cnpj, companySlug, companyName, audience,
  * Reaproveita o mesmo endpoint `/api/create-checkout-session` usando audience="consultation".
  */
 export async function requestConsultation({ apoiadorId, apoiadorNome, tier, amount, workerId, especialidade, audience } = {}) {
-  if (!apoiadorId) throw new Error("Apoiador não identificado.");
+  if (!apoiadorId) throw new Error("Especialista não identificado.");
   const safeAmount = Number(amount);
   if (!Number.isFinite(safeAmount) || safeAmount <= 0) {
     throw new Error("Valor da consulta inválido.");

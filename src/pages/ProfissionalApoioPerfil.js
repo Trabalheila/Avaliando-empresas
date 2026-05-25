@@ -253,7 +253,7 @@ export default function ProfissionalApoioPerfil({ theme, toggleTheme }) {
                   )}
                   {isPremiumApoiador && (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow">
-                      ⭐ Apoiador Premium
+                      ⭐ Especialista Premium
                     </span>
                   )}
                   {isPremiumApoiador && isAvailableForContact && (

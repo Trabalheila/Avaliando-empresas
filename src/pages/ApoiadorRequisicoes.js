@@ -80,7 +80,7 @@ export default function ApoiadorRequisicoes({ theme, toggleTheme }) {
         const id = stored?.apoiadorId || "";
         if (!id) {
           if (!cancelled) {
-            setError("Você precisa estar logado como Apoiador para ver suas requisições.");
+            setError("Você precisa estar logado como Especialista para ver suas requisições.");
             setLoading(false);
           }
           return;
@@ -88,7 +88,7 @@ export default function ApoiadorRequisicoes({ theme, toggleTheme }) {
         const snap = await getDoc(doc(db, "apoiadores", id));
         if (!snap.exists()) {
           if (!cancelled) {
-            setError("Perfil de Apoiador não encontrado.");
+            setError("Perfil de Especialista não encontrado.");
             setLoading(false);
           }
           return;
@@ -238,7 +238,7 @@ export default function ApoiadorRequisicoes({ theme, toggleTheme }) {
               Defina seu preço de consulta para aparecer nas buscas.
             </p>
             <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
-              Apoiadores Premium definem o próprio valor. Sem esse campo preenchido,
+              Especialistas Premium definem o próprio valor. Sem esse campo preenchido,
               seu perfil não exibe botão "Solicitar consulta" para potenciais clientes.
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2">

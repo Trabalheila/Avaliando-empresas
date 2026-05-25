@@ -9,7 +9,7 @@ const USER_TYPE_OPTIONS = [
   { value: "todos", label: "Todos" },
   { value: "trabalhador", label: "Trabalhador" },
   { value: "empresa", label: "Empresa" },
-  { value: "apoiador", label: "Apoiador" },
+  { value: "apoiador", label: "Especialista" },
 ];
 
 const PLAN_STATUS_OPTIONS = [
@@ -35,7 +35,7 @@ const PLAN_BADGE = {
 const USER_TYPE_LABEL = {
   trabalhador: "Trabalhador",
   empresa: "Empresa",
-  apoiador: "Apoiador",
+  apoiador: "Especialista",
 };
 
 function getAdminUid() {
@@ -216,7 +216,7 @@ function AdminPlansManager({ theme, toggleTheme }) {
           <div>
             <h1 className="text-2xl font-extrabold">Gerenciar Planos</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Conceda ou remova acesso Premium Gratuito para trabalhadores, empresas e apoiadores.
+              Conceda ou remova acesso Premium Gratuito para trabalhadores, empresas e especialistas.
             </p>
           </div>
           <button

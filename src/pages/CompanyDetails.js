@@ -2757,10 +2757,10 @@ function CompanyDetails({ theme, toggleTheme }) {
         </section>
       )}
 
-      {/* ── Apoiadores Recomendados ── */}
+      {/* ── Especialistas Recomendados ── */}
       {apoiadoresRecomendados.length > 0 && (
         <section className="max-w-5xl mx-auto px-4 py-10">
-          <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 mb-1 text-center">Apoiadores Recomendados</h2>
+          <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 mb-1 text-center">Especialistas Recomendados</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 text-center">Profissionais verificados prontos para ajudar.</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {apoiadoresRecomendados.map((a) => (

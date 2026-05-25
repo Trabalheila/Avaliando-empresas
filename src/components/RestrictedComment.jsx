@@ -23,7 +23,7 @@ import { getRestrictedContentTier } from "../utils/rbac";
  */
 
 const FREE_PLACEHOLDER =
-  "[Conteúdo sensível. Visível apenas para Apoiadores e Trabalhadores Premium]";
+  "[Conteúdo sensível. Visível apenas para Especialistas e Trabalhadores Premium]";
 
 function sanitizeSegments(segments, textLength) {
   if (!Array.isArray(segments)) return [];

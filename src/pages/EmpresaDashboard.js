@@ -54,9 +54,9 @@ const PREMIUM_FEATURES_SHOWCASE = [
   },
   {
     icon: "☎️",
-    title: "Linha Direta com Apoiadores Premium",
+    title: "Linha Direta com Especialistas Premium",
     description:
-      "Atendimento prioritário via WhatsApp com apoiadores especializados em cultura organizacional, RH e gestão de pessoas. Tire dúvidas e agende consultorias.",
+      "Atendimento prioritário via WhatsApp com especialistas em cultura organizacional, RH e gestão de pessoas. Tire dúvidas e agende consultorias.",
   },
   {
     icon: "🆘",
@@ -1278,7 +1278,7 @@ export default function EmpresaDashboard() {
                   </h2>
                   <p className="mt-1 text-sm text-amber-900/90 dark:text-amber-100/90 max-w-2xl">
                     Desbloqueie comparativo de setor, relatório executivo, gerenciamento de comentários e a Linha
-                    Direta com Apoiadores Premium. Sem cobrança, sem cartão de crédito.
+                    Direta com Especialistas Premium. Sem cobrança, sem cartão de crédito.
                   </p>
                 </div>
               </div>
@@ -2203,7 +2203,7 @@ export default function EmpresaDashboard() {
                     EXCLUSIVO PREMIUM
                   </div>
                   <h2 className="mt-2 text-xl font-bold text-slate-800 dark:text-slate-100">
-                    Linha Direta com Apoiadores Premium
+                    Linha Direta com Especialistas Premium
                   </h2>
                   <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 max-w-2xl">
                     Acesso prioritário a apoiadores especializados em cultura organizacional, RH e gestão de pessoas.
@@ -2225,7 +2225,7 @@ export default function EmpresaDashboard() {
                 className="inline-flex items-center gap-2 h-11 px-5 rounded-lg font-bold text-white bg-emerald-600 hover:bg-emerald-700"
               >
                 <span aria-hidden="true">💬</span>
-                Contactar Apoiador Premium
+                Contactar Especialista Premium
               </button>
             </div>
           </section>

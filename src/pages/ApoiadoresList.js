@@ -173,17 +173,17 @@ function ApoiadoresList({ theme, toggleTheme }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900">
-      <AppHeader theme={theme} toggleTheme={toggleTheme} title="Apoiadores" />
+      <AppHeader theme={theme} toggleTheme={toggleTheme} title="Especialistas" />
 
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-8">
         {/* ── Cabeçalho ── */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">Apoiadores</h1>
+            <h1 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">Especialistas</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400">Consultores, advogados e prestadores parceiros da plataforma.</p>
           </div>
           <Link to="/apoiadores/cadastro" className="px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition">
-            Quero ser Apoiador
+            Quero ser Especialista
           </Link>
         </div>
 
@@ -260,9 +260,9 @@ function ApoiadoresList({ theme, toggleTheme }) {
 
         {/* ── Lista ── */}
         {loading ? (
-          <p className="text-sm text-slate-500">Carregando apoiadores…</p>
+          <p className="text-sm text-slate-500">Carregando especialistas…</p>
         ) : filtered.length === 0 ? (
-          <p className="text-sm text-slate-500">Nenhum apoiador encontrado com os filtros selecionados.</p>
+          <p className="text-sm text-slate-500">Nenhum especialista encontrado com os filtros selecionados.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map((a) => {
@@ -288,7 +288,7 @@ function ApoiadoresList({ theme, toggleTheme }) {
                         <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{a.nome}</h3>
                         {isPremium && (
                           <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 rounded-full whitespace-nowrap">
-                            ✓ Apoiador Premium Verificado
+                            ✓ Especialista Premium Verificado
                           </span>
                         )}
                       </div>
