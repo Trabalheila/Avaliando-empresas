@@ -605,223 +605,233 @@ function TrabalheiLaDesktop({
           </div>
         )}
 
-        {/* CARD CENTRAL — "Evoluindo o mercado de trabalho" + ações agrupadas */}
-        <div className="mx-auto max-w-2xl mb-6 bg-white/80 dark:bg-slate-900/70 backdrop-blur-sm rounded-2xl shadow-lg border border-blue-200 dark:border-slate-700 px-6 py-4 text-center">
-          <div className="w-32 h-1 mx-auto rounded-full bg-gradient-to-r from-blue-300 via-blue-700 to-blue-300 dark:from-slate-500 dark:via-blue-400 dark:to-slate-500 mb-2" />
-          <p className="text-blue-700 dark:text-blue-200 text-base md:text-lg font-extrabold leading-tight mb-3">
-            {t('Evoluindo o mercado de trabalho')}
-          </p>
+        {/* HERO CARD — único card dinâmico que substitui Evoluindo + Login + Crie sua conta */}
+        {(() => {
+          const role = (userProfile?.role || "").toString().toLowerCase().trim();
+          const userType = (userProfile?.userType || "").toString().toLowerCase().trim();
+          const isEmployerProfile =
+            role === "admin_empresa" ||
+            userType === "empresario" ||
+            userType === "empres\u00e1rio" ||
+            userProfile?.isEmployer === true ||
+            Boolean(userProfile?.managedCompanyId);
+          const isSpecialistProfile =
+            userType === "apoiador" ||
+            userType === "especialista" ||
+            Boolean(userProfile?.apoiadorId);
+          const isWorkerProfile =
+            hasCompletedProfile ||
+            userType === "trabalhador" ||
+            role === "trabalhador";
+          const hasDefinedProfileType = isEmployerProfile || isSpecialistProfile || isWorkerProfile;
+          const greetingName =
+            (userPseudonym || userProfile?.name || "").toString().trim() || "amigo(a)";
+          let isAdminFlag = false;
+          try {
+            // eslint-disable-next-line global-require
+            const { isAdmin } = require("./utils/rbac");
+            isAdminFlag = isAdmin();
+          } catch { /* silencioso */ }
+          return (
+            <div
+              className="mx-auto max-w-2xl mb-6 rounded-2xl shadow-xl p-5 md:p-6 border-2 border-blue-400 dark:border-blue-500/60 bg-gradient-to-br from-blue-600 via-indigo-700 to-blue-800 dark:from-slate-800 dark:via-slate-900 dark:to-blue-950 ring-1 ring-white/10"
+              style={{ animation: "homeHeroIn 700ms ease-out both" }}
+            >
+              <style>{`
+                @keyframes homeHeroIn {
+                  from { opacity: 0; transform: translateY(18px); }
+                  to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes homeLoginSectionIn {
+                  from { opacity: 0; transform: translateY(18px); }
+                  to { opacity: 1; transform: translateY(0); }
+                }
+              `}</style>
 
-          {!isAuthenticated && (
-            <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
-              <span
-                title="Sua identidade é mantida em sigilo: avaliações são publicadas sob pseudônimo."
-                className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
-              >
-                <FaUserSecret className="text-[11px]" aria-hidden="true" />
-                Anônimo
-              </span>
-              <span
-                title="Conta verificada via login LinkedIn ou Google."
-                className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
-              >
-                <FaCheckCircle className="text-[11px]" aria-hidden="true" />
-                Verificado
-              </span>
-              <span
-                title="Plataforma com regras anti-fraude e moderação de avaliações."
-                className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold cursor-help"
-              >
-                <FaShieldAlt className="text-[11px]" aria-hidden="true" />
-                Confiável
-              </span>
-            </div>
-          )}
+              {/* Título principal */}
+              <h2 className="text-xl md:text-2xl font-extrabold text-white text-center mb-1 tracking-wide font-azonix drop-shadow">
+                Trabalhei Lá: Sua Voz no Mercado de Trabalho
+              </h2>
+              <div className="w-28 h-1 mx-auto mb-4 rounded-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.6)]" />
 
-          {isAuthenticated && (
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              {(() => {
-                // Regra de negócio:
-                //  - empresário => apenas "Painel Empresa".
-                //  - trabalhador => "Editar perfil" / "Crie seu perfil".
-                const role = (userProfile?.role || "").toString().toLowerCase().trim();
-                const userType = (userProfile?.userType || "").toString().toLowerCase().trim();
-                const isEmployer =
-                  role === "admin_empresa" ||
-                  userType === "empresario" ||
-                  userType === "empres\u00e1rio" ||
-                  userProfile?.isEmployer === true ||
-                  Boolean(userProfile?.managedCompanyId);
-                if (isEmployer) {
-                  return (
+              {/* Badges de destaque (Anônimo / Verificado / Confiável) */}
+              <div className="flex flex-wrap items-center justify-center gap-3 mb-5">
+                <span
+                  title="Sua identidade é mantida em sigilo: avaliações são publicadas sob pseudônimo."
+                  className="inline-flex items-center gap-2 bg-white/95 dark:bg-slate-100 text-blue-800 px-3.5 py-1.5 rounded-full text-sm font-extrabold shadow-md ring-2 ring-amber-300/70 cursor-help"
+                >
+                  <FaUserSecret className="text-base text-blue-700" aria-hidden="true" />
+                  Anônimo
+                </span>
+                <span
+                  title="Conta verificada via login LinkedIn ou Google."
+                  className="inline-flex items-center gap-2 bg-white/95 dark:bg-slate-100 text-emerald-800 px-3.5 py-1.5 rounded-full text-sm font-extrabold shadow-md ring-2 ring-amber-300/70 cursor-help"
+                >
+                  <FaCheckCircle className="text-base text-emerald-600" aria-hidden="true" />
+                  Verificado
+                </span>
+                <span
+                  title="Plataforma com regras anti-fraude e moderação de avaliações."
+                  className="inline-flex items-center gap-2 bg-white/95 dark:bg-slate-100 text-indigo-800 px-3.5 py-1.5 rounded-full text-sm font-extrabold shadow-md ring-2 ring-amber-300/70 cursor-help"
+                >
+                  <FaShieldAlt className="text-base text-indigo-600" aria-hidden="true" />
+                  Confiável
+                </span>
+              </div>
+
+              {/* CENÁRIO 1 — não autenticado */}
+              {!isAuthenticated && (
+                <>
+                  <p className="text-sm md:text-base text-blue-100 text-center mb-4">
+                    Entre ou crie sua conta para avaliar empresas e compartilhar sua experiência!
+                  </p>
+                  <div className="flex flex-col sm:flex-row items-stretch justify-center gap-3">
                     <button
                       type="button"
-                      onClick={() => navigate("/empresa-dashboard")}
-                      className="inline-flex items-center px-3 py-1.5 border border-blue-700 text-blue-700 text-sm font-bold rounded-md bg-transparent hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
+                      onClick={onGoogleLogin}
+                      disabled={isLoading}
+                      className="flex-1 sm:max-w-xs inline-flex items-center justify-center gap-2 bg-white text-blue-800 font-bold py-2.5 px-4 rounded-lg shadow hover:bg-blue-50 transition-colors text-sm md:text-base disabled:opacity-60"
                     >
-                      Painel Empresa
+                      <FaGoogle className="text-lg" /> Entrar com Google
                     </button>
-                  );
-                }
-                return (
-                  <a
-                    href="/pseudonym"
-                    className="inline-flex items-center px-3 py-1.5 border border-blue-700 text-blue-700 text-sm font-bold rounded-md bg-transparent hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
-                  >
-                    <FaUserEdit className="mr-1 text-[11px]" />
-                    {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
-                  </a>
-                );
-              })()}
-              <button
-                type="button"
-                onClick={() => {
-                  const pid =
-                    userProfile?.profileId ||
-                    resolveProfileId(userProfile, { persistGeneratedId: false });
-                  if (pid) {
-                    navigate(`/perfil/${encodeURIComponent(pid)}`);
-                  } else {
-                    navigate("/minha-conta");
-                  }
-                }}
-                className="inline-flex items-center px-3 py-1.5 border border-blue-700 text-blue-700 text-sm font-bold rounded-md bg-transparent hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
-              >
-                Ver meu perfil
-              </button>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="inline-flex items-center px-3 py-1.5 border border-blue-700 text-blue-700 text-sm font-bold rounded-md bg-transparent hover:bg-blue-50 transition dark:border-blue-400 dark:text-blue-300 dark:hover:bg-slate-700"
-              >
-                Sair
-              </button>
-              {(() => {
-                try {
-                  const { isAdmin } = require("./utils/rbac");
-                  if (isAdmin()) {
-                    return (
+                    <div className="flex-1 sm:max-w-xs">
+                      <LoginLinkedInButton
+                        clientId={linkedInClientId}
+                        redirectUri={linkedInRedirectUri}
+                        onLoginSuccess={onLoginSuccess}
+                        onLoginFailure={(err) => setError(err?.message || String(err))}
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* CENÁRIO 2 — autenticado sem tipo de perfil */}
+              {isAuthenticated && !hasDefinedProfileType && (
+                <>
+                  <p className="text-sm md:text-base text-blue-100 text-center mb-4">
+                    Bem-vindo(a)! Escolha seu perfil para começar:
+                  </p>
+                  <div className="flex flex-col sm:flex-row items-stretch justify-center gap-3">
+                    <Link
+                      to="/pseudonym"
+                      className="flex-1 sm:max-w-xs text-center py-2.5 px-4 rounded-lg bg-lime-400 hover:bg-lime-500 text-emerald-950 text-sm md:text-base font-bold shadow transition-colors"
+                    >
+                      Sou Trabalhador
+                    </Link>
+                    <Link
+                      to="/empresa/cadastro"
+                      className="flex-1 sm:max-w-xs text-center py-2.5 px-4 rounded-lg bg-amber-400 hover:bg-amber-500 text-amber-950 text-sm md:text-base font-bold shadow transition-colors"
+                    >
+                      Sou Empresário
+                    </Link>
+                    <Link
+                      to="/apoiadores"
+                      className="flex-1 sm:max-w-xs text-center py-2.5 px-4 rounded-lg bg-white hover:bg-blue-50 text-blue-800 text-sm md:text-base font-bold shadow transition-colors"
+                    >
+                      Sou Especialista
+                    </Link>
+                  </div>
+                </>
+              )}
+
+              {/* CENÁRIO 3 — autenticado com tipo de perfil definido */}
+              {isAuthenticated && hasDefinedProfileType && (
+                <>
+                  <p className="text-sm md:text-base text-blue-100 text-center mb-4">
+                    Bem-vindo(a), <span className="font-extrabold text-white">{greetingName}</span>!
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    {isEmployerProfile ? (
+                      <button
+                        type="button"
+                        onClick={() => navigate("/empresa-dashboard")}
+                        className="inline-flex items-center px-4 py-2 rounded-lg bg-white text-blue-800 text-sm font-bold shadow hover:bg-blue-50 transition"
+                      >
+                        Painel Empresa
+                      </button>
+                    ) : (
+                      <a
+                        href="/pseudonym"
+                        className="inline-flex items-center px-4 py-2 rounded-lg bg-white text-blue-800 text-sm font-bold shadow hover:bg-blue-50 transition"
+                      >
+                        <FaUserEdit className="mr-1 text-xs" />
+                        {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const pid =
+                          userProfile?.profileId ||
+                          resolveProfileId(userProfile, { persistGeneratedId: false });
+                        if (pid) {
+                          navigate(`/perfil/${encodeURIComponent(pid)}`);
+                        } else {
+                          navigate("/minha-conta");
+                        }
+                      }}
+                      className="inline-flex items-center px-4 py-2 rounded-lg bg-white text-blue-800 text-sm font-bold shadow hover:bg-blue-50 transition"
+                    >
+                      Ver meu perfil
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="inline-flex items-center px-4 py-2 rounded-lg bg-transparent border-2 border-white text-white text-sm font-bold hover:bg-white/10 transition"
+                    >
+                      Sair
+                    </button>
+                    {isAdminFlag && (
                       <a
                         href="/admin"
-                        className="inline-flex items-center px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition"
+                        className="inline-flex items-center px-3 py-1.5 text-xs text-blue-100 hover:text-white underline transition"
                       >
                         Admin
                       </a>
-                    );
-                  }
-                } catch { /* silencioso */ }
-                return null;
-              })()}
-            </div>
-          )}
+                    )}
+                  </div>
+                </>
+              )}
 
-          {firebaseStatus && (
-            <p className="text-xs text-red-500 dark:text-red-400 mt-3">{firebaseStatus}</p>
-          )}
+              {firebaseStatus && (
+                <p className="text-xs text-red-200 dark:text-red-300 mt-3 text-center">{firebaseStatus}</p>
+              )}
 
-          {company && (
-            <button
-              type="button"
-              onClick={handleSaibaMais}
-              className="mt-4 bg-blue-700 text-white font-extrabold py-3 px-12 min-w-[21rem] rounded-2xl shadow-lg transition-all transform hover:scale-105 hover:bg-blue-800 text-lg font-azonix"
-            >
-              {`Ver avaliações da ${company.value.length > 25 ? company.value.slice(0, 25) + "…" : company.value}`}
-            </button>
-          )}
+              {company && (
+                <div className="mt-5 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={handleSaibaMais}
+                    className="bg-blue-900 text-white font-extrabold py-3 px-10 min-w-[18rem] rounded-2xl shadow-lg transition-all transform hover:scale-105 hover:bg-blue-950 text-base md:text-lg font-azonix"
+                  >
+                    {`Ver avaliações da ${company.value.length > 25 ? company.value.slice(0, 25) + "…" : company.value}`}
+                  </button>
+                </div>
+              )}
 
-          {/* Banner Premium — CTA destacado */}
-          <div className="mt-5 flex items-center justify-center">
-            <button
-              type="button"
-              onClick={() => navigate('/escolha-perfil?planos=1')}
-              className="group inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-amber-950 text-sm md:text-[15px] font-bold tracking-tight whitespace-nowrap shadow-md shadow-amber-500/25 ring-1 ring-amber-300/60 hover:shadow-lg hover:shadow-amber-500/35 hover:from-amber-300 hover:via-amber-400 hover:to-orange-400 hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-amber-300/50 transition-all duration-200"
-              aria-label="Ver benefícios do plano Premium"
-            >
-              <span className="text-base leading-none" aria-hidden="true">⭐</span>
-              <span>Premium para trabalhadores, empresas e especialistas</span>
-              <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/30 text-amber-950 text-[10px] font-bold uppercase tracking-wider">
-                Ver benefícios
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 5l7 7-7 7" />
-                </svg>
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* CARD CENTRAL DE LOGIN — Google + LinkedIn (acima das colunas) */}
-        {!isAuthenticated && (
-          <div className="mx-auto max-w-2xl mb-6 bg-amber-100 dark:bg-amber-200/15 border-2 border-amber-400 dark:border-amber-500/60 rounded-2xl shadow-xl p-5">
-            <h2 className="text-xl md:text-2xl font-extrabold text-amber-900 dark:text-amber-100 text-center mb-1 tracking-wide">
-              Entre para avaliar
-            </h2>
-            <p className="text-sm text-amber-800 dark:text-amber-200 text-center mb-4">
-              Use sua conta Google ou LinkedIn - seu nome continua anônimo.
-            </p>
-            <div className="flex flex-col sm:flex-row items-stretch justify-center gap-3">
-              <button
-                type="button"
-                onClick={onGoogleLogin}
-                disabled={isLoading}
-                className="flex-1 sm:max-w-xs inline-flex items-center justify-center gap-2 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-500/40 text-blue-800 dark:text-blue-200 font-semibold py-2.5 px-4 rounded-lg shadow hover:bg-amber-50 dark:hover:bg-slate-800 transition-colors text-sm md:text-base disabled:opacity-60"
-              >
-                <FaGoogle className="text-lg" /> Entrar com Google
-              </button>
-              <div className="flex-1 sm:max-w-xs">
-                <LoginLinkedInButton
-                  clientId={linkedInClientId}
-                  redirectUri={linkedInRedirectUri}
-                  onLoginSuccess={onLoginSuccess}
-                  onLoginFailure={(err) => setError(err?.message || String(err))}
-                  disabled={isLoading}
-                />
+              {/* Banner Premium — sempre visível na parte inferior do Hero */}
+              <div className="mt-6 pt-5 border-t border-white/20 flex items-center justify-center">
+                <button
+                  type="button"
+                  onClick={() => navigate('/escolha-perfil?planos=1')}
+                  className="group inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-amber-950 text-sm md:text-[15px] font-bold tracking-tight whitespace-nowrap shadow-md shadow-amber-500/25 ring-1 ring-amber-300/60 hover:shadow-lg hover:shadow-amber-500/35 hover:from-amber-300 hover:via-amber-400 hover:to-orange-400 hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-amber-300/50 transition-all duration-200"
+                  aria-label="Ver benefícios do plano Premium"
+                >
+                  <span className="text-base leading-none" aria-hidden="true">⭐</span>
+                  <span>Premium para trabalhadores, empresas e especialistas</span>
+                  <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/30 text-amber-950 text-[10px] font-bold uppercase tracking-wider">
+                    Ver benefícios
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 5l7 7-7 7" />
+                    </svg>
+                  </span>
+                </button>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* CARD CENTRAL "CRIE SUA CONTA" — destaque equiparado ao card de login */}
-        <div
-          className="mx-auto max-w-2xl mb-6 rounded-2xl shadow-xl p-5 md:p-6 border-2 border-blue-400 dark:border-blue-500/60 bg-gradient-to-br from-blue-600 via-indigo-700 to-blue-800 dark:from-slate-800 dark:via-slate-900 dark:to-blue-950 ring-1 ring-white/10"
-          style={{ animation: "homeLoginSectionIn 700ms ease-out both" }}
-        >
-          <style>{`
-            @keyframes homeLoginSectionIn {
-              from { opacity: 0; transform: translateY(18px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
-          `}</style>
-          <h2 className="text-xl md:text-2xl font-extrabold text-white text-center mb-1 tracking-wide font-azonix drop-shadow">
-            Crie sua conta
-          </h2>
-          <div className="w-28 h-1 mx-auto mb-3 rounded-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.6)]" />
-          <p className="text-sm text-blue-100 dark:text-blue-200 text-center mb-4">
-            Escolha seu perfil e comece a usar a plataforma!
-          </p>
-          <div className="flex flex-col sm:flex-row items-stretch justify-center gap-3">
-            <Link
-              to="/pseudonym"
-              className="flex-1 sm:max-w-xs text-center py-2.5 px-4 rounded-lg bg-lime-400 hover:bg-lime-500 text-emerald-950 text-sm md:text-base font-bold shadow transition-colors"
-            >
-              Sou Trabalhador
-            </Link>
-            <Link
-              to="/empresa/cadastro"
-              className="flex-1 sm:max-w-xs text-center py-2.5 px-4 rounded-lg bg-amber-400 hover:bg-amber-500 text-amber-950 text-sm md:text-base font-bold shadow transition-colors"
-            >
-              Sou Empresário
-            </Link>
-            <Link
-              to="/apoiadores"
-              className="flex-1 sm:max-w-xs text-center py-2.5 px-4 rounded-lg bg-white hover:bg-blue-50 text-blue-800 text-sm md:text-base font-bold shadow transition-colors"
-            >
-              Sou Especialista
-            </Link>
-          </div>
-          {isAuthenticated && (
-            <p className="text-green-300 font-semibold text-center mt-4 text-sm">✔ Você está autenticado!</p>
-          )}
-        </div>
+          );
+        })()}
 
         {/* CONTEÚDO - 3 COLUNAS NO DESKTOP (>1024px), 2 COLUNAS NO MOBILE (<1024px) */}
         <div className="flex flex-col lg:flex-row lg:flex-nowrap gap-6 mb-8">

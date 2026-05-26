@@ -2,7 +2,7 @@
 
 import { Link, useNavigate } from "react-router-dom";
 import {
-  FaStar, FaUserEdit, FaGoogle,
+  FaStar, FaUserEdit, FaGoogle, FaUserSecret, FaCheckCircle, FaShieldAlt,
 } from "react-icons/fa";
 import {
   FiMessageCircle, FiDollarSign, FiCompass, FiCalendar, FiUsers,
@@ -856,102 +856,195 @@ function TrabalheiLaMobile({
           }
         `}</style>
 
-        {/* CARD CENTRAL DE LOGIN — Google + LinkedIn (acima do formulario) */}
-        {!isAuthenticated && (
-          <div className="mx-auto w-full bg-amber-100 dark:bg-amber-200/15 border-2 border-amber-400 dark:border-amber-500/60 rounded-2xl shadow-lg p-4">
-            <h2 className="text-base font-extrabold text-amber-900 dark:text-amber-100 text-center mb-1 tracking-wide">
-              Entre para avaliar
-            </h2>
-            <p className="text-xs text-amber-800 dark:text-amber-200 text-center mb-3">
-              Use Google ou LinkedIn — seu nome continua anônimo.
-            </p>
-            <div className="flex flex-col sm:flex-row items-stretch justify-center gap-2">
-              <button
-                type="button"
-                onClick={onGoogleLogin}
-                disabled={isLoading}
-                className="flex-1 inline-flex items-center justify-center gap-2 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-500/40 text-blue-800 dark:text-blue-200 font-semibold py-2.5 px-3 rounded-lg shadow hover:bg-amber-50 dark:hover:bg-slate-800 transition-colors text-sm disabled:opacity-60"
-              >
-                <FaGoogle className="text-base" /> Entrar com Google
-              </button>
-              <div className="flex-1">
-                <LoginLinkedInButton
-                  clientId={linkedInClientId}
-                  redirectUri={linkedInRedirectUri}
-                  onLoginSuccess={onLoginSuccess}
-                  onLoginFailure={(err) => setError(err?.message || String(err))}
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-          </div>
-        )}
+        {/* HERO CARD MOBILE — unifica login + crie sua conta + saudação */}
+        {(() => {
+          const role = (userProfile?.role || "").toString().toLowerCase().trim();
+          const userType = (userProfile?.userType || "").toString().toLowerCase().trim();
+          const isEmployerProfile =
+            role === "admin_empresa" ||
+            userType === "empresario" ||
+            userType === "empres\u00e1rio" ||
+            userProfile?.isEmployer === true ||
+            Boolean(userProfile?.managedCompanyId);
+          const isSpecialistProfile =
+            userType === "apoiador" ||
+            userType === "especialista" ||
+            Boolean(userProfile?.apoiadorId);
+          const isWorkerProfile =
+            hasCompletedProfile ||
+            userType === "trabalhador" ||
+            role === "trabalhador";
+          const hasDefinedProfileType = isEmployerProfile || isSpecialistProfile || isWorkerProfile;
+          const greetingName =
+            (userPseudonym || userProfile?.name || "").toString().trim() || "amigo(a)";
+          let isAdminFlag = false;
+          try {
+            // eslint-disable-next-line global-require
+            const { isAdmin } = require("./utils/rbac");
+            isAdminFlag = isAdmin();
+          } catch { /* silencioso */ }
+          return (
+            <section
+              className="mx-auto w-full rounded-2xl shadow-xl p-4 border-2 border-blue-400 dark:border-blue-500/60 bg-gradient-to-br from-blue-600 via-indigo-700 to-blue-800 dark:from-slate-800 dark:via-slate-900 dark:to-blue-950 ring-1 ring-white/10"
+              style={{ animation: "homeLoginSectionIn 700ms ease-out both" }}
+            >
+              <style>{`
+                @keyframes homeLoginSectionIn {
+                  from { opacity: 0; transform: translateY(16px); }
+                  to { opacity: 1; transform: translateY(0); }
+                }
+              `}</style>
+              <h2 className="text-base md:text-lg font-extrabold text-white text-center mb-1 tracking-wide font-azonix drop-shadow leading-tight">
+                Trabalhei Lá: Sua Voz no Mercado de Trabalho
+              </h2>
+              <div className="w-24 h-1 mx-auto mb-3 rounded-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.6)]" />
 
-        {/* LOGIN */}
-        <section
-          className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700"
-          style={{ animation: "homeLoginSectionIn 700ms ease-out both" }}
-        >
-          <style>{`
-            @keyframes homeLoginSectionIn {
-              from { opacity: 0; transform: translateY(16px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
-            @keyframes homeCalloutIn {
-              from { opacity: 0; transform: translateY(10px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
-          `}</style>
-          <h2 className="text-sm uppercase tracking-[0.14em] font-extrabold text-blue-800 dark:text-blue-200 text-center mb-3">Crie sua conta</h2>
-          <div className="flex flex-col items-center space-y-3">
-            {/* Bloco neutro de cadastro por perfil */}
-            <div className="w-full pt-3 mt-1 border-t border-blue-100 dark:border-slate-700">
-              <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-100 text-center">
-                Crie sua conta
-              </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-300 text-center mt-1 mb-3">
-                Escolha seu perfil e comece a usar a plataforma!
-              </p>
-              <div className="flex flex-col gap-2">
-                <Link
-                  to="/pseudonym"
-                  className="w-full text-center py-2.5 px-3 rounded-xl bg-lime-400 hover:bg-lime-500 text-emerald-950 text-sm font-bold shadow transition"
+              {/* Badges destacados */}
+              <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
+                <span
+                  title="Sua identidade é mantida em sigilo."
+                  className="inline-flex items-center gap-1.5 bg-white text-blue-800 px-3 py-1 rounded-full text-xs font-extrabold shadow ring-2 ring-amber-300/70"
                 >
-                  Sou Trabalhador
-                </Link>
-                <Link
-                  to="/empresa/cadastro"
-                  className="w-full text-center py-2.5 px-3 rounded-xl bg-amber-400 hover:bg-amber-500 text-amber-950 text-sm font-bold shadow transition"
+                  <FaUserSecret className="text-sm text-blue-700" aria-hidden="true" />
+                  Anônimo
+                </span>
+                <span
+                  title="Conta verificada via LinkedIn ou Google."
+                  className="inline-flex items-center gap-1.5 bg-white text-emerald-800 px-3 py-1 rounded-full text-xs font-extrabold shadow ring-2 ring-amber-300/70"
                 >
-                  Sou Empresário
-                </Link>
-                <Link
-                  to="/apoiadores"
-                  className="w-full text-center py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow transition"
+                  <FaCheckCircle className="text-sm text-emerald-600" aria-hidden="true" />
+                  Verificado
+                </span>
+                <span
+                  title="Plataforma com moderação e anti-fraude."
+                  className="inline-flex items-center gap-1.5 bg-white text-indigo-800 px-3 py-1 rounded-full text-xs font-extrabold shadow ring-2 ring-amber-300/70"
                 >
-                  Sou Especialista
-                </Link>
+                  <FaShieldAlt className="text-sm text-indigo-600" aria-hidden="true" />
+                  Confiável
+                </span>
               </div>
-            </div>
-            <div className="flex items-center justify-center gap-2 flex-wrap" style={{ animation: "homeCalloutIn 1100ms ease-out both" }}>
-              <span className="flex items-center gap-1 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold">✓ Anônimo</span>
-              <span className="flex items-center gap-1 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold">✓ Verificado</span>
-              <span className="flex items-center gap-1 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold">✓ Confiável</span>
-            </div>
-            {isAuthenticated && (
-              <div className="w-full flex justify-end">
+
+              {/* CENÁRIO 1 — não autenticado */}
+              {!isAuthenticated && (
+                <>
+                  <p className="text-xs text-blue-100 text-center mb-3">
+                    Entre ou crie sua conta para avaliar empresas e compartilhar sua experiência!
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={onGoogleLogin}
+                      disabled={isLoading}
+                      className="w-full inline-flex items-center justify-center gap-2 bg-white text-blue-800 font-bold py-2.5 px-3 rounded-lg shadow hover:bg-blue-50 transition-colors text-sm disabled:opacity-60"
+                    >
+                      <FaGoogle className="text-base" /> Entrar com Google
+                    </button>
+                    <LoginLinkedInButton
+                      clientId={linkedInClientId}
+                      redirectUri={linkedInRedirectUri}
+                      onLoginSuccess={onLoginSuccess}
+                      onLoginFailure={(err) => setError(err?.message || String(err))}
+                      disabled={isLoading}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* CENÁRIO 2 — autenticado sem tipo de perfil */}
+              {isAuthenticated && !hasDefinedProfileType && (
+                <>
+                  <p className="text-xs text-blue-100 text-center mb-3">
+                    Bem-vindo(a)! Escolha seu perfil para começar:
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <Link
+                      to="/pseudonym"
+                      className="w-full text-center py-2.5 px-3 rounded-xl bg-lime-400 hover:bg-lime-500 text-emerald-950 text-sm font-bold shadow transition"
+                    >
+                      Sou Trabalhador
+                    </Link>
+                    <Link
+                      to="/empresa/cadastro"
+                      className="w-full text-center py-2.5 px-3 rounded-xl bg-amber-400 hover:bg-amber-500 text-amber-950 text-sm font-bold shadow transition"
+                    >
+                      Sou Empresário
+                    </Link>
+                    <Link
+                      to="/apoiadores"
+                      className="w-full text-center py-2.5 px-3 rounded-xl bg-white hover:bg-blue-50 text-blue-800 text-sm font-bold shadow transition"
+                    >
+                      Sou Especialista
+                    </Link>
+                  </div>
+                </>
+              )}
+
+              {/* CENÁRIO 3 — autenticado com tipo de perfil definido */}
+              {isAuthenticated && hasDefinedProfileType && (
+                <>
+                  <p className="text-xs text-blue-100 text-center mb-3">
+                    Bem-vindo(a), <span className="font-extrabold text-white">{greetingName}</span>!
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    {isEmployerProfile ? (
+                      <button
+                        type="button"
+                        onClick={() => navigate("/empresa-dashboard")}
+                        className="inline-flex items-center px-3 py-2 rounded-lg bg-white text-blue-800 text-xs font-bold shadow hover:bg-blue-50 transition"
+                      >
+                        Painel Empresa
+                      </button>
+                    ) : (
+                      <a
+                        href="/pseudonym"
+                        className="inline-flex items-center px-3 py-2 rounded-lg bg-white text-blue-800 text-xs font-bold shadow hover:bg-blue-50 transition"
+                      >
+                        <FaUserEdit className="mr-1 text-[10px]" />
+                        {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => navigate("/minha-conta")}
+                      className="inline-flex items-center px-3 py-2 rounded-lg bg-white text-blue-800 text-xs font-bold shadow hover:bg-blue-50 transition"
+                    >
+                      Ver meu perfil
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="inline-flex items-center px-3 py-2 rounded-lg bg-transparent border-2 border-white text-white text-xs font-bold hover:bg-white/10 transition"
+                    >
+                      Sair
+                    </button>
+                    {isAdminFlag && (
+                      <a
+                        href="/admin"
+                        className="text-[11px] text-blue-100 hover:text-white underline transition"
+                      >
+                        Admin
+                      </a>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* Premium — sempre visível na base do Hero */}
+              <div className="mt-5 pt-4 border-t border-white/20 flex justify-center">
                 <button
                   type="button"
-                  onClick={handleLogout}
-                  className="px-3 py-1.5 border-2 border-blue-700 text-blue-700 text-sm font-bold rounded-md hover:bg-blue-50 transition"
+                  onClick={() => navigate('/escolha-perfil?planos=1')}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-amber-950 text-xs font-bold shadow-md ring-1 ring-amber-300/60 hover:shadow-lg transition-all"
+                  aria-label="Ver benefícios do plano Premium"
                 >
-                  Sair
+                  <span aria-hidden="true">⭐</span>
+                  <span className="flex-1 text-center">Premium para trabalhadores, empresas e especialistas</span>
+                  <span aria-hidden="true">›</span>
                 </button>
               </div>
-            )}
-          </div>
-          {isAuthenticated && <p className="text-green-600 font-semibold text-center mt-3 text-sm">✓ Autenticado!</p>}
-        </section>
+            </section>
+          );
+        })()}
 
         {/* FORMULÁRIO */}
         <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700">
