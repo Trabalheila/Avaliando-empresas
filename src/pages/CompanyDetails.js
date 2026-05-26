@@ -556,11 +556,11 @@ function CompanyDetails({ theme, toggleTheme }) {
   }, [company?.company]);
 
   const reactions = [
-    { key: "thumbsDown", label: "👎" },
-    { key: "laugh", label: "😂" },
-    { key: "thumbsUp", label: "👍" },
-    { key: "cry", label: "😢" },
-    { key: "clap", label: "👏" },
+    { key: "thumbsUp", emoji: "👍", label: "Útil" },
+    { key: "thumbsDown", emoji: "👎", label: "Não Útil" },
+    { key: "clap", emoji: "👏", label: "Concordo" },
+    { key: "surprised", emoji: "😮", label: "Surpreso" },
+    { key: "cry", emoji: "😢", label: "Triste" },
   ];
 
   const clearReactionHoldTimer = () => {
@@ -618,7 +618,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     return (
       (comment?.reactions?.thumbsUp || 0) +
       (comment?.reactions?.clap || 0) +
-      (comment?.reactions?.laugh || 0)
+      (comment?.reactions?.surprised || comment?.reactions?.laugh || 0)
     );
   };
 
@@ -923,11 +923,12 @@ function CompanyDetails({ theme, toggleTheme }) {
                 ? data.editedAt.toDate().toISOString()
                 : data.editedAt || null,
             reactions: {
-              thumbsDown: data.reactions?.thumbsDown || 0,
-              laugh: data.reactions?.laugh || 0,
               thumbsUp: data.reactions?.thumbsUp || 0,
-              cry: data.reactions?.cry || 0,
+              thumbsDown: data.reactions?.thumbsDown || 0,
               clap: data.reactions?.clap || 0,
+              // Compatibilidade com dados antigos que usavam "laugh".
+              surprised: data.reactions?.surprised || data.reactions?.laugh || 0,
+              cry: data.reactions?.cry || 0,
             },
             replies: Array.isArray(data.replies)
               ? data.replies.map((reply) => ({
@@ -991,11 +992,10 @@ function CompanyDetails({ theme, toggleTheme }) {
         const snap = await getDocs(q);
         if (cancelled) return;
         const merged = { ...initial };
-        const pseudonym = localStorage.getItem("userPseudonym") || "anon";
         snap.forEach((d) => {
           const data = d.data() || {};
           if (data.commentId && data.reaction) {
-            merged[`${data.commentId}__${pseudonym}`] = data.reaction;
+            merged[`${data.commentId}__${userId}`] = data.reaction;
           }
         });
         setReactionRegistry(merged);
@@ -1177,7 +1177,7 @@ function CompanyDetails({ theme, toggleTheme }) {
       text: moderatedText,
       createdAt: new Date().toISOString(),
       moderation,
-      reactions: { thumbsDown: 0, laugh: 0, thumbsUp: 0, cry: 0, clap: 0 },
+      reactions: { thumbsUp: 0, thumbsDown: 0, clap: 0, surprised: 0, cry: 0 },
       replies: [],
     };
     saveComments([comment, ...comments]);
@@ -1194,11 +1194,11 @@ function CompanyDetails({ theme, toggleTheme }) {
     return items.map((item) => {
       if (item.id === targetId) {
         const base = {
-          thumbsDown: item.reactions?.thumbsDown || 0,
-          laugh: item.reactions?.laugh || 0,
           thumbsUp: item.reactions?.thumbsUp || 0,
-          cry: item.reactions?.cry || 0,
+          thumbsDown: item.reactions?.thumbsDown || 0,
           clap: item.reactions?.clap || 0,
+          surprised: item.reactions?.surprised || item.reactions?.laugh || 0,
+          cry: item.reactions?.cry || 0,
         };
         if (prevKey && base[prevKey] != null) {
           base[prevKey] = Math.max(0, base[prevKey] - 1);
@@ -1240,14 +1240,16 @@ function CompanyDetails({ theme, toggleTheme }) {
   }, []);
 
   const getUserReactionFor = (targetId) => {
-    const pseudonym = localStorage.getItem("userPseudonym") || "anon";
-    const registryKey = `${targetId}__${pseudonym}`;
+    const stableUserId = getStableUserId();
+    if (!stableUserId) return null;
+    const registryKey = `${targetId}__${stableUserId}`;
     return reactionRegistry[registryKey] || null;
   };
 
   const handleReact = (targetId, reactionKey) => {
-    const pseudonym = localStorage.getItem("userPseudonym") || "anon";
-    const registryKey = `${targetId}__${pseudonym}`;
+    const stableUserId = getStableUserId();
+    if (!stableUserId) return;
+    const registryKey = `${targetId}__${stableUserId}`;
     const prevReaction = reactionRegistry[registryKey] || null;
     const isSame = prevReaction === reactionKey;
     const nextReaction = isSame ? null : reactionKey;
@@ -1670,7 +1672,7 @@ function CompanyDetails({ theme, toggleTheme }) {
                 onTouchEnd={clearReactionHoldTimer}
                 onTouchCancel={clearReactionHoldTimer}
                 onClick={(e) => e.preventDefault()}
-                className="h-7 w-7 rounded-full border border-gray-300 bg-gray-100 text-gray-600 hover:bg-gray-200 transition flex items-center justify-center"
+                className="h-10 w-10 rounded-full border border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200 transition flex items-center justify-center text-lg"
                 aria-label="Reagir à resposta"
                 title="Segure para reagir"
               >
@@ -1688,7 +1690,7 @@ function CompanyDetails({ theme, toggleTheme }) {
                         type="button"
                         onClick={() => handleReact(reply.id, reaction.key)}
                         aria-pressed={isSelected}
-                        className={`flex items-center gap-1 px-2 py-1 border rounded-full transition-transform ${
+                        className={`flex items-center gap-2 px-3 py-1.5 border rounded-full transition-transform ${
                           isSelected
                             ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/40 ring-1 ring-blue-400"
                             : "border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600"
@@ -1696,8 +1698,8 @@ function CompanyDetails({ theme, toggleTheme }) {
                         aria-label={`Reagir com ${reaction.label}`}
                         title={isSelected ? "Clique para remover sua reação" : `Reagir com ${reaction.label}`}
                       >
-                        <span className="text-base">{reaction.label}</span>
-                        <span className={`text-xs font-semibold ${isSelected ? "text-blue-700 dark:text-blue-200" : "text-slate-700 dark:text-slate-100"}`}>
+                        <span className="text-base">{reaction.emoji} {reaction.label}</span>
+                        <span className={`text-sm font-semibold ${isSelected ? "text-blue-700 dark:text-blue-200" : "text-slate-700 dark:text-slate-100"}`}>
                           {reply.reactions?.[reaction.key] || 0}
                         </span>
                       </button>
@@ -2451,7 +2453,7 @@ function CompanyDetails({ theme, toggleTheme }) {
                           onTouchEnd={clearReactionHoldTimer}
                           onTouchCancel={clearReactionHoldTimer}
                           onClick={(e) => e.preventDefault()}
-                          className="h-7 w-7 rounded-full border border-gray-300 bg-gray-100 text-gray-600 hover:bg-gray-200 transition flex items-center justify-center"
+                          className="h-10 w-10 rounded-full border border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200 transition flex items-center justify-center text-lg"
                           aria-label="Reagir ao comentário"
                           title="Segure para reagir"
                         >
@@ -2469,7 +2471,7 @@ function CompanyDetails({ theme, toggleTheme }) {
                                   type="button"
                                   onClick={() => handleReact(comment.id, reaction.key)}
                                   aria-pressed={isSelected}
-                                  className={`flex items-center gap-1 px-2 py-1 border rounded-full transition-transform ${
+                                  className={`flex items-center gap-2 px-3 py-1.5 border rounded-full transition-transform ${
                                     isSelected
                                       ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/40 ring-1 ring-blue-400"
                                       : "border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600"
@@ -2477,8 +2479,8 @@ function CompanyDetails({ theme, toggleTheme }) {
                                   aria-label={`Reagir com ${reaction.label}`}
                                   title={isSelected ? "Clique para remover sua reação" : `Reagir com ${reaction.label}`}
                                 >
-                                  <span className="text-base">{reaction.label}</span>
-                                  <span className={`text-xs font-semibold ${isSelected ? "text-blue-700 dark:text-blue-200" : "text-slate-700 dark:text-slate-100"}`}>
+                                  <span className="text-base">{reaction.emoji} {reaction.label}</span>
+                                  <span className={`text-sm font-semibold ${isSelected ? "text-blue-700 dark:text-blue-200" : "text-slate-700 dark:text-slate-100"}`}>
                                     {comment.reactions?.[reaction.key] || 0}
                                   </span>
                                 </button>

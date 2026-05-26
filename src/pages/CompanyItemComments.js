@@ -41,16 +41,17 @@ function toSortableTime(value) {
 }
 
 function createEmptyReactions() {
-  return { thumbsDown: 0, laugh: 0, thumbsUp: 0, cry: 0, clap: 0 };
+  return { thumbsUp: 0, thumbsDown: 0, clap: 0, surprised: 0, cry: 0 };
 }
 
 function normalizeReactions(reactions) {
   return {
-    thumbsDown: reactions?.thumbsDown || 0,
-    laugh: reactions?.laugh || 0,
     thumbsUp: reactions?.thumbsUp || 0,
-    cry: reactions?.cry || 0,
+    thumbsDown: reactions?.thumbsDown || 0,
     clap: reactions?.clap || 0,
+    // Compatibilidade com dados antigos que usavam "laugh".
+    surprised: reactions?.surprised || reactions?.laugh || 0,
+    cry: reactions?.cry || 0,
   };
 }
 
@@ -116,18 +117,24 @@ function addReplyToItem(items, targetId, reply) {
   }));
 }
 
-function incrementReactionById(items, targetId, reactionKey) {
-  return updateItemById(items, targetId, (current) => ({
-    ...current,
-    reactions: {
-      thumbsDown: current?.reactions?.thumbsDown || 0,
-      laugh: current?.reactions?.laugh || 0,
-      thumbsUp: current?.reactions?.thumbsUp || 0,
-      cry: current?.reactions?.cry || 0,
-      clap: current?.reactions?.clap || 0,
-      [reactionKey]: (current?.reactions?.[reactionKey] || 0) + 1,
-    },
-  }));
+function applyReactionChangeById(items, targetId, prevReaction, nextReaction) {
+  return updateItemById(items, targetId, (current) => {
+    const reactions = normalizeReactions(current?.reactions);
+    const next = { ...reactions };
+
+    if (prevReaction && next[prevReaction]) {
+      next[prevReaction] = Math.max(0, next[prevReaction] - 1);
+    }
+
+    if (nextReaction) {
+      next[nextReaction] = (next[nextReaction] || 0) + 1;
+    }
+
+    return {
+      ...current,
+      reactions: next,
+    };
+  });
 }
 
 function CompanyItemComments({ theme, toggleTheme }) {
@@ -154,15 +161,16 @@ function CompanyItemComments({ theme, toggleTheme }) {
   const [editingScore, setEditingScore] = React.useState(0);
   const [savingEditId, setSavingEditId] = React.useState("");
   const [openReactionPickerId, setOpenReactionPickerId] = React.useState(null);
+  const [reactionRegistry, setReactionRegistry] = React.useState({});
   const [verificationByProfile, setVerificationByProfile] = React.useState({});
   const reactionHoldTimeout = React.useRef(null);
 
   const reactions = [
-    { key: "thumbsDown", label: "👎" },
-    { key: "laugh", label: "😂" },
-    { key: "thumbsUp", label: "👍" },
-    { key: "cry", label: "😢" },
-    { key: "clap", label: "👏" },
+    { key: "thumbsUp", emoji: "👍", label: "Útil" },
+    { key: "thumbsDown", emoji: "👎", label: "Não Útil" },
+    { key: "clap", emoji: "👏", label: "Concordo" },
+    { key: "surprised", emoji: "😮", label: "Surpreso" },
+    { key: "cry", emoji: "😢", label: "Triste" },
   ];
 
   const clearReactionHoldTimer = React.useCallback(() => {
@@ -199,7 +207,7 @@ function CompanyItemComments({ theme, toggleTheme }) {
         onTouchEnd={clearReactionHoldTimer}
         onTouchCancel={clearReactionHoldTimer}
         onClick={(e) => e.preventDefault()}
-        className="text-xs px-2 py-1 rounded-full border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"
+        className="text-sm px-3 py-1.5 rounded-full border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"
         aria-label="Segure para reagir"
         title="Segure para reagir"
       >
@@ -216,9 +224,9 @@ function CompanyItemComments({ theme, toggleTheme }) {
                 onReact(reaction.key);
                 setOpenReactionPickerId(null);
               }}
-              className="text-xs px-2 py-1 rounded-full border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"
+              className="text-sm px-3 py-1.5 rounded-full border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"
             >
-              {reaction.label} {getCount(reaction.key)}
+              {reaction.emoji} {reaction.label} {getCount(reaction.key)}
             </button>
           ))}
         </div>
@@ -236,6 +244,11 @@ function CompanyItemComments({ theme, toggleTheme }) {
     return `item_entry_threads_${companyName}_${itemKey}`;
   }, [companyName, itemKey]);
 
+  const getReactionRegistryStorageKey = React.useCallback(() => {
+    if (!companyName || !itemKey) return null;
+    return `item_comment_reactions_${companyName}_${itemKey}`;
+  }, [companyName, itemKey]);
+
   const getCompanySlug = React.useCallback(() => slugifyCompany(companyName || ""), [companyName]);
 
   const getEntryThreadDocId = React.useCallback((entryId) => {
@@ -250,6 +263,35 @@ function CompanyItemComments({ theme, toggleTheme }) {
   const getCurrentPseudonym = React.useCallback(() => {
     return (localStorage.getItem("userPseudonym") || "Anônimo").toString().trim();
   }, []);
+
+  const getStableUserId = React.useCallback(() => {
+    try {
+      const profileId = getStoredProfileId();
+      if (profileId) return `pid:${profileId}`;
+    } catch {
+      // ignore
+    }
+    try {
+      const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      if (profile?.id) return `pid:${profile.id}`;
+      if (profile?.uid) return `uid:${profile.uid}`;
+      if (profile?.email) return `email:${String(profile.email).toLowerCase()}`;
+    } catch {
+      // ignore
+    }
+    const pseudonym = (localStorage.getItem("userPseudonym") || "").toString().trim();
+    if (pseudonym) return `pseudo:${pseudonym.toLowerCase()}`;
+    return "";
+  }, []);
+
+  const getReactionRegistryKey = React.useCallback(
+    (targetId) => {
+      const userId = getStableUserId();
+      if (!targetId || !userId) return "";
+      return `${targetId}__${userId}`;
+    },
+    [getStableUserId]
+  );
 
   const saveComments = React.useCallback(
     (nextComments) => {
@@ -275,6 +317,19 @@ function CompanyItemComments({ theme, toggleTheme }) {
       }
     },
     [getEntryThreadsStorageKey]
+  );
+
+  const saveReactionRegistry = React.useCallback(
+    (nextRegistry) => {
+      setReactionRegistry(nextRegistry);
+      try {
+        const key = getReactionRegistryStorageKey();
+        if (key) localStorage.setItem(key, JSON.stringify(nextRegistry));
+      } catch {
+        // ignore
+      }
+    },
+    [getReactionRegistryStorageKey]
   );
 
   const syncCommentsToFirestore = React.useCallback(
@@ -537,6 +592,21 @@ function CompanyItemComments({ theme, toggleTheme }) {
   }, [getEntryThreadsStorageKey]);
 
   React.useEffect(() => {
+    const key = getReactionRegistryStorageKey();
+    if (!key) {
+      setReactionRegistry({});
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem(key);
+      setReactionRegistry(stored ? JSON.parse(stored) : {});
+    } catch {
+      setReactionRegistry({});
+    }
+  }, [getReactionRegistryStorageKey]);
+
+  React.useEffect(() => {
     let alive = true;
 
     const loadRemoteComments = async () => {
@@ -606,6 +676,55 @@ function CompanyItemComments({ theme, toggleTheme }) {
     };
   }, [getCompanySlug, itemKey, saveEntryThreads]);
 
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const loadRemoteReactions = async () => {
+      const companySlug = getCompanySlug();
+      const userId = getStableUserId();
+      if (!companySlug || !itemKey || !userId) return;
+
+      try {
+        const localKey = getReactionRegistryStorageKey();
+        let initial = {};
+        if (localKey) {
+          try {
+            const stored = localStorage.getItem(localKey);
+            initial = stored ? JSON.parse(stored) : {};
+          } catch {
+            initial = {};
+          }
+        }
+
+        const q = query(
+          collection(db, "item_comment_reactions"),
+          where("userId", "==", userId),
+          where("companySlug", "==", companySlug),
+          where("itemKey", "==", itemKey)
+        );
+        const snap = await getDocs(q);
+        if (cancelled) return;
+
+        const merged = { ...initial };
+        snap.forEach((d) => {
+          const data = d.data() || {};
+          if (!data?.targetId || !data?.reaction) return;
+          merged[`${data.targetId}__${userId}`] = data.reaction;
+        });
+
+        saveReactionRegistry(merged);
+      } catch {
+        // ignore
+      }
+    };
+
+    loadRemoteReactions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [getCompanySlug, getStableUserId, getReactionRegistryStorageKey, itemKey, saveReactionRegistry]);
+
   const handleAddComment = () => {
     const text = (commentText || "").trim();
     if (!text) {
@@ -618,7 +737,7 @@ function CompanyItemComments({ theme, toggleTheme }) {
       author: (localStorage.getItem("userPseudonym") || "Anônimo").toString().trim() || "Anônimo",
       text,
       createdAt: new Date().toISOString(),
-      reactions: { thumbsDown: 0, laugh: 0, thumbsUp: 0, cry: 0, clap: 0 },
+      reactions: createEmptyReactions(),
       replies: [],
     };
 
@@ -638,7 +757,7 @@ function CompanyItemComments({ theme, toggleTheme }) {
       author: (localStorage.getItem("userPseudonym") || "Anônimo").toString().trim() || "Anônimo",
       text,
       createdAt: new Date().toISOString(),
-      reactions: { thumbsDown: 0, laugh: 0, thumbsUp: 0, cry: 0, clap: 0 },
+      reactions: createEmptyReactions(),
       replies: [],
     };
 
@@ -650,9 +769,55 @@ function CompanyItemComments({ theme, toggleTheme }) {
   };
 
   const handleReact = (targetId, reactionKey) => {
-    const next = incrementReactionById(comments, targetId, reactionKey);
+    const registryKey = getReactionRegistryKey(targetId);
+    const prevReaction = registryKey ? reactionRegistry[registryKey] || null : null;
+    const nextReaction = prevReaction === reactionKey ? null : reactionKey;
+
+    const next = applyReactionChangeById(comments, targetId, prevReaction, nextReaction);
     saveComments(next);
     syncCommentsToFirestore(next);
+
+    if (registryKey) {
+      const nextRegistry = { ...reactionRegistry };
+      if (nextReaction) {
+        nextRegistry[registryKey] = nextReaction;
+      } else {
+        delete nextRegistry[registryKey];
+      }
+      saveReactionRegistry(nextRegistry);
+    }
+
+    (async () => {
+      try {
+        const companySlug = getCompanySlug();
+        const userId = getStableUserId();
+        if (!companySlug || !itemKey || !targetId || !userId) return;
+
+        const safeUserId = userId.replace(/[^a-zA-Z0-9_:.-]/g, "_");
+        const safeTargetId = String(targetId).replace(/[^a-zA-Z0-9_:.-]/g, "_");
+        const docId = `${companySlug}__${itemKey}__${safeTargetId}__${safeUserId}`;
+        const ref = doc(db, "item_comment_reactions", docId);
+
+        if (nextReaction) {
+          await setDoc(
+            ref,
+            {
+              companySlug,
+              itemKey,
+              targetId,
+              userId,
+              reaction: nextReaction,
+              updatedAt: new Date().toISOString(),
+            },
+            { merge: true }
+          );
+        } else {
+          await deleteDoc(ref);
+        }
+      } catch {
+        // ignore
+      }
+    })();
   };
 
   const getEntryThread = React.useCallback(
@@ -767,20 +932,34 @@ function CompanyItemComments({ theme, toggleTheme }) {
 
   const handleReactEntry = (entryId, targetId, reactionKey) => {
     const currentThread = getEntryThread(entryId);
+    const registryKey = getReactionRegistryKey(targetId);
+    const prevReaction = registryKey ? reactionRegistry[registryKey] || null : null;
+    const nextReaction = prevReaction === reactionKey ? null : reactionKey;
     let nextThread = currentThread;
 
     if (targetId === entryId) {
       nextThread = {
         ...currentThread,
-        reactions: {
-          ...normalizeReactions(currentThread.reactions),
-          [reactionKey]: (currentThread?.reactions?.[reactionKey] || 0) + 1,
-        },
+        reactions: (() => {
+          const base = normalizeReactions(currentThread.reactions);
+          if (prevReaction && base[prevReaction]) {
+            base[prevReaction] = Math.max(0, base[prevReaction] - 1);
+          }
+          if (nextReaction) {
+            base[nextReaction] = (base[nextReaction] || 0) + 1;
+          }
+          return base;
+        })(),
       };
     } else {
       nextThread = {
         ...currentThread,
-        replies: incrementReactionById(currentThread.replies || [], targetId, reactionKey),
+        replies: applyReactionChangeById(
+          currentThread.replies || [],
+          targetId,
+          prevReaction,
+          nextReaction
+        ),
       };
     }
 
@@ -794,6 +973,48 @@ function CompanyItemComments({ theme, toggleTheme }) {
 
     saveEntryThreads(nextThreads);
     syncEntryThreadToFirestore(entryId, nextThreads[entryId]);
+
+    if (registryKey) {
+      const nextRegistry = { ...reactionRegistry };
+      if (nextReaction) {
+        nextRegistry[registryKey] = nextReaction;
+      } else {
+        delete nextRegistry[registryKey];
+      }
+      saveReactionRegistry(nextRegistry);
+    }
+
+    (async () => {
+      try {
+        const companySlug = getCompanySlug();
+        const userId = getStableUserId();
+        if (!companySlug || !itemKey || !targetId || !userId) return;
+
+        const safeUserId = userId.replace(/[^a-zA-Z0-9_:.-]/g, "_");
+        const safeTargetId = String(targetId).replace(/[^a-zA-Z0-9_:.-]/g, "_");
+        const docId = `${companySlug}__${itemKey}__${safeTargetId}__${safeUserId}`;
+        const ref = doc(db, "item_comment_reactions", docId);
+
+        if (nextReaction) {
+          await setDoc(
+            ref,
+            {
+              companySlug,
+              itemKey,
+              targetId,
+              userId,
+              reaction: nextReaction,
+              updatedAt: new Date().toISOString(),
+            },
+            { merge: true }
+          );
+        } else {
+          await deleteDoc(ref);
+        }
+      } catch {
+        // ignore
+      }
+    })();
   };
 
   const renderReplies = (items) => {
