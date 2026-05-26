@@ -184,6 +184,30 @@ function TrabalheiLaDesktop({
   const [headerSpacerHeight, setHeaderSpacerHeight] = React.useState(0);
   const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
 
+  // Detecta se o usuário já possui um tipo de perfil definido
+  // (Trabalhador, Empresário ou Especialista). Usado para esconder o card
+  // "Crie sua conta" quando o usuário autenticado já fez sua escolha.
+  const hasDefinedProfileType = React.useMemo(() => {
+    const role = (userProfile?.role || "").toString().toLowerCase().trim();
+    const userType = (userProfile?.userType || "").toString().toLowerCase().trim();
+    const isEmployer =
+      role === "admin_empresa" ||
+      userType === "empresario" ||
+      userType === "empres\u00e1rio" ||
+      userProfile?.isEmployer === true ||
+      Boolean(userProfile?.managedCompanyId);
+    const isSpecialist =
+      userType === "apoiador" ||
+      userType === "especialista" ||
+      Boolean(userProfile?.apoiadorId);
+    const isWorker =
+      hasCompletedProfile ||
+      userType === "trabalhador" ||
+      role === "trabalhador";
+    return isEmployer || isSpecialist || isWorker;
+  }, [userProfile, hasCompletedProfile]);
+  const showCreateAccountCard = isAuthenticated && !hasDefinedProfileType;
+
   React.useEffect(() => {
     const updateHeaderSpacer = () => {
       setHeaderSpacerHeight(headerRef.current?.offsetHeight || 0);
@@ -781,6 +805,7 @@ function TrabalheiLaDesktop({
         )}
 
         {/* CARD CENTRAL "CRIE SUA CONTA" — destaque equiparado ao card de login */}
+        {showCreateAccountCard && (
         <div
           className="mx-auto max-w-2xl mb-6 rounded-2xl shadow-xl p-5 md:p-6 border-2 border-blue-400 dark:border-blue-500/60 bg-gradient-to-br from-blue-600 via-indigo-700 to-blue-800 dark:from-slate-800 dark:via-slate-900 dark:to-blue-950 ring-1 ring-white/10"
           style={{ animation: "homeLoginSectionIn 700ms ease-out both" }}
@@ -822,6 +847,7 @@ function TrabalheiLaDesktop({
             <p className="text-green-300 font-semibold text-center mt-4 text-sm">✔ Você está autenticado!</p>
           )}
         </div>
+        )}
 
         {/* CONTEÚDO - 3 COLUNAS NO DESKTOP (>1024px), 2 COLUNAS NO MOBILE (<1024px) */}
         <div className="flex flex-col lg:flex-row lg:flex-nowrap gap-6 mb-8">
