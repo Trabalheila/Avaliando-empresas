@@ -215,6 +215,13 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
     e.target.value = "";
   }, []);
 
+  /* Tipos elegíveis ao modelo Ad Exitum (apenas advocacia) */
+  const isAdvogadoTipo = (value) => {
+    const v = (value || "").toString().trim().toLowerCase();
+    return v === "advogado" || v === "advocacia";
+  };
+  const canOfferAdExitum = isAdvogadoTipo(tipo);
+
   /* Reset campos condicionais ao trocar tipo (profissão) */
   const handleTipoChange = useCallback((value) => {
     setTipo(value);
@@ -222,6 +229,9 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
     setCredentialStateOrRegion("");
     setCredentialPortfolioUrl("");
     setCredentialCertifications("");
+    if (!isAdvogadoTipo(value)) {
+      setAdExitum(false);
+    }
   }, []);
 
   const handleSubmit = useCallback(async (e) => {
@@ -788,7 +798,8 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                 </label>
               </div>
 
-              {/* ── Modelo de honorários: Ad Exitum (opcional) ── */}
+              {/* ── Modelo de honorários: Ad Exitum (apenas Advogado/Advocacia) ── */}
+              {canOfferAdExitum && (
               <div className="mb-6 p-4 rounded-xl bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
                 <label className="flex items-start gap-2 cursor-pointer">
                   <input
@@ -809,6 +820,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                   </span>
                 </label>
               </div>
+              )}
 
               {/* ── Termos obrigatórios ── */}
               <div className="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 space-y-3">
