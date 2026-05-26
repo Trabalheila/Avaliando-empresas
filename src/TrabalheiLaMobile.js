@@ -959,21 +959,24 @@ function TrabalheiLaMobile({
                   <div className="flex flex-col gap-2">
                     <Link
                       to="/pseudonym"
-                      className="w-full text-center py-2.5 px-3 rounded-xl bg-lime-400 hover:bg-lime-500 text-emerald-950 text-sm font-bold shadow transition"
+                      className="w-full flex flex-col items-center justify-center text-center py-2.5 px-3 rounded-xl bg-lime-400 text-emerald-950 text-sm font-bold shadow transition-all duration-200 hover:bg-lime-500 hover:scale-[1.02] hover:shadow-lg active:scale-100 focus:outline-none focus:ring-2 focus:ring-lime-300"
                     >
-                      Sou Trabalhador
+                      <span>Sou Trabalhador</span>
+                      <span className="block text-[10px] font-medium text-emerald-900/80 mt-0.5">(avalia anonimamente)</span>
                     </Link>
                     <Link
                       to="/empresa/cadastro"
-                      className="w-full text-center py-2.5 px-3 rounded-xl bg-amber-400 hover:bg-amber-500 text-amber-950 text-sm font-bold shadow transition"
+                      className="w-full flex flex-col items-center justify-center text-center py-2.5 px-3 rounded-xl bg-amber-400 text-amber-950 text-sm font-bold shadow transition-all duration-200 hover:bg-amber-500 hover:scale-[1.02] hover:shadow-lg active:scale-100 focus:outline-none focus:ring-2 focus:ring-amber-300"
                     >
-                      Sou Empresário
+                      <span>Sou Empresário</span>
+                      <span className="block text-[10px] font-medium text-amber-900/80 mt-0.5">(conta para empresas)</span>
                     </Link>
                     <Link
                       to="/apoiadores"
-                      className="w-full text-center py-2.5 px-3 rounded-xl bg-white hover:bg-blue-50 text-blue-800 text-sm font-bold shadow transition"
+                      className="w-full flex flex-col items-center justify-center text-center py-2.5 px-3 rounded-xl bg-white text-blue-800 text-sm font-bold shadow transition-all duration-200 hover:bg-blue-50 hover:scale-[1.02] hover:shadow-lg active:scale-100 focus:outline-none focus:ring-2 focus:ring-blue-300"
                     >
-                      Sou Especialista
+                      <span>Sou Especialista</span>
+                      <span className="block text-[10px] font-medium text-blue-700/80 mt-0.5">(advogados, psicólogos, consultores e outros)</span>
                     </Link>
                   </div>
                 </>

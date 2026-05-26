@@ -633,33 +633,10 @@ function TrabalheiLaDesktop({
             isAdminFlag = isAdmin();
           } catch { /* silencioso */ }
           return (
-            <div className="mx-auto max-w-4xl mb-6 flex flex-col md:flex-row items-stretch gap-4">
-              {/* Coluna lateral — botões de cadastro por perfil */}
-              <div className="flex md:flex-col gap-2 md:gap-3 md:w-56 md:shrink-0">
-                <Link
-                  to="/pseudonym"
-                  className="flex-1 text-center py-2.5 px-4 rounded-lg bg-lime-400 hover:bg-lime-500 text-emerald-950 text-sm md:text-base font-bold shadow transition-colors"
-                >
-                  Sou Trabalhador
-                </Link>
-                <Link
-                  to="/empresa/cadastro"
-                  className="flex-1 text-center py-2.5 px-4 rounded-lg bg-amber-400 hover:bg-amber-500 text-amber-950 text-sm md:text-base font-bold shadow transition-colors"
-                >
-                  Sou Empresário
-                </Link>
-                <Link
-                  to="/apoiadores"
-                  className="flex-1 text-center py-2.5 px-4 rounded-lg bg-white hover:bg-blue-50 text-blue-800 text-sm md:text-base font-bold shadow transition-colors"
-                >
-                  Sou Especialista
-                </Link>
-              </div>
-
-              <div
-                className="flex-1 rounded-2xl shadow-xl p-5 md:p-6 border-2 border-blue-400 dark:border-blue-500/60 bg-gradient-to-br from-blue-600 via-indigo-700 to-blue-800 dark:from-slate-800 dark:via-slate-900 dark:to-blue-950 ring-1 ring-white/10"
-                style={{ animation: "homeHeroIn 700ms ease-out both" }}
-              >
+            <div
+              className="mx-auto max-w-2xl mb-6 rounded-2xl shadow-xl p-5 md:p-6 border-2 border-blue-400 dark:border-blue-500/60 bg-gradient-to-br from-blue-600 via-indigo-700 to-blue-800 dark:from-slate-800 dark:via-slate-900 dark:to-blue-950 ring-1 ring-white/10"
+              style={{ animation: "homeHeroIn 700ms ease-out both" }}
+            >
               <style>{`
                 @keyframes homeHeroIn {
                   from { opacity: 0; transform: translateY(18px); }
@@ -732,9 +709,34 @@ function TrabalheiLaDesktop({
 
               {/* CENÁRIO 2 — autenticado sem tipo de perfil */}
               {isAuthenticated && !hasDefinedProfileType && (
-                <p className="text-sm md:text-base text-blue-100 text-center mb-4">
-                  Bem-vindo(a)! Escolha seu perfil ao lado para começar.
-                </p>
+                <>
+                  <p className="text-sm md:text-base text-blue-100 text-center mb-4">
+                    Bem-vindo(a)! Escolha seu perfil para começar:
+                  </p>
+                  <div className="flex flex-col sm:flex-row items-stretch justify-center gap-3">
+                    <Link
+                      to="/pseudonym"
+                      className="flex-1 sm:max-w-xs flex flex-col items-center justify-center text-center py-2.5 px-4 rounded-lg bg-lime-400 text-emerald-950 text-sm md:text-base font-bold shadow transition-all duration-200 hover:bg-lime-500 hover:scale-[1.03] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-lime-300"
+                    >
+                      <span>Sou Trabalhador</span>
+                      <span className="block text-[11px] md:text-xs font-medium text-emerald-900/80 mt-0.5">(avalia anonimamente)</span>
+                    </Link>
+                    <Link
+                      to="/empresa/cadastro"
+                      className="flex-1 sm:max-w-xs flex flex-col items-center justify-center text-center py-2.5 px-4 rounded-lg bg-amber-400 text-amber-950 text-sm md:text-base font-bold shadow transition-all duration-200 hover:bg-amber-500 hover:scale-[1.03] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-amber-300"
+                    >
+                      <span>Sou Empresário</span>
+                      <span className="block text-[11px] md:text-xs font-medium text-amber-900/80 mt-0.5">(conta para empresas)</span>
+                    </Link>
+                    <Link
+                      to="/apoiadores"
+                      className="flex-1 sm:max-w-xs flex flex-col items-center justify-center text-center py-2.5 px-4 rounded-lg bg-white text-blue-800 text-sm md:text-base font-bold shadow transition-all duration-200 hover:bg-blue-50 hover:scale-[1.03] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    >
+                      <span>Sou Especialista</span>
+                      <span className="block text-[11px] md:text-xs font-medium text-blue-700/80 mt-0.5">(advogados, psicólogos, consultores e outros)</span>
+                    </Link>
+                  </div>
+                </>
               )}
 
               {/* CENÁRIO 3 — autenticado com tipo de perfil definido */}
@@ -830,7 +832,6 @@ function TrabalheiLaDesktop({
                   </span>
                 </button>
               </div>
-            </div>
             </div>
           );
         })()}
