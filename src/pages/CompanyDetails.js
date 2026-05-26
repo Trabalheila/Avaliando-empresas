@@ -1815,7 +1815,7 @@ function CompanyDetails({ theme, toggleTheme }) {
                         aria-label={`Reagir com ${reaction.label}`}
                         title={isSelected ? "Clique para remover sua reação" : `Reagir com ${reaction.label}`}
                       >
-                        <span className="text-base">{reaction.emoji} {reaction.label}</span>
+                        <span className="text-base">{reaction.emoji}</span>
                         <span className={`text-sm font-semibold ${isSelected ? "text-blue-700 dark:text-blue-200" : "text-slate-700 dark:text-slate-100"}`}>
                           {reply.reactions?.[reaction.key] || 0}
                         </span>
@@ -2598,7 +2598,7 @@ function CompanyDetails({ theme, toggleTheme }) {
                                   aria-label={`Reagir com ${reaction.label}`}
                                   title={isSelected ? "Clique para remover sua reação" : `Reagir com ${reaction.label}`}
                                 >
-                                  <span className="text-base">{reaction.emoji} {reaction.label}</span>
+                                  <span className="text-base">{reaction.emoji}</span>
                                   <span className={`text-sm font-semibold ${isSelected ? "text-blue-700 dark:text-blue-200" : "text-slate-700 dark:text-slate-100"}`}>
                                     {comment.reactions?.[reaction.key] || 0}
                                   </span>

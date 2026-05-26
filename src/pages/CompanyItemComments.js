@@ -227,7 +227,7 @@ function CompanyItemComments({ theme, toggleTheme }) {
               }}
               className="text-sm px-3 py-1.5 rounded-full border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800"
             >
-              {reaction.emoji} {reaction.label} {getCount(reaction.key)}
+              {reaction.emoji} {getCount(reaction.key)}
             </button>
           ))}
         </div>
