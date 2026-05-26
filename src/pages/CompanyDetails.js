@@ -7,6 +7,7 @@ import { hasCompanyInResumeExperiences } from "../utils/resumeParser";
 import { listReviewsByCompanySlug } from "../services/reviews";
 import { listCompanies, enrichCompanyWithBrasilAPI } from "../services/companies";
 import { getUserRole, isPremium, isAdmin } from "../utils/rbac";
+import { resolveProfileId } from "../utils/profileIdentity";
 import { handleCheckout } from "../services/billing";
 import AppHeader from "../components/AppHeader";
 import ConflictDeclarationGate from "../components/ConflictDeclarationGate";
@@ -962,6 +963,7 @@ function CompanyDetails({ theme, toggleTheme }) {
           return {
             id: d.id,
             author: data.author || "Anônimo",
+            authorProfileId: data.authorProfileId || null,
             text: data.text || "",
             createdAt:
               typeof data.createdAt?.toDate === "function"
@@ -1212,6 +1214,13 @@ function CompanyDetails({ theme, toggleTheme }) {
     setCommentError("");
 
     const pseudonym = localStorage.getItem("userPseudonym") || "Anônimo";
+    const storedProfile = (() => {
+      try { return JSON.parse(localStorage.getItem("userProfile") || "{}"); } catch { return {}; }
+    })();
+    const authorProfileId =
+      (storedProfile?.profileId || "").toString().trim() ||
+      resolveProfileId(storedProfile, { persistGeneratedId: false }) ||
+      null;
 
     const finalText = mandatoryText;
 
@@ -1223,6 +1232,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     const comment = {
       id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
       author: pseudonym,
+      authorProfileId,
       text: moderatedText,
       createdAt: new Date().toISOString(),
       moderation,
@@ -1385,10 +1395,18 @@ function CompanyDetails({ theme, toggleTheme }) {
   const handleReply = (targetId) => {
     if (!replyText.trim()) return;
     const pseudonym = localStorage.getItem("userPseudonym") || "Anônimo";
+    const storedProfile = (() => {
+      try { return JSON.parse(localStorage.getItem("userProfile") || "{}"); } catch { return {}; }
+    })();
+    const authorProfileId =
+      (storedProfile?.profileId || "").toString().trim() ||
+      resolveProfileId(storedProfile, { persistGeneratedId: false }) ||
+      null;
     const moderation = detectAutoModeration(replyText.trim());
     const reply = {
       id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
       author: pseudonym,
+      authorProfileId,
       text:
         moderation.status === "approved"
           ? replyText.trim()
@@ -1695,11 +1713,61 @@ function CompanyDetails({ theme, toggleTheme }) {
     })[0] || null;
   }, [visibleComments]);
 
+  /* ── Pseudônimo clicável → /perfil/:profileId ── */
+  const isAnonymousPseudonym = (value) => {
+    const v = (value || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    return !v || v === "anonimo" || v === "annonimato";
+  };
+
+  const goToAuthorProfile = async (entry) => {
+    const pseudonymRaw = (entry?.author || entry?.pseudonym || "").toString().trim();
+    if (isAnonymousPseudonym(pseudonymRaw)) return;
+    const existing = (entry?.authorProfileId || entry?.profileId || "").toString().trim();
+    if (existing) {
+      navigate(`/perfil/${encodeURIComponent(existing)}`);
+      return;
+    }
+    try {
+      const usersRef = collection(db, "users");
+      const candidates = [
+        query(usersRef, where("pseudonimo", "==", pseudonymRaw), limit(1)),
+        query(usersRef, where("pseudonym", "==", pseudonymRaw), limit(1)),
+      ];
+      for (const q of candidates) {
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          navigate(`/perfil/${encodeURIComponent(snap.docs[0].id)}`);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn("Falha ao localizar perfil pelo pseudônimo:", err);
+    }
+  };
+
+  const AuthorLink = ({ entry, className = "", prefix = "" }) => {
+    const label = (entry?.author || entry?.pseudonym || "Anônimo").toString();
+    const disabled = isAnonymousPseudonym(label);
+    if (disabled) {
+      return <p className={className}>{prefix}{label}</p>;
+    }
+    return (
+      <button
+        type="button"
+        onClick={() => goToAuthorProfile(entry)}
+        className={`${className} hover:underline focus:underline cursor-pointer text-left bg-transparent border-0 p-0`}
+        title="Ver perfil público do avaliador"
+      >
+        {prefix}{label}
+      </button>
+    );
+  };
+
   const renderCommentReplies = (replies = []) => {
     return (replies || []).map((reply) => (
         <div key={reply.id} className="bg-gray-50 dark:bg-slate-900 p-3 rounded-xl border border-gray-200 dark:border-slate-700">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{reply.author}</p>
+            <AuthorLink entry={reply} className="text-sm font-semibold text-slate-900 dark:text-slate-100" />
             <div className="flex flex-wrap items-center justify-end gap-2">
               <p className="text-xs text-gray-500 dark:text-slate-400">
                 {new Date(reply.createdAt).toLocaleString()}
@@ -2463,7 +2531,9 @@ function CompanyDetails({ theme, toggleTheme }) {
               {featuredComment ? (
                 <>
                   <p className="text-sm text-slate-800 italic whitespace-pre-line">"{featuredComment.text}"</p>
-                  <p className="text-xs text-slate-600 text-right mt-3">- {featuredComment.author}</p>
+                  <div className="flex justify-end mt-3">
+                    <AuthorLink entry={featuredComment} className="text-xs text-slate-600" prefix="- " />
+                  </div>
                 </>
               ) : (
                 <p className="text-sm text-slate-500">--</p>
@@ -2479,7 +2549,7 @@ function CompanyDetails({ theme, toggleTheme }) {
                   <div key={comment.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-semibold text-sm text-slate-900 dark:text-slate-100">{comment.author}</p>
+                        <AuthorLink entry={comment} className="font-semibold text-sm text-slate-900 dark:text-slate-100" />
                         <p className="text-xs text-gray-500 dark:text-slate-400">
                           {new Date(comment.createdAt).toLocaleString()}
                           {comment.editedAt ? " (editado)" : ""}

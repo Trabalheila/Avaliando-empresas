@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import { deleteOwnReview, isReviewOwnedByCurrentUser, listReviewsByCompanySlug, slugifyCompany, updateOwnReview } from "../services/reviews";
 import { db } from "../firebase";
@@ -139,6 +139,7 @@ function applyReactionChangeById(items, targetId, prevReaction, nextReaction) {
 
 function CompanyItemComments({ theme, toggleTheme }) {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const companyName = (searchParams.get("name") || "").trim();
   const itemKey = (searchParams.get("item") || "").trim();
   const itemConfig = ITEM_CONFIG[itemKey] || null;
@@ -1231,7 +1232,24 @@ function CompanyItemComments({ theme, toggleTheme }) {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{entry.pseudonym}</p>
+                    {(() => {
+                      const pseudonymRaw = (entry?.pseudonym || "").toString().trim();
+                      const isAnon = !pseudonymRaw || pseudonymRaw.toLowerCase() === "anônimo" || pseudonymRaw.toLowerCase() === "anonimo";
+                      const pid = (entry?.authorProfileId || "").toString().trim();
+                      if (isAnon || !pid) {
+                        return <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{entry.pseudonym}</p>;
+                      }
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/perfil/${encodeURIComponent(pid)}`)}
+                          className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:underline focus:underline cursor-pointer text-left bg-transparent border-0 p-0"
+                          title="Ver perfil público do avaliador"
+                        >
+                          {entry.pseudonym}
+                        </button>
+                      );
+                    })()}
                     {(() => {
                       const detail = resolveEntryVerificationDetail(entry, verificationByProfile, companyName);
                       const tier = resolveEntryTier(entry, verificationByProfile);
