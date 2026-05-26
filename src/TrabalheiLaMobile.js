@@ -899,53 +899,82 @@ function TrabalheiLaMobile({
               </h2>
               <div className="w-24 h-1 mx-auto mb-3 rounded-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.6)]" />
 
-              {/* Badges destacados */}
-              <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
+              {/* Badges destacados — proeminentes */}
+              <div className="flex flex-wrap items-center justify-center gap-2 mb-5">
                 <span
                   title="Sua identidade é mantida em sigilo."
-                  className="inline-flex items-center gap-1.5 bg-white text-blue-800 px-3 py-1 rounded-full text-xs font-extrabold shadow ring-2 ring-amber-300/70"
+                  className="inline-flex items-center gap-1.5 bg-white text-blue-800 px-3 py-1.5 rounded-full text-xs md:text-sm font-extrabold shadow-lg ring-2 ring-amber-300"
                 >
-                  <FaUserSecret className="text-sm text-blue-700" aria-hidden="true" />
+                  <FaUserSecret className="text-base text-blue-700" aria-hidden="true" />
                   Anônimo
                 </span>
                 <span
                   title="Conta verificada via LinkedIn ou Google."
-                  className="inline-flex items-center gap-1.5 bg-white text-emerald-800 px-3 py-1 rounded-full text-xs font-extrabold shadow ring-2 ring-amber-300/70"
+                  className="inline-flex items-center gap-1.5 bg-white text-emerald-800 px-3 py-1.5 rounded-full text-xs md:text-sm font-extrabold shadow-lg ring-2 ring-amber-300"
                 >
-                  <FaCheckCircle className="text-sm text-emerald-600" aria-hidden="true" />
+                  <FaCheckCircle className="text-base text-emerald-600" aria-hidden="true" />
                   Verificado
                 </span>
                 <span
                   title="Plataforma com moderação e anti-fraude."
-                  className="inline-flex items-center gap-1.5 bg-white text-indigo-800 px-3 py-1 rounded-full text-xs font-extrabold shadow ring-2 ring-amber-300/70"
+                  className="inline-flex items-center gap-1.5 bg-white text-indigo-800 px-3 py-1.5 rounded-full text-xs md:text-sm font-extrabold shadow-lg ring-2 ring-amber-300"
                 >
-                  <FaShieldAlt className="text-sm text-indigo-600" aria-hidden="true" />
+                  <FaShieldAlt className="text-base text-indigo-600" aria-hidden="true" />
                   Confiável
                 </span>
               </div>
 
-              {/* CENÁRIO 1 — não autenticado */}
+              {/* CENÁRIO 1 — não autenticado: escolha de perfil + login social secundário */}
               {!isAuthenticated && (
                 <>
-                  <p className="text-xs text-blue-100 text-center mb-3">
-                    Entre ou crie sua conta para avaliar empresas e compartilhar sua experiência!
+                  <p className="text-xs text-blue-100 text-center mb-3 font-semibold">
+                    Escolha seu perfil para começar a avaliar empresas:
                   </p>
-                  <div className="flex flex-col gap-2">
-                    <button
-                      type="button"
-                      onClick={onGoogleLogin}
-                      disabled={isLoading}
-                      className="w-full inline-flex items-center justify-center gap-2 bg-white text-blue-800 font-bold py-2.5 px-3 rounded-lg shadow hover:bg-blue-50 transition-colors text-sm disabled:opacity-60"
+                  <div className="flex flex-col gap-2 mb-4">
+                    <Link
+                      to="/pseudonym"
+                      className="w-full flex flex-col items-center justify-center text-center py-2.5 px-3 rounded-xl bg-lime-400 text-emerald-950 text-sm font-bold shadow transition-all duration-200 hover:bg-lime-500 hover:scale-[1.02] hover:shadow-lg active:scale-100 focus:outline-none focus:ring-2 focus:ring-lime-300"
                     >
-                      <FaGoogle className="text-base" /> Entrar com Google
-                    </button>
-                    <LoginLinkedInButton
-                      clientId={linkedInClientId}
-                      redirectUri={linkedInRedirectUri}
-                      onLoginSuccess={onLoginSuccess}
-                      onLoginFailure={(err) => setError(err?.message || String(err))}
-                      disabled={isLoading}
-                    />
+                      <span>Sou Trabalhador</span>
+                      <span className="block text-[10px] font-medium text-emerald-900/80 mt-0.5">(avalia anonimamente)</span>
+                    </Link>
+                    <Link
+                      to="/empresa/cadastro"
+                      className="w-full flex flex-col items-center justify-center text-center py-2.5 px-3 rounded-xl bg-amber-400 text-amber-950 text-sm font-bold shadow transition-all duration-200 hover:bg-amber-500 hover:scale-[1.02] hover:shadow-lg active:scale-100 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                    >
+                      <span>Sou Empresário</span>
+                      <span className="block text-[10px] font-medium text-amber-900/80 mt-0.5">(conta para empresas)</span>
+                    </Link>
+                    <Link
+                      to="/apoiadores"
+                      className="w-full flex flex-col items-center justify-center text-center py-2.5 px-3 rounded-xl bg-white text-blue-800 text-sm font-bold shadow transition-all duration-200 hover:bg-blue-50 hover:scale-[1.02] hover:shadow-lg active:scale-100 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    >
+                      <span>Sou Especialista</span>
+                      <span className="block text-[10px] font-medium text-blue-700/80 mt-0.5">(advogados, psicólogos, consultores e outros)</span>
+                    </Link>
+                  </div>
+                  {/* Login social secundário */}
+                  <div className="pt-3 border-t border-white/15">
+                    <p className="text-[11px] text-blue-100/80 text-center mb-2">
+                      Já tem conta?
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={onGoogleLogin}
+                        disabled={isLoading}
+                        className="w-full inline-flex items-center justify-center gap-2 bg-white/90 hover:bg-white text-blue-800 font-semibold py-1.5 px-3 rounded-md shadow-sm hover:shadow transition-all text-xs disabled:opacity-60"
+                      >
+                        <FaGoogle className="text-sm" /> Entrar com Google
+                      </button>
+                      <LoginLinkedInButton
+                        clientId={linkedInClientId}
+                        redirectUri={linkedInRedirectUri}
+                        onLoginSuccess={onLoginSuccess}
+                        onLoginFailure={(err) => setError(err?.message || String(err))}
+                        disabled={isLoading}
+                      />
+                    </div>
                   </div>
                 </>
               )}

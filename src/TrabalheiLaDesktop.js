@@ -654,54 +654,83 @@ function TrabalheiLaDesktop({
               </h2>
               <div className="w-28 h-1 mx-auto mb-4 rounded-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.6)]" />
 
-              {/* Badges de destaque (Anônimo / Verificado / Confiável) */}
-              <div className="flex flex-wrap items-center justify-center gap-3 mb-5">
+              {/* Badges de destaque (Anônimo / Verificado / Confiável) — proeminentes */}
+              <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 mb-6">
                 <span
                   title="Sua identidade é mantida em sigilo: avaliações são publicadas sob pseudônimo."
-                  className="inline-flex items-center gap-2 bg-white/95 dark:bg-slate-100 text-blue-800 px-3.5 py-1.5 rounded-full text-sm font-extrabold shadow-md ring-2 ring-amber-300/70 cursor-help"
+                  className="inline-flex items-center gap-2 bg-white dark:bg-slate-100 text-blue-800 px-4 py-2 rounded-full text-sm md:text-base font-extrabold shadow-lg ring-2 ring-amber-300 cursor-help transition-transform hover:scale-105"
                 >
-                  <FaUserSecret className="text-base text-blue-700" aria-hidden="true" />
+                  <FaUserSecret className="text-lg md:text-xl text-blue-700" aria-hidden="true" />
                   Anônimo
                 </span>
                 <span
                   title="Conta verificada via login LinkedIn ou Google."
-                  className="inline-flex items-center gap-2 bg-white/95 dark:bg-slate-100 text-emerald-800 px-3.5 py-1.5 rounded-full text-sm font-extrabold shadow-md ring-2 ring-amber-300/70 cursor-help"
+                  className="inline-flex items-center gap-2 bg-white dark:bg-slate-100 text-emerald-800 px-4 py-2 rounded-full text-sm md:text-base font-extrabold shadow-lg ring-2 ring-amber-300 cursor-help transition-transform hover:scale-105"
                 >
-                  <FaCheckCircle className="text-base text-emerald-600" aria-hidden="true" />
+                  <FaCheckCircle className="text-lg md:text-xl text-emerald-600" aria-hidden="true" />
                   Verificado
                 </span>
                 <span
                   title="Plataforma com regras anti-fraude e moderação de avaliações."
-                  className="inline-flex items-center gap-2 bg-white/95 dark:bg-slate-100 text-indigo-800 px-3.5 py-1.5 rounded-full text-sm font-extrabold shadow-md ring-2 ring-amber-300/70 cursor-help"
+                  className="inline-flex items-center gap-2 bg-white dark:bg-slate-100 text-indigo-800 px-4 py-2 rounded-full text-sm md:text-base font-extrabold shadow-lg ring-2 ring-amber-300 cursor-help transition-transform hover:scale-105"
                 >
-                  <FaShieldAlt className="text-base text-indigo-600" aria-hidden="true" />
+                  <FaShieldAlt className="text-lg md:text-xl text-indigo-600" aria-hidden="true" />
                   Confiável
                 </span>
               </div>
 
-              {/* CENÁRIO 1 — não autenticado */}
+              {/* CENÁRIO 1 — não autenticado: escolha de perfil + login social secundário */}
               {!isAuthenticated && (
                 <>
-                  <p className="text-sm md:text-base text-blue-100 text-center mb-4">
-                    Entre ou crie sua conta para avaliar empresas e compartilhar sua experiência!
+                  <p className="text-sm md:text-base text-blue-100 text-center mb-4 font-semibold">
+                    Escolha seu perfil para começar a avaliar empresas:
                   </p>
-                  <div className="flex flex-col sm:flex-row items-stretch justify-center gap-3">
-                    <button
-                      type="button"
-                      onClick={onGoogleLogin}
-                      disabled={isLoading}
-                      className="flex-1 sm:max-w-xs inline-flex items-center justify-center gap-2 bg-white text-blue-800 font-bold py-2.5 px-4 rounded-lg shadow hover:bg-blue-50 transition-colors text-sm md:text-base disabled:opacity-60"
+                  <div className="flex flex-col sm:flex-row items-stretch justify-center gap-3 mb-5">
+                    <Link
+                      to="/pseudonym"
+                      className="flex-1 sm:max-w-xs flex flex-col items-center justify-center text-center py-2.5 px-4 rounded-lg bg-lime-400 text-emerald-950 text-sm md:text-base font-bold shadow transition-all duration-200 hover:bg-lime-500 hover:scale-[1.03] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-lime-300"
                     >
-                      <FaGoogle className="text-lg" /> Entrar com Google
-                    </button>
-                    <div className="flex-1 sm:max-w-xs">
-                      <LoginLinkedInButton
-                        clientId={linkedInClientId}
-                        redirectUri={linkedInRedirectUri}
-                        onLoginSuccess={onLoginSuccess}
-                        onLoginFailure={(err) => setError(err?.message || String(err))}
+                      <span>Sou Trabalhador</span>
+                      <span className="block text-[11px] md:text-xs font-medium text-emerald-900/80 mt-0.5">(avalia anonimamente)</span>
+                    </Link>
+                    <Link
+                      to="/empresa/cadastro"
+                      className="flex-1 sm:max-w-xs flex flex-col items-center justify-center text-center py-2.5 px-4 rounded-lg bg-amber-400 text-amber-950 text-sm md:text-base font-bold shadow transition-all duration-200 hover:bg-amber-500 hover:scale-[1.03] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-amber-300"
+                    >
+                      <span>Sou Empresário</span>
+                      <span className="block text-[11px] md:text-xs font-medium text-amber-900/80 mt-0.5">(conta para empresas)</span>
+                    </Link>
+                    <Link
+                      to="/apoiadores"
+                      className="flex-1 sm:max-w-xs flex flex-col items-center justify-center text-center py-2.5 px-4 rounded-lg bg-white text-blue-800 text-sm md:text-base font-bold shadow transition-all duration-200 hover:bg-blue-50 hover:scale-[1.03] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    >
+                      <span>Sou Especialista</span>
+                      <span className="block text-[11px] md:text-xs font-medium text-blue-700/80 mt-0.5">(advogados, psicólogos, consultores e outros)</span>
+                    </Link>
+                  </div>
+                  {/* Login social secundário */}
+                  <div className="pt-4 border-t border-white/15">
+                    <p className="text-xs md:text-sm text-blue-100/80 text-center mb-2">
+                      Já tem conta?
+                    </p>
+                    <div className="flex flex-col sm:flex-row items-stretch justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={onGoogleLogin}
                         disabled={isLoading}
-                      />
+                        className="flex-1 sm:max-w-[14rem] inline-flex items-center justify-center gap-2 bg-white/90 hover:bg-white text-blue-800 font-semibold py-1.5 px-3 rounded-md shadow-sm hover:shadow transition-all text-xs md:text-sm disabled:opacity-60"
+                      >
+                        <FaGoogle className="text-sm" /> Entrar com Google
+                      </button>
+                      <div className="flex-1 sm:max-w-[14rem]">
+                        <LoginLinkedInButton
+                          clientId={linkedInClientId}
+                          redirectUri={linkedInRedirectUri}
+                          onLoginSuccess={onLoginSuccess}
+                          onLoginFailure={(err) => setError(err?.message || String(err))}
+                          disabled={isLoading}
+                        />
+                      </div>
                     </div>
                   </div>
                 </>
