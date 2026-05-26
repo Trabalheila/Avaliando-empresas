@@ -549,30 +549,6 @@ function TrabalheiLaMobile({
   const contractPieData = buildPieData(selectedCompanyData?.contractStats, contractConfig);
   const workModelPieData = buildPieData(selectedCompanyData?.workModelStats, workModelConfig);
   const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
-
-  // Detecta se o usuário já possui um tipo de perfil definido
-  // (Trabalhador, Empresário ou Especialista). Usado para esconder o card
-  // "Crie sua conta" quando o usuário autenticado já fez sua escolha.
-  const hasDefinedProfileType = React.useMemo(() => {
-    const role = (userProfile?.role || "").toString().toLowerCase().trim();
-    const userType = (userProfile?.userType || "").toString().toLowerCase().trim();
-    const isEmployer =
-      role === "admin_empresa" ||
-      userType === "empresario" ||
-      userType === "empres\u00e1rio" ||
-      userProfile?.isEmployer === true ||
-      Boolean(userProfile?.managedCompanyId);
-    const isSpecialist =
-      userType === "apoiador" ||
-      userType === "especialista" ||
-      Boolean(userProfile?.apoiadorId);
-    const isWorker =
-      hasCompletedProfile ||
-      userType === "trabalhador" ||
-      role === "trabalhador";
-    return isEmployer || isSpecialist || isWorker;
-  }, [userProfile, hasCompletedProfile]);
-  const showCreateAccountCard = isAuthenticated && !hasDefinedProfileType;
   const headerRef = React.useRef(null);
   const [headerSpacerHeight, setHeaderSpacerHeight] = React.useState(0);
 
@@ -912,7 +888,6 @@ function TrabalheiLaMobile({
         )}
 
         {/* LOGIN */}
-        {showCreateAccountCard && (
         <section
           className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700"
           style={{ animation: "homeLoginSectionIn 700ms ease-out both" }}
@@ -977,7 +952,6 @@ function TrabalheiLaMobile({
           </div>
           {isAuthenticated && <p className="text-green-600 font-semibold text-center mt-3 text-sm">✓ Autenticado!</p>}
         </section>
-        )}
 
         {/* FORMULÁRIO */}
         <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-5 border border-blue-50 dark:border-slate-700">
