@@ -302,7 +302,12 @@ export default function MinhaConta({ theme, toggleTheme }) {
                 <button
                   key={review.id}
                   type="button"
-                  onClick={() => navigate(`/empresa?slug=${review.companySlug}`)}
+                  onClick={() => {
+                    const params = new URLSearchParams();
+                    if (review.company) params.set("name", review.company);
+                    if (review.companySlug) params.set("slug", review.companySlug);
+                    navigate(`/empresa?${params.toString()}`);
+                  }}
                   className="w-full text-left rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 transition p-4 flex flex-col sm:flex-row sm:items-center gap-3"
                 >
                   <div className="flex-1 min-w-0">

@@ -176,6 +176,7 @@ function CompanyDetails({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const name = searchParams.get("name");
+  const slugParam = searchParams.get("slug");
   const [company, setCompany] = useState(null);
 
   // Aba ativa do perfil da empresa: "overview" (Visão Geral) ou
@@ -226,23 +227,71 @@ function CompanyDetails({ theme, toggleTheme }) {
 
   // Busca empresa ao montar/com nome mudar
   useEffect(() => {
-    if (!name) {
-      setCompany(null);
-      return;
-    }
-    try {
-      const stored = localStorage.getItem("empresasData");
-      if (!stored) {
-        setCompany(null);
-        return;
+    let cancelled = false;
+
+    const resolveLocal = () => {
+      try {
+        const stored = localStorage.getItem("empresasData");
+        if (!stored) return null;
+        const empresas = JSON.parse(stored);
+        if (!Array.isArray(empresas)) return null;
+
+        if (name) {
+          const byName = empresas.find((emp) => emp.company === name);
+          if (byName) return byName;
+        }
+        if (slugParam) {
+          const target = String(slugParam).toLowerCase();
+          const bySlug = empresas.find((emp) => {
+            const empSlug = (emp.slug || toSlug(emp.company || "")).toLowerCase();
+            return empSlug === target;
+          });
+          if (bySlug) return bySlug;
+        }
+      } catch {
+        // ignore
       }
-      const empresas = JSON.parse(stored);
-      const found = empresas.find((emp) => emp.company === name) || null;
-      setCompany(found);
-    } catch (err) {
+      return null;
+    };
+
+    const resolveRemote = async () => {
+      if (!slugParam) return null;
+      try {
+        const ref = doc(db, "companies", String(slugParam).toLowerCase());
+        const snap = await getDoc(ref);
+        if (!snap.exists()) return null;
+        const data = snap.data() || {};
+        return {
+          ...data,
+          company: data.name || data.company || data.razaoSocial || slugParam,
+          slug: data.slug || String(slugParam).toLowerCase(),
+        };
+      } catch {
+        return null;
+      }
+    };
+
+    if (!name && !slugParam) {
       setCompany(null);
+      return undefined;
     }
-  }, [name]);
+
+    const local = resolveLocal();
+    if (local) {
+      setCompany(local);
+      return undefined;
+    }
+
+    setCompany(null);
+    (async () => {
+      const remote = await resolveRemote();
+      if (!cancelled && remote) setCompany(remote);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [name, slugParam]);
 
   // Enriquecimento automático via Brasil API
   useEffect(() => {
