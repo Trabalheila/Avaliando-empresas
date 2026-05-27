@@ -499,7 +499,7 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
               {statsError}
             </div>
           )}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <MetricCard
               label="Total"
               value={statsLoading ? "…" : totals?.total ?? 0}
@@ -510,11 +510,6 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
               label="Ativos"
               value={statsLoading ? "…" : totals?.approved ?? 0}
               accent="emerald"
-            />
-            <MetricCard
-              label="Removidos"
-              value={statsLoading ? "…" : totals?.rejected ?? 0}
-              accent="red"
             />
             <MetricCard
               label="Incompletos"

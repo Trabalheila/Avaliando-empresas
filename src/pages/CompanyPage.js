@@ -4,7 +4,11 @@ import PremiumCardEmployer from "../components/PremiumCardEmployer";
 import { useParams, Link } from "react-router-dom";
 import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase";
-import { listReviewsByCompanySlug, reactToReview } from "../services/reviews";
+import {
+  listReviewsByCompanySlug,
+  reactToReview,
+  listUserReactionsForReviews,
+} from "../services/reviews";
 
 function normalizeCompanyName(value) {
   return (value || "")
@@ -100,6 +104,8 @@ export default function CompanyPage() {
   const [reviews, setReviews] = useState([]);
   const [uid, setUid] = useState(null);
   const [openReactionMenuFor, setOpenReactionMenuFor] = useState(null);
+  // Map { [reviewId]: reactionKey } com as reações já feitas pelo usuário atual.
+  const [userReactions, setUserReactions] = useState({});
 
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
@@ -162,6 +168,32 @@ export default function CompanyPage() {
     };
   }, [slug]);
 
+  // Carrega as reações que o usuário atual já fez nas reviews dessa empresa.
+  useEffect(() => {
+    let alive = true;
+    if (!uid || reviews.length === 0) {
+      setUserReactions({});
+      return () => {
+        alive = false;
+      };
+    }
+
+    (async () => {
+      try {
+        const ids = reviews.map((r) => r.id).filter(Boolean);
+        const map = await listUserReactionsForReviews(uid, ids);
+        if (!alive) return;
+        setUserReactions(map || {});
+      } catch (err) {
+        console.error(err);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [uid, reviews]);
+
   const avg = useMemo(() => avgFromReviews(reviews), [reviews]);
   const orderedReviews = useMemo(() => {
     return [...reviews].sort((a, b) => {
@@ -178,6 +210,8 @@ export default function CompanyPage() {
   }
 
   function startHoldToReact(reviewId) {
+    // Se o usuário já reagiu nessa avaliação, nem abre o menu.
+    if (userReactions[reviewId]) return;
     clearHoldTimer();
     holdTimerRef.current = setTimeout(() => {
       setOpenReactionMenuFor(reviewId);
@@ -188,13 +222,27 @@ export default function CompanyPage() {
   async function handleReact(reviewId, reaction) {
     try {
       if (!uid) return;
+      // Trava no cliente: só uma reação por avaliação por usuário.
+      if (userReactions[reviewId]) {
+        setOpenReactionMenuFor(null);
+        return;
+      }
 
-      await reactToReview({ reviewId, uid, reaction });
+      const result = await reactToReview({ reviewId, uid, reaction });
 
-      // recarrega (simples e eficaz no MVP)
-      const r = await listReviewsByCompanySlug(slug, 80);
-      setReviews(r || []);
-      setCompany(companyFromSlugAndReviews(slug, r || []));
+      // Marca localmente a reação feita (tanto a recém-criada quanto a que já existia).
+      setUserReactions((prev) => ({
+        ...prev,
+        [reviewId]: result?.reaction || reaction,
+      }));
+
+      // Se de fato registrou uma nova reação, recarrega contadores.
+      if (!result?.alreadyReacted) {
+        const r = await listReviewsByCompanySlug(slug, 80);
+        setReviews(r || []);
+        setCompany(companyFromSlugAndReviews(slug, r || []));
+      }
+
       setOpenReactionMenuFor(null);
     } catch (err) {
       console.error(err);
@@ -331,33 +379,48 @@ export default function CompanyPage() {
                   )}
 
                   <div className="mt-4">
-                    <button
-                      type="button"
-                      onMouseDown={() => startHoldToReact(r.id)}
-                      onMouseUp={clearHoldTimer}
-                      onMouseLeave={clearHoldTimer}
-                      onTouchStart={() => startHoldToReact(r.id)}
-                      onTouchEnd={clearHoldTimer}
-                      onTouchCancel={clearHoldTimer}
-                      onClick={(e) => e.preventDefault()}
-                      className="px-3 py-1.5 rounded-full border border-slate-200 hover:bg-slate-50 text-sm"
-                    >
-                      🙂 Segure para reagir
-                    </button>
-
-                    {openReactionMenuFor === r.id && (
-                      <div className="mt-2 flex flex-wrap gap-2 text-sm">
-                        {REACTION_OPTIONS.map((item) => (
-                          <button
-                            key={item.key}
-                            type="button"
-                            onClick={() => handleReact(r.id, item.key)}
-                            className="px-3 py-1.5 rounded-full border border-slate-200 hover:bg-slate-50"
-                          >
-                            {item.emoji} {r.reactions?.[item.key] ?? 0}
-                          </button>
-                        ))}
+                    {userReactions[r.id] ? (
+                      <div className="flex items-center gap-2 text-sm">
+                        <span
+                          className="px-3 py-1.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700"
+                          title="Você já reagiu a esta avaliação"
+                        >
+                          {REACTION_OPTIONS.find((o) => o.key === userReactions[r.id])?.emoji ?? "✅"}{" "}
+                          {r.reactions?.[userReactions[r.id]] ?? 0}
+                        </span>
+                        <span className="text-xs text-slate-500">Você já reagiu</span>
                       </div>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onMouseDown={() => startHoldToReact(r.id)}
+                          onMouseUp={clearHoldTimer}
+                          onMouseLeave={clearHoldTimer}
+                          onTouchStart={() => startHoldToReact(r.id)}
+                          onTouchEnd={clearHoldTimer}
+                          onTouchCancel={clearHoldTimer}
+                          onClick={(e) => e.preventDefault()}
+                          className="px-3 py-1.5 rounded-full border border-slate-200 hover:bg-slate-50 text-sm"
+                        >
+                          🙂 Segure para reagir
+                        </button>
+
+                        {openReactionMenuFor === r.id && (
+                          <div className="mt-2 flex flex-wrap gap-2 text-sm">
+                            {REACTION_OPTIONS.map((item) => (
+                              <button
+                                key={item.key}
+                                type="button"
+                                onClick={() => handleReact(r.id, item.key)}
+                                className="px-3 py-1.5 rounded-full border border-slate-200 hover:bg-slate-50"
+                              >
+                                {item.emoji} {r.reactions?.[item.key] ?? 0}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

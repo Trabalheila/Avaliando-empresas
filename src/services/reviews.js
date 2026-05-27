@@ -219,7 +219,10 @@ export async function reactToReview({ reviewId, uid, reaction }) {
   const reactionRef = doc(db, "reviewReactions", reactionId);
 
   const existing = await getDoc(reactionRef);
-  if (existing.exists()) return; // já reagiu, não conta de novo
+  if (existing.exists()) {
+    // Já reagiu — não permite trocar nem somar nova reação.
+    return { alreadyReacted: true, reaction: existing.data()?.reaction || null };
+  }
 
   await setDoc(reactionRef, {
     reviewId,
@@ -232,4 +235,26 @@ export async function reactToReview({ reviewId, uid, reaction }) {
   await updateDoc(reviewRef, {
     [`reactions.${reaction}`]: increment(1),
   });
+
+  return { alreadyReacted: false, reaction };
+}
+
+// Busca quais reações o usuário (uid) já fez nas reviews informadas.
+// Retorna um objeto { [reviewId]: reactionKey }.
+export async function listUserReactionsForReviews(uid, reviewIds) {
+  if (!uid || !Array.isArray(reviewIds) || reviewIds.length === 0) return {};
+
+  const results = await Promise.all(
+    reviewIds.map(async (reviewId) => {
+      const ref = doc(db, "reviewReactions", `${reviewId}_${uid}`);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return null;
+      return [reviewId, snap.data()?.reaction || null];
+    })
+  );
+
+  return results.reduce((acc, entry) => {
+    if (entry && entry[1]) acc[entry[0]] = entry[1];
+    return acc;
+  }, {});
 }

@@ -8,7 +8,13 @@ import AppHeader from "../components/AppHeader";
 import { getLinkedInRedirectUri } from "../utils/linkedinAuth";
 import { buildApiUrl } from "../utils/apiBase";
 import { auth, db } from "../firebase";
-import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
+import {
+  signInAnonymously,
+  onAuthStateChanged,
+  EmailAuthProvider,
+  linkWithCredential,
+  createUserWithEmailAndPassword,
+} from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { resolveUserVerificationDetail } from "../utils/verificationLevel";
 
@@ -147,6 +153,11 @@ function ChoosePseudonym({ theme, toggleTheme }) {
   const [verifiedEmailValue, setVerifiedEmailValue] = useState("");
   const [sendingVerification, setSendingVerification] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState("");
+  // Campos opcionais de senha — quando preenchidos, vinculamos a conta
+  // (anônima ou recém-criada) a credenciais de e-mail/senha do Firebase.
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState("");
   const [educationLevel, setEducationLevel] = useState("");
   const [structuredExperiences, setStructuredExperiences] = useState([]);
@@ -1109,7 +1120,47 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         setError("E-mail inválido.");
         return;
       }
+      // Senha é opcional, mas se preenchida precisa ser válida e coincidir.
+      if (password || confirmPassword) {
+        if (password.length < 6) {
+          setError("A senha deve ter pelo menos 6 caracteres.");
+          return;
+        }
+        if (password !== confirmPassword) {
+          setError("As senhas não coincidem.");
+          return;
+        }
+      }
       setError(null);
+
+      // Se o usuário forneceu uma senha, tentamos vincular/criar credencial
+      // de e-mail/senha no Firebase Auth. Falhas aqui são tratadas como
+      // bloqueantes para evitar inconsistência entre o perfil e o Auth.
+      if (password) {
+        try {
+          const currentUser = auth?.currentUser;
+          if (currentUser && currentUser.isAnonymous) {
+            const credential = EmailAuthProvider.credential(trimmedEmail, password);
+            await linkWithCredential(currentUser, credential);
+          } else if (!currentUser) {
+            await createUserWithEmailAndPassword(auth, trimmedEmail, password);
+          }
+          // Se já existe um usuário não-anônimo (Google/LinkedIn/e-mail já
+          // logado), não recriamos a credencial — apenas seguimos.
+        } catch (authErr) {
+          console.warn("[etapa1] Falha ao vincular senha:", authErr);
+          if (authErr?.code === "auth/email-already-in-use") {
+            setError("Este e-mail já está em uso. Tente fazer login ou use outro e-mail.");
+          } else if (authErr?.code === "auth/weak-password") {
+            setError("Senha muito fraca. Use ao menos 6 caracteres.");
+          } else if (authErr?.code === "auth/credential-already-in-use") {
+            setError("Estas credenciais já estão associadas a outra conta.");
+          } else {
+            setError("Não foi possível salvar a senha. " + (authErr?.message || ""));
+          }
+          return;
+        }
+      }
 
       const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
       let unifiedId = resolveProfileId(existingProfile);
@@ -1184,7 +1235,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       setInfo("Cadastro confirmado! Você pode enriquecer seu perfil ou pular essa etapa.");
       setStep(2);
     },
-    [pseudonym, email, sendVerificationEmail]
+    [pseudonym, email, password, confirmPassword, sendVerificationEmail]
   );
 
   // Permite avançar sem preencher nada da etapa 2 — perfil já está ativo.
@@ -1702,6 +1753,73 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                   Confirme seu e-mail para ativar seu perfil.
                 </p>
               )}
+            </div>
+            )}
+
+            {/* Senha (etapa 1) — opcional, mas recomendada para login futuro. */}
+            {step === 1 && (
+            <div className="md:col-span-2 space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
+              <div>
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-semibold text-slate-700 dark:text-slate-200"
+                >
+                  Senha{" "}
+                  <span className="text-xs font-normal text-slate-500">
+                    (opcional, recomendada)
+                  </span>
+                </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => {
+                      setError(null);
+                      setPassword(e.target.value);
+                    }}
+                    autoComplete="new-password"
+                    placeholder="Crie uma senha (mín. 6 caracteres)"
+                    className="w-full p-3 pr-16 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-blue-700 dark:text-blue-300 hover:underline"
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {showPassword ? "Ocultar" : "Mostrar"}
+                  </button>
+                </div>
+                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                  Criar uma senha aumenta a segurança e permite acessar sua conta de outros dispositivos.
+                </p>
+              </div>
+              <div>
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-sm font-semibold text-slate-700 dark:text-slate-200"
+                >
+                  Confirme a senha
+                </label>
+                <input
+                  id="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setError(null);
+                    setConfirmPassword(e.target.value);
+                  }}
+                  autoComplete="new-password"
+                  placeholder="Repita a senha"
+                  className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                />
+                {confirmPassword && password !== confirmPassword && (
+                  <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">
+                    As senhas não coincidem.
+                  </p>
+                )}
+              </div>
             </div>
             )}
 
