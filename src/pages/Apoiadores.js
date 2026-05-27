@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import PlanosApoiador from "../components/PlanosApoiador";
+import YouTubeEmbed from "../components/YouTubeEmbed";
 
 /**
  * Pagina dedicada aos profissionais (consultores, advogados, prestadores)
@@ -32,6 +33,11 @@ function Apoiadores({ theme, toggleTheme }) {
           Não há qualquer intermediação financeira ou negociação por parte do Trabalhei Lá.
           O pagamento é feito diretamente entre o cliente e o profissional, sem taxas adicionais da plataforma.
         </p>
+
+        {/* Vídeo explicativo para especialistas */}
+        <div className="max-w-2xl mx-auto mt-8">
+          <YouTubeEmbed videoId="1qP8sJuj8Jc" title="Cadastro Especialista" />
+        </div>
 
         {/* CTA principal: cadastro do perfil */}
         <div className="mt-8 flex flex-col items-center gap-3">
