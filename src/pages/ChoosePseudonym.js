@@ -1587,7 +1587,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             </div>
           )}
 
-          <form ref={formRef} onSubmit={step === 1 ? handleContinueStep1 : handleSubmit} className="space-y-4">
+          <form ref={formRef} onSubmit={step === 1 ? handleContinueStep1 : handleSubmit} className="flex flex-col gap-4 md:space-y-4 md:gap-0">
             {/* Indicador visual de etapas */}
             <div className="flex items-center gap-2 text-xs font-semibold mb-2">
               <span className={`px-2 py-1 rounded-full ${step === 1 ? "bg-blue-600 text-white" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200"}`}>
@@ -1599,7 +1599,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             </div>
 
             {step === 1 && (
-              <div className="rounded-xl border border-blue-200 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-700 px-4 py-3 text-sm text-blue-800 dark:text-blue-100 flex items-start gap-2">
+              <div className="order-last md:order-none rounded-xl border border-blue-200 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-700 px-4 py-3 text-sm text-blue-800 dark:text-blue-100 flex items-start gap-2">
                 <span aria-hidden="true">🔒</span>
                 <span>
                   <strong>Seu nome real nunca será exibido.</strong> Todas as avaliações são publicadas sob seu pseudônimo.
@@ -1608,7 +1608,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             )}
 
             {step === 1 && (
-              <div className="rounded-xl border border-amber-300/70 bg-amber-50 dark:bg-amber-900/30 dark:border-amber-600/60 px-4 py-3 text-sm text-amber-900 dark:text-amber-100 flex items-start gap-2">
+              <div className="order-last md:order-none rounded-xl border border-amber-300/70 bg-amber-50 dark:bg-amber-900/30 dark:border-amber-600/60 px-4 py-3 text-sm text-amber-900 dark:text-amber-100 flex items-start gap-2">
                 <svg
                   aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
@@ -1621,6 +1621,12 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 <span>
                   Complete seu cadastro e vincule suas experiências para ganhar o <strong>Selo de Perfil Verificado ✓</strong> — suas avaliações terão mais credibilidade e destaque na plataforma.
                 </span>
+              </div>
+            )}
+
+            {step === 1 && (
+              <div className="order-last md:order-none rounded-xl border border-blue-200 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-700 px-4 py-3 text-xs text-blue-800 dark:text-blue-100">
+                <strong>Com o cadastro básico</strong> você já pode visualizar todas as notas e detalhes das empresas e cadastrar novas empresas na plataforma. Para <strong>publicar avaliações</strong>, é necessário concluir a verificação do perfil.
               </div>
             )}
 

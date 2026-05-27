@@ -8,6 +8,7 @@ import { listReviewsByCompanySlug } from "../services/reviews";
 import { listCompanies, enrichCompanyWithBrasilAPI } from "../services/companies";
 import { getUserRole, isPremium, isAdmin } from "../utils/rbac";
 import { resolveProfileId } from "../utils/profileIdentity";
+import { isUserProfileCertified } from "../utils/verificationLevel";
 import { handleCheckout } from "../services/billing";
 import AppHeader from "../components/AppHeader";
 import ConflictDeclarationGate from "../components/ConflictDeclarationGate";
@@ -395,6 +396,16 @@ function CompanyDetails({ theme, toggleTheme }) {
       } catch { return false; }
     }, []);
     const isEmpresaPremium = userIsPremium && (userRole === "admin_empresa" || userRole === "empresa");
+
+    // Selo de Perfil Verificado: requisito para publicar avaliações.
+    // Usuários sem o selo continuam podendo visualizar empresas e cadastrar
+    // novas, mas a publicação de comentários/notas é bloqueada.
+    const userIsCertified = React.useMemo(() => {
+      try {
+        const p = JSON.parse(localStorage.getItem("userProfile") || "{}");
+        return isUserProfileCertified(p) || isAdmin();
+      } catch { return false; }
+    }, []);
 
     // Dashboard premium: dados de tendência por período
     const [trendData, setTrendData] = React.useState([]);
@@ -1204,6 +1215,12 @@ function CompanyDetails({ theme, toggleTheme }) {
   };
 
   const handleAddComment = () => {
+    if (!userIsCertified) {
+      setCommentError(
+        "Para manter a legitimidade das avaliações, apenas usuários com perfil verificado podem avaliar empresas. Conclua seu perfil e verifique suas experiências para liberar esta funcionalidade."
+      );
+      return;
+    }
     const mandatoryText = mandatoryComment.trim();
 
     if (!mandatoryText) {
@@ -2119,9 +2136,18 @@ function CompanyDetails({ theme, toggleTheme }) {
                   const el = document.getElementById("secao-comentarios");
                   if (el) el.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition text-sm"
+                className={`px-6 py-2.5 font-bold rounded-xl transition text-sm ${
+                  userIsCertified
+                    ? "bg-blue-600 text-white hover:bg-blue-700"
+                    : "bg-slate-300 text-slate-700 hover:bg-slate-400 dark:bg-slate-700 dark:text-slate-200"
+                }`}
+                title={
+                  userIsCertified
+                    ? "Publicar sua avaliação desta empresa"
+                    : "Apenas usuários com Selo de Perfil Verificado podem avaliar. Conclua seu perfil para liberar."
+                }
               >
-                Avaliar esta empresa
+                {userIsCertified ? "Avaliar esta empresa" : "Avaliar (verificação necessária)"}
               </button>
             );
           })()}
@@ -2488,31 +2514,60 @@ function CompanyDetails({ theme, toggleTheme }) {
               Após publicar, você pode editar ou apagar seu comentário/resposta por até 5 minutos.
             </p>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-slate-700">
-                Você trabalhou lá? Quer compartilhar sua experiência? Digite aqui.
-              </label>
-              <textarea
-                value={mandatoryComment}
-                onChange={(e) => {
-                  setMandatoryComment(e.target.value);
-                  if (commentError) setCommentError("");
-                }}
-                placeholder="Escreva um comentário sobre essa empresa..."
-                className={`w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${commentError ? "border-red-400" : "border-gray-200"}`}
-                rows={3}
-                required
-              />
-              {commentError && <p className="text-sm text-red-600">{commentError}</p>}
+            {!userIsCertified ? (
+              <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/30 dark:border-amber-600 px-4 py-3 text-sm text-amber-900 dark:text-amber-100 flex items-start gap-3">
+                <svg
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="w-5 h-5 flex-shrink-0 text-amber-500 dark:text-amber-300 mt-0.5"
+                >
+                  <path d="M12 2L2 22h20L12 2zm0 6l6.5 11h-13L12 8zm-1 4v4h2v-4h-2zm0 5v2h2v-2h-2z" />
+                </svg>
+                <div className="space-y-2">
+                  <p>
+                    Para manter a legitimidade das avaliações, apenas usuários com <strong>perfil verificado</strong> podem avaliar empresas. Conclua seu perfil e verifique suas experiências para liberar esta funcionalidade.
+                  </p>
+                  <p className="text-xs text-amber-800/80 dark:text-amber-200/80">
+                    Você ainda pode explorar todas as notas e detalhes desta empresa e cadastrar novas empresas na plataforma.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/pseudonym")}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-semibold hover:bg-amber-700 transition"
+                  >
+                    Concluir verificação do perfil →
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-slate-700">
+                  Você trabalhou lá? Quer compartilhar sua experiência? Digite aqui.
+                </label>
+                <textarea
+                  value={mandatoryComment}
+                  onChange={(e) => {
+                    setMandatoryComment(e.target.value);
+                    if (commentError) setCommentError("");
+                  }}
+                  placeholder="Escreva um comentário sobre essa empresa..."
+                  className={`w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${commentError ? "border-red-400" : "border-gray-200"}`}
+                  rows={3}
+                  required
+                />
+                {commentError && <p className="text-sm text-red-600">{commentError}</p>}
 
-              <button
-                type="button"
-                onClick={handleAddComment}
-                className="self-end px-5 py-2 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition"
-              >
-                Publicar comentário
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={handleAddComment}
+                  className="self-end px-5 py-2 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition"
+                >
+                  Publicar comentário
+                </button>
+              </div>
+            )}
 
             {moderationInfo && (
               <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">

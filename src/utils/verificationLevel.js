@@ -105,6 +105,21 @@ export function resolveUserTier(userData) {
   return null;
 }
 
+// Retorna true quando o usuário possui o "Selo de Perfil Verificado",
+// requisito para publicar avaliações de empresas. Aceita o selo certificado
+// explícito ou os tiers superiores (professional/complete) do sistema atual,
+// bem como o legado "proven" do esquema free/identity/proven.
+export function isUserProfileCertified(userData) {
+  if (!userData || typeof userData !== "object") return false;
+  if (userData?.verification?.certified === true) return true;
+  const stored = (userData.verification_level || userData.verificationLevel || "")
+    .toString()
+    .toLowerCase();
+  if (stored === "proven") return true;
+  const tier = resolveUserTier(userData);
+  return tier === "professional" || tier === "complete";
+}
+
 // Computa se o usuário tem ≥1 experiência vinda do LinkedIn OAuth.
 export function userHasLinkedInVerifiedExperience(userData) {
   if (!userData || typeof userData !== "object") return false;
