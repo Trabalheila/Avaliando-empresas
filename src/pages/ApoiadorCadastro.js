@@ -5,6 +5,7 @@ import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { signInAnonymously } from "firebase/auth";
 import AppHeader from "../components/AppHeader";
 import YouTubeEmbed from "../components/YouTubeEmbed";
+import EssencialFreePopup from "../components/EssencialFreePopup";
 import { isAdmin } from "../utils/rbac";
 import { buildDeclarationText } from "../components/ConflictDeclarationGate";
 import SECTORS from "../data/sectors";
@@ -434,6 +435,12 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
   /* ═══ Formulário ═══ */
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center">
+      <EssencialFreePopup
+        planName="Especialista Essencial"
+        storageKey="essencialFreePopup:supporter:v1"
+        ctaLabel="Quero Aproveitar!"
+        accent="indigo"
+      />
       <AppHeader theme={theme} toggleTheme={toggleTheme} hideAvatar />
 
       <form onSubmit={handleSubmit} className="w-full max-w-4xl px-4 py-8">

@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import YouTubeEmbed from "../components/YouTubeEmbed";
+import EssencialFreePopup from "../components/EssencialFreePopup";
 
 const PERSONAL_EMAIL_DOMAINS = ["gmail.com", "hotmail.com", "yahoo.com", "yahoo.com.br", "outlook.com", "live.com", "icloud.com"];
 
@@ -240,6 +241,12 @@ export default function CompanyRegister() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 px-4 py-10">
+      <EssencialFreePopup
+        planName="Empresa Essencial"
+        storageKey="essencialFreePopup:employer:v1"
+        ctaLabel="Quero Aproveitar!"
+        accent="indigo"
+      />
       {showFreeModal && (
         <div
           role="dialog"

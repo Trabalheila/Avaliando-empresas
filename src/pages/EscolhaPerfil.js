@@ -399,8 +399,11 @@ function EscolhaPerfil({ theme, toggleTheme }) {
                 RECOMENDADO
               </div>
               <h3 className="text-lg font-bold text-blue-700 dark:text-blue-400 mb-1">Trabalhador Essencial</h3>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
-                R$ 29,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
+              <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+                R$ 19,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
+              </p>
+              <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-md px-2 py-1 inline-block mb-4">
+                🎁 Grátis até 30/06/2026
               </p>
               <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">
                 <FeatureRow ok>Avaliar empresas anonimamente</FeatureRow>

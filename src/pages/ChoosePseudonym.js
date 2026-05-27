@@ -6,6 +6,7 @@ import { extractResumeText, parseResumeText } from "../utils/resumeParser";
 import { listCompanies } from "../services/companies";
 import AppHeader from "../components/AppHeader";
 import YouTubeEmbed from "../components/YouTubeEmbed";
+import EssencialFreePopup from "../components/EssencialFreePopup";
 import { getLinkedInRedirectUri } from "../utils/linkedinAuth";
 import { buildApiUrl } from "../utils/apiBase";
 import { auth, db } from "../firebase";
@@ -1466,6 +1467,12 @@ function ChoosePseudonym({ theme, toggleTheme }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center pt-0">
+      <EssencialFreePopup
+        planName="Trabalhador Essencial"
+        storageKey="essencialFreePopup:worker:v1"
+        ctaLabel="Quero Aproveitar!"
+        accent="blue"
+      />
       <div className="w-full">
         <AppHeader theme={theme} toggleTheme={toggleTheme} hideAvatar />
       </div>
