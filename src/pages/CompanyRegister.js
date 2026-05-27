@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import YouTubeEmbed from "../components/YouTubeEmbed";
 
 const PERSONAL_EMAIL_DOMAINS = ["gmail.com", "hotmail.com", "yahoo.com", "yahoo.com.br", "outlook.com", "live.com", "icloud.com"];
 
@@ -285,6 +286,11 @@ export default function CompanyRegister() {
             <span aria-hidden="true">←</span>
             <span>Voltar</span>
           </button>
+        </div>
+
+        {/* Vídeo explicativo do cadastro do empresário */}
+        <div className="max-w-2xl mx-auto mb-6">
+          <YouTubeEmbed videoId="twcL4RSKznY" title="Cadastro Empresário" />
         </div>
 
         {/* Stepper visual (3 etapas) */}

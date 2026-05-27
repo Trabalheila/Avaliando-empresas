@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Select from "react-select";
 import { getCompanyLogoCandidates } from "./utils/getCompanyLogo";
 import { FaPlus, FaStar, FaRegStar, FaUserEdit, FaGoogle, FaUserSecret, FaCheckCircle, FaShieldAlt } from "react-icons/fa";
+import YouTubeEmbed from "./components/YouTubeEmbed";
 import {
   FiMessageCircle, FiDollarSign, FiCompass, FiCalendar, FiUsers,
   FiBriefcase, FiShield, FiHeart, FiRepeat, FiAward, FiTrendingUp, FiAlertCircle,
@@ -677,6 +678,11 @@ function TrabalheiLaDesktop({
                   <FaShieldAlt className="text-lg md:text-xl text-indigo-600" aria-hidden="true" />
                   Confiável
                 </span>
+              </div>
+
+              {/* Vídeo de apresentação */}
+              <div className="max-w-2xl mx-auto mb-6">
+                <YouTubeEmbed videoId="8ly8z4F8iok" title="Apresentação Trabalhei Lá" />
               </div>
 
               {/* CENÁRIO 1 — não autenticado: escolha de perfil + login social secundário */}

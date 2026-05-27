@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   FaStar, FaUserEdit, FaGoogle, FaUserSecret, FaCheckCircle, FaShieldAlt,
 } from "react-icons/fa";
+import YouTubeEmbed from "./components/YouTubeEmbed";
 import {
   FiMessageCircle, FiDollarSign, FiCompass, FiCalendar, FiUsers,
   FiBriefcase, FiShield, FiHeart, FiRepeat, FiAward, FiTrendingUp, FiAlertCircle,
@@ -922,6 +923,11 @@ function TrabalheiLaMobile({
                   <FaShieldAlt className="text-base text-indigo-600" aria-hidden="true" />
                   Confiável
                 </span>
+              </div>
+
+              {/* Vídeo de apresentação */}
+              <div className="mb-4">
+                <YouTubeEmbed videoId="8ly8z4F8iok" title="Apresentação Trabalhei Lá" />
               </div>
 
               {/* CENÁRIO 1 — não autenticado: escolha de perfil + login social secundário */}

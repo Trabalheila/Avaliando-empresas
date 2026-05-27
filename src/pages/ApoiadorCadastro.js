@@ -4,6 +4,7 @@ import { db, auth } from "../firebase";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { signInAnonymously } from "firebase/auth";
 import AppHeader from "../components/AppHeader";
+import YouTubeEmbed from "../components/YouTubeEmbed";
 import { isAdmin } from "../utils/rbac";
 import { buildDeclarationText } from "../components/ConflictDeclarationGate";
 import SECTORS from "../data/sectors";
@@ -436,6 +437,9 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
       <AppHeader theme={theme} toggleTheme={toggleTheme} hideAvatar />
 
       <form onSubmit={handleSubmit} className="w-full max-w-4xl px-4 py-8">
+        {/* Vídeo explicativo do cadastro do especialista */}
+        <YouTubeEmbed videoId="1qP8sJuj8Jc" title="Cadastro Especialista" />
+
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-blue-100 dark:border-slate-700 p-6 md:p-8">
           <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white mb-1">Cadastro de Especialista</h1>
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">

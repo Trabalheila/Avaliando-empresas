@@ -5,6 +5,7 @@ import { normalizeEmail, resolveProfileId } from "../utils/profileIdentity";
 import { extractResumeText, parseResumeText } from "../utils/resumeParser";
 import { listCompanies } from "../services/companies";
 import AppHeader from "../components/AppHeader";
+import YouTubeEmbed from "../components/YouTubeEmbed";
 import { getLinkedInRedirectUri } from "../utils/linkedinAuth";
 import { buildApiUrl } from "../utils/apiBase";
 import { auth, db } from "../firebase";
@@ -1549,6 +1550,13 @@ function ChoosePseudonym({ theme, toggleTheme }) {
 
           {/* ===== Coluna direita: conteúdo dinâmico + formulário ===== */}
           <div className="min-w-0">
+
+          {/* Vídeo explicativo do cadastro do trabalhador */}
+          {step === 1 && (
+            <div className="mb-4">
+              <YouTubeEmbed videoId="lsZzAEltEcQ" title="Cadastro Trabalhador" />
+            </div>
+          )}
 
           {/* Botão Ver meu perfil — exibido quando já tem um profileId salvo */}
           {(() => {
