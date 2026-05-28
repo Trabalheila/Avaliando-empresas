@@ -87,7 +87,75 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  // Modo manual de teste de emissao NFS-e (sem passar pelo Mercado Pago).
+  // Acionado via querystring ?nfse_test=1&key=<NFSE_TEST_KEY>.
+  // Protegido por env NFSE_TEST_KEY: se a env nao existir, o modo nao responde.
+  if (req.query?.nfse_test === "1" || req.query?.nfse_test === "true") {
+    return handleNfseManualTest(req, res);
+  }
+
   return handleMercadoPagoWebhook(req, res);
+}
+
+async function handleNfseManualTest(req, res) {
+  const expectedKey = (process.env.NFSE_TEST_KEY || "").trim();
+  if (!expectedKey) {
+    return res.status(404).json({ error: "Not found" });
+  }
+  const providedKey = (req.query?.key || req.headers?.["x-nfse-test-key"] || "")
+    .toString()
+    .trim();
+  if (providedKey !== expectedKey) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const body = req.body || {};
+  const amount = Number(body.amount || 1.0);
+  const descricao = (body.descricao || "Teste manual de emissao NFS-e").toString();
+  const payerEmail = (body.payerEmail || "teste@trabalheila.com.br").toString();
+  const payerName = (body.payerName || "Cliente Teste").toString();
+  const payerDocument = (body.payerDocument || "").toString();
+  const ref = (body.ref || `manual_${Date.now()}`).toString();
+
+  const fakePayment = {
+    id: ref,
+    transaction_amount: amount,
+    payer: {
+      email: payerEmail,
+      first_name: payerName,
+      identification: payerDocument ? { number: payerDocument } : undefined,
+    },
+  };
+
+  let db = null;
+  let FieldValue = null;
+  try {
+    ({ db, FieldValue } = await getAdminResources());
+  } catch (err) {
+    console.warn("[nfse-test] firebase indisponivel, seguindo sem persistir:", err?.message);
+  }
+
+  try {
+    const result = await tryEmitNfseForMercadoPagoPayment({
+      payment: fakePayment,
+      cnpj: null,
+      companySlug: "teste-manual",
+      apoiadorId: null,
+      audience: "test",
+      descricao,
+      db,
+      FieldValue,
+      force: true,
+    });
+    return res.status(200).json({
+      ref: `mp_${ref}`,
+      sentTo: (process.env.FOCUS_NFE_ENV || "homologacao").toLowerCase(),
+      result,
+    });
+  } catch (err) {
+    console.error("[nfse-test] erro inesperado", err);
+    return res.status(500).json({ error: err?.message || "erro inesperado" });
+  }
 }
 
 function getMercadoPagoPaymentId(req) {
