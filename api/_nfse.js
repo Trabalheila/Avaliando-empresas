@@ -136,6 +136,26 @@ export async function emitNfse({ ref, amount, descricao, payerEmail, payerName, 
     tomador,
   });
 
+  // Modo dry-run: nao chama Focus NFe. Util para validar o fluxo end-to-end
+  // (webhook -> emissao -> persistencia em Firestore) enquanto a empresa
+  // ainda nao esta autorizada na prefeitura ou o token de homologacao esta
+  // travado. Ligue com NFSE_DRY_RUN=true. Nunca deixe ligado em producao real.
+  if ((process.env.NFSE_DRY_RUN || "").toString().toLowerCase() === "true") {
+    return {
+      ok: true,
+      status: 200,
+      ref,
+      provider: "focusnfe",
+      env: (process.env.FOCUS_NFE_ENV || "homologacao").toLowerCase(),
+      mocked: true,
+      data: {
+        status: "mocked_autorizada",
+        mensagem: "Emissao simulada (NFSE_DRY_RUN=true). Nenhuma chamada feita a Focus NFe.",
+        payload,
+      },
+    };
+  }
+
   const baseUrl = getFocusBaseUrl();
   const url = `${baseUrl}/v2/nfse?ref=${encodeURIComponent(ref)}`;
   const token = (process.env.FOCUS_NFE_TOKEN || "").trim();
