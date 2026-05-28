@@ -1,10 +1,9 @@
 import { buildApiUrl } from "../utils/apiBase";
 
-// Flag temporario: assinaturas pagas via Mercado Pago estao desativadas ate
-// que o CNPJ da plataforma seja fornecido e a conta MP seja homologada para
-// preapproval. Mantemos o codigo abaixo intacto para reativar trocando o
-// valor para false.
-const PAID_CHECKOUT_DISABLED = true;
+// Flag temporario: assinaturas pagas via Mercado Pago. Mantido aqui para
+// permitir desativar rapidamente em caso de incidente. Defina como `true`
+// para bloquear novos checkouts.
+const PAID_CHECKOUT_DISABLED = false;
 
 /**
  * Redireciona para o Mercado Pago Checkout (Assinaturas).

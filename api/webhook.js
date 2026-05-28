@@ -1,3 +1,5 @@
+import { tryEmitNfseForMercadoPagoPayment } from "./_nfse.js";
+
 function normalizeCompanySlug(value) {
   return (value || "")
     .toString()
@@ -7,6 +9,7 @@ function normalizeCompanySlug(value) {
     .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
+
 
 function normalizeAudience(value) {
   return ["worker", "employer", "supporter"].includes(value) ? value : "worker";
@@ -234,6 +237,33 @@ async function handleMercadoPagoWebhook(req, res) {
       }
 
       await Promise.all(writes);
+
+      // Emissao automatica de NFS-e (best-effort). A primeira fatura do plano
+      // chega via webhook payment.updated; aqui, na confirmacao da assinatura,
+      // ja tentamos emitir caso o valor venha exposto no preapproval.
+      try {
+        const recurringAmount = Number(preapproval?.auto_recurring?.transaction_amount || 0);
+        if (recurringAmount > 0) {
+          const fakePayment = {
+            id: preapproval.id,
+            transaction_amount: recurringAmount,
+            payer: { email: preapproval?.payer_email || null },
+          };
+          await tryEmitNfseForMercadoPagoPayment({
+            payment: fakePayment,
+            cnpj,
+            companySlug,
+            apoiadorId,
+            audience,
+            descricao: `Assinatura Trabalhei La (preapproval ${preapproval.id})`,
+            db,
+            FieldValue,
+          });
+        }
+      } catch (nfseErr) {
+        console.warn("[webhook] Falha NFS-e (subscription, ignorada):", nfseErr?.message || nfseErr);
+      }
+
       return res.status(200).json({ received: true, updated: true });
     }
 
@@ -375,6 +405,23 @@ async function handleMercadoPagoWebhook(req, res) {
     }
 
     await Promise.all(writes);
+
+    // Emissao automatica de NFS-e (best-effort). Nao quebra o webhook em caso
+    // de falha: o resultado fica persistido em /nfse_emissoes/{ref} para retry.
+    try {
+      await tryEmitNfseForMercadoPagoPayment({
+        payment,
+        cnpj,
+        companySlug,
+        apoiadorId,
+        audience,
+        descricao: `Assinatura/servico Trabalhei La (pagamento ${payment.id})`,
+        db,
+        FieldValue,
+      });
+    } catch (nfseErr) {
+      console.warn("[webhook] Falha NFS-e (payment, ignorada):", nfseErr?.message || nfseErr);
+    }
 
     return res.status(200).json({ received: true, updated: true, provider: "mercadopago" });
   } catch (err) {

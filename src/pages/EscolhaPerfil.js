@@ -15,10 +15,10 @@ import { getMpPlanUrl } from "../utils/mpSubscription";
 const EMPLOYER_FREE_PERIOD_END_ISO = "2026-07-31T23:59:59-03:00";
 const EMPLOYER_FREE_PERIOD_LABEL = "31 de julho de 2026";
 
-// Flag temporario: assinaturas pagas via Mercado Pago estao desativadas ate
-// que o CNPJ da plataforma seja fornecido / a conta MP seja homologada para
-// preapproval. Empresas dentro da janela gratuita continuam liberadas.
-const PAID_CHECKOUT_DISABLED = true;
+// Flag temporaria: assinaturas pagas via Mercado Pago. Mantida aqui para
+// permitir desativar rapidamente em caso de incidente. Defina como `true`
+// para bloquear novos checkouts.
+const PAID_CHECKOUT_DISABLED = false;
 const PAID_CHECKOUT_DISABLED_MSG = "Em breve";
 
 function extractProfileCnpj(profile) {
@@ -116,14 +116,13 @@ function EscolhaPerfil({ theme, toggleTheme }) {
     // [DEBUG] Confirma que o clique chegou na funcao (problema de binding -> nao aparece)
     console.log("[handlePremiumUnlock] CLICADO", { audience, tier, ts: new Date().toISOString() });
 
-    // BLOQUEIO TEMPORARIO: assinaturas Mercado Pago estao desativadas ate que
-    // o CNPJ da plataforma seja fornecido / conta MP seja homologada para
-    // assinaturas recorrentes. Empresas dentro da janela gratuita continuam
-    // tendo acesso liberado normalmente.
+    // BLOQUEIO opcional: respeita a flag PAID_CHECKOUT_DISABLED para permitir
+    // desativar checkouts em caso de incidente. Empresas dentro da janela
+    // gratuita continuam com acesso liberado normalmente.
     const isEmployerFreeFlow = audience === "employer" && isEmployerFreeWindowActive;
-    if (!isEmployerFreeFlow) {
+    if (PAID_CHECKOUT_DISABLED && !isEmployerFreeFlow) {
       setCheckoutError(
-        "Assinaturas pagas temporariamente indisponiveis. Estamos finalizando a homologacao com o Mercado Pago. Em breve liberaremos novamente."
+        "Assinaturas pagas temporariamente indisponiveis. Tente novamente em instantes."
       );
       return;
     }
