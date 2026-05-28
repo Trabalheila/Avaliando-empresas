@@ -1116,10 +1116,23 @@ function TrabalheiLaMobile({
                 options={safeCompanyOptions}
                 value={company}
                 onChange={setCompany}
-                placeholder="Buscar empresa..."
+                placeholder="Buscar por nome ou CNPJ..."
                 styles={selectStyles}
                 isClearable
                 noOptionsMessage={() => "Empresa não encontrada"}
+                filterOption={(option, rawInput) => {
+                  const input = (rawInput || "").toString().trim().toLowerCase();
+                  if (!input) return true;
+                  const data = option?.data || {};
+                  const label = (option?.label || data.label || "").toLowerCase();
+                  const razao = (data.razaoSocial || "").toLowerCase();
+                  const cnpjDigits = String(data.cnpj || "");
+                  const cnpjFormatted = (data.cnpjFormatted || "").toLowerCase();
+                  const inputDigits = input.replace(/\D/g, "");
+                  if (label.includes(input) || razao.includes(input) || cnpjFormatted.includes(input)) return true;
+                  if (inputDigits && cnpjDigits.includes(inputDigits)) return true;
+                  return false;
+                }}
               />
 
               <div className="mt-3">
@@ -1577,18 +1590,23 @@ function TrabalheiLaMobile({
         }}
       />
 
-      <footer className="text-center text-xs text-slate-500 dark:text-slate-300 mt-6 space-x-2">
-        <Link to="/termos-de-uso" className="text-blue-600 dark:text-blue-300 hover:underline font-semibold">
-          Termos de Uso
-        </Link>
-        <span>•</span>
-        <a href="/politica-de-privacidade" className="text-blue-600 dark:text-blue-300 hover:underline font-semibold">
-          Política de Privacidade
-        </a>
-        <span>•</span>
-        <Link to="/purpose" className="text-blue-600 dark:text-blue-300 hover:underline">
-          Qual o nosso propósito?
-        </Link>
+      <footer className="text-center text-xs text-slate-500 dark:text-slate-300 mt-6">
+        <div className="space-x-2">
+          <Link to="/termos-de-uso" className="text-blue-600 dark:text-blue-300 hover:underline font-semibold">
+            Termos de Uso
+          </Link>
+          <span>•</span>
+          <a href="/politica-de-privacidade" className="text-blue-600 dark:text-blue-300 hover:underline font-semibold">
+            Política de Privacidade
+          </a>
+          <span>•</span>
+          <Link to="/purpose" className="text-blue-600 dark:text-blue-300 hover:underline">
+            Qual o nosso propósito?
+          </Link>
+        </div>
+        <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">
+          Trabalhei Lá | CNPJ: 67.029.282/0001-20
+        </p>
       </footer>
     </div>
   );

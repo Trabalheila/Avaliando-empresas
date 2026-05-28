@@ -32,9 +32,27 @@ export async function enrichCompanyWithBrasilAPI(cnpj) {
         }
       : null;
 
+    const enderecoParts = [
+      data?.descricao_tipo_de_logradouro || "",
+      data?.logradouro || "",
+      data?.numero ? `, ${data.numero}` : "",
+      data?.complemento ? ` - ${data.complemento}` : "",
+      data?.bairro ? ` - ${data.bairro}` : "",
+      data?.municipio ? ` - ${data.municipio}` : "",
+      data?.uf ? `/${data.uf}` : "",
+      data?.cep ? ` - CEP ${data.cep}` : "",
+    ];
+    const enderecoFormatado = enderecoParts
+      .join("")
+      .replace(/\s+/g, " ")
+      .replace(/\s+,/g, ",")
+      .trim();
+
     return {
       cnpj: cleaned,
       razaoSocial: data?.razao_social || null,
+      nomeFantasia: data?.nome_fantasia || null,
+      endereco: enderecoFormatado || null,
       cnae_principal: cnaePrincipal,
       segmento: getSegmentFromCnaeCode(cnaeCode),
       ramo: data.cnae_fiscal_descricao || null,

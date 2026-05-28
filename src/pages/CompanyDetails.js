@@ -708,6 +708,28 @@ function CompanyDetails({ theme, toggleTheme }) {
 
     const cnpj = company.cnpj || "Não informado";
 
+    const cnpjDigits = String(company.cnpj || "").replace(/\D/g, "");
+    const cnpjFormatted = cnpjDigits.length === 14
+      ? cnpjDigits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3.$4-$5")
+      : (company.cnpj || "Não informado");
+
+    const razaoSocial =
+      company.razaoSocial || company.razao_social || "Não informado";
+
+    const nomeFantasia =
+      company.nomeFantasia || company.nome_fantasia || company.fantasia || "Não informado";
+
+    const endereco =
+      company.endereco ||
+      [
+        company.logradouro,
+        company.numero ? `, ${company.numero}` : "",
+        company.bairro ? ` - ${company.bairro}` : "",
+        company.cidade ? ` - ${company.cidade}` : "",
+        company.estado ? `/${company.estado}` : "",
+      ].join("").trim() ||
+      "Não informado";
+
     const socialLinks = insights?.socialLinks || [
       { label: "LinkedIn", value: company.linkedin || "Não identificado automaticamente" },
       { label: "Instagram", value: company.instagram || "Não identificado automaticamente" },
@@ -721,6 +743,10 @@ function CompanyDetails({ theme, toggleTheme }) {
       location,
       website,
       cnpj,
+      cnpjFormatted,
+      razaoSocial,
+      nomeFantasia,
+      endereco,
       socialLinks,
       description,
     };
@@ -2430,6 +2456,28 @@ function CompanyDetails({ theme, toggleTheme }) {
                   ? `No período analisado, a métrica de segurança e integridade variou ${premiumRadar.trendDelta >= 0 ? "+" : ""}${premiumRadar.trendDelta.toFixed(2)} ponto(s).`
                   : "Ative o Dashboard Detalhado para capturar tendência mensal e enriquecer este radar."}
               </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 border border-blue-100 dark:border-slate-700">
+          <h2 className="text-lg font-bold text-[#1a237e] dark:text-blue-300 font-azonix tracking-[0.08em] mb-4">Dados Oficiais da Empresa</h2>
+          <div className="bg-blue-50 dark:bg-slate-800 rounded-xl p-4 border border-blue-100 dark:border-slate-700 grid gap-3 md:grid-cols-2">
+            <div>
+              <p className="text-xs font-semibold text-[#1a237e] dark:text-blue-300 uppercase tracking-wide">CNPJ</p>
+              <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">{companyInfo?.cnpjFormatted}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-[#1a237e] dark:text-blue-300 uppercase tracking-wide">Razão Social</p>
+              <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">{companyInfo?.razaoSocial}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-[#1a237e] dark:text-blue-300 uppercase tracking-wide">Nome Fantasia</p>
+              <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">{companyInfo?.nomeFantasia}</p>
+            </div>
+            <div className="md:col-span-2">
+              <p className="text-xs font-semibold text-[#1a237e] dark:text-blue-300 uppercase tracking-wide">Endereço</p>
+              <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">{companyInfo?.endereco}</p>
             </div>
           </div>
         </div>

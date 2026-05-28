@@ -716,10 +716,19 @@ function Home({ theme, toggleTheme }) {
   const safeCompanyOptions = empresas
     .filter((emp) => !isBlockedPublicCompany(emp?.company))
     .sort((a, b) => (a?.company || "").localeCompare(b?.company || "", "pt-BR", { sensitivity: "base" }))
-    .map((emp) => ({
-      value: emp.company,
-      label: emp.company,
-    }));
+    .map((emp) => {
+      const cnpjDigits = String(emp?.cnpj || "").replace(/\D/g, "");
+      const cnpjFormatted = cnpjDigits.length === 14
+        ? cnpjDigits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3.$4-$5")
+        : "";
+      return {
+        value: emp.company,
+        label: emp.company,
+        cnpj: cnpjDigits,
+        cnpjFormatted,
+        razaoSocial: emp?.razaoSocial || "",
+      };
+    });
 
   const [selectedCompanyData, setSelectedCompanyData] = useState(null);
 

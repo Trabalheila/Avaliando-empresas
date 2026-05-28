@@ -1026,9 +1026,22 @@ function TrabalheiLaDesktop({
                     options={safeCompanyOptions}
                     value={company}
                     onChange={setCompany}
-                    placeholder="Buscar ou selecionar empresa..."
+                    placeholder="Buscar por nome ou CNPJ..."
                     styles={selectStyles}
                     isClearable
+                    filterOption={(option, rawInput) => {
+                      const input = (rawInput || "").toString().trim().toLowerCase();
+                      if (!input) return true;
+                      const data = option?.data || {};
+                      const label = (option?.label || data.label || "").toLowerCase();
+                      const razao = (data.razaoSocial || "").toLowerCase();
+                      const cnpjDigits = String(data.cnpj || "");
+                      const cnpjFormatted = (data.cnpjFormatted || "").toLowerCase();
+                      const inputDigits = input.replace(/\D/g, "");
+                      if (label.includes(input) || razao.includes(input) || cnpjFormatted.includes(input)) return true;
+                      if (inputDigits && cnpjDigits.includes(inputDigits)) return true;
+                      return false;
+                    }}
                   />
 
                   <button type="button" onClick={() => setShowNewCompanyInput(!showNewCompanyInput)}
@@ -1442,6 +1455,9 @@ function TrabalheiLaDesktop({
               </Link>
               {" • "}
               <span>© 2026 Trabalhei Lá - Todos os direitos reservados</span>
+            </p>
+            <p className="text-slate-500 dark:text-slate-400 text-xs mt-2">
+              Trabalhei Lá | CNPJ: 67.029.282/0001-20
             </p>
           </div>
         </footer>
