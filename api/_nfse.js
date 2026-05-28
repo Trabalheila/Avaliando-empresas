@@ -105,8 +105,8 @@ function buildNfsePayload({ platform, amount, descricao, tomador }) {
  * @param {string} [params.payerName]
  * @param {string} [params.payerDocument] CPF ou CNPJ do tomador.
  */
-export async function emitNfse({ ref, amount, descricao, payerEmail, payerName, payerDocument }) {
-  if (!isAutoEmitEnabled()) {
+export async function emitNfse({ ref, amount, descricao, payerEmail, payerName, payerDocument, force = false }) {
+  if (!force && !isAutoEmitEnabled()) {
     return { ok: false, skipped: true, reason: "auto_emit_disabled" };
   }
   if (!isFocusConfigured()) {
@@ -201,6 +201,7 @@ export async function tryEmitNfseForMercadoPagoPayment({
   descricao,
   db,
   FieldValue,
+  force = false,
 }) {
   try {
     const ref = `mp_${payment?.id || ""}`;
@@ -222,6 +223,7 @@ export async function tryEmitNfseForMercadoPagoPayment({
       payerEmail,
       payerName,
       payerDocument,
+      force,
     });
 
     if (db) {
