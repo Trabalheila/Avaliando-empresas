@@ -16,14 +16,28 @@ import {
  * (advogado, medico, psicologo, consultor_rh, contador,
  *  engenheiro_seguranca, fisioterapeuta_ocupacional, recrutador,
  *  outro). Cada entrada define:
- *   - label:           título amigável exibido no cabeçalho.
- *   - caseLabel:       termo usado em "Tipo de caso" (Processo / Projeto / Atendimento).
- *   - extraColumns:    colunas adicionais na tabela de Casos Ativos.
- *                      Cada item é { key, label, render? }.
- *   - resourceLinks:   array de links exibidos em "Recursos e Ferramentas".
- *   - mockActiveCases: dados mockados (substituir por queries reais à
- *                      coleção /apoiadores/{id}/cases quando existir).
+ *   - label:             título amigável exibido no cabeçalho.
+ *   - caseLabel:         termo usado em "Tipo de caso" (Processo / Projeto / Atendimento).
+ *   - extraColumns:      colunas adicionais na tabela de Casos Ativos.
+ *                        Cada item é { key, label, render? }.
+ *   - resourceLinks:     array de links exibidos em "Recursos e Ferramentas".
+ *   - mockActiveCases:   dados mockados (substituir por queries reais à
+ *                        coleção /apoiadores/{id}/cases quando existir).
+ *   - dashboardSections: ordem (e visibilidade) das seções renderizadas
+ *                        no dashboard. IDs válidos: overview, activeCases,
+ *                        pendingRequests, caseHistory, reputation,
+ *                        resources, profileSettings.
  * ────────────────────────────────────────────────────────────── */
+const DEFAULT_DASHBOARD_SECTIONS = [
+  "overview",
+  "activeCases",
+  "pendingRequests",
+  "caseHistory",
+  "reputation",
+  "resources",
+  "profileSettings",
+];
+
 const SPECIALIST_CONFIGS = {
   advogado: {
     label: "Advogado(a) trabalhista",
@@ -38,6 +52,7 @@ const SPECIALIST_CONFIGS = {
       { label: "Modelos de petições", href: "#", emoji: "📄" },
       { label: "Calendário de audiências", href: "#", emoji: "📅" },
     ],
+    dashboardSections: DEFAULT_DASHBOARD_SECTIONS,
     mockActiveCases: [
       {
         id: "case_001",
@@ -94,6 +109,15 @@ const SPECIALIST_CONFIGS = {
       { label: "Pesquisas salariais", href: "#", emoji: "💰" },
       { label: "Fórum de Especialistas", href: "#", emoji: "💬" },
     ],
+    dashboardSections: [
+      "overview",
+      "activeCases",
+      "resources",
+      "reputation",
+      "pendingRequests",
+      "caseHistory",
+      "profileSettings",
+    ],
     mockActiveCases: [
       {
         id: "rh_001",
@@ -140,6 +164,7 @@ const SPECIALIST_CONFIGS = {
       { label: "Modelos de Job Description", href: "#", emoji: "📝" },
       { label: "Fórum de Especialistas", href: "#", emoji: "💬" },
     ],
+    dashboardSections: DEFAULT_DASHBOARD_SECTIONS,
     mockActiveCases: [
       {
         id: "rec_001",
@@ -185,6 +210,15 @@ const SPECIALIST_CONFIGS = {
       { label: "Protocolos de saúde mental no trabalho", href: "#", emoji: "🧠" },
       { label: "Modelos de anâmnese", href: "#", emoji: "📄" },
       { label: "Agenda de sessões", href: "#", emoji: "📅" },
+    ],
+    dashboardSections: [
+      "overview",
+      "reputation",
+      "activeCases",
+      "pendingRequests",
+      "caseHistory",
+      "resources",
+      "profileSettings",
     ],
     mockActiveCases: [
       {
@@ -232,6 +266,15 @@ const SPECIALIST_CONFIGS = {
       { label: "Modelos de ASO", href: "#", emoji: "📄" },
       { label: "Calendário de exames", href: "#", emoji: "📅" },
     ],
+    dashboardSections: [
+      "overview",
+      "reputation",
+      "activeCases",
+      "pendingRequests",
+      "caseHistory",
+      "resources",
+      "profileSettings",
+    ],
     mockActiveCases: [
       {
         id: "med_001",
@@ -277,6 +320,15 @@ const SPECIALIST_CONFIGS = {
       { label: "Tabela de tributos", href: "#", emoji: "💰" },
       { label: "Modelos de balancete", href: "#", emoji: "📄" },
       { label: "Atualizações da Receita", href: "#", emoji: "📰" },
+    ],
+    dashboardSections: [
+      "overview",
+      "activeCases",
+      "caseHistory",
+      "pendingRequests",
+      "resources",
+      "reputation",
+      "profileSettings",
     ],
     mockActiveCases: [
       {
@@ -324,6 +376,15 @@ const SPECIALIST_CONFIGS = {
       { label: "Checklists de Segurança", href: "#", emoji: "✅" },
       { label: "Relatórios de Acidentes", href: "#", emoji: "📊" },
     ],
+    dashboardSections: [
+      "overview",
+      "activeCases",
+      "resources",
+      "pendingRequests",
+      "caseHistory",
+      "reputation",
+      "profileSettings",
+    ],
     mockActiveCases: [
       {
         id: "eng_001",
@@ -370,6 +431,15 @@ const SPECIALIST_CONFIGS = {
       { label: "Artigos Científicos", href: "#", emoji: "📚" },
       { label: "Fórum de Especialistas", href: "#", emoji: "💬" },
     ],
+    dashboardSections: [
+      "overview",
+      "reputation",
+      "activeCases",
+      "pendingRequests",
+      "caseHistory",
+      "resources",
+      "profileSettings",
+    ],
     mockActiveCases: [
       {
         id: "fis_001",
@@ -413,6 +483,13 @@ const SPECIALIST_CONFIGS = {
       { label: "Fórum de Especialistas", href: "#", emoji: "💬" },
       { label: "Suporte", href: "#", emoji: "🛟" },
     ],
+    dashboardSections: [
+      "overview",
+      "activeCases",
+      "pendingRequests",
+      "resources",
+      "profileSettings",
+    ],
     mockActiveCases: [
       {
         id: "out_001",
@@ -434,7 +511,15 @@ function getSpecialistConfig(tipo) {
     .trim()
     .toLowerCase()
     .replace(/-/g, "_");
-  return SPECIALIST_CONFIGS[key] || SPECIALIST_CONFIGS.outro;
+  const cfg = SPECIALIST_CONFIGS[key] || SPECIALIST_CONFIGS.outro;
+  // Garante que dashboardSections sempre exista.
+  return {
+    ...cfg,
+    dashboardSections:
+      cfg.dashboardSections && cfg.dashboardSections.length > 0
+        ? cfg.dashboardSections
+        : DEFAULT_DASHBOARD_SECTIONS,
+  };
 }
 
 /* ──────────────────────────────────────────────────────────────
@@ -734,457 +819,492 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
           </button>
         </header>
 
-        {/* Visão Geral */}
-        <section aria-labelledby="overview-title">
-          <h2
-            id="overview-title"
-            className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2"
-          >
-            Visão geral
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <OverviewCard
-              label="Clientes ativos"
-              value={activeCases.length}
-              accent="blue"
-              emoji="👥"
-            />
-            <OverviewCard
-              label="Pedidos pendentes"
-              value={pendingCount}
-              accent="amber"
-              emoji="📬"
-            />
-            <OverviewCard
-              label="Finalizados (30 dias)"
-              value={finishedLast30}
-              accent="emerald"
-              emoji="✅"
-            />
-            <OverviewCard
-              label="Satisfação média"
-              value={`${reviews.average?.toFixed(1) || "—"}/5`}
-              accent="indigo"
-              emoji="⭐"
-            />
-          </div>
-        </section>
-
-        {/* Meus Clientes / Casos Ativos */}
-        <section
-          aria-labelledby="active-cases-title"
-          className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700"
-        >
-          <header className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2">
-            <h2
-              id="active-cases-title"
-              className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
-            >
-              <span aria-hidden="true">📂</span> Meus clientes / casos ativos
-            </h2>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-              {activeCases.length} ativo{activeCases.length === 1 ? "" : "s"}
-            </span>
-          </header>
-
-          {activeCases.length === 0 ? (
-            <p className="px-5 py-8 text-center text-slate-500 dark:text-slate-400 text-sm">
-              Você ainda não possui casos ativos.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300">
-                  <tr>
-                    <Th>Cliente</Th>
-                    <Th>{specialistConfig.caseLabel}</Th>
-                    {specialistConfig.extraColumns.map((col) => (
-                      <Th key={col.key}>{col.label}</Th>
-                    ))}
-                    <Th>Status</Th>
-                    <Th>Próxima ação / prazo</Th>
-                    <Th className="text-right pr-5">Ações</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activeCases.map((c) => (
-                    <tr
-                      key={c.id}
-                      className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50/70 dark:hover:bg-slate-800/40"
-                    >
-                      <Td className="font-semibold text-slate-800 dark:text-slate-100">
-                        {c.clientAlias}
-                      </Td>
-                      <Td className="text-slate-700 dark:text-slate-200">{c.caseType}</Td>
-                      {specialistConfig.extraColumns.map((col) => (
-                        <Td
-                          key={col.key}
-                          className="text-slate-700 dark:text-slate-200"
-                        >
-                          {col.render ? col.render(c) : c[col.key] || "—"}
-                        </Td>
-                      ))}
-                      <Td>
-                        <StatusBadge status={c.status} />
-                      </Td>
-                      <Td className="text-slate-700 dark:text-slate-200">
-                        <div className="flex flex-col">
-                          <span>{c.nextAction}</span>
-                          {c.nextActionDate && (
-                            <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                              {new Date(c.nextActionDate).toLocaleDateString("pt-BR")}
-                            </span>
-                          )}
-                        </div>
-                      </Td>
-                      <Td className="text-right pr-5">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            alert(`Detalhes do caso ${c.id} (em desenvolvimento).`)
-                          }
-                          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"
-                        >
-                          Ver detalhes
-                        </button>
-                      </Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-
-        {/* Pedidos de Contato (dados reais) */}
-        <section
-          aria-labelledby="requests-title"
-          className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5"
-        >
-          <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-            <h2
-              id="requests-title"
-              className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
-            >
-              <span aria-hidden="true">📬</span> Pedidos de contato de empresas
-              {pendingCount > 0 && (
-                <span className="ml-2 inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full text-xs font-bold bg-red-600 text-white">
-                  {pendingCount}
-                </span>
-              )}
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Empresas Premium podem solicitar consultoria especializada.
-            </p>
-          </div>
-
-          {loading ? (
-            <p className="text-slate-500 dark:text-slate-400 text-center py-8 animate-pulse">
-              Carregando…
-            </p>
-          ) : items.length === 0 ? (
-            <p className="text-slate-500 dark:text-slate-400 text-center py-8 text-sm">
-              Nenhum pedido de contato no momento.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {items.map((r) => {
-                const isReplying = activeReply === r.id;
-                const status = r.status || "pending";
-                return (
-                  <article
-                    key={r.id}
-                    className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 bg-slate-50/60 dark:bg-slate-800/40"
+        {/* ─── Seções dinâmicas (ordem definida em specialistConfig.dashboardSections) ─── */}
+        {(specialistConfig.dashboardSections || DEFAULT_DASHBOARD_SECTIONS).map((sectionId) => {
+          switch (sectionId) {
+            case "overview":
+              return (
+                <section key="overview" aria-labelledby="overview-title">
+                  <h2
+                    id="overview-title"
+                    className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2"
                   >
-                    <div className="flex items-start justify-between gap-3 flex-wrap">
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
-                          Pedido de contato (empresa)
-                        </p>
-                        <p className="font-bold text-slate-800 dark:text-slate-100 mt-0.5">
-                          {r.fromCompanyName || "Empresa Premium"}
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {r.createdAt
-                            ? new Date(r.createdAt).toLocaleString("pt-BR")
-                            : ""}
-                        </p>
-                      </div>
-                      <span
-                        className={
-                          "text-[11px] font-bold px-2 py-0.5 rounded-full " +
-                          (status === "accepted"
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                            : status === "declined"
-                            ? "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                            : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300")
-                        }
-                      >
-                        {status === "accepted"
-                          ? "Respondido"
-                          : status === "declined"
-                          ? "Recusado"
-                          : "Pendente"}
-                      </span>
-                    </div>
+                    Visão geral
+                  </h2>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <OverviewCard
+                      label="Clientes ativos"
+                      value={activeCases.length}
+                      accent="blue"
+                      emoji="👥"
+                    />
+                    <OverviewCard
+                      label="Pedidos pendentes"
+                      value={pendingCount}
+                      accent="amber"
+                      emoji="📬"
+                    />
+                    <OverviewCard
+                      label="Finalizados (30 dias)"
+                      value={finishedLast30}
+                      accent="emerald"
+                      emoji="✅"
+                    />
+                    <OverviewCard
+                      label="Satisfação média"
+                      value={`${reviews.average?.toFixed(1) || "—"}/5`}
+                      accent="indigo"
+                      emoji="⭐"
+                    />
+                  </div>
+                </section>
+              );
 
-                    <p className="mt-3 text-sm whitespace-pre-wrap text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 rounded-lg p-3 border border-slate-100 dark:border-slate-700">
-                      {r.message || "(sem mensagem)"}
+            case "activeCases":
+              return (
+                <section
+                  key="activeCases"
+                  aria-labelledby="active-cases-title"
+                  className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700"
+                >
+                  <header className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2">
+                    <h2
+                      id="active-cases-title"
+                      className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
+                    >
+                      <span aria-hidden="true">📂</span> Meus clientes / casos ativos
+                    </h2>
+                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                      {activeCases.length} ativo{activeCases.length === 1 ? "" : "s"}
+                    </span>
+                  </header>
+
+                  {activeCases.length === 0 ? (
+                    <p className="px-5 py-8 text-center text-slate-500 dark:text-slate-400 text-sm">
+                      Você ainda não possui casos ativos.
                     </p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300">
+                          <tr>
+                            <Th>Cliente</Th>
+                            <Th>{specialistConfig.caseLabel}</Th>
+                            {specialistConfig.extraColumns.map((col) => (
+                              <Th key={col.key}>{col.label}</Th>
+                            ))}
+                            <Th>Status</Th>
+                            <Th>Próxima ação / prazo</Th>
+                            <Th className="text-right pr-5">Ações</Th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {activeCases.map((c) => (
+                            <tr
+                              key={c.id}
+                              className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50/70 dark:hover:bg-slate-800/40"
+                            >
+                              <Td className="font-semibold text-slate-800 dark:text-slate-100">
+                                {c.clientAlias}
+                              </Td>
+                              <Td className="text-slate-700 dark:text-slate-200">{c.caseType}</Td>
+                              {specialistConfig.extraColumns.map((col) => (
+                                <Td
+                                  key={col.key}
+                                  className="text-slate-700 dark:text-slate-200"
+                                >
+                                  {col.render ? col.render(c) : c[col.key] || "—"}
+                                </Td>
+                              ))}
+                              <Td>
+                                <StatusBadge status={c.status} />
+                              </Td>
+                              <Td className="text-slate-700 dark:text-slate-200">
+                                <div className="flex flex-col">
+                                  <span>{c.nextAction}</span>
+                                  {c.nextActionDate && (
+                                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                                      {new Date(c.nextActionDate).toLocaleDateString("pt-BR")}
+                                    </span>
+                                  )}
+                                </div>
+                              </Td>
+                              <Td className="text-right pr-5">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    alert(`Detalhes do caso ${c.id} (em desenvolvimento).`)
+                                  }
+                                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"
+                                >
+                                  Ver detalhes
+                                </button>
+                              </Td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </section>
+              );
 
-                    {status === "pending" && !isReplying && (
-                      <div className="mt-4 flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleDecline(r.id)}
-                          disabled={busy}
-                          className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 font-semibold text-slate-700 dark:text-slate-200 disabled:opacity-50"
-                        >
-                          Recusar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveReply(r.id);
-                            setReplyText("");
-                            setRevealEmail(false);
-                          }}
-                          disabled={busy}
-                          className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold disabled:opacity-50"
-                        >
-                          Aceitar / Responder
-                        </button>
-                      </div>
+            case "pendingRequests":
+              return (
+                <section
+                  key="pendingRequests"
+                  aria-labelledby="requests-title"
+                  className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5"
+                >
+                  <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+                    <h2
+                      id="requests-title"
+                      className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
+                    >
+                      <span aria-hidden="true">📬</span> Pedidos de contato de empresas
+                      {pendingCount > 0 && (
+                        <span className="ml-2 inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full text-xs font-bold bg-red-600 text-white">
+                          {pendingCount}
+                        </span>
+                      )}
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Empresas Premium podem solicitar consultoria especializada.
+                    </p>
+                  </div>
+
+                  {loading ? (
+                    <p className="text-slate-500 dark:text-slate-400 text-center py-8 animate-pulse">
+                      Carregando…
+                    </p>
+                  ) : items.length === 0 ? (
+                    <p className="text-slate-500 dark:text-slate-400 text-center py-8 text-sm">
+                      Nenhum pedido de contato no momento.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {items.map((r) => {
+                        const isReplying = activeReply === r.id;
+                        const status = r.status || "pending";
+                        return (
+                          <article
+                            key={r.id}
+                            className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 bg-slate-50/60 dark:bg-slate-800/40"
+                          >
+                            <div className="flex items-start justify-between gap-3 flex-wrap">
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                                  Pedido de contato (empresa)
+                                </p>
+                                <p className="font-bold text-slate-800 dark:text-slate-100 mt-0.5">
+                                  {r.fromCompanyName || "Empresa Premium"}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  {r.createdAt
+                                    ? new Date(r.createdAt).toLocaleString("pt-BR")
+                                    : ""}
+                                </p>
+                              </div>
+                              <span
+                                className={
+                                  "text-[11px] font-bold px-2 py-0.5 rounded-full " +
+                                  (status === "accepted"
+                                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                                    : status === "declined"
+                                    ? "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                                    : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300")
+                                }
+                              >
+                                {status === "accepted"
+                                  ? "Respondido"
+                                  : status === "declined"
+                                  ? "Recusado"
+                                  : "Pendente"}
+                              </span>
+                            </div>
+
+                            <p className="mt-3 text-sm whitespace-pre-wrap text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 rounded-lg p-3 border border-slate-100 dark:border-slate-700">
+                              {r.message || "(sem mensagem)"}
+                            </p>
+
+                            {status === "pending" && !isReplying && (
+                              <div className="mt-4 flex justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDecline(r.id)}
+                                  disabled={busy}
+                                  className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 font-semibold text-slate-700 dark:text-slate-200 disabled:opacity-50"
+                                >
+                                  Recusar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveReply(r.id);
+                                    setReplyText("");
+                                    setRevealEmail(false);
+                                  }}
+                                  disabled={busy}
+                                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold disabled:opacity-50"
+                                >
+                                  Aceitar / Responder
+                                </button>
+                              </div>
+                            )}
+
+                            {isReplying && (
+                              <div className="mt-4">
+                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                                  Sua resposta
+                                </label>
+                                <textarea
+                                  value={replyText}
+                                  onChange={(e) => setReplyText(e.target.value)}
+                                  rows={4}
+                                  maxLength={2000}
+                                  placeholder="Escreva sua resposta para a empresa…"
+                                  className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                />
+                                <label className="mt-2 inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                                  <input
+                                    type="checkbox"
+                                    checked={revealEmail}
+                                    onChange={(e) => setRevealEmail(e.target.checked)}
+                                  />
+                                  Autorizar a empresa a ver meu e-mail/contato direto.
+                                </label>
+                                <div className="mt-3 flex justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveReply(null);
+                                      setReplyText("");
+                                    }}
+                                    disabled={busy}
+                                    className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 font-semibold disabled:opacity-50"
+                                  >
+                                    Cancelar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAccept(r.id)}
+                                    disabled={busy}
+                                    className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold disabled:opacity-50"
+                                  >
+                                    {busy ? "Enviando…" : "Enviar resposta"}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            {status === "accepted" && r.reply && (
+                              <div className="mt-3 text-sm text-emerald-800 dark:text-emerald-200 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 rounded-lg p-3">
+                                <p className="text-xs font-bold uppercase tracking-wider mb-1">
+                                  Sua resposta
+                                </p>
+                                <p className="whitespace-pre-wrap">{r.reply}</p>
+                                {r.revealEmail && (
+                                  <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300">
+                                    ✅ Contato direto compartilhado com a empresa.
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </article>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+              );
+
+            case "caseHistory":
+              return (
+                <section
+                  key="caseHistory"
+                  aria-labelledby="history-title"
+                  className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700"
+                >
+                  <header className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+                    <h2
+                      id="history-title"
+                      className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
+                    >
+                      <span aria-hidden="true">🗂️</span> Histórico de casos
+                    </h2>
+                  </header>
+                  {caseHistory.length === 0 ? (
+                    <p className="px-5 py-8 text-center text-slate-500 dark:text-slate-400 text-sm">
+                      Você ainda não finalizou nenhum caso.
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300">
+                          <tr>
+                            <Th>Cliente</Th>
+                            <Th>Tipo de caso</Th>
+                            <Th>Finalizado em</Th>
+                            <Th>Resultado</Th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {caseHistory.map((c) => (
+                            <tr
+                              key={c.id}
+                              className="border-t border-slate-100 dark:border-slate-800"
+                            >
+                              <Td className="font-semibold text-slate-800 dark:text-slate-100">
+                                {c.clientAlias}
+                              </Td>
+                              <Td className="text-slate-700 dark:text-slate-200">{c.caseType}</Td>
+                              <Td className="text-slate-700 dark:text-slate-200">
+                                {c.finishedAt
+                                  ? new Date(c.finishedAt).toLocaleDateString("pt-BR")
+                                  : "—"}
+                              </Td>
+                              <Td>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                  {c.result}
+                                </span>
+                              </Td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </section>
+              );
+
+            case "reputation":
+              return (
+                <section
+                  key="reputation"
+                  aria-labelledby="reputation-title"
+                  className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5"
+                >
+                  <h2
+                    id="reputation-title"
+                    className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
+                  >
+                    <span aria-hidden="true">⭐</span> Minha reputação
+                  </h2>
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                    Avaliação média:{" "}
+                    <span className="font-bold text-slate-800 dark:text-slate-100">
+                      {reviews.average?.toFixed(1) || "—"}/5
+                    </span>{" "}
+                    <span className="text-slate-500 dark:text-slate-400">
+                      ({reviews.total} avaliações)
+                    </span>
+                  </p>
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {reviews.items.length === 0 && (
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Nenhum depoimento ainda.
+                      </p>
                     )}
-
-                    {isReplying && (
-                      <div className="mt-4">
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
-                          Sua resposta
-                        </label>
-                        <textarea
-                          value={replyText}
-                          onChange={(e) => setReplyText(e.target.value)}
-                          rows={4}
-                          maxLength={2000}
-                          placeholder="Escreva sua resposta para a empresa…"
-                          className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        />
-                        <label className="mt-2 inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-                          <input
-                            type="checkbox"
-                            checked={revealEmail}
-                            onChange={(e) => setRevealEmail(e.target.checked)}
-                          />
-                          Autorizar a empresa a ver meu e-mail/contato direto.
-                        </label>
-                        <div className="mt-3 flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActiveReply(null);
-                              setReplyText("");
-                            }}
-                            disabled={busy}
-                            className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 font-semibold disabled:opacity-50"
-                          >
-                            Cancelar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleAccept(r.id)}
-                            disabled={busy}
-                            className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold disabled:opacity-50"
-                          >
-                            {busy ? "Enviando…" : "Enviar resposta"}
-                          </button>
+                    {reviews.items.map((rv) => (
+                      <div
+                        key={rv.id}
+                        className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 bg-slate-50/60 dark:bg-slate-800/40"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                            {rv.author}
+                          </span>
+                          <span className="text-xs font-bold text-amber-600 dark:text-amber-300">
+                            {"★".repeat(rv.rating)}
+                            <span className="text-slate-300 dark:text-slate-600">
+                              {"★".repeat(5 - rv.rating)}
+                            </span>
+                          </span>
                         </div>
-                      </div>
-                    )}
-
-                    {status === "accepted" && r.reply && (
-                      <div className="mt-3 text-sm text-emerald-800 dark:text-emerald-200 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 rounded-lg p-3">
-                        <p className="text-xs font-bold uppercase tracking-wider mb-1">
-                          Sua resposta
+                        <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">
+                          “{rv.text}”
                         </p>
-                        <p className="whitespace-pre-wrap">{r.reply}</p>
-                        {r.revealEmail && (
-                          <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300">
-                            ✅ Contato direto compartilhado com a empresa.
+                        {rv.createdAt && (
+                          <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                            {new Date(rv.createdAt).toLocaleDateString("pt-BR")}
                           </p>
                         )}
                       </div>
-                    )}
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        {/* Histórico de Casos */}
-        <section
-          aria-labelledby="history-title"
-          className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700"
-        >
-          <header className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-            <h2
-              id="history-title"
-              className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
-            >
-              <span aria-hidden="true">🗂️</span> Histórico de casos
-            </h2>
-          </header>
-          {caseHistory.length === 0 ? (
-            <p className="px-5 py-8 text-center text-slate-500 dark:text-slate-400 text-sm">
-              Você ainda não finalizou nenhum caso.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300">
-                  <tr>
-                    <Th>Cliente</Th>
-                    <Th>Tipo de caso</Th>
-                    <Th>Finalizado em</Th>
-                    <Th>Resultado</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {caseHistory.map((c) => (
-                    <tr
-                      key={c.id}
-                      className="border-t border-slate-100 dark:border-slate-800"
-                    >
-                      <Td className="font-semibold text-slate-800 dark:text-slate-100">
-                        {c.clientAlias}
-                      </Td>
-                      <Td className="text-slate-700 dark:text-slate-200">{c.caseType}</Td>
-                      <Td className="text-slate-700 dark:text-slate-200">
-                        {c.finishedAt
-                          ? new Date(c.finishedAt).toLocaleDateString("pt-BR")
-                          : "—"}
-                      </Td>
-                      <Td>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-                          {c.result}
-                        </span>
-                      </Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-
-        {/* Minha Reputação + Recursos (2 colunas no desktop) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <section
-            aria-labelledby="reputation-title"
-            className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5"
-          >
-            <h2
-              id="reputation-title"
-              className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
-            >
-              <span aria-hidden="true">⭐</span> Minha reputação
-            </h2>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-              Avaliação média:{" "}
-              <span className="font-bold text-slate-800 dark:text-slate-100">
-                {reviews.average?.toFixed(1) || "—"}/5
-              </span>{" "}
-              <span className="text-slate-500 dark:text-slate-400">
-                ({reviews.total} avaliações)
-              </span>
-            </p>
-            <div className="mt-4 space-y-3">
-              {reviews.items.length === 0 && (
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Nenhum depoimento ainda.
-                </p>
-              )}
-              {reviews.items.map((rv) => (
-                <div
-                  key={rv.id}
-                  className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 bg-slate-50/60 dark:bg-slate-800/40"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                      {rv.author}
-                    </span>
-                    <span className="text-xs font-bold text-amber-600 dark:text-amber-300">
-                      {"★".repeat(rv.rating)}
-                      <span className="text-slate-300 dark:text-slate-600">
-                        {"★".repeat(5 - rv.rating)}
-                      </span>
-                    </span>
+                    ))}
                   </div>
-                  <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">
-                    “{rv.text}”
-                  </p>
-                  {rv.createdAt && (
-                    <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                      {new Date(rv.createdAt).toLocaleDateString("pt-BR")}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
+                </section>
+              );
 
-          <section
-            aria-labelledby="resources-title"
-            className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5"
-          >
-            <h2
-              id="resources-title"
-              className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
-            >
-              <span aria-hidden="true">🧰</span> Recursos e ferramentas
-            </h2>
-            <ul className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {(specialistConfig.resourceLinks || RESOURCE_LINKS_FALLBACK).map((res) => (
-                <li key={res.label}>
-                  <a
-                    href={res.href}
-                    onClick={(e) => {
-                      if (res.href === "#") {
-                        e.preventDefault();
-                        alert(`"${res.label}" estará disponível em breve.`);
-                      }
-                    }}
-                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition"
+            case "resources":
+              return (
+                <section
+                  key="resources"
+                  aria-labelledby="resources-title"
+                  className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5"
+                >
+                  <h2
+                    id="resources-title"
+                    className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
                   >
-                    <span className="text-lg" aria-hidden="true">
-                      {res.emoji}
-                    </span>
-                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                      {res.label}
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
+                    <span aria-hidden="true">🧰</span> Recursos e ferramentas
+                  </h2>
+                  <ul className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {(specialistConfig.resourceLinks || RESOURCE_LINKS_FALLBACK).map((res) => (
+                      <li key={res.label}>
+                        <a
+                          href={res.href}
+                          onClick={(e) => {
+                            if (res.href === "#") {
+                              e.preventDefault();
+                              alert(`"${res.label}" estará disponível em breve.`);
+                            }
+                          }}
+                          className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition"
+                        >
+                          <span className="text-lg" aria-hidden="true">
+                            {res.emoji}
+                          </span>
+                          <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                            {res.label}
+                          </span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              );
 
-            <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800">
-              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                <span aria-hidden="true">⚙️</span> Configurações do perfil
-              </h3>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Atualize áreas de atuação, descrição, nichos e disponibilidade.
-              </p>
-              <button
-                type="button"
-                onClick={() => navigate("/apoiador/perfil")}
-                className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
-              >
-                Gerenciar perfil de especialista
-              </button>
-            </div>
-          </section>
-        </div>
+            case "profileSettings":
+              return (
+                <section
+                  key="profileSettings"
+                  aria-labelledby="profile-settings-title"
+                  className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5"
+                >
+                  <h2
+                    id="profile-settings-title"
+                    className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
+                  >
+                    <span aria-hidden="true">⚙️</span> Configurações do perfil
+                  </h2>
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                    Atualize áreas de atuação, descrição, nichos e disponibilidade
+                    para que empresas e trabalhadores encontrem você com mais facilidade.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/apoiador/perfil")}
+                    className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
+                  >
+                    Gerenciar perfil de especialista
+                  </button>
+                </section>
+              );
+
+            default:
+              return null;
+          }
+        })}
       </div>
     </div>
   );
