@@ -51,6 +51,7 @@ const SPECIALIST_CONFIGS = {
       { label: "Jurisprudência TST", href: "#", emoji: "📚" },
       { label: "Modelos de petições", href: "#", emoji: "📄" },
       { label: "Calendário de audiências", href: "#", emoji: "📅" },
+      { label: "Notícias: Reforma trabalhista e impactos", href: "#", emoji: "📰" },
     ],
     dashboardSections: DEFAULT_DASHBOARD_SECTIONS,
     mockActiveCases: [
@@ -108,6 +109,7 @@ const SPECIALIST_CONFIGS = {
       { label: "Modelos de avaliação de desempenho", href: "#", emoji: "📊" },
       { label: "Pesquisas salariais", href: "#", emoji: "💰" },
       { label: "Fórum de Especialistas", href: "#", emoji: "💬" },
+      { label: "Notícias: Tendências em gestão de pessoas", href: "#", emoji: "📰" },
     ],
     dashboardSections: [
       "overview",
@@ -163,6 +165,7 @@ const SPECIALIST_CONFIGS = {
       { label: "Tendências de mercado", href: "#", emoji: "📈" },
       { label: "Modelos de Job Description", href: "#", emoji: "📝" },
       { label: "Fórum de Especialistas", href: "#", emoji: "💬" },
+      { label: "Notícias: O futuro do recrutamento", href: "#", emoji: "📰" },
     ],
     dashboardSections: DEFAULT_DASHBOARD_SECTIONS,
     mockActiveCases: [
@@ -210,6 +213,7 @@ const SPECIALIST_CONFIGS = {
       { label: "Protocolos de saúde mental no trabalho", href: "#", emoji: "🧠" },
       { label: "Modelos de anâmnese", href: "#", emoji: "📄" },
       { label: "Agenda de sessões", href: "#", emoji: "📅" },
+      { label: "Notícias: Bem-estar e produtividade", href: "#", emoji: "📰" },
     ],
     dashboardSections: [
       "overview",
@@ -265,6 +269,7 @@ const SPECIALIST_CONFIGS = {
       { label: "Protocolos PCMSO", href: "#", emoji: "📋" },
       { label: "Modelos de ASO", href: "#", emoji: "📄" },
       { label: "Calendário de exames", href: "#", emoji: "📅" },
+      { label: "Notícias: Avanços em medicina do trabalho", href: "#", emoji: "📰" },
     ],
     dashboardSections: [
       "overview",
@@ -320,6 +325,7 @@ const SPECIALIST_CONFIGS = {
       { label: "Tabela de tributos", href: "#", emoji: "💰" },
       { label: "Modelos de balancete", href: "#", emoji: "📄" },
       { label: "Atualizações da Receita", href: "#", emoji: "📰" },
+      { label: "Notícias: Mudanças na legislação fiscal", href: "#", emoji: "📰" },
     ],
     dashboardSections: [
       "overview",
@@ -375,6 +381,7 @@ const SPECIALIST_CONFIGS = {
       { label: "Laudos técnicos (PPRA/PCMSO)", href: "#", emoji: "📄" },
       { label: "Checklists de Segurança", href: "#", emoji: "✅" },
       { label: "Relatórios de Acidentes", href: "#", emoji: "📊" },
+      { label: "Notícias: Inovações em segurança do trabalho", href: "#", emoji: "📰" },
     ],
     dashboardSections: [
       "overview",
@@ -430,6 +437,7 @@ const SPECIALIST_CONFIGS = {
       { label: "Ergonomia no Trabalho", href: "#", emoji: "📐" },
       { label: "Artigos Científicos", href: "#", emoji: "📚" },
       { label: "Fórum de Especialistas", href: "#", emoji: "💬" },
+      { label: "Notícias: Saúde postural no ambiente de trabalho", href: "#", emoji: "📰" },
     ],
     dashboardSections: [
       "overview",
@@ -482,6 +490,7 @@ const SPECIALIST_CONFIGS = {
       { label: "Legislação trabalhista", href: "#", emoji: "⚖️" },
       { label: "Fórum de Especialistas", href: "#", emoji: "💬" },
       { label: "Suporte", href: "#", emoji: "🛟" },
+      { label: "Notícias do mercado de trabalho", href: "#", emoji: "📰" },
     ],
     dashboardSections: [
       "overview",
