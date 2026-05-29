@@ -21,6 +21,8 @@ import {
  *   - extraColumns:    colunas adicionais na tabela de Casos Ativos.
  *                      Cada item é { key, label, render? }.
  *   - resourceLinks:   array de links exibidos em "Recursos e Ferramentas".
+ *   - mockActiveCases: dados mockados (substituir por queries reais à
+ *                      coleção /apoiadores/{id}/cases quando existir).
  * ────────────────────────────────────────────────────────────── */
 const SPECIALIST_CONFIGS = {
   advogado: {
@@ -36,6 +38,48 @@ const SPECIALIST_CONFIGS = {
       { label: "Modelos de petições", href: "#", emoji: "📄" },
       { label: "Calendário de audiências", href: "#", emoji: "📅" },
     ],
+    mockActiveCases: [
+      {
+        id: "case_001",
+        clientAlias: "Trabalhador #A82F",
+        caseType: "Horas extras não pagas",
+        status: "Em andamento",
+        nextAction: "Audiência inicial",
+        nextActionDate: "2026-06-10",
+        processNumber: "1001234-56.2026.5.02.0001",
+        court: "1ª Vara do Trabalho – SP",
+      },
+      {
+        id: "case_002",
+        clientAlias: "Trabalhador #71BC",
+        caseType: "Rescisão indireta",
+        status: "Aguardando documentos",
+        nextAction: "Receber holerites",
+        nextActionDate: "2026-06-05",
+        processNumber: "1009876-12.2026.5.02.0010",
+        court: "10ª Vara do Trabalho – SP",
+      },
+      {
+        id: "case_003",
+        clientAlias: "Empresa Acme S.A.",
+        caseType: "Defesa em ação coletiva",
+        status: "Em andamento",
+        nextAction: "Protocolar contestação",
+        nextActionDate: "2026-06-12",
+        processNumber: "2007777-99.2026.5.02.0003",
+        court: "TRT – 2ª Região",
+      },
+      {
+        id: "case_004",
+        clientAlias: "Trabalhador #55DD",
+        caseType: "Indenização por assédio",
+        status: "Aguardando pagamento",
+        nextAction: "Emitir alvará",
+        nextActionDate: "2026-06-03",
+        processNumber: "1004444-33.2025.5.02.0007",
+        court: "7ª Vara do Trabalho – SP",
+      },
+    ],
   },
   consultor_rh: {
     label: "Consultor(a) de RH",
@@ -50,19 +94,83 @@ const SPECIALIST_CONFIGS = {
       { label: "Pesquisas salariais", href: "#", emoji: "💰" },
       { label: "Fórum de Especialistas", href: "#", emoji: "💬" },
     ],
+    mockActiveCases: [
+      {
+        id: "rh_001",
+        clientAlias: "Empresa Alfa",
+        caseType: "Recrutamento e Seleção",
+        status: "Em andamento",
+        nextAction: "Entrevistas finais",
+        nextActionDate: "2026-06-03",
+        projectPhase: "Sourcing",
+        deliverable: "Shortlist de candidatos",
+      },
+      {
+        id: "rh_002",
+        clientAlias: "Empresa Beta",
+        caseType: "Plano de Carreira",
+        status: "Aguardando aprovação",
+        nextAction: "Reunião com diretoria",
+        nextActionDate: "2026-06-10",
+        projectPhase: "Desenho",
+        deliverable: "Proposta de plano",
+      },
+      {
+        id: "rh_003",
+        clientAlias: "Startup Beta",
+        caseType: "Diagnóstico de clima",
+        status: "Aguardando documentos",
+        nextAction: "Receber pesquisa interna",
+        nextActionDate: "2026-06-04",
+        projectPhase: "Coleta de dados",
+        deliverable: "Relatório executivo",
+      },
+    ],
   },
   recrutador: {
     label: "Recrutador(a)",
     caseLabel: "Vaga",
     extraColumns: [
-      { key: "position", label: "Cargo" },
+      { key: "position", label: "Posição" },
       { key: "pipelineStage", label: "Etapa do pipeline" },
     ],
     resourceLinks: [
       { label: "Banco de talentos", href: "#", emoji: "🎯" },
       { label: "Tendências de mercado", href: "#", emoji: "📈" },
-      { label: "Modelos de entrevista", href: "#", emoji: "📝" },
+      { label: "Modelos de Job Description", href: "#", emoji: "📝" },
       { label: "Fórum de Especialistas", href: "#", emoji: "💬" },
+    ],
+    mockActiveCases: [
+      {
+        id: "rec_001",
+        clientAlias: "Empresa Gama",
+        caseType: "Recrutamento Tech",
+        status: "Em andamento",
+        nextAction: "Agendar entrevistas",
+        nextActionDate: "2026-06-02",
+        position: "Desenvolvedor Sênior",
+        pipelineStage: "Triagem de CVs",
+      },
+      {
+        id: "rec_002",
+        clientAlias: "Empresa Delta",
+        caseType: "Recrutamento Comercial",
+        status: "Aguardando feedback",
+        nextAction: "Follow-up cliente",
+        nextActionDate: "2026-06-07",
+        position: "Gerente de Vendas",
+        pipelineStage: "Entrevistas",
+      },
+      {
+        id: "rec_003",
+        clientAlias: "Startup Gama",
+        caseType: "Vaga aberta",
+        status: "Em andamento",
+        nextAction: "Triagem inicial",
+        nextActionDate: "2026-06-02",
+        position: "Product Designer Sênior",
+        pipelineStage: "Sourcing",
+      },
     ],
   },
   psicologo: {
@@ -70,7 +178,7 @@ const SPECIALIST_CONFIGS = {
     caseLabel: "Atendimento",
     extraColumns: [
       { key: "sessionsCount", label: "Sessões realizadas" },
-      { key: "focusArea", label: "Foco clínico" },
+      { key: "focusArea", label: "Foco principal" },
     ],
     resourceLinks: [
       { label: "Código de ética CRP", href: "#", emoji: "⚖️" },
@@ -78,19 +186,83 @@ const SPECIALIST_CONFIGS = {
       { label: "Modelos de anâmnese", href: "#", emoji: "📄" },
       { label: "Agenda de sessões", href: "#", emoji: "📅" },
     ],
+    mockActiveCases: [
+      {
+        id: "psi_001",
+        clientAlias: "Trabalhador #C123",
+        caseType: "Acompanhamento",
+        status: "Em andamento",
+        nextAction: "Próxima sessão",
+        nextActionDate: "2026-06-04",
+        sessionsCount: 3,
+        focusArea: "Estresse no trabalho",
+      },
+      {
+        id: "psi_002",
+        clientAlias: "Trabalhador #D456",
+        caseType: "Avaliação",
+        status: "Aguardando laudo",
+        nextAction: "Finalizar relatório",
+        nextActionDate: "2026-06-08",
+        sessionsCount: 1,
+        focusArea: "Burnout",
+      },
+      {
+        id: "psi_003",
+        clientAlias: "Empresa Acme S.A.",
+        caseType: "Programa de bem-estar",
+        status: "Em andamento",
+        nextAction: "Workshop coletivo",
+        nextActionDate: "2026-06-14",
+        sessionsCount: 2,
+        focusArea: "Prevenção",
+      },
+    ],
   },
   medico: {
     label: "Médico(a) do trabalho",
-    caseLabel: "Atendimento",
+    caseLabel: "Consulta",
     extraColumns: [
       { key: "examType", label: "Tipo de exame" },
-      { key: "crmStatus", label: "Status clínico" },
+      { key: "crmStatus", label: "Status CRM" },
     ],
     resourceLinks: [
-      { label: "NRs de saúde ocupacional", href: "#", emoji: "🩺" },
+      { label: "Normas Regulamentadoras (NRs)", href: "#", emoji: "🩺" },
       { label: "Protocolos PCMSO", href: "#", emoji: "📋" },
       { label: "Modelos de ASO", href: "#", emoji: "📄" },
       { label: "Calendário de exames", href: "#", emoji: "📅" },
+    ],
+    mockActiveCases: [
+      {
+        id: "med_001",
+        clientAlias: "Funcionário #E789",
+        caseType: "Exame Admissional",
+        status: "Finalizado",
+        nextAction: "Entregar ASO",
+        nextActionDate: "2026-06-01",
+        examType: "Clínico",
+        crmStatus: "Ativo",
+      },
+      {
+        id: "med_002",
+        clientAlias: "Funcionário #F012",
+        caseType: "Consulta Ocupacional",
+        status: "Em andamento",
+        nextAction: "Solicitar exames",
+        nextActionDate: "2026-06-06",
+        examType: "Periódico",
+        crmStatus: "Ativo",
+      },
+      {
+        id: "med_003",
+        clientAlias: "Empresa Acme S.A.",
+        caseType: "PCMSO anual",
+        status: "Em andamento",
+        nextAction: "Realizar exames periódicos",
+        nextActionDate: "2026-06-06",
+        examType: "Periódico",
+        crmStatus: "Em andamento",
+      },
     ],
   },
   contador: {
@@ -106,19 +278,83 @@ const SPECIALIST_CONFIGS = {
       { label: "Modelos de balancete", href: "#", emoji: "📄" },
       { label: "Atualizações da Receita", href: "#", emoji: "📰" },
     ],
+    mockActiveCases: [
+      {
+        id: "cont_001",
+        clientAlias: "Empresa GHI",
+        caseType: "Assessoria Fiscal",
+        status: "Em andamento",
+        nextAction: "Fechamento mensal",
+        nextActionDate: "2026-06-05",
+        regime: "Simples Nacional",
+        nextObligation: "DAS",
+      },
+      {
+        id: "cont_002",
+        clientAlias: "Empresa JKL",
+        caseType: "Declaração de IR",
+        status: "Aguardando dados",
+        nextAction: "Solicitar documentos",
+        nextActionDate: "2026-06-15",
+        regime: "Lucro Presumido",
+        nextObligation: "IRPJ",
+      },
+      {
+        id: "cont_003",
+        clientAlias: "Empresa Acme S.A.",
+        caseType: "Folha de pagamento",
+        status: "Em andamento",
+        nextAction: "Fechar folha",
+        nextActionDate: "2026-06-05",
+        regime: "Lucro Real",
+        nextObligation: "DCTFWeb 15/06",
+      },
+    ],
   },
   engenheiro_seguranca: {
     label: "Engenheiro(a) de Segurança",
-    caseLabel: "Projeto",
+    caseLabel: "Auditoria",
     extraColumns: [
       { key: "siteLocation", label: "Local da obra/empresa" },
       { key: "riskLevel", label: "Nível de risco" },
     ],
     resourceLinks: [
-      { label: "NRs do MTE", href: "#", emoji: "🦺" },
+      { label: "NRs e Normas Técnicas", href: "#", emoji: "🦺" },
       { label: "Laudos técnicos (PPRA/PCMSO)", href: "#", emoji: "📄" },
-      { label: "Checklists de inspeção", href: "#", emoji: "✅" },
-      { label: "Calendário de auditorias", href: "#", emoji: "📅" },
+      { label: "Checklists de Segurança", href: "#", emoji: "✅" },
+      { label: "Relatórios de Acidentes", href: "#", emoji: "📊" },
+    ],
+    mockActiveCases: [
+      {
+        id: "eng_001",
+        clientAlias: "Construtora MNO",
+        caseType: "Auditoria de Canteiro",
+        status: "Em andamento",
+        nextAction: "Relatório de não conformidades",
+        nextActionDate: "2026-06-07",
+        siteLocation: "Obra Centro",
+        riskLevel: "Alto",
+      },
+      {
+        id: "eng_002",
+        clientAlias: "Indústria PQR",
+        caseType: "Elaboração de PPRA",
+        status: "Aguardando dados",
+        nextAction: "Levantamento de riscos",
+        nextActionDate: "2026-06-12",
+        siteLocation: "Fábrica",
+        riskLevel: "Médio",
+      },
+      {
+        id: "eng_003",
+        clientAlias: "Empresa Acme S.A.",
+        caseType: "Implantação PPRA",
+        status: "Em andamento",
+        nextAction: "Visita técnica",
+        nextActionDate: "2026-06-11",
+        siteLocation: "Galpão industrial – SP",
+        riskLevel: "Grau 3",
+      },
     ],
   },
   fisioterapeuta_ocupacional: {
@@ -126,30 +362,78 @@ const SPECIALIST_CONFIGS = {
     caseLabel: "Atendimento",
     extraColumns: [
       { key: "protocol", label: "Protocolo" },
-      { key: "sessionsCount", label: "Sessões" },
+      { key: "sessionsRemaining", label: "Sessões restantes" },
     ],
     resourceLinks: [
-      { label: "Protocolos de ginástica laboral", href: "#", emoji: "🤸" },
-      { label: "Avaliação ergonômica", href: "#", emoji: "📐" },
-      { label: "Modelos de relatório", href: "#", emoji: "📄" },
+      { label: "Exercícios Terapêuticos", href: "#", emoji: "🤸" },
+      { label: "Ergonomia no Trabalho", href: "#", emoji: "📐" },
+      { label: "Artigos Científicos", href: "#", emoji: "📚" },
       { label: "Fórum de Especialistas", href: "#", emoji: "💬" },
+    ],
+    mockActiveCases: [
+      {
+        id: "fis_001",
+        clientAlias: "Trabalhador #S345",
+        caseType: "Reabilitação Postural",
+        status: "Em andamento",
+        nextAction: "Próxima sessão",
+        nextActionDate: "2026-06-03",
+        protocol: "Protocolo Coluna",
+        sessionsRemaining: 5,
+      },
+      {
+        id: "fis_002",
+        clientAlias: "Trabalhador #T678",
+        caseType: "Prevenção de LER/DORT",
+        status: "Aguardando avaliação",
+        nextAction: "Avaliação ergonômica",
+        nextActionDate: "2026-06-09",
+        protocol: "Protocolo LER",
+        sessionsRemaining: 3,
+      },
+      {
+        id: "fis_003",
+        clientAlias: "Empresa Acme S.A.",
+        caseType: "Ginástica laboral",
+        status: "Em andamento",
+        nextAction: "Próxima sessão",
+        nextActionDate: "2026-06-06",
+        protocol: "Cervical / postural",
+        sessionsRemaining: 4,
+      },
     ],
   },
   outro: {
     label: "Especialista",
-    caseLabel: "Caso",
+    caseLabel: "Atendimento",
     extraColumns: [],
     resourceLinks: [
-      { label: "Modelos de documentos", href: "#", emoji: "📄" },
+      { label: "Recursos Gerais", href: "#", emoji: "📄" },
       { label: "Legislação trabalhista", href: "#", emoji: "⚖️" },
       { label: "Fórum de Especialistas", href: "#", emoji: "💬" },
-      { label: "Calendário", href: "#", emoji: "📅" },
+      { label: "Suporte", href: "#", emoji: "🛟" },
+    ],
+    mockActiveCases: [
+      {
+        id: "out_001",
+        clientAlias: "Trabalhador #U901",
+        caseType: "Consultoria",
+        status: "Em andamento",
+        nextAction: "Reunião inicial",
+        nextActionDate: "2026-06-05",
+      },
     ],
   },
 };
 
 function getSpecialistConfig(tipo) {
-  const key = (tipo || "").toString().trim().toLowerCase();
+  // Normaliza: lower-case, troca hífen por underscore (aceita "consultor-rh"
+  // e "consultor_rh"), remove espaços. Cai no fallback "outro" se desconhecido.
+  const key = (tipo || "")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/-/g, "_");
   return SPECIALIST_CONFIGS[key] || SPECIALIST_CONFIGS.outro;
 }
 
@@ -161,190 +445,11 @@ function getSpecialistConfig(tipo) {
  * mapeadas. Substituir a implementação interna por queries reais
  * quando os modelos estiverem definidos.
  * ────────────────────────────────────────────────────────────── */
-/* Mocks por tipo de especialista. Substituir por queries reais quando
- * a coleção /apoiadores/{id}/cases existir. */
-const MOCK_ACTIVE_CASES = {
-  advogado: [
-    {
-      id: "case_001",
-      clientAlias: "Trabalhador #A82F",
-      caseType: "Horas extras não pagas",
-      status: "Em andamento",
-      nextAction: "Audiência inicial",
-      nextActionDate: "2026-06-10",
-      processNumber: "1001234-56.2026.5.02.0001",
-      court: "1ª Vara do Trabalho – SP",
-    },
-    {
-      id: "case_002",
-      clientAlias: "Trabalhador #71BC",
-      caseType: "Rescisão indireta",
-      status: "Aguardando documentos",
-      nextAction: "Receber holerites",
-      nextActionDate: "2026-06-05",
-      processNumber: "1009876-12.2026.5.02.0010",
-      court: "10ª Vara do Trabalho – SP",
-    },
-    {
-      id: "case_003",
-      clientAlias: "Empresa Acme S.A.",
-      caseType: "Defesa em ação coletiva",
-      status: "Em andamento",
-      nextAction: "Protocolar contestação",
-      nextActionDate: "2026-06-12",
-      processNumber: "2007777-99.2026.5.02.0003",
-      court: "TRT – 2ª Região",
-    },
-    {
-      id: "case_004",
-      clientAlias: "Trabalhador #55DD",
-      caseType: "Indenização por assédio",
-      status: "Aguardando pagamento",
-      nextAction: "Emitir alvará",
-      nextActionDate: "2026-06-03",
-      processNumber: "1004444-33.2025.5.02.0007",
-      court: "7ª Vara do Trabalho – SP",
-    },
-  ],
-  consultor_rh: [
-    {
-      id: "proj_001",
-      clientAlias: "Empresa Acme S.A.",
-      caseType: "Recrutamento executivo",
-      status: "Em andamento",
-      nextAction: "Apresentar shortlist",
-      nextActionDate: "2026-06-08",
-      projectPhase: "Sourcing",
-      deliverable: "3 candidatos finalistas",
-    },
-    {
-      id: "proj_002",
-      clientAlias: "Empresa Delta Ltda.",
-      caseType: "Plano de carreira",
-      status: "Em andamento",
-      nextAction: "Workshop com liderança",
-      nextActionDate: "2026-06-15",
-      projectPhase: "Desenho",
-      deliverable: "Matriz de competências",
-    },
-    {
-      id: "proj_003",
-      clientAlias: "Startup Beta",
-      caseType: "Diagnóstico de clima",
-      status: "Aguardando documentos",
-      nextAction: "Receber pesquisa interna",
-      nextActionDate: "2026-06-04",
-      projectPhase: "Coleta de dados",
-      deliverable: "Relatório executivo",
-    },
-  ],
-  recrutador: [
-    {
-      id: "vaga_001",
-      clientAlias: "Empresa Acme S.A.",
-      caseType: "Vaga aberta",
-      status: "Em andamento",
-      nextAction: "Entrevistas finais",
-      nextActionDate: "2026-06-09",
-      position: "Head de Engenharia",
-      pipelineStage: "Entrevista final",
-    },
-    {
-      id: "vaga_002",
-      clientAlias: "Startup Gama",
-      caseType: "Vaga aberta",
-      status: "Em andamento",
-      nextAction: "Triagem inicial",
-      nextActionDate: "2026-06-02",
-      position: "Product Designer Sêrnior",
-      pipelineStage: "Sourcing",
-    },
-  ],
-  psicologo: [
-    {
-      id: "at_001",
-      clientAlias: "Trabalhador #A82F",
-      caseType: "Acompanhamento burnout",
-      status: "Em andamento",
-      nextAction: "Próxima sessão",
-      nextActionDate: "2026-06-07",
-      sessionsCount: 6,
-      focusArea: "Saúde mental no trabalho",
-    },
-    {
-      id: "at_002",
-      clientAlias: "Empresa Acme S.A.",
-      caseType: "Programa de bem-estar",
-      status: "Em andamento",
-      nextAction: "Workshop coletivo",
-      nextActionDate: "2026-06-14",
-      sessionsCount: 2,
-      focusArea: "Prevenção",
-    },
-  ],
-  medico: [
-    {
-      id: "med_001",
-      clientAlias: "Empresa Acme S.A.",
-      caseType: "PCMSO anual",
-      status: "Em andamento",
-      nextAction: "Realizar exames periódicos",
-      nextActionDate: "2026-06-06",
-      examType: "Periódico",
-      crmStatus: "Em andamento",
-    },
-  ],
-  contador: [
-    {
-      id: "cont_001",
-      clientAlias: "Empresa Acme S.A.",
-      caseType: "Folha de pagamento",
-      status: "Em andamento",
-      nextAction: "Fechar folha",
-      nextActionDate: "2026-06-05",
-      regime: "Lucro Real",
-      nextObligation: "DCTFWeb 15/06",
-    },
-  ],
-  engenheiro_seguranca: [
-    {
-      id: "eng_001",
-      clientAlias: "Empresa Acme S.A.",
-      caseType: "Implantação PPRA",
-      status: "Em andamento",
-      nextAction: "Visita técnica",
-      nextActionDate: "2026-06-11",
-      siteLocation: "Galpão industrial – SP",
-      riskLevel: "Grau 3",
-    },
-  ],
-  fisioterapeuta_ocupacional: [
-    {
-      id: "fis_001",
-      clientAlias: "Empresa Acme S.A.",
-      caseType: "Ginástica laboral",
-      status: "Em andamento",
-      nextAction: "Próxima sessão",
-      nextActionDate: "2026-06-06",
-      protocol: "Cervical / postural",
-      sessionsCount: 4,
-    },
-  ],
-  outro: [
-    {
-      id: "case_001",
-      clientAlias: "Trabalhador #A82F",
-      caseType: "Atendimento geral",
-      status: "Em andamento",
-      nextAction: "Próxima reunião",
-      nextActionDate: "2026-06-10",
-    },
-  ],
-};
-
+/* Mocks consolidados dentro de SPECIALIST_CONFIGS[tipo].mockActiveCases.
+ * fetchActiveCases lê dali; substitua a implementação interna por
+ * queries reais à coleção /apoiadores/{id}/cases quando existir. */
 async function fetchActiveCases(/* apoiadorId */ _apoiadorId, tipo) {
-  const key = (tipo || "").toString().trim().toLowerCase();
-  return MOCK_ACTIVE_CASES[key] || MOCK_ACTIVE_CASES.outro;
+  return getSpecialistConfig(tipo).mockActiveCases || [];
 }
 
 async function fetchCaseHistory(/* apoiadorId */) {
