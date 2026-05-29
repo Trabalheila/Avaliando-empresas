@@ -568,6 +568,20 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
     [load]
   );
 
+  // Métricas derivadas para a seção Visão Geral.
+  // Importante: hooks devem ser chamados antes de qualquer early return.
+  const pendingCount = useMemo(
+    () => items.filter((r) => (r.status || "pending") === "pending").length,
+    [items]
+  );
+  const finishedLast30 = useMemo(() => {
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    return caseHistory.filter((c) => {
+      const t = c.finishedAt ? new Date(c.finishedAt).getTime() : 0;
+      return t >= cutoff;
+    }).length;
+  }, [caseHistory]);
+
   if (!apoiadorId) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
@@ -587,19 +601,6 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
       </div>
     );
   }
-
-  // Métricas derivadas para a seção Visão Geral.
-  const pendingCount = useMemo(
-    () => items.filter((r) => (r.status || "pending") === "pending").length,
-    [items]
-  );
-  const finishedLast30 = useMemo(() => {
-    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    return caseHistory.filter((c) => {
-      const t = c.finishedAt ? new Date(c.finishedAt).getTime() : 0;
-      return t >= cutoff;
-    }).length;
-  }, [caseHistory]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
