@@ -1043,7 +1043,31 @@ function TrabalheiLaMobile({
                     )}
                     <button
                       type="button"
-                      onClick={() => navigate("/minha-conta")}
+                      onClick={() => {
+                        if (isSpecialistProfile) {
+                          const aid =
+                            userProfile?.apoiadorId ||
+                            userProfile?.uid ||
+                            userProfile?.id ||
+                            "";
+                          if (aid) {
+                            navigate(`/apoiadores/perfil/${encodeURIComponent(aid)}`);
+                            return;
+                          }
+                          navigate("/apoiador/my-contacts");
+                          return;
+                        }
+                        const pid =
+                          userProfile?.profileId ||
+                          (typeof resolveProfileId === "function"
+                            ? resolveProfileId(userProfile, { persistGeneratedId: false })
+                            : null);
+                        if (pid) {
+                          navigate(`/perfil/${encodeURIComponent(pid)}`);
+                        } else {
+                          navigate("/minha-conta");
+                        }
+                      }}
                       className="inline-flex items-center px-3 py-2 rounded-lg bg-white text-blue-800 text-xs font-bold shadow hover:bg-blue-50 transition"
                     >
                       Ver meu perfil

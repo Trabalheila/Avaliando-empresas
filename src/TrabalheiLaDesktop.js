@@ -801,6 +801,22 @@ function TrabalheiLaDesktop({
                     <button
                       type="button"
                       onClick={() => {
+                        // Especialista (apoiador) → pagina publica do apoiador
+                        // Trabalhador → WorkerProfile via profileId
+                        // Empresario / sem perfil → minha-conta
+                        if (isSpecialistProfile) {
+                          const aid =
+                            userProfile?.apoiadorId ||
+                            userProfile?.uid ||
+                            userProfile?.id ||
+                            "";
+                          if (aid) {
+                            navigate(`/apoiadores/perfil/${encodeURIComponent(aid)}`);
+                            return;
+                          }
+                          navigate("/apoiador/my-contacts");
+                          return;
+                        }
                         const pid =
                           userProfile?.profileId ||
                           resolveProfileId(userProfile, { persistGeneratedId: false });
