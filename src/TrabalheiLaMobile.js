@@ -1057,11 +1057,7 @@ function TrabalheiLaMobile({
                           navigate("/apoiador/my-contacts");
                           return;
                         }
-                        const pid =
-                          userProfile?.profileId ||
-                          (typeof resolveProfileId === "function"
-                            ? resolveProfileId(userProfile, { persistGeneratedId: false })
-                            : null);
+                        const pid = userProfile?.profileId || "";
                         if (pid) {
                           navigate(`/perfil/${encodeURIComponent(pid)}`);
                         } else {
