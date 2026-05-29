@@ -146,8 +146,48 @@ export default function Login({ theme, toggleTheme }) {
     }
   }
 
+  // Enriquece o userProfile no localStorage com dados específicos do
+  // perfil (apoiadorId, tipo, userType, role) buscando em users/{uid}
+  // e apoiadores (where uid == user.uid). Falha silenciosa.
+  async function enrichProfileFromFirestore(user) {
+    if (!user?.uid) return;
+    try {
+      const patch = {};
+      try {
+        const usersSnap = await getDocs(
+          query(collection(db, "users"), where("__name__", "==", user.uid))
+        );
+        usersSnap.forEach((d) => {
+          const data = d.data() || {};
+          if (data.userType) patch.userType = data.userType;
+          if (data.role) patch.role = data.role;
+          if (data.apoiadorId) patch.apoiadorId = data.apoiadorId;
+        });
+      } catch { /* ignore */ }
+      try {
+        const apSnap = await getDocs(
+          query(collection(db, "apoiadores"), where("uid", "==", user.uid))
+        );
+        if (!apSnap.empty) {
+          const d = apSnap.docs[0];
+          const data = d.data() || {};
+          patch.apoiadorId = d.id;
+          if (data.tipo) patch.tipo = data.tipo;
+          if (!patch.userType) patch.userType = "apoiador";
+          if (!patch.role) patch.role = "supporter";
+        }
+      } catch { /* ignore */ }
+      if (Object.keys(patch).length === 0) return;
+      const existing = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      const merged = { ...existing, ...patch };
+      localStorage.setItem("userProfile", JSON.stringify(merged));
+      window.dispatchEvent(new Event("trabalheiLa_user_updated"));
+    } catch { /* ignore */ }
+  }
+
   async function finishLogin(user, providerLabel) {
     persistUserProfile(user, providerLabel);
+    await enrichProfileFromFirestore(user);
     const explicitRedirect = getRedirectTarget();
     if (explicitRedirect) {
       clearRedirect();

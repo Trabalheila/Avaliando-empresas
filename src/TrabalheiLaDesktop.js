@@ -805,11 +805,11 @@ function TrabalheiLaDesktop({
                         // Trabalhador → WorkerProfile via profileId
                         // Empresario / sem perfil → minha-conta
                         if (isSpecialistProfile) {
-                          const aid =
-                            userProfile?.apoiadorId ||
-                            userProfile?.uid ||
-                            userProfile?.id ||
-                            "";
+                          // Só navegamos para a página pública do apoiador
+                          // quando temos o apoiadorId real (doc id em
+                          // `apoiadores`). uid != apoiadorId — usar uid
+                          // levaria a "Especialista não encontrado".
+                          const aid = userProfile?.apoiadorId || "";
                           if (aid) {
                             navigate(`/apoiadores/perfil/${encodeURIComponent(aid)}`);
                             return;

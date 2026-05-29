@@ -1045,11 +1045,7 @@ function TrabalheiLaMobile({
                       type="button"
                       onClick={() => {
                         if (isSpecialistProfile) {
-                          const aid =
-                            userProfile?.apoiadorId ||
-                            userProfile?.uid ||
-                            userProfile?.id ||
-                            "";
+                          const aid = userProfile?.apoiadorId || "";
                           if (aid) {
                             navigate(`/apoiadores/perfil/${encodeURIComponent(aid)}`);
                             return;
