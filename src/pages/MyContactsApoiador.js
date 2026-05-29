@@ -47,13 +47,25 @@ const SPECIALIST_CONFIGS = {
       { key: "court", label: "Instância / Vara" },
     ],
     resourceLinks: [
-      { label: "Legislação trabalhista (CLT)", href: "#", emoji: "⚖️" },
-      { label: "Jurisprudência TST", href: "#", emoji: "📚" },
-      { label: "Modelos de petições", href: "#", emoji: "📄" },
-      { label: "Calendário de audiências", href: "#", emoji: "📅" },
-      { label: "Notícias: Reforma trabalhista e impactos", href: "#", emoji: "📰" },
+      { label: "CLT - Consolidação das Leis do Trabalho", href: "https://www.planalto.gov.br/ccivil_03/decreto-lei/del5452.htm", emoji: "⚖️", type: "legislation" },
+      { label: "Súmulas do TST", href: "https://www.tst.jus.br/sumulas", emoji: "📖", type: "jurisprudence" },
+      { label: "OJs da SDI-1 do TST", href: "https://www.tst.jus.br/oj-sdi-1", emoji: "📑", type: "jurisprudence" },
+      { label: "Jurisprudência TST", href: "https://www.tst.jus.br/jurisprudencia", emoji: "📚", type: "jurisprudence" },
+      { label: "Modelos de petições", href: "#", emoji: "📄", type: "template" },
+      { label: "Calendário de audiências", href: "#", emoji: "📅", type: "tool" },
+      { label: "Notícias: Jurisprudência trabalhista", href: "#", emoji: "📰", type: "news" },
+      { label: "Notícias: Reforma trabalhista e impactos", href: "#", emoji: "📰", type: "news" },
     ],
-    dashboardSections: DEFAULT_DASHBOARD_SECTIONS,
+    dashboardSections: [
+      "overview",
+      "activeCases",
+      "pendingRequests",
+      "clientOpportunities",
+      "caseHistory",
+      "reputation",
+      "resources",
+      "profileSettings",
+    ],
     mockActiveCases: [
       {
         id: "case_001",
@@ -94,6 +106,56 @@ const SPECIALIST_CONFIGS = {
         nextActionDate: "2026-06-03",
         processNumber: "1004444-33.2025.5.02.0007",
         court: "7ª Vara do Trabalho – SP",
+      },
+    ],
+    mockPotentialClients: [
+      {
+        id: "opp_001",
+        pseudonym: "Trabalhador #L4F2",
+        complaintType: "Atraso de Salário",
+        location: "São Paulo / SP",
+        status: "Novo",
+        summary: "Salário atrasado há 3 meses na empresa atual.",
+      },
+      {
+        id: "opp_002",
+        pseudonym: "Trabalhador #M8C1",
+        complaintType: "Assédio Moral",
+        location: "Belo Horizonte / MG",
+        status: "Em Análise",
+        summary: "Gestor humilha publicamente em reuniões.",
+      },
+      {
+        id: "opp_003",
+        pseudonym: "Trabalhador #N220",
+        complaintType: "Demissão Injusta",
+        location: "Curitiba / PR",
+        status: "Novo",
+        summary: "Demitido após afastamento por saúde.",
+      },
+      {
+        id: "opp_004",
+        pseudonym: "Trabalhador #O9A7",
+        complaintType: "Horas Extras",
+        location: "Porto Alegre / RS",
+        status: "Novo",
+        summary: "Média de 20h extras/mês não pagas.",
+      },
+      {
+        id: "opp_005",
+        pseudonym: "Trabalhador #P6B3",
+        complaintType: "Verbas rescisórias",
+        location: "Rio de Janeiro / RJ",
+        status: "Em Análise",
+        summary: "Rescisão sem pagamento de FGTS e multa.",
+      },
+      {
+        id: "opp_006",
+        pseudonym: "Trabalhador #Q1D8",
+        complaintType: "Assédio Moral",
+        location: "Blumenau / SC",
+        status: "Novo",
+        summary: "Pressão por metas inatingíveis e ameaças.",
       },
     ],
   },
@@ -634,6 +696,10 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
   // Perfil do apoiador no Firestore — usado para descobrir o `tipo`
   // (área de atuação) e adaptar dinamicamente o dashboard.
   const [apoiadorDoc, setApoiadorDoc] = useState(null);
+  // Filtro do card "Oportunidades de Clientes" (visivel apenas para
+  // advogados via dashboardSections). Mantido fora do switch para
+  // preservar estado entre renders.
+  const [opportunityFilter, setOpportunityFilter] = useState("all");
 
   const profile = useMemo(() => {
     try {
@@ -1243,6 +1309,119 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                   </div>
                 </section>
               );
+
+            case "clientOpportunities": {
+              const opportunities = specialistConfig.mockPotentialClients || [];
+              if (opportunities.length === 0) return null;
+              const complaintTypes = Array.from(
+                new Set(opportunities.map((o) => o.complaintType).filter(Boolean))
+              );
+              const filtered =
+                opportunityFilter === "all"
+                  ? opportunities
+                  : opportunities.filter(
+                      (o) => o.complaintType === opportunityFilter
+                    );
+              return (
+                <section
+                  key="clientOpportunities"
+                  aria-labelledby="opportunities-title"
+                  className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <h2
+                      id="opportunities-title"
+                      className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
+                    >
+                      <span aria-hidden="true">🧲</span> Oportunidades de Clientes
+                    </h2>
+                    <label className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                      <span className="font-semibold">Filtrar por queixa:</span>
+                      <select
+                        value={opportunityFilter}
+                        onChange={(e) => setOpportunityFilter(e.target.value)}
+                        className="px-2 py-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                      >
+                        <option value="all">Todas</option>
+                        {complaintTypes.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    Trabalhadores que descreveram queixas compatíveis com sua
+                    área de atuação. Demonstre interesse para iniciar o
+                    contato (pagamento e revelação de identidade seguem o
+                    fluxo padrão da plataforma).
+                  </p>
+                  {filtered.length === 0 ? (
+                    <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
+                      Nenhuma oportunidade encontrada para esse filtro.
+                    </p>
+                  ) : (
+                    <ul className="mt-4 space-y-3">
+                      {filtered.map((opp) => (
+                        <li
+                          key={opp.id}
+                          className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-400 transition flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                                {opp.pseudonym}
+                              </span>
+                              <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 font-semibold">
+                                {opp.complaintType}
+                              </span>
+                              {opp.status && (
+                                <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200 font-semibold">
+                                  {opp.status}
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                              📍 {opp.location}
+                            </p>
+                            {opp.summary && (
+                              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                                {opp.summary}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex gap-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                alert(
+                                  `Detalhes de ${opp.pseudonym} estarão disponíveis em breve.`
+                                )
+                              }
+                              className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                            >
+                              Ver detalhes
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                alert(
+                                  `Interesse registrado em ${opp.pseudonym}. O trabalhador será notificado.`
+                                )
+                              }
+                              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition"
+                            >
+                              Expressar interesse
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              );
+            }
 
             case "resources":
               return (
