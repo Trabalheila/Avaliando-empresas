@@ -789,7 +789,7 @@ function TrabalheiLaDesktop({
                       >
                         Painel Empresa
                       </button>
-                    ) : (
+                    ) : isSpecialistProfile ? null : (
                       <a
                         href="/pseudonym"
                         className="inline-flex items-center px-4 py-2 rounded-lg bg-white text-blue-800 text-sm font-bold shadow hover:bg-blue-50 transition"
@@ -798,38 +798,48 @@ function TrabalheiLaDesktop({
                         {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
                       </a>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        // Especialista (apoiador) → pagina publica do apoiador
-                        // Trabalhador → WorkerProfile via profileId
-                        // Empresario / sem perfil → minha-conta
-                        if (isSpecialistProfile) {
-                          // Só navegamos para a página pública do apoiador
-                          // quando temos o apoiadorId real (doc id em
-                          // `apoiadores`). uid != apoiadorId — usar uid
-                          // levaria a "Especialista não encontrado".
-                          const aid = userProfile?.apoiadorId || "";
-                          if (aid) {
-                            navigate(`/apoiadores/perfil/${encodeURIComponent(aid)}`);
-                            return;
+                    {isSpecialistProfile ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => navigate("/apoiador/my-contacts")}
+                          className="inline-flex items-center px-4 py-2 rounded-lg bg-white text-blue-800 text-sm font-bold shadow hover:bg-blue-50 transition"
+                        >
+                          Meu Painel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const aid = userProfile?.apoiadorId || "";
+                            if (aid) {
+                              navigate(`/apoiadores/perfil/${encodeURIComponent(aid)}`);
+                            } else {
+                              navigate("/apoiador/my-contacts");
+                            }
+                          }}
+                          className="inline-flex items-center px-4 py-2 rounded-lg bg-transparent border-2 border-white text-white text-sm font-bold hover:bg-white/10 transition"
+                        >
+                          Meu Perfil Público
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const pid =
+                            userProfile?.profileId ||
+                            resolveProfileId(userProfile, { persistGeneratedId: false });
+                          if (pid) {
+                            navigate(`/perfil/${encodeURIComponent(pid)}`);
+                          } else {
+                            navigate("/minha-conta");
                           }
-                          navigate("/apoiador/my-contacts");
-                          return;
-                        }
-                        const pid =
-                          userProfile?.profileId ||
-                          resolveProfileId(userProfile, { persistGeneratedId: false });
-                        if (pid) {
-                          navigate(`/perfil/${encodeURIComponent(pid)}`);
-                        } else {
-                          navigate("/minha-conta");
-                        }
-                      }}
-                      className="inline-flex items-center px-4 py-2 rounded-lg bg-white text-blue-800 text-sm font-bold shadow hover:bg-blue-50 transition"
-                    >
-                      Ver meu perfil
-                    </button>
+                        }}
+                        className="inline-flex items-center px-4 py-2 rounded-lg bg-white text-blue-800 text-sm font-bold shadow hover:bg-blue-50 transition"
+                      >
+                        Ver meu perfil
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={handleLogout}

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { db, auth } from "../firebase";
 import { doc, getDoc, collection, getDocs, addDoc, updateDoc, serverTimestamp, query, orderBy, where, increment } from "firebase/firestore";
 import { signInAnonymously } from "firebase/auth";
@@ -51,6 +51,7 @@ function StarInput({ value, onChange }) {
 
 function ApoiadorPerfil({ theme, toggleTheme }) {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [apoiador, setApoiador] = useState(null);
   const [loading, setLoading] = useState(true);
   const [avaliacoes, setAvaliacoes] = useState([]);
@@ -220,12 +221,32 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
   const isVerifiedWithDiploma = isCouncilVerified && isDiplomaVerified;
   const isVerified = isCouncilVerified;
   const nichos = apoiador.nichos || apoiador.areas || apoiador.segmentos || [];
+  // Dono do perfil = o próprio especialista logado, identificado pelo
+  // match entre o uid do auth e o uid armazenado no doc do apoiador.
+  const currentUid = auth.currentUser?.uid || "";
+  const ownerUid = apoiador.uid || apoiador.authUid || apoiador.userId || "";
+  const isOwner = Boolean(currentUid && ownerUid && currentUid === ownerUid);
+  // "Ad Exitum" é um regime de honorários advocatícios — só faz sentido
+  // para advogados. Esconde os selos para qualquer outro tipo.
+  const isAdvogado = String(apoiador.tipo || "").toLowerCase() === "advogado";
+  const showAdExitum = apoiador.adExitum === true && isAdvogado;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900">
       <AppHeader theme={theme} toggleTheme={toggleTheme} />
 
       <main className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+        {isOwner && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => navigate("/apoiador/my-contacts")}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow transition"
+            >
+              ← Voltar ao Painel
+            </button>
+          </div>
+        )}
         {/* ── Card do perfil ── */}
         <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 border ${isPremium ? "border-2 border-blue-500 dark:border-blue-400" : "border-slate-200 dark:border-slate-700"}`}>
           <div className="flex items-start gap-4">
@@ -266,7 +287,7 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
                     🎉 Elegível a 10% de desconto no Plano Especialista Essencial
                   </span>
                 )}
-                {apoiador.adExitum === true && (
+                {showAdExitum && (
                   <span
                     className="px-2.5 py-0.5 text-[11px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-full"
                     title="Este especialista aceita o modelo Ad Exitum — você só paga se ganhar a causa."
@@ -274,7 +295,7 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
                     ⚖️ Aceita Ad Exitum
                   </span>
                 )}
-                {eligibleForPremiumUpgrade && (
+                {eligibleForPremiumUpgrade && isAdvogado && (
                   <span
                     className="px-2.5 py-0.5 text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 border border-amber-300 dark:border-amber-800 rounded-full"
                     title="Avaliação Excelente + aceita Ad Exitum — elegível para o plano Premium."
