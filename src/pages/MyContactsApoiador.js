@@ -871,24 +871,24 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
       <AppHeader theme={theme} toggleTheme={toggleTheme} title="Meus Contatos (Especialista)" />
 
-      <div className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <div className="flex-1 w-full max-w-6xl mx-auto px-3 sm:px-6 py-5 sm:py-8 space-y-4 sm:space-y-6">
         {/* Cabeçalho do dashboard */}
-        <header className="bg-white dark:bg-slate-900 rounded-2xl shadow p-5 border border-blue-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <header className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 sm:p-5 border border-blue-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">
+            <p className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">
               Dashboard do Especialista · {specialistConfig.label}
             </p>
-            <h1 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-slate-100 mt-1">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-800 dark:text-slate-100 mt-1">
               Olá, {specialistName} 👋
             </h1>
-            <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1">
               Acompanhe seus clientes, pedidos de contato e reputação em um único lugar.
             </p>
           </div>
           <button
             type="button"
             onClick={() => navigate("/apoiador/perfil")}
-            className="self-start sm:self-auto inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-200 font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/30"
+            className="self-stretch sm:self-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 rounded-lg border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-200 text-sm font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/30 min-h-[44px]"
           >
             ⚙️ Gerenciar perfil
           </button>
@@ -906,7 +906,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                   >
                     Visão geral
                   </h2>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     <OverviewCard
                       label="Clientes ativos"
                       value={activeCases.length}
@@ -959,7 +959,47 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                       Você ainda não possui casos ativos.
                     </p>
                   ) : (
-                    <div className="overflow-x-auto">
+                    <>
+                    {/* Mobile: cada caso vira um card */}
+                    <ul className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                      {activeCases.map((c) => (
+                        <li key={c.id} className="p-4 space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="font-semibold text-slate-800 dark:text-slate-100 break-words">
+                                {c.clientAlias}
+                              </p>
+                              <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                                {specialistConfig.caseLabel}: {c.caseType}
+                              </p>
+                            </div>
+                            <StatusBadge status={c.status} />
+                          </div>
+                          {specialistConfig.extraColumns.map((col) => (
+                            <p key={col.key} className="text-xs text-slate-600 dark:text-slate-300">
+                              <span className="font-semibold">{col.label}:</span>{" "}
+                              {col.render ? col.render(c) : c[col.key] || "—"}
+                            </p>
+                          ))}
+                          <div className="text-xs text-slate-700 dark:text-slate-200">
+                            <span className="font-semibold">Próxima ação:</span> {c.nextAction}
+                            {c.nextActionDate && (
+                              <span className="block text-[11px] text-slate-500 dark:text-slate-400">
+                                {new Date(c.nextActionDate).toLocaleDateString("pt-BR")}
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => alert(`Detalhes do caso ${c.id} (em desenvolvimento).`)}
+                            className="w-full mt-2 px-3 py-2 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white min-h-[40px]"
+                          >
+                            Ver detalhes
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="hidden md:block overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300">
                           <tr>
@@ -1020,6 +1060,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                         </tbody>
                       </table>
                     </div>
+                    </>
                   )}
                 </section>
               );
@@ -1103,12 +1144,12 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                             </p>
 
                             {status === "pending" && !isReplying && (
-                              <div className="mt-4 flex justify-end gap-2">
+                              <div className="mt-4 flex flex-col sm:flex-row sm:justify-end gap-2">
                                 <button
                                   type="button"
                                   onClick={() => handleDecline(r.id)}
                                   disabled={busy}
-                                  className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 font-semibold text-slate-700 dark:text-slate-200 disabled:opacity-50"
+                                  className="px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 font-semibold text-slate-700 dark:text-slate-200 disabled:opacity-50 min-h-[44px]"
                                 >
                                   Recusar
                                 </button>
@@ -1120,7 +1161,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                                     setRevealEmail(false);
                                   }}
                                   disabled={busy}
-                                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold disabled:opacity-50"
+                                  className="px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold disabled:opacity-50 min-h-[44px]"
                                 >
                                   Aceitar / Responder
                                 </button>
@@ -1148,7 +1189,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                                   />
                                   Autorizar a empresa a ver meu e-mail/contato direto.
                                 </label>
-                                <div className="mt-3 flex justify-end gap-2">
+                                <div className="mt-3 flex flex-col sm:flex-row sm:justify-end gap-2">
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -1156,7 +1197,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                                       setReplyText("");
                                     }}
                                     disabled={busy}
-                                    className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 font-semibold disabled:opacity-50"
+                                    className="px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 font-semibold disabled:opacity-50 min-h-[44px]"
                                   >
                                     Cancelar
                                   </button>
@@ -1164,7 +1205,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                                     type="button"
                                     onClick={() => handleAccept(r.id)}
                                     disabled={busy}
-                                    className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold disabled:opacity-50"
+                                    className="px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold disabled:opacity-50 min-h-[44px]"
                                   >
                                     {busy ? "Enviando…" : "Enviar resposta"}
                                   </button>
@@ -1213,7 +1254,29 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                       Você ainda não finalizou nenhum caso.
                     </p>
                   ) : (
-                    <div className="overflow-x-auto">
+                    <>
+                    {/* Mobile: histórico em cards */}
+                    <ul className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                      {caseHistory.map((c) => (
+                        <li key={c.id} className="p-4 space-y-1">
+                          <p className="font-semibold text-slate-800 dark:text-slate-100">
+                            {c.clientAlias}
+                          </p>
+                          <p className="text-xs text-slate-600 dark:text-slate-300">{c.caseType}</p>
+                          <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+                            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                              {c.finishedAt
+                                ? new Date(c.finishedAt).toLocaleDateString("pt-BR")
+                                : "—"}
+                            </span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                              {c.result}
+                            </span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="hidden md:block overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300">
                           <tr>
@@ -1248,6 +1311,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                         </tbody>
                       </table>
                     </div>
+                    </>
                   )}
                 </section>
               );
@@ -1335,12 +1399,12 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                     >
                       <span aria-hidden="true">🧲</span> Oportunidades de Clientes
                     </h2>
-                    <label className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                    <label className="text-xs text-slate-600 dark:text-slate-300 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 w-full sm:w-auto">
                       <span className="font-semibold">Filtrar por queixa:</span>
                       <select
                         value={opportunityFilter}
                         onChange={(e) => setOpportunityFilter(e.target.value)}
-                        className="px-2 py-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                        className="w-full sm:w-auto px-2 py-2 sm:py-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 min-h-[40px] sm:min-h-0"
                       >
                         <option value="all">Todas</option>
                         {complaintTypes.map((t) => (
@@ -1391,7 +1455,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                               </p>
                             )}
                           </div>
-                          <div className="flex gap-2 shrink-0">
+                          <div className="flex gap-2 shrink-0 w-full sm:w-auto">
                             <button
                               type="button"
                               onClick={() =>
@@ -1399,7 +1463,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                                   `Detalhes de ${opp.pseudonym} estarão disponíveis em breve.`
                                 )
                               }
-                              className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                              className="flex-1 sm:flex-none px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition min-h-[40px]"
                             >
                               Ver detalhes
                             </button>
@@ -1410,7 +1474,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                                   `Interesse registrado em ${opp.pseudonym}. O trabalhador será notificado.`
                                 )
                               }
-                              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition"
+                              className="flex-1 sm:flex-none px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition min-h-[40px]"
                             >
                               Expressar interesse
                             </button>
@@ -1535,7 +1599,7 @@ function Th({ children, className = "" }) {
   return (
     <th
       className={
-        "text-left text-[11px] font-bold uppercase tracking-wider px-5 py-2 " +
+        "text-left text-[11px] font-bold uppercase tracking-wider px-3 sm:px-5 py-2 " +
         className
       }
     >
@@ -1545,7 +1609,7 @@ function Th({ children, className = "" }) {
 }
 
 function Td({ children, className = "" }) {
-  return <td className={"px-5 py-3 align-top " + className}>{children}</td>;
+  return <td className={"px-3 sm:px-5 py-3 align-top " + className}>{children}</td>;
 }
 
 function StatusBadge({ status }) {

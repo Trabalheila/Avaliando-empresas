@@ -803,7 +803,7 @@ function TrabalheiLaDesktop({
                         <button
                           type="button"
                           onClick={() => navigate("/apoiador/my-contacts")}
-                          className="inline-flex items-center px-4 py-2 rounded-lg bg-white text-blue-800 text-sm font-bold shadow hover:bg-blue-50 transition"
+                          className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 rounded-lg bg-white text-blue-800 text-sm font-bold shadow hover:bg-blue-50 transition"
                         >
                           Meu Painel
                         </button>
@@ -817,7 +817,7 @@ function TrabalheiLaDesktop({
                               navigate("/apoiador/my-contacts");
                             }
                           }}
-                          className="inline-flex items-center px-4 py-2 rounded-lg bg-transparent border-2 border-white text-white text-sm font-bold hover:bg-white/10 transition"
+                          className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 rounded-lg bg-transparent border-2 border-white text-white text-sm font-bold hover:bg-white/10 transition"
                         >
                           Meu Perfil Público
                         </button>
