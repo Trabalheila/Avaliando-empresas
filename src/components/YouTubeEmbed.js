@@ -48,14 +48,25 @@ const YouTubeEmbed = ({ videoId, title, className = "" }) => {
 
     loadYouTubeApi().then((YT) => {
       if (cancelled || !YT || !iframeRef.current) return;
+      // Aplica unMute + volume. Em mobile (iOS/Android) o navegador
+      // exige um gesto do usuário antes de permitir áudio, então a
+      // chamada em onReady falha silenciosamente. Repetimos no
+      // onStateChange ao entrar em PLAYING (o clique no Play é o gesto).
+      const applyAudio = (target) => {
+        try {
+          if (typeof target.unMute === "function") target.unMute();
+          if (typeof target.setVolume === "function") target.setVolume(INITIAL_VOLUME);
+        } catch (_) { /* noop */ }
+      };
       try {
         playerRef.current = new YT.Player(iframeRef.current, {
           events: {
-            onReady: (event) => {
-              try {
-                event.target.unMute();
-                event.target.setVolume(INITIAL_VOLUME);
-              } catch (_) { /* noop */ }
+            onReady: (event) => applyAudio(event.target),
+            onStateChange: (event) => {
+              // 1 = PLAYING. Garante que o som suba quando o usuário inicia o vídeo.
+              if (event.data === (YT.PlayerState ? YT.PlayerState.PLAYING : 1)) {
+                applyAudio(event.target);
+              }
             },
           },
         });
