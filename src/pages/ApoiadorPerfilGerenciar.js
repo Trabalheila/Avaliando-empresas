@@ -3,7 +3,8 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import { useNavigate } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "../firebase";
+import { signInAnonymously } from "firebase/auth";
+import { db, storage, auth } from "../firebase";
 import AppHeader from "../components/AppHeader";
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5MB
@@ -131,14 +132,31 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
 
         // Upload da foto (se houve seleção de novo arquivo).
         if (fotoFile) {
-          const extMatch = /\.([a-zA-Z0-9]+)$/.exec(fotoFile.name || "");
-          const ext = (extMatch ? extMatch[1] : "jpg").toLowerCase();
-          const path = `apoiadores/${apoiadorId}/foto-${Date.now()}.${ext}`;
-          const sRef = storageRef(storage, path);
-          await uploadBytes(sRef, fotoFile, {
-            contentType: fotoFile.type || "image/*",
-          });
-          const url = await getDownloadURL(sRef);
+          // Garante usuário autenticado (anônimo se necessário) ANTES de tentar
+          // upload no Storage — as regras costumam exigir request.auth != null.
+          if (!auth.currentUser) {
+            try { await signInAnonymously(auth); } catch { /* segue mesmo assim */ }
+          }
+          let url = "";
+          try {
+            const safeName = (fotoFile.name || "foto").replace(/[^\w.\-]+/g, "_");
+            const path = `apoiadores/${apoiadorId}/${Date.now()}-${safeName}`;
+            const sRef = storageRef(storage, path);
+            await uploadBytes(sRef, fotoFile, {
+              contentType: fotoFile.type || "image/*",
+            });
+            url = await getDownloadURL(sRef);
+          } catch (storageErr) {
+            // Fallback: se o Storage falhar (regras/CORS), salva como dataURL
+            // no próprio doc para não bloquear o usuário.
+            console.warn("[ApoiadorPerfil] falha no Storage; usando dataURL", storageErr);
+            const reader = new FileReader();
+            url = await new Promise((resolve, reject) => {
+              reader.onload = () => resolve(String(reader.result || ""));
+              reader.onerror = reject;
+              reader.readAsDataURL(fotoFile);
+            });
+          }
           updates.foto = url;
           updates.photoURL = url;
           setFoto(url);
