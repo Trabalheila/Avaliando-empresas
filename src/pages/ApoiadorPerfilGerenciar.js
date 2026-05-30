@@ -1,9 +1,12 @@
 // src/pages/ApoiadorPerfilGerenciar.js
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { db, storage } from "../firebase";
 import AppHeader from "../components/AppHeader";
+
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5MB
 
 /**
  * Página de gerenciamento do perfil do Especialista (Apoiador).
@@ -33,6 +36,9 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
   const [error, setError] = useState("");
 
   const [foto, setFoto] = useState("");
+  const [fotoFile, setFotoFile] = useState(null);
+  const [fotoPreview, setFotoPreview] = useState("");
+  const fileInputRef = useRef(null);
   const [descricao, setDescricao] = useState("");
   const [areasText, setAreasText] = useState("");
   const [nichosText, setNichosText] = useState("");
@@ -78,6 +84,27 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
     };
   }, [apoiadorId]);
 
+  const handleFotoChange = useCallback((e) => {
+    setError("");
+    setMessage("");
+    const file = e?.target?.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Selecione um arquivo de imagem válido.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      setError("A imagem não pode passar de 5MB.");
+      e.target.value = "";
+      return;
+    }
+    setFotoFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setFotoPreview(String(reader.result || ""));
+    reader.readAsDataURL(file);
+  }, []);
+
   const handleSave = useCallback(
     async (e) => {
       e?.preventDefault?.();
@@ -94,12 +121,32 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean);
-        await updateDoc(doc(db, "apoiadores", apoiadorId), {
+
+        const updates = {
           descricao: descricao.trim(),
           areas,
           nichos,
           disponibilidade: disponibilidade.trim(),
-        });
+        };
+
+        // Upload da foto (se houve seleção de novo arquivo).
+        if (fotoFile) {
+          const extMatch = /\.([a-zA-Z0-9]+)$/.exec(fotoFile.name || "");
+          const ext = (extMatch ? extMatch[1] : "jpg").toLowerCase();
+          const path = `apoiadores/${apoiadorId}/foto-${Date.now()}.${ext}`;
+          const sRef = storageRef(storage, path);
+          await uploadBytes(sRef, fotoFile, {
+            contentType: fotoFile.type || "image/*",
+          });
+          const url = await getDownloadURL(sRef);
+          updates.foto = url;
+          updates.photoURL = url;
+          setFoto(url);
+          setFotoFile(null);
+          setFotoPreview("");
+        }
+
+        await updateDoc(doc(db, "apoiadores", apoiadorId), updates);
         setMessage("Perfil atualizado com sucesso.");
       } catch (err) {
         setError(err?.message || "Erro ao salvar.");
@@ -107,7 +154,7 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
         setSaving(false);
       }
     },
-    [apoiadorId, descricao, areasText, nichosText, disponibilidade]
+    [apoiadorId, descricao, areasText, nichosText, disponibilidade, fotoFile]
   );
 
   if (!apoiadorId) {
@@ -159,9 +206,9 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
           >
             {/* Foto */}
             <section className="flex items-center gap-4 flex-wrap">
-              {foto ? (
+              {fotoPreview || foto ? (
                 <img
-                  src={foto}
+                  src={fotoPreview || foto}
                   alt="Foto de perfil"
                   className="h-20 w-20 rounded-full object-cover border-2 border-slate-200 dark:border-slate-600"
                 />
@@ -175,17 +222,44 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
                   Foto de perfil
                 </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Aparece na sua página pública e nos resultados de busca.
+                  JPG, PNG ou WebP até 5MB. Aparece na sua página pública e nos resultados de busca.
                 </p>
-                <button
-                  type="button"
-                  onClick={() =>
-                    alert("A alteração de foto estará disponível em breve.")
-                  }
-                  className="mt-2 inline-flex items-center min-h-[40px] px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                >
-                  Alterar foto
-                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFotoChange}
+                  className="hidden"
+                />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={saving}
+                    className="inline-flex items-center min-h-[40px] px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
+                  >
+                    {fotoFile ? "Trocar arquivo" : "Escolher foto"}
+                  </button>
+                  {fotoFile && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFotoFile(null);
+                        setFotoPreview("");
+                        if (fileInputRef.current) fileInputRef.current.value = "";
+                      }}
+                      disabled={saving}
+                      className="inline-flex items-center min-h-[40px] px-3 py-2 rounded-lg text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
+                    >
+                      Remover seleção
+                    </button>
+                  )}
+                </div>
+                {fotoFile && (
+                  <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                    Selecionado: {fotoFile.name} · {(fotoFile.size / 1024).toFixed(0)} KB
+                  </p>
+                )}
               </div>
             </section>
 
@@ -281,9 +355,19 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
               <button
                 type="submit"
                 disabled={saving}
-                className="min-h-[44px] px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold disabled:opacity-50"
+                className="min-h-[44px] px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold disabled:opacity-50 inline-flex items-center justify-center gap-2"
               >
-                {saving ? "Salvando…" : "Salvar alterações"}
+                {saving && (
+                  <span
+                    aria-hidden="true"
+                    className="inline-block h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin"
+                  />
+                )}
+                {saving
+                  ? fotoFile
+                    ? "Enviando foto…"
+                    : "Salvando…"
+                  : "Salvar alterações"}
               </button>
             </div>
           </form>
