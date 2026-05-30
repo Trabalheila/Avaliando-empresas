@@ -51,10 +51,10 @@ const SPECIALIST_CONFIGS = {
       { label: "Súmulas do TST", href: "https://www.tst.jus.br/sumulas", emoji: "📖", type: "jurisprudence" },
       { label: "OJs da SDI-1 do TST", href: "https://www.tst.jus.br/oj-sdi-1", emoji: "📑", type: "jurisprudence" },
       { label: "Jurisprudência TST", href: "https://www.tst.jus.br/jurisprudencia", emoji: "📚", type: "jurisprudence" },
-      { label: "Modelos de petições", href: "#", emoji: "📄", type: "template" },
-      { label: "Calendário de audiências", href: "#", emoji: "📅", type: "tool" },
-      { label: "Notícias: Jurisprudência trabalhista", href: "#", emoji: "📰", type: "news" },
-      { label: "Notícias: Reforma trabalhista e impactos", href: "#", emoji: "📰", type: "news" },
+      { label: "Modelos de petições", href: "https://www.google.com/search?q=modelos+de+peti%C3%A7%C3%B5es+trabalhistas", emoji: "📄", type: "template" },
+      { label: "Calendário de audiências", href: "https://www.google.com/search?q=calend%C3%A1rio+de+audi%C3%AAncias+trabalhistas", emoji: "📅", type: "tool" },
+      { label: "Notícias: Jurisprudência trabalhista", href: "https://www.tst.jus.br/noticias", emoji: "📰", type: "news" },
+      { label: "Notícias: Reforma trabalhista e impactos", href: "https://www.google.com/search?q=not%C3%ADcias+reforma+trabalhista+impactos", emoji: "📰", type: "news" },
     ],
     dashboardSections: [
       "overview",
@@ -1501,12 +1501,16 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                     <span aria-hidden="true">🧰</span> Recursos e ferramentas
                   </h2>
                   <ul className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {(specialistConfig.resourceLinks || RESOURCE_LINKS_FALLBACK).map((res) => (
+                    {(specialistConfig.resourceLinks || RESOURCE_LINKS_FALLBACK).map((res) => {
+                      const isPlaceholder = !res.href || res.href === "#";
+                      return (
                       <li key={res.label}>
                         <a
-                          href={res.href}
+                          href={res.href || "#"}
+                          target={isPlaceholder ? undefined : "_blank"}
+                          rel={isPlaceholder ? undefined : "noopener noreferrer"}
                           onClick={(e) => {
-                            if (res.href === "#") {
+                            if (isPlaceholder) {
                               e.preventDefault();
                               alert(`"${res.label}" estará disponível em breve.`);
                             }
@@ -1521,7 +1525,8 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                           </span>
                         </a>
                       </li>
-                    ))}
+                      );
+                    })}
                   </ul>
                 </section>
               );
