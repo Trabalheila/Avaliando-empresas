@@ -1,7 +1,7 @@
 // src/pages/ApoiadorPerfilGerenciar.js
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { signInAnonymously } from "firebase/auth";
 import { db, storage, auth } from "../firebase";
@@ -114,6 +114,13 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
       setError("");
       setMessage("");
       try {
+        // Garante usuário autenticado (anônimo se necessário) ANTES de
+        // qualquer escrita — regras do Firestore exigem request.auth != null.
+        if (!auth.currentUser) {
+          try { await signInAnonymously(auth); } catch (authErr) {
+            console.warn("[ApoiadorPerfil] signInAnonymously falhou:", authErr);
+          }
+        }
         const areas = areasText
           .split(",")
           .map((s) => s.trim())
@@ -132,11 +139,6 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
 
         // Upload da foto (se houve seleção de novo arquivo).
         if (fotoFile) {
-          // Garante usuário autenticado (anônimo se necessário) ANTES de tentar
-          // upload no Storage — as regras costumam exigir request.auth != null.
-          if (!auth.currentUser) {
-            try { await signInAnonymously(auth); } catch { /* segue mesmo assim */ }
-          }
           let url = "";
           try {
             const safeName = (fotoFile.name || "foto").replace(/[^\w.\-]+/g, "_");
@@ -164,10 +166,16 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
           setFotoPreview("");
         }
 
-        await updateDoc(doc(db, "apoiadores", apoiadorId), updates);
+        await setDoc(
+          doc(db, "apoiadores", apoiadorId),
+          { ...updates, updatedAt: serverTimestamp() },
+          { merge: true }
+        );
         setMessage("Perfil atualizado com sucesso.");
       } catch (err) {
-        setError(err?.message || "Erro ao salvar.");
+        console.error("[ApoiadorPerfil] erro ao salvar:", err);
+        const code = err?.code ? ` (${err.code})` : "";
+        setError((err?.message || "Erro ao salvar.") + code);
       } finally {
         setSaving(false);
       }
@@ -359,6 +367,10 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
                 {error}
               </p>
             )}
+            <p className="text-[11px] text-slate-400 dark:text-slate-500">
+              ID do perfil: <code>{apoiadorId}</code>
+              {auth.currentUser?.uid ? <> · auth: <code>{auth.currentUser.uid}</code></> : <> · sem auth firebase</>}
+            </p>
 
             {/* Ações */}
             <div className="flex flex-col sm:flex-row sm:justify-end gap-2 pt-2">
