@@ -34,6 +34,7 @@ import MyContactsApoiador from './pages/MyContactsApoiador';
 import ApoiadorPerfilGerenciar from './pages/ApoiadorPerfilGerenciar';
 import CaseDetailsPage from './components/Specialist/CaseDetailsPage';
 import SpecialistBenefitsPage from './components/Specialist/SpecialistBenefitsPage';
+import FindSpecialistPage from './components/Worker/FindSpecialistPage';
 import ApoiadorRequisicoes from './pages/ApoiadorRequisicoes';
 import CookieBanner from './components/CookieBanner';
 import ChatbotWidget from './components/ChatbotWidget';
@@ -240,6 +241,7 @@ function App() {
       <Route path="/apoiador/perfil" element={<ApoiadorPerfilGerenciar theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/especialista/:specialistType/caso/:caseId" element={<CaseDetailsPage theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/especialista/beneficios" element={<SpecialistBenefitsPage theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/trabalhador/encontrar-especialista" element={<FindSpecialistPage theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/apoiador/requisicoes" element={<ApoiadorRequisicoes theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/empresa/cadastro" element={<CompanyRegister />} />
       <Route path="/empresa/cadastro/aguarde" element={<CompanyRegisterAwait />} />
