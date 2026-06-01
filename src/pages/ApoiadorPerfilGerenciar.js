@@ -167,7 +167,11 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
           let url = "";
           try {
             const safeName = (fotoFile.name || "foto").replace(/[^\w.\-]+/g, "_");
-            const path = `apoiadores/${apoiadorId}/${Date.now()}-${safeName}`;
+            // Usa o uid de Auth quando disponível (regras default do Storage
+            // costumam permitir gravação apenas em pastas {uid}/...). Se não,
+            // cai para o apoiadorId.
+            const ownerKey = auth.currentUser?.uid || apoiadorId;
+            const path = `apoiadores/${ownerKey}/${Date.now()}-${safeName}`;
             const sRef = storageRef(storage, path);
             // Timeout defensivo: se o Storage pendurar (CORS / regras),
             // cai no fallback dataURL em vez de travar o botão.
