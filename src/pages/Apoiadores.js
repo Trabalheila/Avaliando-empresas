@@ -1,8 +1,9 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import PlanosApoiador from "../components/PlanosApoiador";
 import YouTubeEmbed from "../components/YouTubeEmbed";
+import PaymentInfoModal from "../components/Specialist/PaymentInfoModal";
 
 /**
  * Pagina dedicada aos profissionais (consultores, advogados, prestadores)
@@ -12,6 +13,7 @@ import YouTubeEmbed from "../components/YouTubeEmbed";
  * de assinatura via preapproval_plan_id do Mercado Pago.
  */
 function Apoiadores({ theme, toggleTheme }) {
+  const [showPaymentInfo, setShowPaymentInfo] = useState(false);
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -37,6 +39,15 @@ function Apoiadores({ theme, toggleTheme }) {
         {/* Vídeo explicativo para especialistas */}
         <div className="max-w-2xl mx-auto mt-8">
           <YouTubeEmbed videoId="1qP8sJuj8Jc" title="Cadastro Especialista" />
+          <div className="mt-2 text-center">
+            <button
+              type="button"
+              onClick={() => setShowPaymentInfo(true)}
+              className="inline-flex items-center gap-1 text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline"
+            >
+              💳 Como funciona o pagamento?
+            </button>
+          </div>
         </div>
 
         {/* CTA principal: cadastro do perfil */}
@@ -75,6 +86,11 @@ function Apoiadores({ theme, toggleTheme }) {
       <footer className="w-full py-8 text-center text-xs text-slate-500 dark:text-slate-600">
         © {new Date().getFullYear()} Trabalhei Lá — Todos os direitos reservados
       </footer>
+      <PaymentInfoModal
+        open={showPaymentInfo}
+        onClose={() => setShowPaymentInfo(false)}
+        audience="specialist"
+      />
     </div>
   );
 }

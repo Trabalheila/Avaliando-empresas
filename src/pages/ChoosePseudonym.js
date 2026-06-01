@@ -7,6 +7,7 @@ import { listCompanies } from "../services/companies";
 import AppHeader from "../components/AppHeader";
 import YouTubeEmbed from "../components/YouTubeEmbed";
 import EssencialFreePopup from "../components/EssencialFreePopup";
+import PaymentInfoModal from "../components/Specialist/PaymentInfoModal";
 import { getLinkedInRedirectUri } from "../utils/linkedinAuth";
 import { buildApiUrl } from "../utils/apiBase";
 import { auth, db } from "../firebase";
@@ -120,6 +121,7 @@ function findCompanyInText(text, registeredCompanies) {
 
 function ChoosePseudonym({ theme, toggleTheme }) {
   const navigate = useNavigate();
+  const [showPaymentInfo, setShowPaymentInfo] = useState(false);
   // UID anônimo (ou autenticado) usado para registrar o funil de cadastro
   // na coleção cadastros_iniciados. Persistido em ref para o handleSubmit.
   const funnelUidRef = useRef(null);
@@ -1562,6 +1564,15 @@ function ChoosePseudonym({ theme, toggleTheme }) {
           {step === 1 && (
             <div className="mb-4">
               <YouTubeEmbed videoId="lsZzAEltEcQ" title="Cadastro Trabalhador" />
+              <div className="mt-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentInfo(true)}
+                  className="inline-flex items-center gap-1 text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline"
+                >
+                  💳 Como funciona o pagamento?
+                </button>
+              </div>
             </div>
           )}
 
@@ -2434,6 +2445,11 @@ function ChoosePseudonym({ theme, toggleTheme }) {
           </div>
         </div>
       </div>
+      <PaymentInfoModal
+        open={showPaymentInfo}
+        onClose={() => setShowPaymentInfo(false)}
+        audience="worker"
+      />
     </div>
   );
 }

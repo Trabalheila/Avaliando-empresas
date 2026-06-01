@@ -5,6 +5,7 @@ import {
   FaStar, FaUserEdit, FaGoogle, FaUserSecret, FaCheckCircle, FaShieldAlt,
 } from "react-icons/fa";
 import YouTubeEmbed from "./components/YouTubeEmbed";
+import PaymentInfoModal from "./components/Specialist/PaymentInfoModal";
 import {
   FiMessageCircle, FiDollarSign, FiCompass, FiCalendar, FiUsers,
   FiBriefcase, FiShield, FiHeart, FiRepeat, FiAward, FiTrendingUp, FiAlertCircle,
@@ -552,6 +553,7 @@ function TrabalheiLaMobile({
   const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
   const headerRef = React.useRef(null);
   const [headerSpacerHeight, setHeaderSpacerHeight] = React.useState(0);
+  const [showPaymentInfo, setShowPaymentInfo] = React.useState(false);
 
   const getTopSliceLabel = (pieData) => {
     const topItem = pieData.items.reduce((best, current) => (current.percent > best.percent ? current : best), pieData.items[0]);
@@ -928,6 +930,15 @@ function TrabalheiLaMobile({
               {/* Vídeo de apresentação */}
               <div className="mb-4">
                 <YouTubeEmbed videoId="8ly8z4F8iok" title="Apresentação Trabalhei Lá" />
+                <div className="mt-2 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowPaymentInfo(true)}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-white/90 hover:text-white hover:underline"
+                  >
+                    💳 Como funciona o pagamento?
+                  </button>
+                </div>
               </div>
 
               {/* CENÁRIO 1 — não autenticado: escolha de perfil + login social secundário */}
@@ -1641,6 +1652,11 @@ function TrabalheiLaMobile({
           Trabalhei Lá | CNPJ: 67.029.282/0001-20
         </p>
       </footer>
+      <PaymentInfoModal
+        open={showPaymentInfo}
+        onClose={() => setShowPaymentInfo(false)}
+        audience="both"
+      />
     </div>
   );
 }
