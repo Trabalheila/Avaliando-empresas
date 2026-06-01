@@ -38,10 +38,11 @@ const DEFAULT_DASHBOARD_SECTIONS = [
   "profileSettings",
 ];
 
-const SPECIALIST_CONFIGS = {
+export const SPECIALIST_CONFIGS = {
   advogado: {
     label: "Advogado(a) trabalhista",
     caseLabel: "Processo",
+    canVideoConference: true,
     extraColumns: [
       { key: "processNumber", label: "Nº do processo" },
       { key: "court", label: "Instância / Vara" },
@@ -162,6 +163,7 @@ const SPECIALIST_CONFIGS = {
   consultor_rh: {
     label: "Consultor(a) de RH",
     caseLabel: "Projeto",
+    canVideoConference: true,
     extraColumns: [
       { key: "projectPhase", label: "Fase do projeto" },
       { key: "deliverable", label: "Próxima entrega" },
@@ -218,6 +220,7 @@ const SPECIALIST_CONFIGS = {
   recrutador: {
     label: "Recrutador(a)",
     caseLabel: "Vaga",
+    canVideoConference: true,
     extraColumns: [
       { key: "position", label: "Posição" },
       { key: "pipelineStage", label: "Etapa do pipeline" },
@@ -266,6 +269,7 @@ const SPECIALIST_CONFIGS = {
   psicologo: {
     label: "Psicólogo(a) organizacional",
     caseLabel: "Atendimento",
+    canVideoConference: true,
     extraColumns: [
       { key: "sessionsCount", label: "Sessões realizadas" },
       { key: "focusArea", label: "Foco principal" },
@@ -322,6 +326,7 @@ const SPECIALIST_CONFIGS = {
   medico: {
     label: "Médico(a) do trabalho",
     caseLabel: "Consulta",
+    canVideoConference: true,
     extraColumns: [
       { key: "examType", label: "Tipo de exame" },
       { key: "crmStatus", label: "Status CRM" },
@@ -378,6 +383,7 @@ const SPECIALIST_CONFIGS = {
   contador: {
     label: "Contador(a)",
     caseLabel: "Cliente",
+    canVideoConference: true,
     extraColumns: [
       { key: "regime", label: "Regime tributário" },
       { key: "nextObligation", label: "Próxima obrigação" },
@@ -434,6 +440,7 @@ const SPECIALIST_CONFIGS = {
   engenheiro_seguranca: {
     label: "Engenheiro(a) de Segurança",
     caseLabel: "Auditoria",
+    canVideoConference: true,
     extraColumns: [
       { key: "siteLocation", label: "Local da obra/empresa" },
       { key: "riskLevel", label: "Nível de risco" },
@@ -490,6 +497,7 @@ const SPECIALIST_CONFIGS = {
   fisioterapeuta_ocupacional: {
     label: "Fisioterapeuta Ocupacional",
     caseLabel: "Atendimento",
+    canVideoConference: true,
     extraColumns: [
       { key: "protocol", label: "Protocolo" },
       { key: "sessionsRemaining", label: "Sessões restantes" },
@@ -546,6 +554,7 @@ const SPECIALIST_CONFIGS = {
   outro: {
     label: "Especialista",
     caseLabel: "Atendimento",
+    canVideoConference: false,
     extraColumns: [],
     resourceLinks: [
       { label: "Recursos Gerais", href: "https://www.google.com/search?q=recursos+profissionais", emoji: "📄", type: "guide" },

@@ -12,6 +12,97 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../AppHeader";
 import { getCaseDetails } from "../../data/mockCaseDetails";
+import { SPECIALIST_CONFIGS } from "../../pages/MyContactsApoiador";
+
+/** Gera (ou recupera) o link de videoconferência para um caso.
+ *  Usa Jitsi Meet por ser público, gratuito e sem cadastro. O nome
+ *  da sala é derivado do caseId, garantindo unicidade por caso. */
+function buildVideoCallLink(caseId, existing) {
+  if (existing) return existing;
+  const safe = encodeURIComponent(String(caseId || "sem_id").replace(/[^a-zA-Z0-9_-]/g, "_"));
+  return `https://meet.jit.si/TrabalheiLa_Caso_${safe}`;
+}
+
+/** Card de videoconferência: botão de iniciar, link compartilhável
+ *  e aviso de privacidade. Só é renderizado quando o tipo de
+ *  especialista tem `canVideoConference: true` em SPECIALIST_CONFIGS. */
+function VideoConferenceCard({ caseId, data }) {
+  const link = useMemo(() => buildVideoCallLink(caseId, data?.videoCallLink), [caseId, data]);
+  const [copied, setCopied] = useState(false);
+
+  const handleStart = () => {
+    window.open(link, "_blank", "noopener,noreferrer");
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback: seleciona o texto do input para o usuário copiar manualmente.
+      const el = document.getElementById(`video-link-${caseId}`);
+      if (el && el.select) {
+        el.select();
+      }
+    }
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-2xl shadow-lg p-5">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="text-base md:text-lg font-bold flex items-center gap-2">
+            <span aria-hidden="true">🎥</span> Atendimento por videoconferência
+          </h2>
+          <p className="text-xs sm:text-sm text-blue-100 mt-1">
+            Inicie uma chamada segura com o cliente ou paciente deste caso.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleStart}
+          className="px-4 py-2 rounded-xl bg-white text-blue-700 font-bold text-sm hover:bg-blue-50 shadow"
+        >
+          Iniciar videoconferência
+        </button>
+      </div>
+
+      <div className="mt-4">
+        <label
+          htmlFor={`video-link-${caseId}`}
+          className="text-[11px] uppercase tracking-wide font-semibold text-blue-100"
+        >
+          Link da chamada
+        </label>
+        <div className="mt-1 flex gap-2">
+          <input
+            id={`video-link-${caseId}`}
+            type="text"
+            readOnly
+            value={link}
+            className="flex-1 text-xs sm:text-sm px-3 py-2 rounded-lg bg-white/95 text-slate-800 font-mono truncate"
+            onFocus={(e) => e.target.select()}
+          />
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="px-3 py-2 rounded-lg bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold"
+          >
+            {copied ? "Copiado!" : "Copiar link"}
+          </button>
+        </div>
+      </div>
+
+      <p className="mt-3 text-[11px] sm:text-xs text-blue-100 leading-relaxed">
+        <span aria-hidden="true">🔒</span>{" "}
+        Lembre-se: dados de atendimento são sensíveis. Compartilhe o link
+        apenas com o cliente/paciente do caso, prefira ambientes privados e
+        certifique-se de obter o consentimento antes de gravar a chamada.
+      </p>
+    </div>
+  );
+}
 
 /** Normaliza o tipo (aceita "consultor-rh" e "consultor_rh"). */
 function normalizeTipo(tipo) {
@@ -395,7 +486,12 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
             </button>
           </InfoCard>
         ) : (
-          <CaseBody tipo={tipo} data={data} />
+          <>
+            {SPECIALIST_CONFIGS?.[tipo]?.canVideoConference && (
+              <VideoConferenceCard caseId={caseId} data={data} />
+            )}
+            <CaseBody tipo={tipo} data={data} />
+          </>
         )}
       </main>
     </div>
