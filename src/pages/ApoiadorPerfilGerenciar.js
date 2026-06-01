@@ -106,6 +106,31 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
     reader.readAsDataURL(file);
   }, []);
 
+  /** Comprime/redimensiona imagem para caber em ~700KB de dataURL (limite de 1MB do Firestore). */
+  const compressImageToDataUrl = useCallback(async (file, maxDim = 512, quality = 0.8) => {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result || ""));
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = dataUrl;
+    });
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, w, h);
+    return canvas.toDataURL("image/jpeg", quality);
+  }, []);
+
   const handleSave = useCallback(
     async (e) => {
       e?.preventDefault?.();
@@ -144,20 +169,29 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
             const safeName = (fotoFile.name || "foto").replace(/[^\w.\-]+/g, "_");
             const path = `apoiadores/${apoiadorId}/${Date.now()}-${safeName}`;
             const sRef = storageRef(storage, path);
-            await uploadBytes(sRef, fotoFile, {
+            // Timeout defensivo: se o Storage pendurar (CORS / regras),
+            // cai no fallback dataURL em vez de travar o botão.
+            const uploadPromise = uploadBytes(sRef, fotoFile, {
               contentType: fotoFile.type || "image/*",
-            });
-            url = await getDownloadURL(sRef);
+            }).then(() => getDownloadURL(sRef));
+            const timeoutPromise = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error("storage-timeout")), 20000)
+            );
+            url = await Promise.race([uploadPromise, timeoutPromise]);
           } catch (storageErr) {
-            // Fallback: se o Storage falhar (regras/CORS), salva como dataURL
-            // no próprio doc para não bloquear o usuário.
+            // Fallback: se o Storage falhar (regras/CORS/timeout), salva como
+            // dataURL comprimido no próprio doc para não bloquear o usuário.
             console.warn("[ApoiadorPerfil] falha no Storage; usando dataURL", storageErr);
-            const reader = new FileReader();
-            url = await new Promise((resolve, reject) => {
-              reader.onload = () => resolve(String(reader.result || ""));
-              reader.onerror = reject;
-              reader.readAsDataURL(fotoFile);
-            });
+            try {
+              url = await compressImageToDataUrl(fotoFile, 512, 0.8);
+            } catch {
+              const reader = new FileReader();
+              url = await new Promise((resolve, reject) => {
+                reader.onload = () => resolve(String(reader.result || ""));
+                reader.onerror = reject;
+                reader.readAsDataURL(fotoFile);
+              });
+            }
           }
           updates.foto = url;
           updates.photoURL = url;
@@ -204,7 +238,7 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
         setSaving(false);
       }
     },
-    [apoiadorId, descricao, areasText, nichosText, disponibilidade, fotoFile]
+    [apoiadorId, descricao, areasText, nichosText, disponibilidade, fotoFile, compressImageToDataUrl]
   );
 
   if (!apoiadorId) {
