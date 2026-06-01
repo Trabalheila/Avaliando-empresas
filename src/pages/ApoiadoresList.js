@@ -3,7 +3,6 @@ import { Link, useSearchParams } from "react-router-dom";
 import { db } from "../firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import AppHeader from "../components/AppHeader";
-import PlanosApoiador from "../components/PlanosApoiador";
 import { getUserRole } from "../utils/rbac";
 import { filterOutTestApoiadores } from "../utils/testAccounts";
 import { SPECIALTIES_BY_AUDIENCE } from "../data/consultationPricing";
@@ -330,9 +329,6 @@ function ApoiadoresList({ theme, toggleTheme }) {
           </div>
         )}
       </main>
-
-      {/* ── Seção de Planos ── */}
-      <PlanosApoiador />
     </div>
   );
 }
