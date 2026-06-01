@@ -53,6 +53,8 @@ const MOCK_SPECIALISTS = [
     isVerified: true,
     planType: "Premium",
     offersFirstConsultationDiscount: false,
+    email: "ana.ribeiro@example.com",
+    whatsapp: "5511999990001",
   },
   {
     id: "mock_psi_001",
@@ -67,6 +69,8 @@ const MOCK_SPECIALISTS = [
     isVerified: true,
     planType: "Premium",
     offersFirstConsultationDiscount: false,
+    email: "lucas.mendes@example.com",
+    whatsapp: "5511999990002",
   },
   {
     id: "mock_cont_001",
@@ -95,6 +99,8 @@ const MOCK_SPECIALISTS = [
     isVerified: true,
     planType: "Premium",
     offersFirstConsultationDiscount: false,
+    email: "paulo.vieira@example.com",
+    whatsapp: "5511999990003",
   },
   {
     id: "mock_rh_001",
@@ -137,6 +143,8 @@ const MOCK_SPECIALISTS = [
     isVerified: true,
     planType: "Premium",
     offersFirstConsultationDiscount: false,
+    email: "bruno.lima@example.com",
+    whatsapp: "5511999990004",
   },
   {
     id: "mock_fis_001",
@@ -308,6 +316,39 @@ function SpecialistCard({ specialist, workerIsPremium }) {
         </Link>
       </div>
 
+      {planType === "Premium" && (specialist.email || specialist.whatsapp) ? (
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {specialist.email ? (
+            <a
+              href={`mailto:${specialist.email}`}
+              className="text-center px-3 py-2 rounded-lg border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-xs font-bold hover:bg-amber-50 dark:hover:bg-amber-900/30"
+              title="Contato direto por e-mail (exclusivo Premium)"
+            >
+              📧 E-mail
+            </a>
+          ) : (
+            <span />
+          )}
+          {specialist.whatsapp ? (
+            <a
+              href={`https://wa.me/${String(specialist.whatsapp).replace(/\D/g, "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-center px-3 py-2 rounded-lg border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200 text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
+              title="Contato direto por WhatsApp (exclusivo Premium)"
+            >
+              📱 WhatsApp
+            </a>
+          ) : (
+            <span />
+          )}
+        </div>
+      ) : (
+        <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 text-center">
+          Contato direto (e-mail/WhatsApp) disponível apenas para especialistas Premium.
+        </p>
+      )}
+
       <button
         type="button"
         onClick={() =>
@@ -396,6 +437,7 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
             ),
             isTest: data.isTest === true,
             email: data.email || "",
+            whatsapp: data.whatsapp || data.telefone || "",
           };
         });
         setRemote(filterOutTestApoiadores(list));

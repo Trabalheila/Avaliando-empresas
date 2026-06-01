@@ -141,7 +141,7 @@ export default function PlanosApoiador() {
             <ul className="space-y-3 text-sm text-slate-700 dark:text-slate-300 flex-1">
               <FeatureRow ok>Perfil público visível na plataforma</FeatureRow>
               <FeatureRow ok>Nome e especialidade exibidos</FeatureRow>
-              <FeatureRow ok>Botão de contato por e-mail e WhatsApp disponível para visitantes</FeatureRow>
+              <FeatureRow ok>Contato inicial via Chat Interno da plataforma (com restrições de conteúdo)</FeatureRow>
               <FeatureRow ok>Aparece na listagem geral de Especialistas</FeatureRow>
               <FeatureRow>Seleção de nichos de atuação</FeatureRow>
               <FeatureRow>Destaque na listagem</FeatureRow>
@@ -175,7 +175,7 @@ export default function PlanosApoiador() {
             <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">
               <FeatureRow ok>Perfil público visível na plataforma</FeatureRow>
               <FeatureRow ok>Nome e especialidade exibidos</FeatureRow>
-              <FeatureRow ok>Botão de contato por e-mail e WhatsApp disponível para visitantes</FeatureRow>
+              <FeatureRow ok>Contato inicial via Chat Interno da plataforma (com restrições de conteúdo)</FeatureRow>
               <FeatureRow ok>Aparece na listagem geral de Especialistas</FeatureRow>
               <FeatureRow ok>Seleção de até 3 nichos de atuação (recrutamento, direito trabalhista, saúde ocupacional, benefícios corporativos, treinamento)</FeatureRow>
               <FeatureRow ok>Posição de destaque na listagem ordenada por avaliação</FeatureRow>
@@ -211,6 +211,7 @@ export default function PlanosApoiador() {
             </p>
             <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">
               <FeatureRow ok><span className="font-semibold">Todos os benefícios do plano Especialista Essencial</span></FeatureRow>
+              <FeatureRow ok><span className="font-semibold">Contato direto via e-mail e WhatsApp</span> liberado no perfil para visítantes (exclusivo Premium)</FeatureRow>
               <FeatureRow ok><span className="font-semibold">10 Créditos de Contato/mês</span> para iniciar conversas com Empresas Premium</FeatureRow>
               <FeatureRow ok>Acesso à página <span className="font-semibold">"Meus Contatos"</span> para gerenciar interações e responder pedidos de empresas</FeatureRow>
               <FeatureRow ok><span className="font-semibold">Notificações Prioritárias</span> sobre novas oportunidades e pedidos de contato (sininho na plataforma)</FeatureRow>

@@ -27,6 +27,7 @@ const PREMIUM_BENEFITS = [
   "Acesso total a oportunidades de clientes",
   "Maior visibilidade no diretório de especialistas",
   "Chat interno ilimitado e com anexos",
+  "Contato direto via e-mail e WhatsApp liberado no perfil (exclusivo Premium)",
   "Videoconferência ilimitada e sem restrição de tempo",
   "Relatórios de desempenho e métricas de atendimento",
   "Suporte prioritário",
