@@ -32,6 +32,7 @@ import MinhaConta from './pages/MinhaConta';
 import MyContacts from './pages/MyContacts';
 import MyContactsApoiador from './pages/MyContactsApoiador';
 import ApoiadorPerfilGerenciar from './pages/ApoiadorPerfilGerenciar';
+import CaseDetailsPage from './components/Specialist/CaseDetailsPage';
 import ApoiadorRequisicoes from './pages/ApoiadorRequisicoes';
 import CookieBanner from './components/CookieBanner';
 import ChatbotWidget from './components/ChatbotWidget';
@@ -236,6 +237,7 @@ function App() {
       <Route path="/my-contacts" element={<MyContacts theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/apoiador/my-contacts" element={<MyContactsApoiador theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/apoiador/perfil" element={<ApoiadorPerfilGerenciar theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/especialista/:specialistType/caso/:caseId" element={<CaseDetailsPage theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/apoiador/requisicoes" element={<ApoiadorRequisicoes theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/empresa/cadastro" element={<CompanyRegister />} />
       <Route path="/empresa/cadastro/aguarde" element={<CompanyRegisterAwait />} />

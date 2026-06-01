@@ -991,7 +991,11 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                           </div>
                           <button
                             type="button"
-                            onClick={() => alert(`Detalhes do caso ${c.id} (em desenvolvimento).`)}
+                            onClick={() =>
+                              navigate(
+                                `/especialista/${encodeURIComponent(specialistTipo)}/caso/${encodeURIComponent(c.id)}`
+                              )
+                            }
                             className="w-full mt-2 px-3 py-2 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white min-h-[40px]"
                           >
                             Ver detalhes
@@ -1048,7 +1052,9 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                                 <button
                                   type="button"
                                   onClick={() =>
-                                    alert(`Detalhes do caso ${c.id} (em desenvolvimento).`)
+                                    navigate(
+                                      `/especialista/${encodeURIComponent(specialistTipo)}/caso/${encodeURIComponent(c.id)}`
+                                    )
                                   }
                                   className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"
                                 >
