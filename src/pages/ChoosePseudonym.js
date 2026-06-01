@@ -1563,7 +1563,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
           {/* Vídeo explicativo do cadastro do trabalhador */}
           {step === 1 && (
             <div className="mb-4">
-              <YouTubeEmbed videoId="lsZzAEltEcQ" title="Cadastro Trabalhador" />
+              <YouTubeEmbed videoId="J3zzfAWERhg" title="Cadastro Trabalhador" />
               <div className="mt-2 text-center">
                 <button
                   type="button"
