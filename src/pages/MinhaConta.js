@@ -14,6 +14,7 @@ import { getUserRole, isPremium, isAdmin } from "../utils/rbac";
 import { resolveProfileId } from "../utils/profileIdentity";
 import AppHeader from "../components/AppHeader";
 import WorkerProfessionalContactSettings from "../components/WorkerProfessionalContactSettings";
+import { buildVideoCallLink, formatStartsIn } from "../utils/videoCall";
 
 /* ════════════════════════════════════════════════
    MinhaConta — Página privada "Minha conta"
@@ -399,18 +400,47 @@ export default function MinhaConta({ theme, toggleTheme }) {
 /* ════════════════════════════════════════════════
    NextVideoCallSection
    ────────────────────────────────────────────────
-   Card de acesso rápido à próxima videochamada.
-   - Trabalhador Premium: mostra botão "Acessar Videochamada"
-     se `profile.nextVideoCallUrl` (mock) estiver disponível;
-     caso contrário, exibe "Nenhuma videochamada agendada".
-   - Trabalhador Gratuito/Essencial: oculta o botão e exibe
-     mensagem de upgrade com link para /trabalhador/beneficios.
+   Lista as consultas aceitas pelo especialista para este
+   trabalhador. Para cada consulta exibe os dados básicos
+   (especialidade, data, formato) e:
+   - Trabalhador Premium: botão "Acessar Videochamada"
+     abrindo a sala única daquela consulta + contagem
+     "Começa em X minutos" quando próximo do horário.
+   - Trabalhador Gratuito/Essencial: oculta o botão e
+     exibe upgrade com link para /trabalhador/beneficios.
    ════════════════════════════════════════════════ */
 function NextVideoCallSection({ profile, navigate }) {
   const workerIsPremium = isPremium();
-  // Mock: a URL da videochamada pode vir do perfil persistido ou
-  // de campo equivalente vindo do backend no futuro.
-  const nextVideoCallUrl = profile?.nextVideoCallUrl || "";
+  const workerId = profile?.id || profile?.profileId || "";
+  const [consultas, setConsultas] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!workerId) return undefined;
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      try {
+        const q1 = query(
+          collection(db, "consultas"),
+          where("workerId", "==", workerId),
+          where("status", "in", ["accepted", "in_progress"]),
+          limit(20)
+        );
+        const snap = await getDocs(q1);
+        if (!cancelled) {
+          setConsultas(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        }
+      } catch {
+        // best-effort
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [workerId]);
 
   return (
     <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
@@ -418,33 +448,10 @@ function NextVideoCallSection({ profile, navigate }) {
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
         </svg>
-        Próxima Videochamada
+        Minhas Videochamadas
       </h2>
 
-      {workerIsPremium ? (
-        nextVideoCallUrl ? (
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              Você tem uma videochamada agendada. Entre na sala quando estiver pronto.
-            </p>
-            <a
-              href={nextVideoCallUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition shrink-0"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              Acessar Videochamada
-            </a>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Nenhuma videochamada agendada no momento.
-          </p>
-        )
-      ) : (
+      {!workerIsPremium ? (
         <div className="rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4">
           <p className="text-sm text-slate-700 dark:text-slate-200">
             🔒 Acesso a videochamadas é um benefício exclusivo do{" "}
@@ -459,6 +466,60 @@ function NextVideoCallSection({ profile, navigate }) {
             Conhecer o Plano Premium
           </button>
         </div>
+      ) : loading ? (
+        <p className="text-sm text-slate-500 dark:text-slate-400 animate-pulse">
+          Carregando agenda…
+        </p>
+      ) : consultas.length === 0 ? (
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Nenhuma videochamada agendada no momento.
+        </p>
+      ) : (
+        <ul className="space-y-3">
+          {consultas.map((c) => {
+            const link = buildVideoCallLink(c.id, c.videoCallLink);
+            const startsIn = formatStartsIn(c.scheduledFor);
+            const when =
+              c.scheduledFor?.toDate?.().toLocaleString("pt-BR") ||
+              c.createdAt?.toDate?.().toLocaleString("pt-BR") ||
+              "";
+            return (
+              <li
+                key={c.id}
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
+                    {c.apoiadorNome || c.especialidade || "Consulta agendada"}
+                  </p>
+                  {c.especialidade && c.apoiadorNome && (
+                    <p className="text-xs text-slate-600 dark:text-slate-300">
+                      {c.especialidade}
+                    </p>
+                  )}
+                  {when && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {when}
+                    </p>
+                  )}
+                  {startsIn && (
+                    <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 mt-0.5">
+                      {startsIn}
+                    </p>
+                  )}
+                </div>
+                <a
+                  href={link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition shrink-0"
+                >
+                  🎥 Acessar Videochamada
+                </a>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </section>
   );

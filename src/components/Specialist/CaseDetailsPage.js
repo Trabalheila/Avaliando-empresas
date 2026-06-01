@@ -15,15 +15,13 @@ import { getCaseDetails } from "../../data/mockCaseDetails";
 import { SPECIALIST_CONFIGS } from "../../pages/MyContactsApoiador";
 import { db } from "../../firebase";
 import { doc, getDoc } from "firebase/firestore";
-
-/** Gera (ou recupera) o link de videoconferência para um caso.
- *  Usa Jitsi Meet por ser público, gratuito e sem cadastro. O nome
- *  da sala é derivado do caseId, garantindo unicidade por caso. */
-function buildVideoCallLink(caseId, existing) {
-  if (existing) return existing;
-  const safe = encodeURIComponent(String(caseId || "sem_id").replace(/[^a-zA-Z0-9_-]/g, "_"));
-  return `https://meet.jit.si/TrabalheiLa_Caso_${safe}`;
-}
+import {
+  buildVideoCallLink,
+  ESSENCIAL_VIDEO_MAX_MINUTES,
+  ESSENCIAL_VIDEO_LIMIT_PER_MONTH,
+  readEssencialVideoUsage,
+  incrementEssencialVideoUsage,
+} from "../../utils/videoCall";
 
 /** Card de videoconferência: botão de iniciar, link compartilhável
  *  e aviso de privacidade. Só é renderizado quando o tipo de
@@ -106,22 +104,6 @@ function VideoConferenceCard({ caseId, data }) {
   );
 }
 
-/** Limites do plano Essencial para videoconferência (mock). */
-const ESSENCIAL_VIDEO_MAX_MINUTES = 30;
-const ESSENCIAL_VIDEO_LIMIT_PER_MONTH = 5;
-
-function readEssencialVideoUsage(apoiadorId) {
-  const month = new Date().toISOString().slice(0, 7); // YYYY-MM
-  const key = `videoSessionsUsed:${month}:${apoiadorId || "anon"}`;
-  let used = 0;
-  try {
-    used = Number(localStorage.getItem(key) || "0") || 0;
-  } catch {
-    used = 0;
-  }
-  return { key, used, month };
-}
-
 /** Card de videoconferência para especialistas no plano Essencial.
  *  Permite iniciar a chamada, mas com limite de 30 min / 5 sessões por mês. */
 function VideoEssencialCard({ caseId, navigate }) {
@@ -134,7 +116,7 @@ function VideoEssencialCard({ caseId, navigate }) {
     }
   }, []);
 
-  const [{ key, used }, setUsage] = useState(() => readEssencialVideoUsage(apoiadorId));
+  const [{ used }, setUsage] = useState(() => readEssencialVideoUsage(apoiadorId));
   const remaining = Math.max(0, ESSENCIAL_VIDEO_LIMIT_PER_MONTH - used);
   const limitReached = remaining <= 0;
 
@@ -150,13 +132,7 @@ function VideoEssencialCard({ caseId, navigate }) {
   };
 
   const handleConfirm = () => {
-    try {
-      const next = used + 1;
-      localStorage.setItem(key, String(next));
-      setUsage({ key, used: next });
-    } catch {
-      // ignore
-    }
+    setUsage(incrementEssencialVideoUsage(apoiadorId));
     setShowConfirm(false);
     const url = buildVideoCallLink(caseId);
     window.open(url, "_blank", "noopener,noreferrer");

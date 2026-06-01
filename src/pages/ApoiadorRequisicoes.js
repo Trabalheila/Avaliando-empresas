@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { db, auth } from "../firebase";
 import {
   collection,
@@ -13,6 +14,14 @@ import {
 } from "firebase/firestore";
 import AppHeader from "../components/AppHeader";
 import { getRatingLabel } from "../data/consultationPricing";
+import {
+  buildVideoCallLink,
+  ESSENCIAL_VIDEO_MAX_MINUTES,
+  ESSENCIAL_VIDEO_LIMIT_PER_MONTH,
+  readEssencialVideoUsage,
+  incrementEssencialVideoUsage,
+  formatStartsIn,
+} from "../utils/videoCall";
 
 /**
  * Painel do Apoiador — Minhas Requisições.
@@ -61,6 +70,7 @@ function tabForStatus(status) {
 }
 
 export default function ApoiadorRequisicoes({ theme, toggleTheme }) {
+  const navigate = useNavigate();
   const [apoiador, setApoiador] = useState(null);
   const [apoiadorId, setApoiadorId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -367,7 +377,13 @@ export default function ApoiadorRequisicoes({ theme, toggleTheme }) {
                     </div>
                   )}
                   {activeTab === "accepted" && (
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div className="mt-3 flex flex-wrap gap-2 items-center">
+                      <VideoCallButton
+                        consulta={c}
+                        apoiadorId={apoiadorId}
+                        isPremium={isPremium}
+                        navigate={navigate}
+                      />
                       <button
                         type="button"
                         onClick={() => handleStatusChange(c.id, "concluded")}
@@ -389,3 +405,109 @@ export default function ApoiadorRequisicoes({ theme, toggleTheme }) {
 
 // Evita warning de variável não utilizada em ambientes que linkam auth.
 void auth;
+/* ════════════════════════════════════════════════
+   VideoCallButton (especialista)
+   ────────────────────────────────────────────────
+   - Premium: abre direto a sala da consulta.
+   - Essencial: aplica limite mensal (30 min / 5 sessões);
+     se atingido, mostra aviso com link para /especialista/beneficios.
+   ════════════════════════════════════════════════ */
+function VideoCallButton({ consulta, apoiadorId, isPremium, navigate }) {
+  const [usage, setUsage] = useState(() => readEssencialVideoUsage(apoiadorId));
+  const [showLimit, setShowLimit] = useState(false);
+
+  const url = buildVideoCallLink(consulta.id, consulta.videoCallLink);
+  const startsIn = formatStartsIn(consulta.scheduledFor);
+  const remaining = Math.max(
+    0,
+    ESSENCIAL_VIDEO_LIMIT_PER_MONTH - (usage?.used || 0)
+  );
+  const essencialLimitReached = !isPremium && remaining <= 0;
+
+  const handleClick = (e) => {
+    if (essencialLimitReached) {
+      e.preventDefault();
+      setShowLimit(true);
+      return;
+    }
+    if (!isPremium) {
+      setUsage(incrementEssencialVideoUsage(apoiadorId));
+    }
+  };
+
+  return (
+    <>
+      <a
+        href={essencialLimitReached ? undefined : url}
+        onClick={handleClick}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={
+          "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition " +
+          (essencialLimitReached
+            ? "bg-slate-300 text-slate-600 cursor-not-allowed dark:bg-slate-700 dark:text-slate-400"
+            : "bg-emerald-600 hover:bg-emerald-700 text-white")
+        }
+        title={
+          isPremium
+            ? "Abrir sala da videochamada"
+            : `Plano Essencial: até ${ESSENCIAL_VIDEO_MAX_MINUTES} min/sessão, ${remaining}/${ESSENCIAL_VIDEO_LIMIT_PER_MONTH} restantes neste mês`
+        }
+      >
+        🎥 Acessar Videochamada
+      </a>
+      {startsIn && (
+        <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+          {startsIn}
+        </span>
+      )}
+      {!isPremium && (
+        <span className="text-[11px] text-amber-700 dark:text-amber-300">
+          Essencial: {remaining}/{ESSENCIAL_VIDEO_LIMIT_PER_MONTH} sessões restantes este mês
+        </span>
+      )}
+
+      {showLimit && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 px-4"
+          onClick={() => setShowLimit(false)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-extrabold text-slate-800 dark:text-slate-100">
+              Limite atingido
+            </h3>
+            <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
+              Limite de videoconferências atingido para o seu plano. Faça
+              upgrade para o <strong>Plano Premium</strong> para ter
+              videoconferências ilimitadas e sem limite de tempo.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowLimit(false)}
+                className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-bold"
+              >
+                Fechar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLimit(false);
+                  navigate("/especialista/beneficios");
+                }}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
+              >
+                Ver planos
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
