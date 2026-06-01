@@ -58,7 +58,7 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
         if (cancelled) return;
         if (snap.exists()) {
           const d = snap.data();
-          setFoto(d.foto || "");
+          setFoto(d.foto || d.photoURL || d.avatar || d.picture || "");
           setDescricao(d.descricao || "");
           const areas = Array.isArray(d.areas)
             ? d.areas
@@ -171,6 +171,30 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
           { ...updates, updatedAt: serverTimestamp() },
           { merge: true }
         );
+
+        // Sincroniza o userProfile em localStorage para que outros componentes
+        // (AppHeader, listas, etc.) reflitam imediatamente a nova foto/dados.
+        try {
+          const stored = JSON.parse(localStorage.getItem("userProfile") || "{}");
+          const merged = {
+            ...stored,
+            descricao: updates.descricao,
+            areas: updates.areas,
+            nichos: updates.nichos,
+            disponibilidade: updates.disponibilidade,
+          };
+          if (updates.foto) {
+            merged.foto = updates.foto;
+            merged.photoURL = updates.photoURL || updates.foto;
+            merged.avatar = updates.foto;
+            merged.picture = updates.foto;
+          }
+          localStorage.setItem("userProfile", JSON.stringify(merged));
+          window.dispatchEvent(new Event("userProfileUpdated"));
+        } catch (lsErr) {
+          console.warn("[ApoiadorPerfil] falha ao atualizar localStorage:", lsErr);
+        }
+
         setMessage("Perfil atualizado com sucesso.");
       } catch (err) {
         console.error("[ApoiadorPerfil] erro ao salvar:", err);

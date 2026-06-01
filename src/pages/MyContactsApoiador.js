@@ -167,11 +167,11 @@ const SPECIALIST_CONFIGS = {
       { key: "deliverable", label: "Próxima entrega" },
     ],
     resourceLinks: [
-      { label: "Melhores práticas de RH", href: "#", emoji: "🌟" },
-      { label: "Modelos de avaliação de desempenho", href: "#", emoji: "📊" },
-      { label: "Pesquisas salariais", href: "#", emoji: "💰" },
-      { label: "Fórum de Especialistas", href: "#", emoji: "💬" },
-      { label: "Notícias: Tendências em gestão de pessoas", href: "#", emoji: "📰" },
+      { label: "Melhores práticas de RH", href: "https://www.gupy.io/blog/melhores-praticas-rh", emoji: "🌟", type: "guide" },
+      { label: "Modelos de avaliação de desempenho", href: "https://www.google.com/search?q=modelos+de+avalia%C3%A7%C3%A3o+de+desempenho", emoji: "📊", type: "template" },
+      { label: "Pesquisas salariais atualizadas", href: "https://www.vagas.com.br/blog/pesquisa-salarial/", emoji: "💰", type: "tool" },
+      { label: "Fórum de Especialistas", href: "https://www.linkedin.com/groups/?keywords=recursos%20humanos", emoji: "💬", type: "community" },
+      { label: "Notícias: Tendências em gestão de pessoas", href: "https://www.rhpravo.com.br/noticias/", emoji: "📰", type: "news" },
     ],
     dashboardSections: [
       "overview",
@@ -223,11 +223,11 @@ const SPECIALIST_CONFIGS = {
       { key: "pipelineStage", label: "Etapa do pipeline" },
     ],
     resourceLinks: [
-      { label: "Banco de talentos", href: "#", emoji: "🎯" },
-      { label: "Tendências de mercado", href: "#", emoji: "📈" },
-      { label: "Modelos de Job Description", href: "#", emoji: "📝" },
-      { label: "Fórum de Especialistas", href: "#", emoji: "💬" },
-      { label: "Notícias: O futuro do recrutamento", href: "#", emoji: "📰" },
+      { label: "Ferramentas de Recrutamento", href: "https://www.gupy.io/blog/ferramentas-de-recrutamento", emoji: "🎯", type: "tool" },
+      { label: "Tendências de Mercado de Talentos", href: "https://www.vagas.com.br/blog/tendencias-mercado-trabalho/", emoji: "📈", type: "guide" },
+      { label: "Modelos de Job Description", href: "https://www.google.com/search?q=modelos+de+job+description", emoji: "📝", type: "template" },
+      { label: "Fórum de Especialistas", href: "https://www.linkedin.com/groups/?keywords=recrutamento%20e%20sele%C3%A7%C3%A3o", emoji: "💬", type: "community" },
+      { label: "Notícias: O Futuro do Recrutamento", href: "https://www.linkedin.com/news/topics/recruitment/", emoji: "📰", type: "news" },
     ],
     dashboardSections: DEFAULT_DASHBOARD_SECTIONS,
     mockActiveCases: [
@@ -271,11 +271,11 @@ const SPECIALIST_CONFIGS = {
       { key: "focusArea", label: "Foco principal" },
     ],
     resourceLinks: [
-      { label: "Código de ética CRP", href: "#", emoji: "⚖️" },
-      { label: "Protocolos de saúde mental no trabalho", href: "#", emoji: "🧠" },
-      { label: "Modelos de anâmnese", href: "#", emoji: "📄" },
-      { label: "Agenda de sessões", href: "#", emoji: "📅" },
-      { label: "Notícias: Bem-estar e produtividade", href: "#", emoji: "📰" },
+      { label: "Código de ética CRP", href: "https://site.cfp.org.br/documentos/codigo-de-etica-profissional-do-psicologo/", emoji: "⚖️", type: "legislation" },
+      { label: "Protocolos de saúde mental no trabalho", href: "https://www.google.com/search?q=protocolos+sa%C3%BAde+mental+trabalho", emoji: "🧠", type: "guide" },
+      { label: "Modelos de anamnese", href: "https://www.google.com/search?q=modelos+de+anamnese+psicol%C3%B3gica", emoji: "📄", type: "template" },
+      { label: "Agenda de sessões", href: "https://calendar.google.com/", emoji: "📅", type: "tool" },
+      { label: "Notícias: Bem-estar e produtividade", href: "https://www.psicologia.pt/noticias/", emoji: "📰", type: "news" },
     ],
     dashboardSections: [
       "overview",
@@ -327,11 +327,11 @@ const SPECIALIST_CONFIGS = {
       { key: "crmStatus", label: "Status CRM" },
     ],
     resourceLinks: [
-      { label: "Normas Regulamentadoras (NRs)", href: "#", emoji: "🩺" },
-      { label: "Protocolos PCMSO", href: "#", emoji: "📋" },
-      { label: "Modelos de ASO", href: "#", emoji: "📄" },
-      { label: "Calendário de exames", href: "#", emoji: "📅" },
-      { label: "Notícias: Avanços em medicina do trabalho", href: "#", emoji: "📰" },
+      { label: "Normas Regulamentadoras (NRs)", href: "https://www.gov.br/trabalho-e-previdencia/pt-br/composicao/orgaos-especificos/secretaria-de-inspecao-do-trabalho/seguranca-e-saude-no-trabalho/normatizacao/normas-regulamentadoras", emoji: "🩺", type: "legislation" },
+      { label: "Protocolos Médicos Ocupacionais", href: "https://www.google.com/search?q=protocolos+m%C3%A9dicos+ocupacionais", emoji: "📋", type: "guide" },
+      { label: "Modelos de ASO", href: "https://www.google.com/search?q=modelo+de+ASO+atestado+sa%C3%BAde+ocupacional", emoji: "📄", type: "template" },
+      { label: "Legislação de Saúde Ocupacional", href: "https://www.gov.br/trabalho-e-previdencia/pt-br/composicao/orgaos-especificos/secretaria-de-inspecao-do-trabalho/seguranca-e-saude-no-trabalho/legislacao", emoji: "📅", type: "legislation" },
+      { label: "Notícias: Avanços em medicina do trabalho", href: "https://www.anamt.org.br/portal/noticias/", emoji: "📰", type: "news" },
     ],
     dashboardSections: [
       "overview",
@@ -383,11 +383,11 @@ const SPECIALIST_CONFIGS = {
       { key: "nextObligation", label: "Próxima obrigação" },
     ],
     resourceLinks: [
-      { label: "Calendário fiscal", href: "#", emoji: "📅" },
-      { label: "Tabela de tributos", href: "#", emoji: "💰" },
-      { label: "Modelos de balancete", href: "#", emoji: "📄" },
-      { label: "Atualizações da Receita", href: "#", emoji: "📰" },
-      { label: "Notícias: Mudanças na legislação fiscal", href: "#", emoji: "📰" },
+      { label: "Calendário fiscal", href: "https://www.gov.br/pt-br/servicos/consultar-calendario-fiscal", emoji: "📅", type: "tool" },
+      { label: "Tabela de tributos", href: "https://www.gov.br/pt-br/servicos/consultar-tabela-de-tributos", emoji: "💰", type: "tool" },
+      { label: "Modelos de balancete", href: "https://www.google.com/search?q=modelos+de+balancete+cont%C3%A1bil", emoji: "📄", type: "template" },
+      { label: "Atualizações da Receita", href: "https://www.gov.br/receitafederal/pt-br/servicos/noticias", emoji: "📰", type: "news" },
+      { label: "Notícias: Mudanças na legislação fiscal", href: "https://www.gov.br/receitafederal/pt-br/servicos/noticias", emoji: "📰", type: "news" },
     ],
     dashboardSections: [
       "overview",
@@ -439,11 +439,11 @@ const SPECIALIST_CONFIGS = {
       { key: "riskLevel", label: "Nível de risco" },
     ],
     resourceLinks: [
-      { label: "NRs e Normas Técnicas", href: "#", emoji: "🦺" },
-      { label: "Laudos técnicos (PPRA/PCMSO)", href: "#", emoji: "📄" },
-      { label: "Checklists de Segurança", href: "#", emoji: "✅" },
-      { label: "Relatórios de Acidentes", href: "#", emoji: "📊" },
-      { label: "Notícias: Inovações em segurança do trabalho", href: "#", emoji: "📰" },
+      { label: "NRs e Normas Técnicas", href: "https://www.gov.br/trabalho-e-previdencia/pt-br/composicao/orgaos-especificos/secretaria-de-inspecao-do-trabalho/seguranca-e-saude-no-trabalho/normatizacao/normas-regulamentadoras", emoji: "🦺", type: "legislation" },
+      { label: "Laudos técnicos (PPRA/PCMSO)", href: "https://www.google.com/search?q=modelo+laudo+t%C3%A9cnico+PPRA+PCMSO", emoji: "📄", type: "template" },
+      { label: "Checklists de Segurança", href: "https://www.google.com/search?q=checklists+de+seguran%C3%A7a+do+trabalho", emoji: "✅", type: "template" },
+      { label: "Relatórios de Acidentes", href: "https://www.gov.br/trabalho-e-previdencia/pt-br/composicao/orgaos-especificos/secretaria-de-inspecao-do-trabalho/seguranca-e-saude-no-trabalho/estatisticas-e-pesquisas/acidentes-de-trabalho", emoji: "📊", type: "tool" },
+      { label: "Notícias: Inovações em segurança do trabalho", href: "https://www.protecao.com.br/noticias/", emoji: "📰", type: "news" },
     ],
     dashboardSections: [
       "overview",
@@ -495,11 +495,11 @@ const SPECIALIST_CONFIGS = {
       { key: "sessionsRemaining", label: "Sessões restantes" },
     ],
     resourceLinks: [
-      { label: "Exercícios Terapêuticos", href: "#", emoji: "🤸" },
-      { label: "Ergonomia no Trabalho", href: "#", emoji: "📐" },
-      { label: "Artigos Científicos", href: "#", emoji: "📚" },
-      { label: "Fórum de Especialistas", href: "#", emoji: "💬" },
-      { label: "Notícias: Saúde postural no ambiente de trabalho", href: "#", emoji: "📰" },
+      { label: "Exercícios Terapêuticos", href: "https://www.google.com/search?q=exerc%C3%ADcios+terap%C3%AAuticos+fisioterapia+ocupacional", emoji: "🤸", type: "guide" },
+      { label: "Ergonomia no Trabalho", href: "https://www.google.com/search?q=ergonomia+no+trabalho+guia", emoji: "📐", type: "guide" },
+      { label: "Artigos Científicos em Fisioterapia", href: "https://www.scielo.br/j/rbfis/", emoji: "📚", type: "guide" },
+      { label: "Fórum de Especialistas", href: "https://www.linkedin.com/groups/?keywords=fisioterapia%20ocupacional", emoji: "💬", type: "community" },
+      { label: "Notícias: Saúde postural no ambiente de trabalho", href: "https://www.crefito11.org.br/noticias/", emoji: "📰", type: "news" },
     ],
     dashboardSections: [
       "overview",
@@ -548,11 +548,11 @@ const SPECIALIST_CONFIGS = {
     caseLabel: "Atendimento",
     extraColumns: [],
     resourceLinks: [
-      { label: "Recursos Gerais", href: "#", emoji: "📄" },
-      { label: "Legislação trabalhista", href: "#", emoji: "⚖️" },
-      { label: "Fórum de Especialistas", href: "#", emoji: "💬" },
-      { label: "Suporte", href: "#", emoji: "🛟" },
-      { label: "Notícias do mercado de trabalho", href: "#", emoji: "📰" },
+      { label: "Recursos Gerais", href: "https://www.google.com/search?q=recursos+profissionais", emoji: "📄", type: "guide" },
+      { label: "Legislação trabalhista", href: "https://www.planalto.gov.br/ccivil_03/decreto-lei/del5452.htm", emoji: "⚖️", type: "legislation" },
+      { label: "Fórum de Especialistas", href: "https://www.linkedin.com/groups/", emoji: "💬", type: "community" },
+      { label: "Suporte", href: "https://www.trabalheila.com.br/suporte", emoji: "🛟", type: "tool" },
+      { label: "Notícias do mercado de trabalho", href: "https://www.gupy.io/blog/", emoji: "📰", type: "news" },
     ],
     dashboardSections: [
       "overview",
@@ -665,10 +665,10 @@ async function fetchSpecialistReviews(/* apoiadorId */) {
 }
 
 const RESOURCE_LINKS_FALLBACK = [
-  { label: "Modelos de documentos", href: "#", emoji: "📄" },
-  { label: "Legislação trabalhista recente", href: "#", emoji: "⚖️" },
-  { label: "Fórum de Especialistas", href: "#", emoji: "💬" },
-  { label: "Calendário", href: "#", emoji: "📅" },
+  { label: "Modelos de documentos", href: "https://www.google.com/search?q=modelos+de+documentos+profissionais", emoji: "📄", type: "template" },
+  { label: "Legislação trabalhista recente", href: "https://www.planalto.gov.br/ccivil_03/decreto-lei/del5452.htm", emoji: "⚖️", type: "legislation" },
+  { label: "Fórum de Especialistas", href: "https://www.linkedin.com/groups/", emoji: "💬", type: "community" },
+  { label: "Calendário", href: "https://calendar.google.com/", emoji: "📅", type: "tool" },
 ];
 
 /**
