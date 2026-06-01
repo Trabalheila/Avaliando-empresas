@@ -462,5 +462,5 @@ function NextVideoCallSection({ profile, navigate }) {
       )}
     </section>
   );
-}</newString>
-</invoke>
+}
+
