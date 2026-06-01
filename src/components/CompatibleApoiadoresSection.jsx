@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import { db } from "../firebase";
 import SECTORS from "../data/sectors";
+import { filterOutTestApoiadores } from "../utils/testAccounts";
 import ContactApoiadorModal from "./ContactApoiadorModal";
 
 /**
@@ -66,9 +67,10 @@ export default function CompatibleApoiadoresSection({
           .filter((a) => a.plano === "premium")
           .filter((a) => (filter ? a.ramoEspecializacao === filter : true))
           .filter((a) => a.status !== "rejeitado");
+        const visible = filterOutTestApoiadores(list);
 
         if (!cancelled) {
-          setItems(list);
+          setItems(visible);
           setLoading(false);
         }
       } catch (err) {

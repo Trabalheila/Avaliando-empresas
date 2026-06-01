@@ -274,6 +274,9 @@ async function provisionOne(auth, db, item) {
     createdAt: now,
     updatedAt: now,
     welcomeModalShown: true,
+    // Marca de conta seed — usada por src/utils/testAccounts.js para
+    // ocultar essas contas de listagens públicas.
+    isTest: true,
   };
   await setDoc(doc(db, 'apoiadores', apoiadorId), apoiadorDoc, { merge: true });
   console.log(`  + /apoiadores/${apoiadorId} gravado (tipo=${item.tipo}).`);

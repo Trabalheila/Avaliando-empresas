@@ -9,6 +9,7 @@ import { listCompanies, enrichCompanyWithBrasilAPI } from "../services/companies
 import { getUserRole, isPremium, isAdmin } from "../utils/rbac";
 import { resolveProfileId } from "../utils/profileIdentity";
 import { isUserProfileCertified } from "../utils/verificationLevel";
+import { filterOutTestApoiadores } from "../utils/testAccounts";
 import { handleCheckout } from "../services/billing";
 import AppHeader from "../components/AppHeader";
 import ConflictDeclarationGate from "../components/ConflictDeclarationGate";
@@ -194,7 +195,9 @@ function CompanyDetails({ theme, toggleTheme }) {
         const snap = await getDocs(
           query(collection(db, "apoiadores"), where("status", "==", "ativo"), where("plano", "==", "premium"), orderBy("rating", "desc"), limit(3))
         );
-        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const list = filterOutTestApoiadores(
+          snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+        );
         setApoiadoresRecomendados(list);
       } catch (err) {
         if (err?.code === "failed-precondition") {
@@ -211,7 +214,11 @@ function CompanyDetails({ theme, toggleTheme }) {
         const snap = await getDocs(
           query(collection(db, "apoiadores"), where("status", "==", "ativo"), where("tipo", "==", "advogado"), orderBy("rating", "desc"), limit(6))
         );
-        setAdvogadosTrabalhistas(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setAdvogadosTrabalhistas(
+          filterOutTestApoiadores(
+            snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+          )
+        );
       } catch (err) {
         if (err?.code === "failed-precondition") {
           console.error(

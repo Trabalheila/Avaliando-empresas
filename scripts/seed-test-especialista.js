@@ -170,6 +170,9 @@ const APOIADOR_ID = `apoiador_test_${TEST_EMAIL.replace(/[^a-z0-9]/gi, '_')}`;
     createdAt: now,
     updatedAt: now,
     welcomeModalShown: true,
+    // Marca de conta seed — usada por src/utils/testAccounts.js para
+    // ocultar essas contas de listagens públicas.
+    isTest: true,
   };
   await setDoc(doc(db, 'apoiadores', APOIADOR_ID), apoiadorDoc, {
     merge: true,

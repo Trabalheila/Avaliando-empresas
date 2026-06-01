@@ -5,6 +5,7 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import AppHeader from "../components/AppHeader";
 import PlanosApoiador from "../components/PlanosApoiador";
 import { getUserRole } from "../utils/rbac";
+import { filterOutTestApoiadores } from "../utils/testAccounts";
 import { SPECIALTIES_BY_AUDIENCE } from "../data/consultationPricing";
 
 const AD_EXITUM_DISMISS_KEY = "adExitumCardDismissed_v1";
@@ -86,7 +87,11 @@ function ApoiadoresList({ theme, toggleTheme }) {
           getDocs(query(collection(db, "apoiadores"), where("status", "==", "ativo"))),
           getDocs(collection(db, "professions")),
         ]);
-        setApoiadores(apSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setApoiadores(
+          filterOutTestApoiadores(
+            apSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+          )
+        );
         setProfessions(profSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
       } catch (err) {
         console.error("Erro ao carregar apoiadores:", err);
