@@ -1531,33 +1531,6 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                 </section>
               );
 
-            case "profileSettings":
-              return (
-                <section
-                  key="profileSettings"
-                  aria-labelledby="profile-settings-title"
-                  className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5"
-                >
-                  <h2
-                    id="profile-settings-title"
-                    className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
-                  >
-                    <span aria-hidden="true">⚙️</span> Configurações do perfil
-                  </h2>
-                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                    Atualize áreas de atuação, descrição, nichos e disponibilidade
-                    para que empresas e trabalhadores encontrem você com mais facilidade.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/apoiador/perfil")}
-                    className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
-                  >
-                    Gerenciar perfil de especialista
-                  </button>
-                </section>
-              );
-
             default:
               return null;
           }
