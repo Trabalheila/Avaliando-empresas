@@ -5,11 +5,8 @@ import { db } from "../firebase";
 import { collection, getDocs, query, where, doc, getDoc, setDoc } from "firebase/firestore";
 import { isPremium, getUserRole } from "../utils/rbac";
 import { resolveProfileId } from "../utils/profileIdentity";
-import {
-  FiCheck, FiX, FiClock,
-} from "react-icons/fi";
 import AppHeader from "../components/AppHeader";
-import PlanosApoiador from "../components/PlanosApoiador";
+import PaymentInfoModal from "../components/Specialist/PaymentInfoModal";
 import { getMpPlanUrl } from "../utils/mpSubscription";
 
 const EMPLOYER_FREE_PERIOD_END_ISO = "2026-07-31T23:59:59-03:00";
@@ -45,6 +42,8 @@ function EscolhaPerfil({ theme, toggleTheme }) {
   const [consultores, setConsultores] = useState([]);
   const [prestadores, setPrestadores] = useState([]);
   const [guardChecked, setGuardChecked] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
+  const [empresaSoonOpen, setEmpresaSoonOpen] = useState(false);
   const userIsPremium = React.useMemo(() => isPremium(), []);
   const userRole = React.useMemo(() => getUserRole(), []);
   const isEmpresaPremium = userIsPremium && (userRole === "admin_empresa" || userRole === "empresa");
@@ -364,131 +363,50 @@ function EscolhaPerfil({ theme, toggleTheme }) {
       {/* ═══════════════ SEÇÃO 2 — Benefícios Trabalhador ═══════════════ */}
       <section
         ref={workerRef}
-        className="w-full bg-white dark:bg-slate-900 py-6 scroll-mt-8"
+        className="w-full bg-white dark:bg-slate-900 py-10 scroll-mt-8"
       >
         <div className="max-w-5xl mx-auto px-4">
           <h2 className="text-2xl md:text-3xl font-extrabold text-center text-blue-700 dark:text-blue-400 mb-2">
-            Benefícios para Trabalhadores
+            Sou Trabalhador
           </h2>
-          <p className="text-center text-slate-600 dark:text-slate-400 mb-10">
-            Veja o que muda ao se tornar Premium.
+          <p className="text-center text-slate-600 dark:text-slate-400 mb-8 max-w-3xl mx-auto">
+            Avalie empresas, acesse avaliações verificadas e conecte-se diretamente
+            com advogados trabalhistas, psicólogos e consultores — tudo dentro da plataforma.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-10 items-stretch">
-            {/* Gratuito */}
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-6 flex flex-col">
-              <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300 mb-1">Gratuito</h3>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white mb-4">R$ 0</p>
-              <ul className="space-y-3 text-sm text-slate-700 dark:text-slate-300 flex-1">
-                <FeatureRow ok>Avaliar empresas anonimamente</FeatureRow>
-                <FeatureRow ok>Ver nota geral da empresa</FeatureRow>
-                <FeatureRow ok>Comentários públicos</FeatureRow>
-                <FeatureRow>Comparar empresas lado a lado</FeatureRow>
-                <FeatureRow>Relatórios executivos completos</FeatureRow>
-                <FeatureRow>Dashboard de cultura e ambiente</FeatureRow>
-                <FeatureRow>Tendências e análises exclusivas</FeatureRow>
-                <FeatureRow>Assessoria jurídica trabalhista gratuita</FeatureRow>
-                <FeatureRow>Apoio Psicológico</FeatureRow>
-              </ul>
-            </div>
+          <h3 className="text-lg md:text-xl font-bold text-center text-slate-800 dark:text-slate-100 mb-6">
+            Benefícios para Trabalhadores
+          </h3>
 
-            {/* Essencial — RECOMENDADO */}
-            <div className="rounded-2xl border-2 border-blue-400 dark:border-blue-600 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 p-6 relative overflow-hidden flex flex-col md:scale-[1.02] shadow-lg">
-              <div className="absolute top-0 right-0 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
-                RECOMENDADO
-              </div>
-              <h3 className="text-lg font-bold text-blue-700 dark:text-blue-400 mb-1">Trabalhador Essencial</h3>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
-                R$ 19,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto mb-8 items-stretch">
+            <div className="rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50/40 dark:bg-blue-950/20 p-6 flex flex-col">
+              <h4 className="text-lg font-extrabold text-blue-700 dark:text-blue-300">Plano Essencial</h4>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-blue-700 dark:text-blue-300">Grátis</p>
+              <p className="mt-3 text-sm text-slate-700 dark:text-slate-200 flex-1">
+                Encontre o especialista ideal, inicie um chat limitado e tenha acesso a um{" "}
+                <strong>desconto exclusivo na primeira consulta</strong> com especialistas Essenciais.
+                Perfeito para resolver dúvidas pontuais.
               </p>
-              <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-md px-2 py-1 inline-block mb-4">
-                🎁 Grátis até 30/06/2026
-              </p>
-              <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">
-                <FeatureRow ok>Avaliar empresas anonimamente</FeatureRow>
-                <FeatureRow ok>Ver nota geral da empresa</FeatureRow>
-                <FeatureRow ok>Comentários públicos</FeatureRow>
-                <FeatureRow ok>Comparar empresas lado a lado</FeatureRow>
-                <FeatureRow ok>Relatórios executivos completos</FeatureRow>
-                <FeatureRow ok>Dashboard de cultura e ambiente</FeatureRow>
-                <FeatureRow ok>Tendências e análises exclusivas</FeatureRow>
-                <FeatureRow ok>Assessoria jurídica trabalhista — 1 consulta gratuita única com advogado parceiro</FeatureRow>
-                <FeatureRow ok>Orientação sobre rescisão indevida, assédio moral e discriminação</FeatureRow>
-                <FeatureRow ok>Acesso ao marketplace de advogados com OAB verificada</FeatureRow>
-                <FeatureRow ok>Avaliações de outros usuários Essencial sobre advogados parceiros</FeatureRow>
-                <FeatureRow>Apoio Psicológico</FeatureRow>
-              </ul>
-              <button
-                type="button"
-                className="mt-6 w-full py-3 rounded-lg bg-blue-600 text-white text-base font-bold hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
-                style={PAID_CHECKOUT_DISABLED ? undefined : { animation: "premiumGlow 2s ease-in-out infinite" }}
-                onClick={() => handlePremiumUnlock("worker", "essential")}
-                disabled={PAID_CHECKOUT_DISABLED || !!checkoutLoadingAudience}
-                title={PAID_CHECKOUT_DISABLED ? "Assinaturas pagas temporariamente indisponiveis" : undefined}
-              >
-                {PAID_CHECKOUT_DISABLED
-                  ? PAID_CHECKOUT_DISABLED_MSG
-                  : checkoutLoadingAudience === "worker-essential"
-                    ? "Abrindo checkout…"
-                    : "Assinar Essencial"}
-              </button>
             </div>
-
-            {/* Premium */}
-            <div className="rounded-2xl border-2 border-amber-400 dark:border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 p-6 relative overflow-hidden flex flex-col shadow-lg">
-              <div className="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
-                COMPLETO
-              </div>
-              <h3 className="text-lg font-bold text-amber-700 dark:text-amber-400 mb-1">Premium Trabalhador</h3>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
-                R$ 79,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
+            <div className="rounded-2xl border-2 border-amber-400 dark:border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 p-6 flex flex-col">
+              <h4 className="text-lg font-extrabold text-amber-700 dark:text-amber-300">Plano Premium</h4>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Assinatura</p>
+              <p className="mt-3 text-sm text-slate-700 dark:text-slate-200 flex-1">
+                Para quem busca acompanhamento contínuo. Tenha{" "}
+                <strong>consultas gratuitas ou créditos</strong> para usar com qualquer especialista,
+                chat ilimitado, videoconferência integrada e ferramentas de gestão de caso.
               </p>
-              <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">
-                <FeatureRow ok>Avaliar empresas anonimamente</FeatureRow>
-                <FeatureRow ok>Ver nota geral da empresa</FeatureRow>
-                <FeatureRow ok>Comentários públicos</FeatureRow>
-                <FeatureRow ok>Comparar empresas lado a lado</FeatureRow>
-                <FeatureRow ok>Relatórios executivos completos</FeatureRow>
-                <FeatureRow ok>Dashboard de cultura e ambiente</FeatureRow>
-                <FeatureRow ok>Tendências e análises exclusivas</FeatureRow>
-                <FeatureRow ok>Assessoria jurídica trabalhista — 1 consulta gratuita por mês com advogado parceiro + atendimento prioritário</FeatureRow>
-                <FeatureRow ok>Acesso estendido a advogados parceiros (mais consultas e horas inclusas)</FeatureRow>
-                <FeatureRow ok>Orientação sobre rescisão indevida, assédio moral e discriminação</FeatureRow>
-                <FeatureRow ok>Acesso ao marketplace de advogados com OAB verificada</FeatureRow>
-                <FeatureRow ok>Avaliações de outros usuários Premium sobre advogados parceiros</FeatureRow>
-                <FeatureRow ok><span className="font-semibold">Apoio Psicológico</span> — acesso a psicólogos parceiros, primeira consulta gratuita e descontos em sessões</FeatureRow>
-                <FeatureRow ok>Consultoria de Carreira Personalizada (1 sessão/mês com mentor parceiro)</FeatureRow>
-                <FeatureRow ok>Workshops exclusivos sobre carreira, negociação e direitos trabalhistas</FeatureRow>
-                <FeatureRow ok><span className="font-semibold">Conexão Premium com Empresas</span> — seja encontrado por Empresas Premium que buscam talentos</FeatureRow>
-                <FeatureRow ok><span className="font-semibold">Ative sua disponibilidade para contato</span> — controle quando quer receber propostas de empresas</FeatureRow>
-                <FeatureRow ok><span className="font-semibold">Gerencie seus pedidos de contato</span> — acesse sua página exclusiva "Meus Contatos" para gerenciar todas as interações</FeatureRow>
-                <FeatureRow ok><span className="font-semibold">Notificações prioritárias</span> — receba alertas em tempo real sobre oportunidades de emprego relevantes</FeatureRow>
-              </ul>
-              <button
-                type="button"
-                className="mt-6 w-full py-3 rounded-lg bg-amber-500 text-white text-base font-bold hover:bg-amber-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
-                onClick={() => handlePremiumUnlock("worker", "premium")}
-                disabled={PAID_CHECKOUT_DISABLED || !!checkoutLoadingAudience}
-                title={PAID_CHECKOUT_DISABLED ? "Assinaturas pagas temporariamente indisponiveis" : undefined}
-              >
-                {PAID_CHECKOUT_DISABLED
-                  ? PAID_CHECKOUT_DISABLED_MSG
-                  : checkoutLoadingAudience === "worker-premium"
-                    ? "Abrindo checkout…"
-                    : "Assinar Premium"}
-              </button>
             </div>
           </div>
 
-          {/* Destaque */}
-          <div className="max-w-md mx-auto text-center">
-            <div className="bg-blue-100 dark:bg-blue-900/30 rounded-xl p-4 mb-4 text-blue-900 dark:text-blue-200 text-sm font-medium shadow-inner">
-              <span className="font-bold">Destaque:</span> Quem é Premium sente até{" "}
-              <span className="font-bold">3× mais segurança</span> na escolha do emprego.
-            </div>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
-              Pagamento via Mercado Pago. Escolha PIX, cartão ou boleto no checkout.
-            </p>
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => navigate("/trabalhador/beneficios")}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition"
+            >
+              Ver Detalhes dos Planos →
+            </button>
           </div>
         </div>
       </section>
@@ -496,141 +414,127 @@ function EscolhaPerfil({ theme, toggleTheme }) {
       {/* ═══════════════ SEÇÃO 3 — Benefícios Empresário ═══════════════ */}
       <section
         ref={employerRef}
-        className="w-full bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-slate-950 dark:to-indigo-950/30 py-16 scroll-mt-8"
+        className="w-full bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-slate-950 dark:to-indigo-950/30 py-10 scroll-mt-8"
       >
         <div className="max-w-5xl mx-auto px-4">
           <h2 className="text-2xl md:text-3xl font-extrabold text-center text-indigo-700 dark:text-indigo-400 mb-2">
-            Benefícios para Empresários
+            Sou Empresa
           </h2>
-          <p className="text-center text-sm font-semibold text-amber-600 dark:text-amber-400 mb-1">
+          <p className="text-center text-slate-600 dark:text-slate-400 mb-8 max-w-3xl mx-auto">
+            Gerencie sua reputação, responda avaliações e conecte-se com consultores
+            de RH, contadores e advogados especializados em gestão empresarial.
+          </p>
+
+          <h3 className="text-lg md:text-xl font-bold text-center text-slate-800 dark:text-slate-100 mb-2">
+            Benefícios para Empresas
+          </h3>
+          <p className="text-center text-sm font-semibold text-amber-600 dark:text-amber-400 mb-6">
             (em desenvolvimento)
           </p>
-          <p className="text-center text-slate-600 dark:text-slate-400 mb-10">
-            Dados estratégicos para decisões assertivas.
-          </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-10 items-stretch">
-            {/* Gratuito */}
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 flex flex-col">
-              <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300 mb-1">Gratuito</h3>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white mb-4">R$ 0</p>
-              <ul className="space-y-3 text-sm text-slate-700 dark:text-slate-300 flex-1">
-                <FeatureRow ok>Ver nota geral da empresa</FeatureRow>
-                <FeatureRow ok>Acompanhar avaliações públicas (resumo)</FeatureRow>
-                <FeatureRow>Nota geral da empresa por critério</FeatureRow>
-                <FeatureRow>Painel básico de avaliações recebidas</FeatureRow>
-                <FeatureRow>Resposta pública oficial a avaliações</FeatureRow>
-                <FeatureRow>Avaliar fornecedores e clientes por CNPJ</FeatureRow>
-                <FeatureRow>Reputação de parceiros (consulta por CNPJ)</FeatureRow>
-                <FeatureRow>Benchmark de setor (CNAE)</FeatureRow>
-                <FeatureRow>Relatório executivo mensal</FeatureRow>
-              </ul>
-            </div>
-
-            {/* Plano Essencial Empresa (Fundador) */}
-            <div className="rounded-2xl border-2 border-indigo-400 dark:border-indigo-600 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 p-6 relative overflow-hidden flex flex-col">
-              <div className="absolute top-0 right-0 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
-                ESSENCIAL
-              </div>
-              <h3 className="text-lg font-bold text-indigo-700 dark:text-indigo-400 mb-1">Plano Essencial Empresa</h3>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Gratuito</p>
-              <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-4">Plano Fundador: gratuito até 31 de julho de 2026 · após essa data: R$ 899,90/mês</p>
-              <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">
-                <FeatureRow ok>Visão da <span className="font-semibold">nota geral da empresa por critério</span> (salário, cultura, liderança, benefícios e mais)</FeatureRow>
-                <FeatureRow ok>Acesso ao <span className="font-semibold">painel básico de avaliações recebidas</span> com filtros simples</FeatureRow>
-                <FeatureRow ok><span className="font-semibold">Resposta pública oficial</span> a avaliações, identificada como “Resposta oficial da empresa”</FeatureRow>
-                <FeatureRow ok>Acesso prioritário aos próximos recursos (comparação com concorrentes, benchmarks de setor)</FeatureRow>
-                <FeatureRow ok><span className="font-semibold">Conexão com consultores empresariais parceiros</span> — Inclui <span className="font-semibold">5 Créditos de Contato/mês</span> para iniciar conversas com Especialistas Premium e transformar dados em plano de ação</FeatureRow>
-                <FeatureRow ok>Acesso à página <span className="font-semibold">"Meus Contatos"</span> para gerenciar interações com Especialistas</FeatureRow>
-              </ul>
-              <p className="mt-3 text-xs text-indigo-700 dark:text-indigo-300 italic">
-                {isEmployerFreeWindowActive
-                  ? "O Plano Fundador tem gratuidade válida até 31 de julho de 2026. A partir de agosto de 2026, o Plano Essencial Empresa será R$ 899,90/mês — quem entra dentro do período Fundador mantem o preço promocional para sempre."
-                  : "Quem entra agora garante o preço Fundador para sempre. Quando os recursos avançados forem lançados, você não paga a diferença."}
-              </p>
-            </div>
-
-            {/* Empresa Premium */}
-            <div className="rounded-2xl border-2 border-amber-400 dark:border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 p-6 relative overflow-hidden flex flex-col shadow-lg">
-              <div className="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
-                COMPLETO
-              </div>
-              <h3 className="text-lg font-bold text-amber-700 dark:text-amber-400 mb-1">Empresa Premium</h3>
-              <p className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-2">
-                Tudo do Plano Essencial Empresa + recursos avançados de inteligência de mercado.
-              </p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Gratuito</p>
-              <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-4">Após 31 de julho de 2026: R$ 1.649,90/mês</p>
-              <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">
-                <li className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
-                  Tudo do Plano Essencial Empresa, em versão avançada:
-                </li>
-                <FeatureRow ok>Painel de avaliações por critério com filtros e séries históricas</FeatureRow>
-                <FeatureRow ok>Comparação de reputação por setor e concorrentes (benchmark CNAE)</FeatureRow>
-                <FeatureRow ok>Ferramenta de resposta pública oficial a avaliações</FeatureRow>
-                <FeatureRow ok>Acesso antecipado a todos os recursos em desenvolvimento, sem custo adicional</FeatureRow>
-                <FeatureRow ok><span className="font-semibold">Conexão com consultores empresariais parceiros</span> — Inclui <span className="font-semibold">20 Créditos de Contato/mês</span> para iniciar conversas com Especialistas Premium e transformar dados em plano de ação</FeatureRow>
-                <FeatureRow ok>Acesso à página <span className="font-semibold">"Meus Contatos"</span> para gerenciar interações com Especialistas</FeatureRow>
-                <li className="pt-2 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
-                  E mais, exclusivo do Premium:
-                </li>
-                <FeatureRow ok><span className="font-semibold">Avaliar Fornecedores e Clientes por CNPJ</span> — publique avaliações verificadas em nome da sua empresa</FeatureRow>
-                <FeatureRow ok><span className="font-semibold">Reputação de Parceiros</span> — consulte CNPJ e veja nota geral, número de avaliações e data mais recente</FeatureRow>
-                <FeatureRow ok>Benchmark com até 3 concorrentes diretos do seu setor (cultura, liderança, salário e equilíbrio)</FeatureRow>
-                <FeatureRow ok>Dashboard dinâmico para análise de desempenho da reputação</FeatureRow>
-                <li className="pt-2 text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">
-                  Em breve (incluído no plano sem custo adicional):
-                </li>
-                <FeatureRow soon><span className="font-semibold">Conexão Exclusiva com Talentos</span> — <span className="font-semibold">10 Créditos de Contato/mês</span> para encontrar e conectar-se com Trabalhadores Premium de alto Índice de Credibilidade e disponibilidade</FeatureRow>
-                <FeatureRow soon>Gerenciamento Centralizado também para contatos com Trabalhadores Premium</FeatureRow>
-                <FeatureRow soon>Análise de sentimento e sugestões de IA na ferramenta de resposta</FeatureRow>
-                <FeatureRow soon>Exportação de relatórios e séries históricas (PDF/CSV)</FeatureRow>
-                <FeatureRow soon>Identificação automática de tendências e riscos do mercado</FeatureRow>
-                <FeatureRow soon>Relatório executivo mensal com oportunidades, ameaças e recomendações</FeatureRow>
-                <FeatureRow soon>Índice de reputação de mercado (score consolidado)</FeatureRow>
-              </ul>
-              <button
-                type="button"
-                className="mt-6 w-full py-3 rounded-lg bg-amber-500 text-white text-base font-bold hover:bg-amber-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
-                onClick={() => handlePremiumUnlock("employer", "premium")}
-                disabled={PAID_CHECKOUT_DISABLED || !!checkoutLoadingAudience}
-                title={PAID_CHECKOUT_DISABLED ? "Assinaturas pagas temporariamente indisponiveis" : undefined}
-              >
-                {PAID_CHECKOUT_DISABLED
-                  ? PAID_CHECKOUT_DISABLED_MSG
-                  : checkoutLoadingAudience === "employer-premium"
-                    ? "Abrindo checkout…"
-                    : "Assinar Empresa Premium"}
-              </button>
-            </div>
+          <div className="max-w-3xl mx-auto rounded-2xl border-2 border-indigo-300 dark:border-indigo-700 bg-white dark:bg-slate-900 p-6 mb-6">
+            <p className="text-sm text-slate-700 dark:text-slate-200">
+              O <strong>Plano Fundador</strong> tem gratuidade válida até{" "}
+              <strong>31 de julho de 2026</strong>. A partir de agosto de 2026,
+              o <strong>Plano Essencial Empresa</strong> será{" "}
+              <strong>R$ 899,90/mês</strong> — quem entra dentro do período
+              Fundador mantém o preço promocional para sempre.
+            </p>
           </div>
 
-          {/* Destaque + botão */}
-          <div className="max-w-md mx-auto text-center">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
             <button
               type="button"
-              className="w-full max-w-xs mx-auto py-3 rounded-lg bg-indigo-600 text-white text-lg font-bold hover:bg-indigo-700 transition"
-              style={{ animation: "premiumGlowIndigo 2s ease-in-out infinite" }}
-              onClick={() => handlePremiumUnlock("employer", "essential")}
-              disabled={!!checkoutLoadingAudience}
+              onClick={() => setEmpresaSoonOpen(true)}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold transition"
             >
-              {checkoutLoadingAudience === "employer-essential"
-                ? (isEmployerFreeWindowActive ? "Ativando acesso gratuito…" : "Abrindo checkout…")
-                : (isEmployerFreeWindowActive ? "Ativar gratis ate 31/07/2026" : "Quero ser Fundador")}
+              Ver Detalhes dos Planos →
             </button>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
-              {isEmployerFreeWindowActive
-                ? "Oferta de lancamento valida para ativacao provisoria do plano empresarial."
-                : "Plano mensal para gestores e RH."}
-            </p>
+            {isEmployerFreeWindowActive && (
+              <button
+                type="button"
+                onClick={() => handlePremiumUnlock("employer", "essential")}
+                disabled={!!checkoutLoadingAudience}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold transition disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {checkoutLoadingAudience === "employer-essential"
+                  ? "Ativando…"
+                  : "Ativar Fundador grátis até 31/07/2026"}
+              </button>
+            )}
           </div>
         </div>
       </section>
 
-      {/* ═══════════════ SEÇÃO 4 — Benefícios Apoiador ═══════════════ */}
-      <div ref={supporterRef} className="scroll-mt-8">
-        <PlanosApoiador />
-      </div>
+      {/* ═══════════════ SEÇÃO 4 — Benefícios Especialista ═══════════════ */}
+      <section
+        ref={supporterRef}
+        className="w-full bg-white dark:bg-slate-900 py-10 scroll-mt-8"
+      >
+        <div className="max-w-5xl mx-auto px-4">
+          <h2 className="text-2xl md:text-3xl font-extrabold text-center text-blue-700 dark:text-blue-400 mb-2">
+            Sou Especialista
+          </h2>
+          <p className="text-center text-slate-600 dark:text-slate-400 mb-8 max-w-3xl mx-auto">
+            Ofereça seus serviços a trabalhadores e empresas que precisam de apoio
+            especializado. Receba requisições de consulta diretamente pela plataforma.
+          </p>
+
+          <h3 className="text-lg md:text-xl font-bold text-center text-slate-800 dark:text-slate-100 mb-6">
+            Benefícios para Especialistas
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto mb-6 items-stretch">
+            <div className="rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50/40 dark:bg-blue-950/20 p-6 flex flex-col">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <h4 className="text-lg font-extrabold text-blue-700 dark:text-blue-300">Plano Essencial</h4>
+                <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                  🎉 Preço de Lançamento
+                </span>
+              </div>
+              <p className="mt-1 text-2xl font-extrabold text-blue-700 dark:text-blue-300">R$ 19/mês</p>
+              <p className="mt-3 text-sm text-slate-700 dark:text-slate-200 flex-1">
+                Pague uma mensalidade e receba <strong>100% do valor</strong> de
+                suas consultas. Tenha um perfil profissional, gestão de casos e
+                videoconferência com limitações. Ideal para iniciar e gerenciar
+                atendimentos pontuais.
+              </p>
+            </div>
+            <div className="rounded-2xl border-2 border-amber-400 dark:border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 p-6 flex flex-col">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <h4 className="text-lg font-extrabold text-amber-700 dark:text-amber-300">Plano Premium</h4>
+                <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-white text-amber-700">
+                  🎉 Preço de Lançamento
+                </span>
+              </div>
+              <p className="mt-1 text-2xl font-extrabold text-amber-700 dark:text-amber-300">R$ 49/mês</p>
+              <p className="mt-3 text-sm text-slate-700 dark:text-slate-200 flex-1">
+                Pague uma mensalidade maior e receba <strong>100% do valor</strong>{" "}
+                de suas consultas. Acesso ilimitado a todas as funcionalidades,
+                videoconferência sem limites, maior visibilidade e fluxo contínuo
+                de oportunidades de clientes.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+            <button
+              type="button"
+              onClick={() => navigate("/especialista/beneficios")}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition"
+            >
+              Ver Detalhes dos Planos →
+            </button>
+            <button
+              type="button"
+              onClick={() => setPayOpen(true)}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 text-sm font-bold hover:bg-blue-50 dark:hover:bg-blue-900/30 transition"
+            >
+              Como funciona o pagamento?
+            </button>
+          </div>
+        </div>
+      </section>
 
       {/* ═══════════════ SEÇÃO 5 — Consultores Parceiros ═══════════════ */}
       <section className="w-full bg-white dark:bg-slate-900 py-16 scroll-mt-8">
@@ -779,23 +683,44 @@ function EscolhaPerfil({ theme, toggleTheme }) {
       <footer className="w-full py-8 text-center text-xs text-slate-500 dark:text-slate-600">
         © {new Date().getFullYear()} Trabalheila — Todos os direitos reservados.
       </footer>
-    </div>
-  );
-}
 
-/* Linha de feature com ícone check/x */
-function FeatureRow({ ok, soon, children }) {
-  return (
-    <li className="flex items-start gap-2">
-      {ok ? (
-        <FiCheck className="mt-0.5 w-4 h-4 text-emerald-500 flex-shrink-0" />
-      ) : soon ? (
-        <FiClock className="mt-0.5 w-4 h-4 text-blue-500 flex-shrink-0" aria-label="Em breve" />
-      ) : (
-        <FiX className="mt-0.5 w-4 h-4 text-slate-400 flex-shrink-0" />
+      {/* Modal: Como funciona o pagamento (especialista) */}
+      <PaymentInfoModal
+        open={payOpen}
+        onClose={() => setPayOpen(false)}
+        audience="specialist"
+      />
+
+      {/* Modal: Planos Empresa em breve */}
+      {empresaSoonOpen && (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setEmpresaSoonOpen(false)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-xl font-extrabold text-indigo-700 dark:text-indigo-400 mb-2">
+              Planos para Empresas em breve
+            </h3>
+            <p className="text-sm text-slate-700 dark:text-slate-200 mb-4">
+              Estamos finalizando a página de detalhes dos planos empresariais.
+              Enquanto isso, o <strong>Plano Fundador</strong> está gratuito até{" "}
+              <strong>31 de julho de 2026</strong>. Quem ativar agora mantém o
+              preço promocional para sempre.
+            </p>
+            <button
+              type="button"
+              onClick={() => setEmpresaSoonOpen(false)}
+              className="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold transition"
+            >
+              Entendi
+            </button>
+          </div>
+        </div>
       )}
-      <span>{children}</span>
-    </li>
+    </div>
   );
 }
 
