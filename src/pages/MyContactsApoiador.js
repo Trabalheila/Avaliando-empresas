@@ -946,6 +946,89 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
           );
         })()}
 
+        {/* Mensagens recentes (chats com trabalhadores) */}
+        {(() => {
+          let convs = [];
+          try {
+            const keys = Object.keys(window.localStorage || {}).filter((k) =>
+              k.startsWith("chatMessages:")
+            );
+            convs = keys
+              .map((k) => {
+                const id = k.replace("chatMessages:", "");
+                let msgs = [];
+                try {
+                  msgs = JSON.parse(window.localStorage.getItem(k) || "[]") || [];
+                } catch {
+                  msgs = [];
+                }
+                const last = msgs[msgs.length - 1];
+                return {
+                  id,
+                  last,
+                  count: msgs.length,
+                };
+              })
+              .filter((c) => c.last)
+              .sort(
+                (a, b) =>
+                  new Date(b.last.createdAt || 0) - new Date(a.last.createdAt || 0)
+              )
+              .slice(0, 5);
+          } catch {
+            convs = [];
+          }
+          return (
+            <section
+              aria-labelledby="messages-title"
+              className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5"
+            >
+              <header className="flex items-center justify-between gap-2 flex-wrap">
+                <h2
+                  id="messages-title"
+                  className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
+                >
+                  <span aria-hidden="true">💬</span> Mensagens recentes
+                </h2>
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  {convs.length} conversa{convs.length === 1 ? "" : "s"}
+                </span>
+              </header>
+              {convs.length === 0 ? (
+                <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+                  Nenhuma conversa ativa ainda. Quando um trabalhador iniciar um chat com você, ele aparecerá aqui.
+                </p>
+              ) : (
+                <ul className="mt-3 divide-y divide-slate-100 dark:divide-slate-800">
+                  {convs.map((c) => (
+                    <li
+                      key={c.id}
+                      className="py-2 flex items-center justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
+                          {c.id}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                          {c.last?.text ||
+                            (c.last?.attachment ? `📎 ${c.last.attachment.name}` : "—")}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/chat/${encodeURIComponent(c.id)}`)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        Abrir
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          );
+        })()}
+
         {/* ─── Seções dinâmicas (ordem definida em specialistConfig.dashboardSections) ─── */}
         {(specialistConfig.dashboardSections || DEFAULT_DASHBOARD_SECTIONS).map((sectionId) => {
           switch (sectionId) {

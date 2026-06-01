@@ -221,12 +221,24 @@ function SpecialistCard({ specialist }) {
         </p>
       </div>
 
-      <Link
-        to={`/apoiadores/perfil/${specialist.id}`}
-        className="mt-4 text-center px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
-      >
-        Ver perfil
-      </Link>
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <Link
+          to={`/apoiadores/perfil/${specialist.id}`}
+          className="text-center px-3 py-2 rounded-lg border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 text-sm font-bold hover:bg-blue-50 dark:hover:bg-blue-900/30"
+        >
+          Ver perfil
+        </Link>
+        <Link
+          to={`/chat/spec_${encodeURIComponent(specialist.id)}?peer=${encodeURIComponent(
+            specialist.nome || "Especialista"
+          )}&peerRole=especialista&specialistType=${encodeURIComponent(
+            normalizeTipo(specialist.tipo) || "outro"
+          )}`}
+          className="text-center px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
+        >
+          💬 Iniciar conversa
+        </Link>
+      </div>
     </article>
   );
 }

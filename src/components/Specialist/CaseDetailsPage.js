@@ -523,6 +523,26 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
           </button>
         </div>
 
+        {data && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                navigate(
+                  `/chat/case_${encodeURIComponent(caseId)}?peer=${encodeURIComponent(
+                    data.client || "Cliente do caso"
+                  )}&peerRole=trabalhador&caseId=${encodeURIComponent(
+                    caseId
+                  )}&specialistType=${encodeURIComponent(tipo)}`
+                )
+              }
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
+            >
+              💬 Abrir chat deste caso
+            </button>
+          </div>
+        )}
+
         {!data ? (
           <InfoCard>
             <p className="text-sm text-slate-700 dark:text-slate-200">

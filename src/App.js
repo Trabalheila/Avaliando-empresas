@@ -35,6 +35,7 @@ import ApoiadorPerfilGerenciar from './pages/ApoiadorPerfilGerenciar';
 import CaseDetailsPage from './components/Specialist/CaseDetailsPage';
 import SpecialistBenefitsPage from './components/Specialist/SpecialistBenefitsPage';
 import FindSpecialistPage from './components/Worker/FindSpecialistPage';
+import PlatformChat from './components/Chat/PlatformChat';
 import ApoiadorRequisicoes from './pages/ApoiadorRequisicoes';
 import CookieBanner from './components/CookieBanner';
 import ChatbotWidget from './components/ChatbotWidget';
@@ -242,6 +243,7 @@ function App() {
       <Route path="/especialista/:specialistType/caso/:caseId" element={<CaseDetailsPage theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/especialista/beneficios" element={<SpecialistBenefitsPage theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/trabalhador/encontrar-especialista" element={<FindSpecialistPage theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/chat/:conversationId" element={<PlatformChat theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/apoiador/requisicoes" element={<ApoiadorRequisicoes theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/empresa/cadastro" element={<CompanyRegister />} />
       <Route path="/empresa/cadastro/aguarde" element={<CompanyRegisterAwait />} />
