@@ -13,6 +13,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../AppHeader";
 import { getCaseDetails } from "../../data/mockCaseDetails";
 import { SPECIALIST_CONFIGS } from "../../pages/MyContactsApoiador";
+import { db } from "../../firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 /** Gera (ou recupera) o link de videoconferência para um caso.
  *  Usa Jitsi Meet por ser público, gratuito e sem cadastro. O nome
@@ -100,6 +102,30 @@ function VideoConferenceCard({ caseId, data }) {
         apenas com o cliente/paciente do caso, prefira ambientes privados e
         certifique-se de obter o consentimento antes de gravar a chamada.
       </p>
+    </div>
+  );
+}
+
+/** Bloco de upgrade exibido para especialistas no plano Essencial
+ *  quando o tipo do caso suporta videoconferência. */
+function VideoUpgradeCard({ navigate }) {
+  return (
+    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-2xl p-5">
+      <h2 className="text-base md:text-lg font-bold text-amber-900 dark:text-amber-100 flex items-center gap-2">
+        <span aria-hidden="true">🔒</span> Videoconferência exclusiva do Premium
+      </h2>
+      <p className="mt-2 text-sm text-amber-900/90 dark:text-amber-100/90">
+        Recurso de videoconferência integrada é exclusivo para Planos
+        Premium. No plano Essencial você continua atendendo clientes via
+        chat de texto.
+      </p>
+      <button
+        type="button"
+        onClick={() => navigate("/especialista/beneficios")}
+        className="mt-4 inline-flex px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
+      >
+        Conheça os planos
+      </button>
     </div>
   );
 }
@@ -414,6 +440,10 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
   // Guard de acesso: precisa estar logado como especialista (apoiadorId
   // no userProfile do localStorage — mesmo padrão usado pelo dashboard).
   const [authorized, setAuthorized] = useState(null);
+  // Plano do especialista: 'premium' libera videoconferência.
+  // MOCK: se userProfile.isPremium estiver presente, prevalece;
+  // senão buscamos o doc /apoiadores/{apoiadorId} para ler `plano`.
+  const [isPremium, setIsPremium] = useState(false);
   useEffect(() => {
     let prof = {};
     try {
@@ -423,6 +453,28 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
     }
     const apoiadorId = prof?.apoiadorId || prof?.uid || prof?.id || "";
     setAuthorized(Boolean(apoiadorId));
+
+    // Mock/override imediato vindo do localStorage.
+    if (typeof prof?.isPremium === "boolean") {
+      setIsPremium(prof.isPremium);
+    } else if (typeof prof?.plano === "string") {
+      setIsPremium(prof.plano.toLowerCase() === "premium");
+    }
+
+    // Fonte de verdade: documento do apoiador no Firestore.
+    if (apoiadorId) {
+      (async () => {
+        try {
+          const snap = await getDoc(doc(db, "apoiadores", apoiadorId));
+          if (snap.exists()) {
+            const plano = String(snap.data()?.plano || "").toLowerCase();
+            setIsPremium(plano === "premium");
+          }
+        } catch (err) {
+          console.warn("Falha ao ler plano do apoiador:", err);
+        }
+      })();
+    }
   }, []);
 
   const data = useMemo(() => getCaseDetails(tipo, caseId), [tipo, caseId]);
@@ -487,9 +539,12 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
           </InfoCard>
         ) : (
           <>
-            {SPECIALIST_CONFIGS?.[tipo]?.canVideoConference && (
-              <VideoConferenceCard caseId={caseId} data={data} />
-            )}
+            {SPECIALIST_CONFIGS?.[tipo]?.canVideoConference &&
+              (isPremium ? (
+                <VideoConferenceCard caseId={caseId} data={data} />
+              ) : (
+                <VideoUpgradeCard navigate={navigate} />
+              ))}
             <CaseBody tipo={tipo} data={data} />
           </>
         )}

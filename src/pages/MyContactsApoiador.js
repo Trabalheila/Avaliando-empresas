@@ -903,6 +903,49 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
           </button>
         </header>
 
+        {/* Banner do plano atual / upgrade */}
+        {(() => {
+          const plano = String(apoiadorDoc?.plano || "essencial").toLowerCase();
+          const isPremium = plano === "premium";
+          return (
+            <section
+              aria-label="Seu plano atual"
+              className={[
+                "rounded-2xl shadow border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3",
+                isPremium
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white border-blue-700"
+                  : "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700 text-amber-900 dark:text-amber-100",
+              ].join(" ")}
+            >
+              <div className="min-w-0">
+                <p className="text-[11px] sm:text-xs font-bold uppercase tracking-wider opacity-80">
+                  Seu plano atual
+                </p>
+                <p className="mt-1 text-base sm:text-lg font-extrabold">
+                  {isPremium ? "Premium ✨" : "Essencial (Grátis)"}
+                </p>
+                <p className="mt-1 text-xs sm:text-sm opacity-90">
+                  {isPremium
+                    ? "Você tem acesso a todos os recursos, incluindo videoconferência integrada."
+                    : "Desbloqueie videoconferência, contato direto e mais visibilidade no Premium."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate("/especialista/beneficios")}
+                className={[
+                  "self-stretch sm:self-auto px-4 py-2.5 rounded-lg text-sm font-bold min-h-[44px]",
+                  isPremium
+                    ? "bg-white text-blue-700 hover:bg-blue-50"
+                    : "bg-blue-600 hover:bg-blue-700 text-white",
+                ].join(" ")}
+              >
+                {isPremium ? "Conheça os planos" : "Conheça o Premium"}
+              </button>
+            </section>
+          );
+        })()}
+
         {/* ─── Seções dinâmicas (ordem definida em specialistConfig.dashboardSections) ─── */}
         {(specialistConfig.dashboardSections || DEFAULT_DASHBOARD_SECTIONS).map((sectionId) => {
           switch (sectionId) {
