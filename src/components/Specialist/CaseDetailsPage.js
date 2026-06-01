@@ -158,7 +158,7 @@ function VideoEssencialCard({ caseId, navigate }) {
       // ignore
     }
     setShowConfirm(false);
-    const url = buildMeetUrl(caseId);
+    const url = buildVideoCallLink(caseId);
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
