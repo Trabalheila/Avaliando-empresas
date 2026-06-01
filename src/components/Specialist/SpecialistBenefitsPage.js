@@ -12,6 +12,15 @@ import { Link, useNavigate } from "react-router-dom";
 import AppHeader from "../AppHeader";
 import PaymentInfoModal from "./PaymentInfoModal";
 
+const GRATUITO_BENEFITS = [
+  "Perfil público visível na plataforma",
+  "Nome e especialidade exibidos",
+  "Aparece na listagem geral de Especialistas",
+  "Contato inicial exclusivo via Chat Interno da Plataforma (com restrições de conteúdo e sem troca de dados diretos)",
+  "✖ Seleção de nichos de atuação",
+  "✖ Destaque na listagem",
+];
+
 const ESSENCIAL_BENEFITS = [
   "Perfil profissional básico no diretório",
   "Gestão de até 5 casos ativos simultâneos",
@@ -149,21 +158,30 @@ export default function SpecialistBenefitsPage({ theme, toggleTheme }) {
           </div>
         </header>
 
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
+          <PlanCard
+            title="Plano Gratuito"
+            badge="R$ 0"
+            price="R$ 0"
+            priceHint="Comece a aparecer na plataforma sem custo"
+            benefits={GRATUITO_BENEFITS}
+            ctaLabel="Continuar no Gratuito"
+            onCta={() => navigate("/apoiadores/cadastro")}
+          />
           <PlanCard
             title="Plano Essencial"
-            badge="Início"
+            badge="🎉 Preço de Lançamento"
             price="R$ 19/mês"
-            priceHint="Ideal para quem está começando na plataforma"
+            priceHint="🎉 Preço de Lançamento! Ideal para quem está começando na plataforma"
             benefits={ESSENCIAL_BENEFITS}
             ctaLabel="Assinar Plano Essencial"
             onCta={handleAssinarEssencial}
           />
           <PlanCard
             title="Plano Premium"
-            badge="Recomendado"
+            badge="🎉 Preço de Lançamento"
             price="R$ 49/mês"
-            priceHint="Solução completa para escalar sua atuação"
+            priceHint="🎉 Preço de Lançamento! Solução completa para escalar sua atuação"
             benefits={PREMIUM_BENEFITS}
             ctaLabel="Assinar Plano Premium"
             onCta={handleAssinarPremium}
