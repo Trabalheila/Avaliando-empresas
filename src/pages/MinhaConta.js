@@ -254,6 +254,9 @@ export default function MinhaConta({ theme, toggleTheme }) {
           )}
         </section>
 
+        {/* ══════ Próxima Videochamada (Premium) ══════ */}
+        <NextVideoCallSection profile={profile} navigate={navigate} />
+
         {/* ══════ Experiências ══════ */}
         {experiences.length > 0 && (
           <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
@@ -392,3 +395,72 @@ export default function MinhaConta({ theme, toggleTheme }) {
     </div>
   );
 }
+
+/* ════════════════════════════════════════════════
+   NextVideoCallSection
+   ────────────────────────────────────────────────
+   Card de acesso rápido à próxima videochamada.
+   - Trabalhador Premium: mostra botão "Acessar Videochamada"
+     se `profile.nextVideoCallUrl` (mock) estiver disponível;
+     caso contrário, exibe "Nenhuma videochamada agendada".
+   - Trabalhador Gratuito/Essencial: oculta o botão e exibe
+     mensagem de upgrade com link para /trabalhador/beneficios.
+   ════════════════════════════════════════════════ */
+function NextVideoCallSection({ profile, navigate }) {
+  const workerIsPremium = isPremium();
+  // Mock: a URL da videochamada pode vir do perfil persistido ou
+  // de campo equivalente vindo do backend no futuro.
+  const nextVideoCallUrl = profile?.nextVideoCallUrl || "";
+
+  return (
+    <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
+      <h2 className="text-lg font-bold text-blue-800 dark:text-blue-200 mb-4 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+        Próxima Videochamada
+      </h2>
+
+      {workerIsPremium ? (
+        nextVideoCallUrl ? (
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Você tem uma videochamada agendada. Entre na sala quando estiver pronto.
+            </p>
+            <a
+              href={nextVideoCallUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition shrink-0"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Acessar Videochamada
+            </a>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Nenhuma videochamada agendada no momento.
+          </p>
+        )
+      ) : (
+        <div className="rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4">
+          <p className="text-sm text-slate-700 dark:text-slate-200">
+            🔒 Acesso a videochamadas é um benefício exclusivo do{" "}
+            <strong>Plano Premium</strong>. Faça upgrade para se conectar com
+            seu especialista por vídeo.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate("/trabalhador/beneficios")}
+            className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 transition"
+          >
+            Conhecer o Plano Premium
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}</newString>
+</invoke>
