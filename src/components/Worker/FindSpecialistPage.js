@@ -47,9 +47,12 @@ const MOCK_SPECIALISTS = [
     foto: "",
     bio: "Direito do trabalho com foco em rescisões e horas extras.",
     precoConsulta: 180,
+    averageConsultationPrice: 180,
     rating: 4.8,
     totalAvaliacoes: 42,
     isVerified: true,
+    planType: "Premium",
+    offersFirstConsultationDiscount: false,
   },
   {
     id: "mock_psi_001",
@@ -58,9 +61,12 @@ const MOCK_SPECIALISTS = [
     foto: "",
     bio: "Saúde mental no trabalho, burnout e clima organizacional.",
     precoConsulta: 150,
+    averageConsultationPrice: 150,
     rating: 4.6,
     totalAvaliacoes: 31,
     isVerified: true,
+    planType: "Premium",
+    offersFirstConsultationDiscount: false,
   },
   {
     id: "mock_cont_001",
@@ -69,9 +75,12 @@ const MOCK_SPECIALISTS = [
     foto: "",
     bio: "Folha de pagamento, eSocial e IR para PJs.",
     precoConsulta: 120,
+    averageConsultationPrice: 120,
     rating: 4.4,
     totalAvaliacoes: 18,
     isVerified: false,
+    planType: "Essencial",
+    offersFirstConsultationDiscount: true,
   },
   {
     id: "mock_med_001",
@@ -80,9 +89,12 @@ const MOCK_SPECIALISTS = [
     foto: "",
     bio: "Medicina do trabalho, ASO e exames periódicos.",
     precoConsulta: 220,
+    averageConsultationPrice: 220,
     rating: 4.9,
     totalAvaliacoes: 57,
     isVerified: true,
+    planType: "Premium",
+    offersFirstConsultationDiscount: false,
   },
   {
     id: "mock_rh_001",
@@ -91,9 +103,12 @@ const MOCK_SPECIALISTS = [
     foto: "",
     bio: "Gestão de pessoas, avaliações de desempenho e cargos & salários.",
     precoConsulta: 200,
+    averageConsultationPrice: 200,
     rating: 4.3,
     totalAvaliacoes: 12,
     isVerified: false,
+    planType: "Essencial",
+    offersFirstConsultationDiscount: true,
   },
   {
     id: "mock_rec_001",
@@ -102,9 +117,12 @@ const MOCK_SPECIALISTS = [
     foto: "",
     bio: "Recrutamento de tecnologia e operações.",
     precoConsulta: 0,
+    averageConsultationPrice: 150,
     rating: 4.1,
     totalAvaliacoes: 9,
     isVerified: false,
+    planType: "Essencial",
+    offersFirstConsultationDiscount: true,
   },
   {
     id: "mock_eng_001",
@@ -113,9 +131,12 @@ const MOCK_SPECIALISTS = [
     foto: "",
     bio: "PPRA, PCMSO e auditorias de segurança em obras.",
     precoConsulta: 250,
+    averageConsultationPrice: 250,
     rating: 4.7,
     totalAvaliacoes: 22,
     isVerified: true,
+    planType: "Premium",
+    offersFirstConsultationDiscount: false,
   },
   {
     id: "mock_fis_001",
@@ -124,9 +145,12 @@ const MOCK_SPECIALISTS = [
     foto: "",
     bio: "Ginástica laboral, ergonomia e reabilitação ocupacional.",
     precoConsulta: 130,
+    averageConsultationPrice: 130,
     rating: 4.5,
     totalAvaliacoes: 15,
     isVerified: true,
+    planType: "Essencial",
+    offersFirstConsultationDiscount: true,
   },
 ];
 
@@ -154,7 +178,7 @@ function StarRow({ rating }) {
   );
 }
 
-function SpecialistCard({ specialist }) {
+function SpecialistCard({ specialist, workerIsPremium }) {
   const tipoLabel =
     SPECIALTY_OPTIONS.find((o) => o.value === normalizeTipo(specialist.tipo))?.label ||
     "Especialista";
@@ -165,6 +189,25 @@ function SpecialistCard({ specialist }) {
       .slice(0, 2)
       .map((p) => p[0]?.toUpperCase())
       .join("") || "?";
+  const planType = specialist.planType === "Premium" ? "Premium" : "Essencial";
+  const showsDiscount =
+    planType === "Essencial" && specialist.offersFirstConsultationDiscount;
+  const avgPrice = Number(
+    specialist.averageConsultationPrice || specialist.precoConsulta || 0
+  );
+  const discountedPrice = showsDiscount ? Math.round(avgPrice * 0.7) : avgPrice;
+
+  let scheduleHint = "";
+  if (workerIsPremium) {
+    scheduleHint =
+      planType === "Premium"
+        ? "Usa seus créditos / consultas gratuitas Premium."
+        : "Pague normalmente ao especialista (sem crédito Premium).";
+  } else {
+    scheduleHint = showsDiscount
+      ? `Preço com desconto na 1ª consulta: R$ ${discountedPrice}.`
+      : "Preço integral; assine o Premium do trabalhador para ganhar créditos.";
+  }
 
   return (
     <article className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5 flex flex-col">
@@ -193,10 +236,26 @@ function SpecialistCard({ specialist }) {
                 ✓ Verificado
               </span>
             )}
+            <span
+              title={`Especialista ${planType}`}
+              className={[
+                "inline-flex items-center gap-1 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full",
+                planType === "Premium"
+                  ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300"
+                  : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200",
+              ].join(" ")}
+            >
+              {planType === "Premium" ? "✨ Premium" : "Essencial"}
+            </span>
           </div>
           <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mt-0.5">
             {tipoLabel}
           </p>
+          {showsDiscount && (
+            <p className="mt-1 inline-flex items-center text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+              🎁 Desconto na 1ª consulta para Essencial
+            </p>
+          )}
         </div>
       </header>
 
@@ -214,10 +273,19 @@ function SpecialistCard({ specialist }) {
           </span>
           <span className="text-slate-400">({specialist.totalAvaliacoes || 0})</span>
         </div>
-        <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
-          {specialist.precoConsulta > 0
-            ? `R$ ${Number(specialist.precoConsulta).toFixed(0)}`
-            : "Sob consulta"}
+        <p className="text-sm font-bold text-slate-800 dark:text-slate-100 text-right">
+          {avgPrice > 0 ? (
+            showsDiscount ? (
+              <>
+                <span className="line-through text-slate-400 mr-1">R$ {avgPrice}</span>
+                R$ {discountedPrice}
+              </>
+            ) : (
+              <>R$ {avgPrice}</>
+            )
+          ) : (
+            "Sob consulta"
+          )}
         </p>
       </div>
 
@@ -239,6 +307,21 @@ function SpecialistCard({ specialist }) {
           💬 Iniciar conversa
         </Link>
       </div>
+
+      <button
+        type="button"
+        onClick={() =>
+          alert(
+            `Agendamento de consulta com ${specialist.nome}.\n${scheduleHint}\n\n(Funcionalidade completa em breve.)`
+          )
+        }
+        className="mt-2 w-full px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold"
+      >
+        📅 Agendar consulta
+      </button>
+      <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 text-center">
+        {scheduleHint}
+      </p>
     </article>
   );
 }
@@ -256,7 +339,22 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
   const [maxPrice, setMaxPrice] = useState("");
   const [minRating, setMinRating] = useState(0);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [planTypeFilter, setPlanTypeFilter] = useState(""); // "", "Essencial", "Premium"
   const [sortBy, setSortBy] = useState("rating");
+
+  // Plano do trabalhador (mock via localStorage userProfile).
+  const workerIsPremium = useMemo(() => {
+    try {
+      const p = JSON.parse(localStorage.getItem("userProfile") || "{}") || {};
+      return (
+        p.isWorkerPremium === true ||
+        p.isPremium === true ||
+        String(p.plano || "").toLowerCase() === "premium"
+      );
+    } catch {
+      return false;
+    }
+  }, []);
 
   // Dados
   const [remote, setRemote] = useState([]);
@@ -285,6 +383,16 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
             totalAvaliacoes: Number(data.totalAvaliacoes || 0) || 0,
             isVerified: Boolean(
               data.isVerified || data.verified || data.verificado
+            ),
+            planType:
+              String(data.plano || data.planType || "").toLowerCase() === "premium"
+                ? "Premium"
+                : "Essencial",
+            offersFirstConsultationDiscount: Boolean(
+              data.offersFirstConsultationDiscount
+            ),
+            averageConsultationPrice: Number(
+              data.averageConsultationPrice || data.precoConsulta || 0
             ),
             isTest: data.isTest === true,
             email: data.email || "",
@@ -315,6 +423,7 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
     let list = allSpecialists.filter((s) => {
       if (specialty && normalizeTipo(s.tipo) !== specialty) return false;
       if (verifiedOnly && !s.isVerified) return false;
+      if (planTypeFilter && (s.planType || "Essencial") !== planTypeFilter) return false;
       if (minRating && (s.rating || 0) < Number(minRating)) return false;
       const price = Number(s.precoConsulta || 0);
       if (minPrice !== "" && price < Number(minPrice)) return false;
@@ -340,7 +449,7 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
     });
 
     return list;
-  }, [allSpecialists, searchText, specialty, verifiedOnly, minRating, minPrice, maxPrice, sortBy]);
+  }, [allSpecialists, searchText, specialty, verifiedOnly, planTypeFilter, minRating, minPrice, maxPrice, sortBy]);
 
   const handleClearFilters = () => {
     setSearchText("");
@@ -349,6 +458,7 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
     setMaxPrice("");
     setMinRating(0);
     setVerifiedOnly(false);
+    setPlanTypeFilter("");
     setSortBy("rating");
   };
 
@@ -422,6 +532,22 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
                 <option value={3}>3+ estrelas</option>
                 <option value={4}>4+ estrelas</option>
                 <option value={4.5}>4,5+ estrelas</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="fsp-plan" className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                Tipo de especialista
+              </label>
+              <select
+                id="fsp-plan"
+                value={planTypeFilter}
+                onChange={(e) => setPlanTypeFilter(e.target.value)}
+                className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100"
+              >
+                <option value="">Todos</option>
+                <option value="Essencial">Essencial</option>
+                <option value="Premium">Premium</option>
               </select>
             </div>
 
@@ -517,12 +643,20 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
         ) : (
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((s) => (
-              <SpecialistCard key={s.id} specialist={s} />
+              <SpecialistCard key={s.id} specialist={s} workerIsPremium={workerIsPremium} />
             ))}
           </section>
         )}
 
-        <div className="text-center pt-2">
+        <div className="text-center pt-2 flex flex-col items-center gap-2">
+          {!workerIsPremium && (
+            <Link
+              to="/trabalhador/beneficios"
+              className="text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline"
+            >
+              ✨ Conheça o Plano Premium do trabalhador
+            </Link>
+          )}
           <button
             type="button"
             onClick={() => navigate(-1)}

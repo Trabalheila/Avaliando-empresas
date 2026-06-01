@@ -10,6 +10,7 @@ import { isAdmin } from "../utils/rbac";
 import { buildDeclarationText } from "../components/ConflictDeclarationGate";
 import SECTORS from "../data/sectors";
 import WelcomeModal from "../components/WelcomeModal";
+import PaymentInfoModal from "../components/Specialist/PaymentInfoModal";
 
 /* ── Opções por tipo (lista abrangente de profissões) ── */
 const TIPOS = [
@@ -124,6 +125,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
 
   /* ── UI ── */
   const [submitting, setSubmitting] = useState(false);
+  const [showPaymentInfo, setShowPaymentInfo] = useState(false);
   const [success, setSuccess] = useState(false);
   const [createdApoiadorId, setCreatedApoiadorId] = useState("");
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
@@ -452,6 +454,16 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
             Consultores de RH, advogados trabalhistas e prestadores de serviços corporativos podem se cadastrar como especialistas da plataforma.
           </p>
+
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={() => setShowPaymentInfo(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 text-sm font-bold hover:bg-blue-50 dark:hover:bg-blue-900/30"
+            >
+              💳 Como funciona o pagamento?
+            </button>
+          </div>
 
           {admin && (
             <div className="mb-6">
@@ -874,6 +886,11 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
           )}
         </div>
       </form>
+      <PaymentInfoModal
+        open={showPaymentInfo}
+        onClose={() => setShowPaymentInfo(false)}
+        audience="specialist"
+      />
     </div>
   );
 }

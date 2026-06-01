@@ -1,47 +1,28 @@
-// src/components/Specialist/SpecialistBenefitsPage.js
+// src/components/Worker/WorkerBenefitsPage.js
 //
-// Página de benefícios / comparação de planos para especialistas
-// (Apoiadores). Rota: /especialista/beneficios
-//
-// Modelo freemium:
-//   - Essencial (grátis): porta de entrada na plataforma.
-//   - Premium (assinatura): solução completa, com videoconferência integrada.
+// Página de benefícios / planos para Trabalhadores.
+// Rota: /trabalhador/beneficios
 
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppHeader from "../AppHeader";
-import PaymentInfoModal from "./PaymentInfoModal";
+import PaymentInfoModal from "../Specialist/PaymentInfoModal";
 
 const ESSENCIAL_BENEFITS = [
-  "Perfil profissional básico no diretório",
-  "Gestão de até 5 casos ativos simultâneos",
-  "Oportunidades de clientes limitadas",
-  "Chat interno com restrições de conteúdo (sem links/contatos diretos)",
-  "Videoconferência com limite de tempo (até 30 min/sessão, 5 sessões/mês)",
-  "Acesso a recursos e ferramentas da sua profissão",
+  "Busca e filtro de especialistas",
+  "Chat limitado com especialistas (sem links/contatos diretos, até 5 mensagens por conversa)",
+  "Acesso a recursos e ferramentas da plataforma",
 ];
 
 const PREMIUM_BENEFITS = [
   "Todos os benefícios do Plano Essencial",
-  "Gestão ilimitada de casos ativos",
-  "Acesso total a oportunidades de clientes",
-  "Maior visibilidade no diretório de especialistas",
-  "Chat interno ilimitado e com anexos",
-  "Videoconferência ilimitada e sem restrição de tempo",
-  "Relatórios de desempenho e métricas de atendimento",
-  "Suporte prioritário",
+  "Chat ilimitado com especialistas",
+  "Videoconferência integrada nos casos",
+  "Acompanhamento de casos em andamento",
+  "Compartilhamento seguro de documentos no chat",
 ];
 
-function PlanCard({
-  title,
-  badge,
-  price,
-  priceHint,
-  benefits,
-  ctaLabel,
-  onCta,
-  highlight = false,
-}) {
+function PlanCard({ title, badge, price, priceHint, benefits, financial, ctaLabel, onCta, highlight = false }) {
   return (
     <div
       className={[
@@ -79,24 +60,31 @@ function PlanCard({
       <ul className="mt-5 space-y-2 text-sm flex-1">
         {benefits.map((b) => (
           <li key={b} className="flex items-start gap-2">
-            <span aria-hidden="true" className={highlight ? "text-white" : "text-green-600"}>
-              ✓
-            </span>
-            <span className={highlight ? "text-blue-50" : "text-slate-700 dark:text-slate-200"}>
-              {b}
-            </span>
+            <span aria-hidden="true" className={highlight ? "text-white" : "text-green-600"}>✓</span>
+            <span className={highlight ? "text-blue-50" : "text-slate-700 dark:text-slate-200"}>{b}</span>
           </li>
         ))}
       </ul>
+
+      {financial && (
+        <p
+          className={[
+            "mt-4 text-xs font-semibold rounded-lg px-3 py-2",
+            highlight
+              ? "bg-white/10 text-blue-50 border border-white/20"
+              : "bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-100 dark:border-emerald-800",
+          ].join(" ")}
+        >
+          💸 {financial}
+        </p>
+      )}
 
       <button
         type="button"
         onClick={onCta}
         className={[
           "mt-6 w-full px-4 py-3 rounded-xl font-bold text-sm transition",
-          highlight
-            ? "bg-white text-blue-700 hover:bg-blue-50"
-            : "bg-blue-600 hover:bg-blue-700 text-white",
+          highlight ? "bg-white text-blue-700 hover:bg-blue-50" : "bg-blue-600 hover:bg-blue-700 text-white",
         ].join(" ")}
       >
         {ctaLabel}
@@ -105,7 +93,7 @@ function PlanCard({
   );
 }
 
-export default function SpecialistBenefitsPage({ theme, toggleTheme }) {
+export default function WorkerBenefitsPage({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const [payOpen, setPayOpen] = useState(false);
 
@@ -115,15 +103,13 @@ export default function SpecialistBenefitsPage({ theme, toggleTheme }) {
     );
   };
 
-  const handleAssinarEssencial = () => {
-    alert(
-      "Assinatura Essencial em breve! Em breve você poderá assinar diretamente por aqui. Por enquanto, fale com nosso time pelo suporte."
-    );
+  const handleEssencial = () => {
+    navigate("/trabalhador/encontrar-especialista");
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
-      <AppHeader theme={theme} toggleTheme={toggleTheme} title="Planos para Especialistas" />
+      <AppHeader theme={theme} toggleTheme={toggleTheme} title="Planos para Trabalhadores" />
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-3 sm:px-6 py-6 sm:py-10">
         <header className="text-center mb-8">
@@ -131,11 +117,11 @@ export default function SpecialistBenefitsPage({ theme, toggleTheme }) {
             Planos
           </p>
           <h1 className="mt-1 text-2xl sm:text-4xl font-extrabold text-slate-800 dark:text-slate-100">
-            Escolha o Plano Ideal para Sua Carreira Profissional
+            Encontre o Suporte Ideal para Sua Jornada Profissional
           </h1>
           <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
-            Você recebe 100% do valor que cobra dos seus clientes. A Trabalhei
-            Lá cobra apenas uma mensalidade fixa pelo uso da plataforma.
+            Comece grátis e evolua para o Premium quando quiser desbloquear
+            videoconferência, chat ilimitado e créditos de consultas.
           </p>
           <div className="mt-3">
             <button
@@ -151,19 +137,21 @@ export default function SpecialistBenefitsPage({ theme, toggleTheme }) {
         <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <PlanCard
             title="Plano Essencial"
-            badge="Início"
-            price="R$ 19/mês"
-            priceHint="Ideal para quem está começando na plataforma"
+            badge="Grátis"
+            price="R$ 0"
+            priceHint="Ideal para uma orientação pontual"
             benefits={ESSENCIAL_BENEFITS}
-            ctaLabel="Assinar Plano Essencial"
-            onCta={handleAssinarEssencial}
+            financial="Desconto exclusivo na primeira consulta com especialistas Essenciais."
+            ctaLabel="Continuar no Essencial"
+            onCta={handleEssencial}
           />
           <PlanCard
             title="Plano Premium"
             badge="Recomendado"
-            price="R$ 49/mês"
-            priceHint="Solução completa para escalar sua atuação"
+            price="R$ 29/mês"
+            priceHint="Suporte contínuo e especializado"
             benefits={PREMIUM_BENEFITS}
+            financial="Inclui 2 consultas gratuitas por mês com especialistas Premium (ou crédito equivalente)."
             ctaLabel="Assinar Plano Premium"
             onCta={handleAssinarPremium}
             highlight
@@ -172,29 +160,17 @@ export default function SpecialistBenefitsPage({ theme, toggleTheme }) {
 
         <section className="mt-8 bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5 sm:p-6">
           <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100">
-            Valor médio cobrado por profissional
-          </h2>
-          <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
-            Na plataforma Trabalhei Lá, o valor médio cobrado por consulta varia
-            entre <strong>R$ 100 e R$ 300</strong>, dependendo da especialidade e
-            experiência do profissional. Você define seu próprio preço e recebe
-            <strong> 100%</strong> desse valor — a plataforma só cobra a
-            mensalidade do seu plano.
-          </p>
-        </section>
-
-        <section className="mt-6 bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5 sm:p-6">
-          <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100">
-            Como funciona a comunicação com o cliente?
+            Como funciona a comunicação com o especialista?
           </h2>
           <ul className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-200">
             <li>
-              <strong>Essencial:</strong> chat interno com restrições de
-              conteúdo e videoconferência até 30 min por sessão (5 sessões/mês).
+              <strong>Essencial:</strong> chat de texto com restrições de
+              conteúdo (sem trocas de email/telefone/links) e limite de
+              mensagens por conversa.
             </li>
             <li>
-              <strong>Premium:</strong> chat ilimitado com anexos e
-              videoconferência integrada (Jitsi Meet) sem limite de tempo.
+              <strong>Premium:</strong> chat ilimitado, videoconferência
+              integrada e compartilhamento seguro de documentos no chat.
             </li>
           </ul>
         </section>
@@ -215,7 +191,7 @@ export default function SpecialistBenefitsPage({ theme, toggleTheme }) {
         </div>
       </main>
 
-      <PaymentInfoModal open={payOpen} onClose={() => setPayOpen(false)} audience="specialist" />
+      <PaymentInfoModal open={payOpen} onClose={() => setPayOpen(false)} audience="worker" />
     </div>
   );
 }

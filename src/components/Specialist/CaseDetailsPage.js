@@ -106,26 +106,177 @@ function VideoConferenceCard({ caseId, data }) {
   );
 }
 
-/** Bloco de upgrade exibido para especialistas no plano Essencial
- *  quando o tipo do caso suporta videoconferência. */
-function VideoUpgradeCard({ navigate }) {
+/** Limites do plano Essencial para videoconferência (mock). */
+const ESSENCIAL_VIDEO_MAX_MINUTES = 30;
+const ESSENCIAL_VIDEO_LIMIT_PER_MONTH = 5;
+
+function readEssencialVideoUsage(apoiadorId) {
+  const month = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const key = `videoSessionsUsed:${month}:${apoiadorId || "anon"}`;
+  let used = 0;
+  try {
+    used = Number(localStorage.getItem(key) || "0") || 0;
+  } catch {
+    used = 0;
+  }
+  return { key, used, month };
+}
+
+/** Card de videoconferência para especialistas no plano Essencial.
+ *  Permite iniciar a chamada, mas com limite de 30 min / 5 sessões por mês. */
+function VideoEssencialCard({ caseId, navigate }) {
+  const apoiadorId = useMemo(() => {
+    try {
+      const p = JSON.parse(localStorage.getItem("userProfile") || "{}") || {};
+      return p.apoiadorId || p.uid || p.id || "";
+    } catch {
+      return "";
+    }
+  }, []);
+
+  const [{ key, used }, setUsage] = useState(() => readEssencialVideoUsage(apoiadorId));
+  const remaining = Math.max(0, ESSENCIAL_VIDEO_LIMIT_PER_MONTH - used);
+  const limitReached = remaining <= 0;
+
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showLimit, setShowLimit] = useState(false);
+
+  const handleStartClick = () => {
+    if (limitReached) {
+      setShowLimit(true);
+    } else {
+      setShowConfirm(true);
+    }
+  };
+
+  const handleConfirm = () => {
+    try {
+      const next = used + 1;
+      localStorage.setItem(key, String(next));
+      setUsage({ key, used: next });
+    } catch {
+      // ignore
+    }
+    setShowConfirm(false);
+    const url = buildMeetUrl(caseId);
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-2xl p-5">
       <h2 className="text-base md:text-lg font-bold text-amber-900 dark:text-amber-100 flex items-center gap-2">
-        <span aria-hidden="true">🔒</span> Videoconferência exclusiva do Premium
+        <span aria-hidden="true">🎥</span> Videoconferência · Plano Essencial
       </h2>
       <p className="mt-2 text-sm text-amber-900/90 dark:text-amber-100/90">
-        Recurso de videoconferência integrada é exclusivo para Planos
-        Premium. No plano Essencial você continua atendendo clientes via
-        chat de texto.
+        No plano Essencial cada sessão é limitada a{" "}
+        <strong>{ESSENCIAL_VIDEO_MAX_MINUTES} minutos</strong> e você tem até{" "}
+        <strong>{ESSENCIAL_VIDEO_LIMIT_PER_MONTH} sessões por mês</strong>.
       </p>
-      <button
-        type="button"
-        onClick={() => navigate("/especialista/beneficios")}
-        className="mt-4 inline-flex px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
-      >
-        Conheça os planos
-      </button>
+      <p className="mt-1 text-xs font-bold text-amber-900 dark:text-amber-100">
+        Sessões restantes este mês: {remaining} / {ESSENCIAL_VIDEO_LIMIT_PER_MONTH}
+      </p>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={handleStartClick}
+          className="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
+        >
+          🎬 Iniciar Videoconferência
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate("/especialista/beneficios")}
+          className="inline-flex items-center px-4 py-2 rounded-lg border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 text-sm font-bold hover:bg-amber-100 dark:hover:bg-amber-900/40"
+        >
+          ✨ Fazer upgrade para Premium
+        </button>
+      </div>
+
+      {showConfirm && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          onClick={() => setShowConfirm(false)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-extrabold text-slate-800 dark:text-slate-100">
+              Iniciar sessão (Essencial)
+            </h3>
+            <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
+              Sua sessão será limitada a{" "}
+              <strong>{ESSENCIAL_VIDEO_MAX_MINUTES} minutos</strong>.<br />
+              Você tem <strong>{remaining}</strong> sessão(ões) restante(s) este mês.
+            </p>
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              Ao confirmar, abriremos a sala em uma nova aba. O contador é
+              informativo; encerre a chamada ao atingir o tempo do plano.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowConfirm(false)}
+                className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-bold"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirm}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
+              >
+                Iniciar agora
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showLimit && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          onClick={() => setShowLimit(false)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-extrabold text-slate-800 dark:text-slate-100">
+              Limite atingido
+            </h3>
+            <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
+              Limite de videoconferências atingido para o seu plano. Faça
+              upgrade para o <strong>Plano Premium</strong> para ter
+              videoconferências ilimitadas e sem limite de tempo.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowLimit(false)}
+                className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-bold"
+              >
+                Fechar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLimit(false);
+                  navigate("/especialista/beneficios");
+                }}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
+              >
+                Ver planos
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -563,7 +714,7 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
               (isPremium ? (
                 <VideoConferenceCard caseId={caseId} data={data} />
               ) : (
-                <VideoUpgradeCard navigate={navigate} />
+                <VideoEssencialCard caseId={caseId} navigate={navigate} />
               ))}
             <CaseBody tipo={tipo} data={data} />
           </>

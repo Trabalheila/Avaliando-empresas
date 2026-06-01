@@ -279,7 +279,7 @@ export default function PlatformChat({ theme, toggleTheme }) {
               Plano Essencial · até {ESSENCIAL_MESSAGE_LIMIT} mensagens por conversa, sem links/contatos diretos.
             </span>
             <Link
-              to="/especialista/beneficios"
+              to={peerRole === "especialista" ? "/trabalhador/beneficios" : "/especialista/beneficios"}
               className="font-bold text-blue-700 dark:text-blue-300 hover:underline"
             >
               Conheça o Premium
