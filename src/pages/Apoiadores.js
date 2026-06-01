@@ -38,7 +38,7 @@ function Apoiadores({ theme, toggleTheme }) {
 
         {/* Vídeo explicativo para especialistas */}
         <div className="max-w-2xl mx-auto mt-8">
-          <YouTubeEmbed videoId="1qP8sJuj8Jc" title="Cadastro Especialista" />
+          <YouTubeEmbed videoId="EHZviakowZY" title="Cadastro Especialista" />
           <div className="mt-2 text-center">
             <button
               type="button"
