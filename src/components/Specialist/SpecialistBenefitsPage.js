@@ -13,36 +13,77 @@ import AppHeader from "../AppHeader";
 import PaymentInfoModal from "./PaymentInfoModal";
 
 const GRATUITO_BENEFITS = [
-  "Perfil público visível na plataforma",
-  "Nome e especialidade exibidos",
-  "Aparece na listagem geral de Especialistas",
-  "Contato inicial exclusivo via Chat Interno da Plataforma (com restrições de conteúdo e sem troca de dados diretos)",
-  "Visualização do fluxo de busca por especialistas na sua área",
-  "Acesso a dados agregados de demanda por sua especialidade e localização",
-  "Dashboard de insights básicos sobre o mercado",
-  "✖ Seleção de nichos de atuação",
-  "✖ Destaque na listagem",
+  { included: true, label: "Perfil público visível na plataforma" },
+  { included: true, label: "Nome e especialidade exibidos" },
+  { included: true, label: "Aparece na listagem geral de Especialistas" },
+  {
+    included: true,
+    label:
+      "Contato inicial exclusivo via Chat Interno da Plataforma (apenas para primeiras interações, sem troca de dados diretos ou gestão de casos)",
+  },
+  {
+    included: true,
+    label:
+      "Visualização de tendências gerais de busca por especialistas na sua área (dados agregados e sem detalhes específicos)",
+  },
+  {
+    included: true,
+    label:
+      "Acesso a indicadores básicos de demanda por sua especialidade e localização",
+  },
+  {
+    included: true,
+    label: "Dashboard com informações introdutórias sobre o mercado",
+  },
+  { included: false, label: "Seleção de nichos de atuação" },
+  { included: false, label: "Destaque na listagem" },
+  {
+    included: false,
+    label: "Gestão ativa de casos ou prospecção direta de clientes",
+  },
 ];
 
 const ESSENCIAL_BENEFITS = [
-  "Perfil profissional básico no diretório",
-  "Gestão de até 5 casos ativos simultâneos",
-  "Oportunidades de clientes limitadas",
-  "Chat interno com restrições de conteúdo (sem links/contatos diretos)",
-  "Videoconferência com limite de tempo (até 30 min/sessão, 5 sessões/mês)",
-  "Acesso a recursos e ferramentas da sua profissão",
+  { included: true, label: "Perfil profissional básico no diretório" },
+  { included: true, label: "Gestão de até 5 casos ativos simultâneos" },
+  {
+    included: true,
+    label:
+      "Recebimento de oportunidades de clientes qualificadas (limitadas por volume ou tipo)",
+  },
+  {
+    included: true,
+    label:
+      "Chat interno para gestão de até 5 casos ativos (com restrições de conteúdo e sem troca de dados diretos)",
+  },
+  {
+    included: true,
+    label:
+      "Videoconferência com limite de tempo (até 30 min/sessão, 5 sessões/mês)",
+  },
+  { included: true, label: "Acesso a recursos e ferramentas da sua profissão" },
 ];
 
 const PREMIUM_BENEFITS = [
-  "Todos os benefícios do Plano Essencial",
-  "Gestão ilimitada de casos ativos",
-  "Acesso total a oportunidades de clientes",
-  "Maior visibilidade no diretório de especialistas",
-  "Chat interno ilimitado e com anexos",
-  "Contato direto via e-mail e WhatsApp liberado no perfil (exclusivo Premium)",
-  "Videoconferência ilimitada e sem restrição de tempo",
-  "Relatórios de desempenho e métricas de atendimento",
-  "Suporte prioritário",
+  { included: true, label: "Todos os benefícios do Plano Essencial" },
+  { included: true, label: "Gestão ilimitada de casos ativos" },
+  { included: true, label: "Acesso total a oportunidades de clientes" },
+  { included: true, label: "Maior visibilidade no diretório de especialistas" },
+  { included: true, label: "Chat interno ilimitado e com anexos" },
+  {
+    included: true,
+    label:
+      "Contato direto via e-mail e WhatsApp liberado no perfil (exclusivo Premium)",
+  },
+  {
+    included: true,
+    label: "Videoconferência ilimitada e sem restrição de tempo",
+  },
+  {
+    included: true,
+    label: "Relatórios de desempenho e métricas de atendimento",
+  },
+  { included: true, label: "Suporte prioritário" },
 ];
 
 function PlanCard({
@@ -90,16 +131,30 @@ function PlanCard({
       </div>
 
       <ul className="mt-5 space-y-2 text-sm flex-1">
-        {benefits.map((b) => (
-          <li key={b} className="flex items-start gap-2">
-            <span aria-hidden="true" className={highlight ? "text-white" : "text-green-600"}>
-              ✓
-            </span>
-            <span className={highlight ? "text-blue-50" : "text-slate-700 dark:text-slate-200"}>
-              {b}
-            </span>
-          </li>
-        ))}
+        {benefits.map((b) => {
+          const item = typeof b === "string" ? { included: true, label: b } : b;
+          const included = item.included !== false;
+          const iconClass = included
+            ? highlight
+              ? "text-white"
+              : "text-green-600"
+            : "text-red-500";
+          const textClass = included
+            ? highlight
+              ? "text-blue-50"
+              : "text-slate-700 dark:text-slate-200"
+            : highlight
+            ? "text-blue-100 line-through opacity-80"
+            : "text-slate-500 dark:text-slate-400 line-through";
+          return (
+            <li key={item.label} className="flex items-start gap-2">
+              <span aria-hidden="true" className={`font-bold ${iconClass}`}>
+                {included ? "✓" : "✗"}
+              </span>
+              <span className={textClass}>{item.label}</span>
+            </li>
+          );
+        })}
       </ul>
 
       <button
