@@ -27,7 +27,7 @@ export default function PlanosApoiador() {
   // diploma estiver verificado, ou preço cheio caso contrário.
   const [confirmEssencial, setConfirmEssencial] = useState(null);
 
-  const ESSENTIAL_BASE_PRICE = 199.9;
+  const ESSENTIAL_BASE_PRICE = 49;
   const ESSENTIAL_DIPLOMA_DISCOUNT = 0.1;
   const formatBRL = (v) =>
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -161,7 +161,7 @@ export default function PlanosApoiador() {
             </div>
             <h3 className="text-lg font-bold text-blue-700 dark:text-blue-400 mb-1">Especialista Essencial</h3>
             <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
-              R$ 199,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
+              R$ 49<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
             </p>
             <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-md px-2 py-1 inline-block mb-2">
               🎁 Grátis até 30/06/2026
@@ -204,7 +204,7 @@ export default function PlanosApoiador() {
             </div>
             <h3 className="text-lg font-bold text-amber-700 dark:text-amber-400 mb-1">Especialista Premium</h3>
             <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
-              R$ 399,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
+              R$ 89,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
               Máximo destaque e parceria estratégica com a plataforma

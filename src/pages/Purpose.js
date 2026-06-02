@@ -202,7 +202,7 @@ export default function Purpose({ theme, toggleTheme }) {
             </span>
           </div>
           <p className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 mb-0.5">
-            A partir de R$ 199,90<span className="text-sm font-semibold text-slate-500 dark:text-slate-400">/mês</span>
+            A partir de R$ 89,90<span className="text-sm font-semibold text-slate-500 dark:text-slate-400">/mês</span>
           </p>
           <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">Valor varia conforme o nicho e o nível de destaque escolhido.</p>
 

@@ -173,18 +173,16 @@ export default function SpecialistBenefitsPage({ theme, toggleTheme }) {
           />
           <PlanCard
             title="Plano Essencial"
-            badge="🎉 Preço de Lançamento"
-            price="R$ 19/mês"
-            priceHint="🎉 Preço de Lançamento! Ideal para quem está começando na plataforma"
+            price="R$ 49/mês"
+            priceHint="Ideal para quem está começando na plataforma"
             benefits={ESSENCIAL_BENEFITS}
             ctaLabel="Assinar Plano Essencial"
             onCta={handleAssinarEssencial}
           />
           <PlanCard
             title="Plano Premium"
-            badge="🎉 Preço de Lançamento"
-            price="R$ 49/mês"
-            priceHint="🎉 Preço de Lançamento! Solução completa para escalar sua atuação"
+            price="R$ 89,90/mês"
+            priceHint="Solução completa para escalar sua atuação"
             benefits={PREMIUM_BENEFITS}
             ctaLabel="Assinar Plano Premium"
             onCta={handleAssinarPremium}

@@ -488,11 +488,8 @@ function EscolhaPerfil({ theme, toggleTheme }) {
             <div className="rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50/40 dark:bg-blue-950/20 p-6 flex flex-col">
               <div className="flex items-center justify-between gap-2 mb-1">
                 <h4 className="text-lg font-extrabold text-blue-700 dark:text-blue-300">Plano Essencial</h4>
-                <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                  🎉 Preço de Lançamento
-                </span>
               </div>
-              <p className="mt-1 text-2xl font-extrabold text-blue-700 dark:text-blue-300">R$ 19/mês</p>
+              <p className="mt-1 text-2xl font-extrabold text-blue-700 dark:text-blue-300">R$ 49/mês</p>
               <p className="mt-3 text-sm text-slate-700 dark:text-slate-200 flex-1">
                 Pague uma mensalidade e receba <strong>100% do valor</strong> de
                 suas consultas. Tenha um perfil profissional, gestão de casos e
@@ -503,11 +500,8 @@ function EscolhaPerfil({ theme, toggleTheme }) {
             <div className="rounded-2xl border-2 border-amber-400 dark:border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 p-6 flex flex-col">
               <div className="flex items-center justify-between gap-2 mb-1">
                 <h4 className="text-lg font-extrabold text-amber-700 dark:text-amber-300">Plano Premium</h4>
-                <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-white text-amber-700">
-                  🎉 Preço de Lançamento
-                </span>
               </div>
-              <p className="mt-1 text-2xl font-extrabold text-amber-700 dark:text-amber-300">R$ 49/mês</p>
+              <p className="mt-1 text-2xl font-extrabold text-amber-700 dark:text-amber-300">R$ 89,90/mês</p>
               <p className="mt-3 text-sm text-slate-700 dark:text-slate-200 flex-1">
                 Pague uma mensalidade maior e receba <strong>100% do valor</strong>{" "}
                 de suas consultas. Acesso ilimitado a todas as funcionalidades,
