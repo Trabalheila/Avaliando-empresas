@@ -8,7 +8,7 @@
 export function buildMpSubscriptionUrl(planId) {
   const id = (planId || "").toString().trim();
   if (!id) return "";
-  return `https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=${encodeURIComponent(id)}`;
+  return `https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=${id}`;
 }
 
 /**
