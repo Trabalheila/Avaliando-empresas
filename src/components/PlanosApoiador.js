@@ -29,8 +29,6 @@ export default function PlanosApoiador() {
 
   const ESSENTIAL_BASE_PRICE = 49;
   const ESSENTIAL_DIPLOMA_DISCOUNT = 0.1;
-  const formatBRL = (v) =>
-    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   // Redireciona efetivamente para o Mercado Pago. O preço final do MP
   // é controlado pelo preapproval_plan_id; quando o desconto se aplica,
@@ -136,8 +134,7 @@ export default function PlanosApoiador() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-10 items-stretch">
           {/* ── Gratuito ── */}
           <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-6 flex flex-col">
-            <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300 mb-1">Gratuito</h3>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white mb-4">R$ 0</p>
+            <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300 mb-4">Gratuito</h3>
             <ul className="space-y-3 text-sm text-slate-700 dark:text-slate-300 flex-1">
               <FeatureRow ok>Perfil público visível na plataforma</FeatureRow>
               <FeatureRow ok>Nome e especialidade exibidos</FeatureRow>
@@ -160,15 +157,6 @@ export default function PlanosApoiador() {
               RECOMENDADO
             </div>
             <h3 className="text-lg font-bold text-blue-700 dark:text-blue-400 mb-1">Especialista Essencial</h3>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
-              R$ 49<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
-            </p>
-            <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-md px-2 py-1 inline-block mb-2">
-              🎁 Grátis até 30/06/2026
-            </p>
-            <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-md px-2 py-1 inline-block mb-2">
-              🎓 Desconto de 10% para profissionais com diploma verificado!
-            </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
               Visibilidade e leads para profissionais parceiros
             </p>
@@ -203,9 +191,6 @@ export default function PlanosApoiador() {
               COMPLETO
             </div>
             <h3 className="text-lg font-bold text-amber-700 dark:text-amber-400 mb-1">Especialista Premium</h3>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
-              R$ 89,90<span className="text-sm font-medium text-slate-600 dark:text-slate-400">/mês</span>
-            </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
               Máximo destaque e parceria estratégica com a plataforma
             </p>
@@ -243,7 +228,7 @@ export default function PlanosApoiador() {
             <span className="font-bold">3× mais contatos</span> de potenciais clientes.
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
-            Pagamento via Mercado Pago. Escolha PIX, cartão ou boleto no checkout.
+            Assinatura via Mercado Pago — PIX, cartão ou boleto no checkout.
           </p>
           {error && (
             <p className="text-xs text-red-600 dark:text-red-400 mt-2">{error}</p>
@@ -269,42 +254,14 @@ export default function PlanosApoiador() {
               >
                 Confirmar assinatura — Especialista Essencial
               </h3>
-              {confirmEssencial.isDiplomaVerified ? (
-                <div className="mb-4">
-                  <p className="text-sm text-slate-600 dark:text-slate-300 mb-2">
-                    🎓 <strong>Você tem diploma verificado!</strong> Aplicamos automaticamente
-                    o desconto de 10%.
-                  </p>
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-base text-slate-400 line-through">
-                      {formatBRL(confirmEssencial.basePrice)}
-                    </span>
-                    <span className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">
-                      {formatBRL(confirmEssencial.finalPrice)}
-                    </span>
-                    <span className="text-sm text-slate-500">/mês</span>
-                  </div>
-                  <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1">
-                    Você economiza {formatBRL(confirmEssencial.basePrice - confirmEssencial.finalPrice)}/mês.
-                  </p>
-                </div>
-              ) : (
-                <div className="mb-4">
-                  <p className="text-sm text-slate-600 dark:text-slate-300 mb-2">
-                    Valor da assinatura mensal:
-                  </p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">
-                      {formatBRL(confirmEssencial.basePrice)}
-                    </span>
-                    <span className="text-sm text-slate-500">/mês</span>
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                    🎓 Envie e verifique seu diploma no perfil para ganhar 10% de desconto
-                    nas próximas cobranças.
-                  </p>
-                </div>
-              )}
+              <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+                Você será redirecionado(a) para o checkout seguro do Mercado Pago para concluir a assinatura.
+                {confirmEssencial.isDiplomaVerified && (
+                  <span className="block mt-2 text-emerald-700 dark:text-emerald-400">
+                    🎓 Seu diploma está verificado — o desconto especial será aplicado automaticamente.
+                  </span>
+                )}
+              </p>
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
                 <button
                   type="button"
