@@ -509,6 +509,39 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
       <AppHeader theme={theme} toggleTheme={toggleTheme} title="Encontre um especialista" />
 
       <main className="flex-1 w-full max-w-6xl mx-auto px-3 sm:px-6 py-5 sm:py-8 space-y-5">
+        {/* Tour guiado para Especialistas do Plano Gratuito */}
+        {searchParams.get("tour") === "1" && (
+          <div className="rounded-2xl border-2 border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/40 p-4 sm:p-5">
+            <p className="text-[11px] uppercase tracking-widest font-bold text-blue-700 dark:text-blue-300">
+              Modo Tour · Você está visualizando como um cliente
+            </p>
+            <h2 className="mt-1 text-lg sm:text-xl font-extrabold text-slate-800 dark:text-slate-100">
+              É assim que os trabalhadores encontram especialistas
+            </h2>
+            <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
+              Use os filtros abaixo, explore os perfis e veja como um cliente
+              chegaria até você. Com um plano pago, você passa a aparecer
+              destacado e pode receber e responder solicitações.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => navigate("/especialista/beneficios")}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition"
+              >
+                Ver planos do Especialista
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/apoiador/requisicoes")}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 text-sm font-bold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition"
+              >
+                Voltar ao meu painel
+              </button>
+            </div>
+          </div>
+        )}
+
         <header className="text-center">
           <p className="text-[11px] sm:text-xs uppercase tracking-widest font-bold text-blue-700 dark:text-blue-300">
             Diretório de especialistas

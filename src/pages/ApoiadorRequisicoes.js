@@ -13,6 +13,7 @@ import {
   limit,
 } from "firebase/firestore";
 import AppHeader from "../components/AppHeader";
+import SpecialistDemandInsights from "../components/Specialist/SpecialistDemandInsights";
 import { getRatingLabel } from "../data/consultationPricing";
 import {
   buildVideoCallLink,
@@ -163,6 +164,8 @@ export default function ApoiadorRequisicoes({ theme, toggleTheme }) {
   }, [apoiadorId]);
 
   const isPremium = String(apoiador?.plano || "").toLowerCase() === "premium";
+  const planoLower = String(apoiador?.plano || "").toLowerCase();
+  const isFreePlan = !planoLower || planoLower === "free" || planoLower === "gratuito";
   const precoConsulta = Number(apoiador?.precoConsulta) || 0;
   const precisaDefinirPreco = isPremium && !(precoConsulta > 0);
 
@@ -239,6 +242,11 @@ export default function ApoiadorRequisicoes({ theme, toggleTheme }) {
           <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300">
             {error}
           </div>
+        )}
+
+        {/* Visao Geral da Demanda (Plano Gratuito) */}
+        {isFreePlan && apoiador && (
+          <SpecialistDemandInsights apoiador={apoiador} navigate={navigate} />
         )}
 
         {/* Aviso de preço (Apoiador Premium sem precoConsulta) */}

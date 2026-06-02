@@ -17,6 +17,9 @@ const GRATUITO_BENEFITS = [
   "Nome e especialidade exibidos",
   "Aparece na listagem geral de Especialistas",
   "Contato inicial exclusivo via Chat Interno da Plataforma (com restrições de conteúdo e sem troca de dados diretos)",
+  "Visualização do fluxo de busca por especialistas na sua área",
+  "Acesso a dados agregados de demanda por sua especialidade e localização",
+  "Dashboard de insights básicos sobre o mercado",
   "✖ Seleção de nichos de atuação",
   "✖ Destaque na listagem",
 ];
