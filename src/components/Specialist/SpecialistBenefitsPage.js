@@ -188,8 +188,17 @@ export default function SpecialistBenefitsPage({ theme, toggleTheme }) {
     setCheckoutError("");
     setLoadingTier(tier);
     try {
-      // 1) Tenta resolver o apoiadorId do perfil em localStorage (rota mais
-      //    rapida e que funciona para especialistas ja logados pelo sistema).
+      // 1) PRIORIDADE MAXIMA: link direto do Mercado Pago configurado via env.
+      //    Funciona para qualquer usuario (logado ou nao). A associacao do
+      //    pagamento ao apoiador eh feita pelo webhook do MP.
+      const directMpUrl = getMpPlanUrl("supporter", tier);
+      if (directMpUrl) {
+        window.location.assign(directMpUrl);
+        return;
+      }
+
+      // 2) Sem URL direta no env: tenta criar uma preapproval dinamica pelo
+      //    backend. Para isso precisamos do apoiadorId.
       let apoiadorId = "";
       try {
         const profile = JSON.parse(localStorage.getItem("userProfile") || "{}") || {};
@@ -198,7 +207,6 @@ export default function SpecialistBenefitsPage({ theme, toggleTheme }) {
         apoiadorId = "";
       }
 
-      // 2) Fallback: consulta /apoiadores por uid do usuario autenticado.
       if (!apoiadorId) {
         if (!auth.currentUser) await signInAnonymously(auth);
         const uid = auth.currentUser?.uid;
@@ -210,22 +218,13 @@ export default function SpecialistBenefitsPage({ theme, toggleTheme }) {
         }
       }
 
-      // 3) Mesmo sem apoiadorId conseguimos redirecionar para o link direto do
-      //    Mercado Pago configurado no painel (preapproval_plan_id). O backend
-      //    associa o pagamento ao usuario via webhook depois.
-      const directMpUrl = getMpPlanUrl("supporter", tier);
-      if (directMpUrl) {
-        window.location.assign(directMpUrl);
-        return;
-      }
-
-      // 4) Sem URL direta: precisamos do apoiadorId para o backend criar a
-      //    preapproval dinamicamente.
       if (!apoiadorId) {
+        // Nao redireciona mais para /apoiadores/cadastro automaticamente: o
+        // usuario pode estar logado e essa redirecao confunde. So mostramos a
+        // mensagem e deixamos ele decidir.
         setCheckoutError(
-          "Voce precisa ter um cadastro de Especialista antes de assinar. Cadastre-se primeiro."
+          "Nao foi possivel iniciar o checkout no momento. Tente novamente em instantes ou entre em contato com o suporte."
         );
-        setTimeout(() => navigate("/apoiadores/cadastro"), 1500);
         return;
       }
 
