@@ -11,6 +11,11 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppHeader from "../AppHeader";
 import PaymentInfoModal from "./PaymentInfoModal";
+import { auth, db } from "../../firebase";
+import { signInAnonymously } from "firebase/auth";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { getMpPlanUrl } from "../../utils/mpSubscription";
+import { handleCheckout } from "../../services/billing";
 
 const GRATUITO_BENEFITS = [
   { included: true, label: "Perfil público visível na plataforma" },
@@ -176,18 +181,56 @@ function PlanCard({
 export default function SpecialistBenefitsPage({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const [payOpen, setPayOpen] = useState(false);
+  const [loadingTier, setLoadingTier] = useState("");
+  const [checkoutError, setCheckoutError] = useState("");
 
-  const handleAssinarPremium = () => {
-    alert(
-      "Assinatura Premium em breve! Em breve você poderá assinar diretamente por aqui. Por enquanto, fale com nosso time pelo suporte."
-    );
+  const startCheckout = async (tier) => {
+    setCheckoutError("");
+    setLoadingTier(tier);
+    try {
+      if (!auth.currentUser) await signInAnonymously(auth);
+      const uid = auth.currentUser?.uid;
+      if (!uid) {
+        setCheckoutError("Faça login para continuar.");
+        return;
+      }
+      const snap = await getDocs(
+        query(collection(db, "apoiadores"), where("uid", "==", uid))
+      );
+      if (snap.empty) {
+        setCheckoutError(
+          "Você precisa ter um cadastro de Especialista antes de assinar. Cadastre-se primeiro."
+        );
+        setTimeout(() => navigate("/apoiadores/cadastro"), 1500);
+        return;
+      }
+      const apoiadorId = snap.docs[0].id;
+
+      const directMpUrl = getMpPlanUrl("supporter", tier);
+      if (directMpUrl) {
+        window.location.assign(directMpUrl);
+        return;
+      }
+
+      await handleCheckout({
+        cnpj: "",
+        companySlug: "trabalhei-la",
+        companyName: "Trabalheila",
+        audience: "supporter",
+        tier,
+        apoiadorId,
+      });
+    } catch (err) {
+      setCheckoutError(
+        err?.message || "Erro ao iniciar checkout. Tente novamente."
+      );
+    } finally {
+      setLoadingTier("");
+    }
   };
 
-  const handleAssinarEssencial = () => {
-    alert(
-      "Assinatura Essencial em breve! Em breve você poderá assinar diretamente por aqui. Por enquanto, fale com nosso time pelo suporte."
-    );
-  };
+  const handleAssinarPremium = () => startCheckout("premium");
+  const handleAssinarEssencial = () => startCheckout("essential");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
@@ -231,7 +274,11 @@ export default function SpecialistBenefitsPage({ theme, toggleTheme }) {
             price="R$ 49/mês"
             priceHint="Ideal para quem está começando na plataforma"
             benefits={ESSENCIAL_BENEFITS}
-            ctaLabel="Assinar Plano Essencial"
+            ctaLabel={
+              loadingTier === "essential"
+                ? "Abrindo checkout…"
+                : "Assinar Plano Essencial"
+            }
             onCta={handleAssinarEssencial}
           />
           <PlanCard
@@ -239,11 +286,21 @@ export default function SpecialistBenefitsPage({ theme, toggleTheme }) {
             price="R$ 89,90/mês"
             priceHint="Solução completa para escalar sua atuação"
             benefits={PREMIUM_BENEFITS}
-            ctaLabel="Assinar Plano Premium"
+            ctaLabel={
+              loadingTier === "premium"
+                ? "Abrindo checkout…"
+                : "Assinar Plano Premium"
+            }
             onCta={handleAssinarPremium}
             highlight
           />
         </section>
+
+        {checkoutError && (
+          <p className="mt-4 text-center text-sm font-semibold text-red-600 dark:text-red-400">
+            {checkoutError}
+          </p>
+        )}
 
         <section className="mt-8 bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5 sm:p-6">
           <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100">
