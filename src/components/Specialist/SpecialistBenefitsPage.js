@@ -188,27 +188,44 @@ export default function SpecialistBenefitsPage({ theme, toggleTheme }) {
     setCheckoutError("");
     setLoadingTier(tier);
     try {
-      if (!auth.currentUser) await signInAnonymously(auth);
-      const uid = auth.currentUser?.uid;
-      if (!uid) {
-        setCheckoutError("Faça login para continuar.");
-        return;
+      // 1) Tenta resolver o apoiadorId do perfil em localStorage (rota mais
+      //    rapida e que funciona para especialistas ja logados pelo sistema).
+      let apoiadorId = "";
+      try {
+        const profile = JSON.parse(localStorage.getItem("userProfile") || "{}") || {};
+        apoiadorId = profile?.apoiadorId || profile?.id || "";
+      } catch {
+        apoiadorId = "";
       }
-      const snap = await getDocs(
-        query(collection(db, "apoiadores"), where("uid", "==", uid))
-      );
-      if (snap.empty) {
-        setCheckoutError(
-          "Você precisa ter um cadastro de Especialista antes de assinar. Cadastre-se primeiro."
-        );
-        setTimeout(() => navigate("/apoiadores/cadastro"), 1500);
-        return;
-      }
-      const apoiadorId = snap.docs[0].id;
 
+      // 2) Fallback: consulta /apoiadores por uid do usuario autenticado.
+      if (!apoiadorId) {
+        if (!auth.currentUser) await signInAnonymously(auth);
+        const uid = auth.currentUser?.uid;
+        if (uid) {
+          const snap = await getDocs(
+            query(collection(db, "apoiadores"), where("uid", "==", uid))
+          );
+          if (!snap.empty) apoiadorId = snap.docs[0].id;
+        }
+      }
+
+      // 3) Mesmo sem apoiadorId conseguimos redirecionar para o link direto do
+      //    Mercado Pago configurado no painel (preapproval_plan_id). O backend
+      //    associa o pagamento ao usuario via webhook depois.
       const directMpUrl = getMpPlanUrl("supporter", tier);
       if (directMpUrl) {
         window.location.assign(directMpUrl);
+        return;
+      }
+
+      // 4) Sem URL direta: precisamos do apoiadorId para o backend criar a
+      //    preapproval dinamicamente.
+      if (!apoiadorId) {
+        setCheckoutError(
+          "Voce precisa ter um cadastro de Especialista antes de assinar. Cadastre-se primeiro."
+        );
+        setTimeout(() => navigate("/apoiadores/cadastro"), 1500);
         return;
       }
 
