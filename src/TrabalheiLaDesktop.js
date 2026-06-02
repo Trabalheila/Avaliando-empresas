@@ -685,15 +685,6 @@ function TrabalheiLaDesktop({
               {/* Vídeo de apresentação */}
               <div className="max-w-2xl mx-auto mb-6">
                 <YouTubeEmbed videoId="8ly8z4F8iok" title="Apresentação Trabalhei Lá" />
-                <div className="mt-2 text-center">
-                  <button
-                    type="button"
-                    onClick={() => setShowPaymentInfo(true)}
-                    className="inline-flex items-center gap-1 text-sm font-bold text-white/90 hover:text-white hover:underline"
-                  >
-                    💳 Como funciona o pagamento?
-                  </button>
-                </div>
               </div>
 
               {/* CENÁRIO 1 — não autenticado: escolha de perfil + login social secundário */}
