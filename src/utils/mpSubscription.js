@@ -6,7 +6,24 @@
  * (prefixo REACT_APP_) para ficar acessivel no bundle do frontend.
  */
 export function buildMpSubscriptionUrl(planId) {
-  const id = (planId || "").toString().trim();
+  let id = (planId || "").toString().trim();
+  if (!id) return "";
+
+  // Tolera valores colados de forma incorreta na variavel de ambiente, como:
+  // - "preapproval_plan_id=abc123"
+  // - "?preapproval_plan_id=abc123"
+  // - "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=abc123"
+  // Em todos os casos, queremos apenas o ID puro.
+  try {
+    if (id.includes("preapproval_plan_id=")) {
+      const match = id.match(/preapproval_plan_id=([^&\s#]+)/i);
+      if (match && match[1]) id = decodeURIComponent(match[1]);
+    }
+  } catch {
+    /* mantem id como esta */
+  }
+  id = id.replace(/^[?&]+/, "").trim();
+
   if (!id) return "";
   return `https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=${id}`;
 }
