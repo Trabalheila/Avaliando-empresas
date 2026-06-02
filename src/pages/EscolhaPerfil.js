@@ -484,7 +484,19 @@ function EscolhaPerfil({ theme, toggleTheme }) {
             Benefícios para Especialistas
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto mb-6 items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl mx-auto mb-6 items-stretch">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-6 flex flex-col">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <h4 className="text-lg font-extrabold text-slate-700 dark:text-slate-200">Plano Gratuito</h4>
+              </div>
+              <p className="mt-1 text-2xl font-extrabold text-slate-700 dark:text-slate-200">R$ 0</p>
+              <p className="mt-3 text-sm text-slate-700 dark:text-slate-200 flex-1">
+                Comece a aparecer na plataforma <strong>sem custo</strong>: perfil
+                público, listagem geral e visão geral da demanda na sua área.
+                Contato inicial exclusivo via Chat Interno, sem gestão ativa de
+                casos.
+              </p>
+            </div>
             <div className="rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50/40 dark:bg-blue-950/20 p-6 flex flex-col">
               <div className="flex items-center justify-between gap-2 mb-1">
                 <h4 className="text-lg font-extrabold text-blue-700 dark:text-blue-300">Plano Essencial</h4>
