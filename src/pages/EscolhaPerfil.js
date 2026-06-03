@@ -146,7 +146,22 @@ function EscolhaPerfil({ theme, toggleTheme }) {
       // usando preapproval_plan_id da variavel de ambiente. Funciona para todos os
       // tiers exceto quando o empregador esta dentro da janela gratuita.
       const directMpUrl = getMpPlanUrl(audience, tier);
-      console.log("[handlePremiumUnlock] getMpPlanUrl ->", { directMpUrl, canGrantEmployerForFree });
+      const hasConfiguredPlanId = !!(
+        (typeof process !== "undefined" && process.env) &&
+        process.env[`REACT_APP_MP_PLAN_${String(audience).toUpperCase()}_${String(tier).toUpperCase()}`]
+      );
+      console.log("[handlePremiumUnlock] getMpPlanUrl ->", { directMpUrl, canGrantEmployerForFree, hasConfiguredPlanId });
+
+      // Se a variavel de ambiente esta presente mas a URL nao pode ser construida,
+      // significa que o valor configurado e invalido. Falha rapido com mensagem
+      // clara em vez de chamar o backend e gerar mais confusao.
+      if (hasConfiguredPlanId && !directMpUrl && !canGrantEmployerForFree) {
+        setCheckoutError(
+          "Plano de assinatura mal configurado (preapproval_plan_id invalido). Avise o suporte."
+        );
+        return;
+      }
+
       if (directMpUrl && !canGrantEmployerForFree) {
         // Persistir intencao de perfil antes do redirect.
         const updatedProfile = { ...stored, profileTypeChosen: audience };
@@ -156,6 +171,24 @@ function EscolhaPerfil({ theme, toggleTheme }) {
           const userRef = doc(db, "users", pid);
           await setDoc(userRef, { profileTypeChosen: audience }, { merge: true });
         }
+        // Dica para o caso #1 (botao 'Pagar assinatura' desabilitado no MP):
+        // o Mercado Pago bloqueia o pagador quando ele e o mesmo dono do plano,
+        // ou quando faltam dados (CPF) no perfil MP. Deixamos um aviso no
+        // sessionStorage para a tela de retorno conseguir orientar o usuario.
+        try {
+          sessionStorage.setItem(
+            "trabalheiLa_mpCheckoutHint",
+            JSON.stringify({
+              ts: Date.now(),
+              audience,
+              tier,
+              hint:
+                "Se o botao 'Pagar assinatura' aparecer desabilitado no Mercado Pago, " +
+                "saia da conta MP e entre com uma conta diferente da que criou o plano, " +
+                "e confirme que seu CPF esta cadastrado no perfil do Mercado Pago.",
+            })
+          );
+        } catch { /* sessionStorage indisponivel */ }
         window.location.assign(directMpUrl);
         return;
       }

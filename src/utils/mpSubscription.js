@@ -49,5 +49,15 @@ export const MP_PLAN_IDS = {
 
 export function getMpPlanUrl(audience, tier) {
   const planId = MP_PLAN_IDS?.[audience]?.[tier];
-  return buildMpSubscriptionUrl(planId);
+  const url = buildMpSubscriptionUrl(planId);
+  if (!url) {
+    // Diagnostico no console para facilitar troubleshooting quando a
+    // variavel de ambiente esta ausente ou mal formatada no build.
+    // Sem esse log, o usuario era redirecionado para uma URL invalida.
+    console.warn(
+      `[mpSubscription] preapproval_plan_id ausente/invalido para audience="${audience}" tier="${tier}". ` +
+        `Defina REACT_APP_MP_PLAN_${String(audience).toUpperCase()}_${String(tier).toUpperCase()} no ambiente.`
+    );
+  }
+  return url;
 }
