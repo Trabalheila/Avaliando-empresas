@@ -13,6 +13,7 @@
 
 import * as admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
+import { bqQuery } from "./_bigquery.js";
 
 // ── Inicialização lazy/tolerante do Firebase Admin (apenas para op=status). ──
 let _adminInitTried = false;
@@ -213,6 +214,146 @@ async function handleStatus(req, res, cnpj) {
   return res.status(200).json(payload);
 }
 
+// ── op=search: busca empresas por nome no BigQuery do OpenCNPJ ──
+// Estratégia:
+//   1. Normaliza o termo (lowercase, sem acentos, trim).
+//   2. Tenta o cache no Firestore `companies_search_cache/{term}` (TTL 30 dias).
+//   3. Se cache miss, consulta BigQuery `opencnpj-bigquery.public.empresas`
+//      filtrando por STARTS_WITH em razao_social ou nome_fantasia (LIMIT 20).
+//   4. Persiste o resultado no cache E faz upsert em `companies/{slug}` para
+//      o autocomplete de Firestore (searchCompaniesByName) achar nas próximas
+//      buscas mesmo sem chamar a API novamente.
+//   5. Devolve a lista normalizada para o frontend.
+const SEARCH_CACHE_TTL_DAYS = 30;
+
+function normalizeSearchTerm(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function slugifyCompanyName(value) {
+  return normalizeSearchTerm(value).replace(/\s+/g, "-").slice(0, 80) || null;
+}
+
+async function handleSearchByName(req, res) {
+  const rawTerm = (req.query?.q ?? "").toString();
+  const term = normalizeSearchTerm(rawTerm);
+  if (term.length < 3) {
+    return res.status(400).json({ error: "Termo de busca deve ter ao menos 3 caracteres." });
+  }
+
+  ensureAdmin();
+  const firestore = admin.apps.length ? getFirestore() : null;
+
+  // 1) Cache
+  if (firestore) {
+    try {
+      const cacheRef = firestore.collection("companies_search_cache").doc(term);
+      const snap = await cacheRef.get();
+      if (snap.exists) {
+        const data = snap.data() || {};
+        const fetchedAt = data.fetchedAt?.toMillis?.() || 0;
+        const ageMs = Date.now() - fetchedAt;
+        if (ageMs < SEARCH_CACHE_TTL_DAYS * 24 * 3600 * 1000) {
+          res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400");
+          return res.status(200).json({
+            term,
+            cached: true,
+            results: Array.isArray(data.results) ? data.results : [],
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("[cnpj/search] cache lookup falhou:", err?.message || err);
+    }
+  }
+
+  // 2) BigQuery
+  let bqRows = [];
+  let bytesScanned = "0";
+  try {
+    const { rows, totalBytesProcessed } = await bqQuery(
+      `SELECT cnpj, razao_social, nome_fantasia, uf, municipio, situacao_cadastral
+       FROM \`opencnpj-bigquery.public.empresas\`
+       WHERE situacao_cadastral = 'ATIVA'
+         AND (STARTS_WITH(LOWER(razao_social), @term)
+              OR STARTS_WITH(LOWER(nome_fantasia), @term))
+       LIMIT 20`,
+      { term: { type: "STRING", value: term } }
+    );
+    bqRows = rows;
+    bytesScanned = totalBytesProcessed;
+  } catch (err) {
+    console.error("[cnpj/search] BigQuery falhou:", err?.message || err);
+    return res.status(502).json({ error: "Falha ao consultar a base de empresas." });
+  }
+
+  const results = bqRows.map((r) => {
+    const cnpj = String(r.cnpj || "").replace(/\D/g, "");
+    const name = (r.nome_fantasia || r.razao_social || "").toString().trim();
+    return {
+      cnpj: cnpj || null,
+      name,
+      razaoSocial: r.razao_social || null,
+      nomeFantasia: r.nome_fantasia || null,
+      uf: r.uf || null,
+      municipio: r.municipio || null,
+    };
+  }).filter((r) => r.name);
+
+  // 3) Persistir cache + upsert em /companies (best-effort)
+  if (firestore) {
+    try {
+      await firestore.collection("companies_search_cache").doc(term).set({
+        term,
+        results,
+        bytesScanned,
+        fetchedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    } catch (err) {
+      console.warn("[cnpj/search] gravar cache falhou:", err?.message || err);
+    }
+
+    // Upsert em companies/{slug} para o autocomplete de Firestore.
+    // Não bloqueia a resposta se algum falhar.
+    await Promise.allSettled(
+      results.map(async (r) => {
+        const slug = slugifyCompanyName(r.name);
+        if (!slug) return;
+        const docRef = firestore.collection("companies").doc(slug);
+        try {
+          const existing = await docRef.get();
+          const payload = {
+            slug,
+            name: r.name,
+            nameLowercase: normalizeSearchTerm(r.name),
+            cnpj: r.cnpj || null,
+            razaoSocial: r.razaoSocial,
+            municipio: r.municipio,
+            uf: r.uf,
+            sourceCnpjImport: "opencnpj-bigquery",
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          };
+          if (!existing.exists) {
+            payload.createdAt = admin.firestore.FieldValue.serverTimestamp();
+          }
+          await docRef.set(payload, { merge: true });
+        } catch (err) {
+          console.warn("[cnpj/search] upsert company falhou:", slug, err?.message || err);
+        }
+      })
+    );
+  }
+
+  res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400");
+  return res.status(200).json({ term, cached: false, results });
+}
+
 // ── Compat legacy: POST { cnpj } → proxy ReceitaWS bruto. ──
 async function handleLegacyPost(req, res) {
   const { cnpj } = req.body || {};
@@ -248,6 +389,10 @@ export default async function handler(req, res) {
   }
 
   const op = String(req.query?.op || "info").toLowerCase();
+
+  // Busca por nome não exige CNPJ na query.
+  if (op === "search") return handleSearchByName(req, res);
+
   const cnpjRaw = (req.query?.cnpj ?? "").toString();
   const digits = cnpjRaw.replace(/\D/g, "");
 
@@ -258,5 +403,5 @@ export default async function handler(req, res) {
   if (op === "info") return handleInfo(req, res, digits);
   if (op === "status") return handleStatus(req, res, digits);
 
-  return res.status(400).json({ error: "Parâmetro 'op' inválido. Use ?op=info ou ?op=status." });
+  return res.status(400).json({ error: "Parâmetro 'op' inválido. Use ?op=info, ?op=status ou ?op=search." });
 }

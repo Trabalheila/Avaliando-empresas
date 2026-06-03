@@ -18,6 +18,13 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Cache de buscas por nome (op=search do /api/cnpj). Apenas o backend
+    // (Admin SDK) grava; leitura nunca acontece pelo cliente (a busca passa
+    // pela API), então fechamos completamente.
+    match /companies_search_cache/{term} {
+      allow read, write: if false;
+    }
+
     // Dados sensiveis separados para permitir controle por regra.
     // Estrutura sugerida:
     // /empresas_private/{cnpj} {

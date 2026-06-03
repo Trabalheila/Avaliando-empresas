@@ -3,6 +3,7 @@ import { auth, db } from "../firebase";
 import { signInAnonymously } from "firebase/auth";
 import { collection, doc, getDocs, query, where, orderBy, limit as limitDocs, setDoc, serverTimestamp } from "firebase/firestore";
 import { slugifyCompany } from "./reviews";
+import { buildApiUrl } from "../utils/apiBase";
 
 // Normaliza o nome para comparação case/acento-insensível (usado no prefix search).
 function normalizeNameForSearch(value) {
@@ -156,9 +157,10 @@ export async function searchCompaniesByName(term, take = 15) {
     limitDocs(take)
   );
 
+  let localResults = [];
   try {
     const snap = await getDocs(q);
-    return snap.docs.map((d) => {
+    localResults = snap.docs.map((d) => {
       const data = d.data() || {};
       return {
         id: d.id,
@@ -169,9 +171,40 @@ export async function searchCompaniesByName(term, take = 15) {
       };
     });
   } catch (err) {
-    // Sem índice composto ou falha de rede: degrada para lista vazia,
-    // o autocomplete cai no comportamento atual (apenas empresas em memória).
-    console.warn("[searchCompaniesByName] falhou:", err?.message || err);
-    return [];
+    console.warn("[searchCompaniesByName] firestore falhou:", err?.message || err);
   }
+
+  // Se o termo tem ao menos 3 caracteres e a base local trouxe poucos
+  // resultados, consultar o BigQuery do OpenCNPJ via nossa API. O endpoint
+  // cacheia o resultado em /companies_search_cache e popula /companies para
+  // que buscas futuras pelo mesmo termo nem precisem chamar a API novamente.
+  if (normalized.length >= 3 && localResults.length < take) {
+    try {
+      const url = buildApiUrl(`/api/cnpj?op=search&q=${encodeURIComponent(normalized)}`);
+      const resp = await fetch(url);
+      if (resp.ok) {
+        const payload = await resp.json();
+        const remote = Array.isArray(payload?.results) ? payload.results : [];
+        const seen = new Set(localResults.map((r) => (r.name || "").toLowerCase()));
+        for (const r of remote) {
+          const key = (r.name || "").toLowerCase();
+          if (!key || seen.has(key)) continue;
+          seen.add(key);
+          localResults.push({
+            id: key,
+            name: r.name,
+            cnpj: digitsOnly(r.cnpj) || null,
+            razaoSocial: r.razaoSocial || null,
+            segmento: null,
+          });
+          if (localResults.length >= take) break;
+        }
+      }
+    } catch (err) {
+      // Falha de rede / endpoint: degrada para apenas resultados locais.
+      console.warn("[searchCompaniesByName] /api/cnpj?op=search falhou:", err?.message || err);
+    }
+  }
+
+  return localResults;
 }
