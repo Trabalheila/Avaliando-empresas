@@ -290,7 +290,13 @@ async function handleSearchByName(req, res) {
     bytesScanned = totalBytesProcessed;
   } catch (err) {
     console.error("[cnpj/search] BigQuery falhou:", err?.message || err);
-    return res.status(502).json({ error: "Falha ao consultar a base de empresas." });
+    // Detalhe do erro vai apenas em header (para debug) e em modo dev no body.
+    const detail = (err?.message || "erro desconhecido").toString().slice(0, 300);
+    res.setHeader("X-Search-Error", encodeURIComponent(detail));
+    return res.status(502).json({
+      error: "Falha ao consultar a base de empresas.",
+      detail: process.env.VERCEL_ENV === "production" ? undefined : detail,
+    });
   }
 
   const results = bqRows.map((r) => {
