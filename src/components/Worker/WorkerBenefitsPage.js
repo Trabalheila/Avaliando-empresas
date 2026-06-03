@@ -7,6 +7,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppHeader from "../AppHeader";
 import PaymentInfoModal from "../Specialist/PaymentInfoModal";
+import { getMpPlanUrl } from "../../utils/mpSubscription";
 
 const ESSENCIAL_BENEFITS = [
   "Busca e filtro de especialistas",
@@ -98,6 +99,11 @@ export default function WorkerBenefitsPage({ theme, toggleTheme }) {
   const [payOpen, setPayOpen] = useState(false);
 
   const handleAssinarPremium = () => {
+    const url = getMpPlanUrl("worker", "premium");
+    if (url) {
+      window.location.assign(url);
+      return;
+    }
     alert(
       "Assinatura Premium em breve! Em breve você poderá assinar diretamente por aqui. Por enquanto, fale com nosso time pelo suporte."
     );
