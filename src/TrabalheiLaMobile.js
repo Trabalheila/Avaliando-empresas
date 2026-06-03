@@ -208,6 +208,7 @@ function TrabalheiLaMobile({
   handleSaibaMais,
   linkedInClientId, linkedInRedirectUri,
   error, setError, isAuthenticated, userProfile, userPseudonym, onLoginSuccess, safeCompanyOptions,
+  handleCompanyInputChange,
   handleLogout,
   onGoogleLogin,
   userVerificationLevel,
@@ -1151,10 +1152,15 @@ function TrabalheiLaMobile({
                 options={safeCompanyOptions}
                 value={company}
                 onChange={setCompany}
+                onInputChange={handleCompanyInputChange}
                 placeholder="Buscar por nome ou CNPJ..."
                 styles={selectStyles}
                 isClearable
-                noOptionsMessage={() => "Empresa não encontrada"}
+                noOptionsMessage={({ inputValue }) =>
+                  inputValue && inputValue.length >= 2
+                    ? "Nenhuma empresa encontrada. Use 'Adicionar nova empresa' abaixo."
+                    : "Digite para buscar uma empresa"
+                }
                 filterOption={(option, rawInput) => {
                   const input = (rawInput || "").toString().trim().toLowerCase();
                   if (!input) return true;

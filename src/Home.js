@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import TrabalheiLaMobile from "./TrabalheiLaMobile";
 import TrabalheiLaDesktop from "./TrabalheiLaDesktop";
 import { empresasBrasileiras } from "./empresas";
 import { saveReview, listRecentReviews, saveSelectionProcessReview, slugifyCompany } from "./services/reviews";
-import { saveCompany, listCompanies, enrichCompanyWithBrasilAPI } from "./services/companies";
+import { saveCompany, listCompanies, enrichCompanyWithBrasilAPI, searchCompaniesByName } from "./services/companies";
 import { getUserProfile, saveUserProfile, findUnifiedProfile } from "./services/users";
 import { auth, db } from "./firebase";
 import { signInAnonymously, signInWithPopup, signOut } from "firebase/auth";
@@ -282,6 +282,9 @@ function Home({ theme, toggleTheme }) {
   const [manualCompanyName, setManualCompanyName] = useState("");
   const [manualSegment, setManualSegment] = useState("");
   const [manualRazaoSocial, setManualRazaoSocial] = useState("");
+  // Resultados remotos do autocomplete de empresa por nome (Firestore prefix search).
+  // Permite encontrar empresas que ainda não estão na lista carregada em memória.
+  const [remoteCompanyOptions, setRemoteCompanyOptions] = useState([]);
   const [rating, setRating] = useState(0);
   const [commentRating, setCommentRating] = useState("");
   const [salario, setSalario] = useState(0);
@@ -713,22 +716,93 @@ function Home({ theme, toggleTheme }) {
     return "bg-red-600";
   };
 
-  const safeCompanyOptions = empresas
-    .filter((emp) => !isBlockedPublicCompany(emp?.company))
-    .sort((a, b) => (a?.company || "").localeCompare(b?.company || "", "pt-BR", { sensitivity: "base" }))
-    .map((emp) => {
-      const cnpjDigits = String(emp?.cnpj || "").replace(/\D/g, "");
-      const cnpjFormatted = cnpjDigits.length === 14
-        ? cnpjDigits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3.$4-$5")
-        : "";
-      return {
-        value: emp.company,
-        label: emp.company,
-        cnpj: cnpjDigits,
-        cnpjFormatted,
-        razaoSocial: emp?.razaoSocial || "",
-      };
-    });
+  const safeCompanyOptions = (() => {
+    const localOptions = empresas
+      .filter((emp) => !isBlockedPublicCompany(emp?.company))
+      .map((emp) => {
+        const cnpjDigits = String(emp?.cnpj || "").replace(/\D/g, "");
+        const cnpjFormatted = cnpjDigits.length === 14
+          ? cnpjDigits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3.$4-$5")
+          : "";
+        return {
+          value: emp.company,
+          label: emp.company,
+          cnpj: cnpjDigits,
+          cnpjFormatted,
+          razaoSocial: emp?.razaoSocial || "",
+          source: "local",
+        };
+      });
+
+    // Mescla resultados remotos do autocomplete (Firestore prefix search) sem
+    // duplicar empresas já presentes na lista local.
+    const seen = new Set(
+      localOptions.map((opt) => (opt.value || "").toString().trim().toLowerCase())
+    );
+    const remoteMerged = (remoteCompanyOptions || [])
+      .filter((opt) => {
+        const key = (opt?.value || "").toString().trim().toLowerCase();
+        if (!key || seen.has(key)) return false;
+        if (isBlockedPublicCompany(opt?.value)) return false;
+        seen.add(key);
+        return true;
+      });
+
+    return [...localOptions, ...remoteMerged].sort((a, b) =>
+      (a?.label || "").localeCompare(b?.label || "", "pt-BR", { sensitivity: "base" })
+    );
+  })();
+
+  // Debounce simples para a busca remota de empresas por nome.
+  const companySearchTimerRef = useRef(null);
+  const companySearchTokenRef = useRef(0);
+  const handleCompanyInputChange = useCallback((rawInput, meta) => {
+    // O react-select dispara onInputChange tambem quando o menu fecha; nesses
+    // casos `meta.action` nao e "input-change" e o `rawInput` vem vazio.
+    // Ignoramos para preservar os resultados ja carregados.
+    if (meta && meta.action && meta.action !== "input-change") return;
+
+    const input = String(rawInput || "").trim();
+    if (companySearchTimerRef.current) {
+      clearTimeout(companySearchTimerRef.current);
+      companySearchTimerRef.current = null;
+    }
+    if (input.length < 2) {
+      setRemoteCompanyOptions([]);
+      return;
+    }
+
+    const token = ++companySearchTokenRef.current;
+    companySearchTimerRef.current = setTimeout(async () => {
+      try {
+        const results = await searchCompaniesByName(input, 15);
+        // Descartar resultado se uma busca mais nova ja foi disparada.
+        if (token !== companySearchTokenRef.current) return;
+        const mapped = (results || []).map((r) => {
+          const cnpjDigits = String(r?.cnpj || "").replace(/\D/g, "");
+          const cnpjFormatted = cnpjDigits.length === 14
+            ? cnpjDigits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3.$4-$5")
+            : "";
+          return {
+            value: r.name,
+            label: r.name,
+            cnpj: cnpjDigits,
+            cnpjFormatted,
+            razaoSocial: r.razaoSocial || "",
+            source: "remote",
+          };
+        });
+        setRemoteCompanyOptions(mapped);
+      } catch (err) {
+        console.warn("[handleCompanyInputChange] falha:", err?.message || err);
+      }
+    }, 300);
+  }, []);
+
+  // Limpa timer ao desmontar.
+  useEffect(() => () => {
+    if (companySearchTimerRef.current) clearTimeout(companySearchTimerRef.current);
+  }, []);
 
   const [selectedCompanyData, setSelectedCompanyData] = useState(null);
 
@@ -2347,6 +2421,7 @@ function Home({ theme, toggleTheme }) {
     onGoogleLogin: handleGoogleLogin,
     userVerificationLevel,
     getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
+    handleCompanyInputChange,
     handleSaibaMais,
   };
 

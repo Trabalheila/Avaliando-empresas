@@ -1,8 +1,18 @@
 
 import { auth, db } from "../firebase";
 import { signInAnonymously } from "firebase/auth";
-import { collection, doc, getDocs, query, orderBy, limit as limitDocs, setDoc, serverTimestamp } from "firebase/firestore";
+import { collection, doc, getDocs, query, where, orderBy, limit as limitDocs, setDoc, serverTimestamp } from "firebase/firestore";
 import { slugifyCompany } from "./reviews";
+
+// Normaliza o nome para comparação case/acento-insensível (usado no prefix search).
+function normalizeNameForSearch(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 function digitsOnly(value) {
   return String(value || "").replace(/\D/g, "");
@@ -107,6 +117,7 @@ export async function saveCompany({
   const payload = {
     name: company,
     slug,
+    nameLowercase: normalizeNameForSearch(company),
     cnpj: digitsOnly(cnpj) || null,
     website: website || null,
     cnaeCode: cnaeCode || null,
@@ -120,4 +131,47 @@ export async function saveCompany({
 
   await setDoc(ref, payload, { merge: true });
   return { id: slug, ...payload };
+}
+
+/**
+ * Busca empresas pelo prefixo do nome (case/acento-insensível).
+ * Roda direto contra Firestore (collection `companies` tem leitura pública)
+ * para evitar custo de função serverless e dar resposta rápida no autocomplete.
+ *
+ * @param {string} term termo digitado pelo usuário
+ * @param {number} take quantos resultados retornar (default 15)
+ * @returns {Promise<Array<{id:string,name:string,cnpj:string|null,razaoSocial:string|null}>>}
+ */
+export async function searchCompaniesByName(term, take = 15) {
+  const normalized = normalizeNameForSearch(term);
+  if (normalized.length < 2) return [];
+
+  const ref = collection(db, "companies");
+  // Prefix search no Firestore: intervalo [normalized, normalized + \uf8ff].
+  const q = query(
+    ref,
+    where("nameLowercase", ">=", normalized),
+    where("nameLowercase", "<=", normalized + "\uf8ff"),
+    orderBy("nameLowercase"),
+    limitDocs(take)
+  );
+
+  try {
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => {
+      const data = d.data() || {};
+      return {
+        id: d.id,
+        name: data.name || data.slug || d.id,
+        cnpj: digitsOnly(data.cnpj) || null,
+        razaoSocial: data.razaoSocial || null,
+        segmento: data.segmento || null,
+      };
+    });
+  } catch (err) {
+    // Sem índice composto ou falha de rede: degrada para lista vazia,
+    // o autocomplete cai no comportamento atual (apenas empresas em memória).
+    console.warn("[searchCompaniesByName] falhou:", err?.message || err);
+    return [];
+  }
 }

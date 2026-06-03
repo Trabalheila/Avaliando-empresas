@@ -130,6 +130,7 @@ function TrabalheiLaDesktop({
   onGoogleLogin,
   userVerificationLevel,
   getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
+  handleCompanyInputChange,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
   handleCaptchaConfirmed,
 }) {
@@ -1054,9 +1055,15 @@ function TrabalheiLaDesktop({
                     options={safeCompanyOptions}
                     value={company}
                     onChange={setCompany}
+                    onInputChange={handleCompanyInputChange}
                     placeholder="Buscar por nome ou CNPJ..."
                     styles={selectStyles}
                     isClearable
+                    noOptionsMessage={({ inputValue }) =>
+                      inputValue && inputValue.length >= 2
+                        ? "Nenhuma empresa encontrada. Use 'Adicionar nova empresa' abaixo."
+                        : "Digite para buscar uma empresa"
+                    }
                     filterOption={(option, rawInput) => {
                       const input = (rawInput || "").toString().trim().toLowerCase();
                       if (!input) return true;
