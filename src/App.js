@@ -19,6 +19,7 @@ import AdminProfessionsManager from './pages/AdminProfessionsManager';
 import AdminDashboardPreview from './pages/AdminDashboardPreview';
 import AdminPlansManager from './pages/AdminPlansManager';
 import AdminGrowthDashboard from './pages/AdminGrowthDashboard';
+import AdminNfseDashboard from './pages/AdminNfseDashboard';
 import EmployerVerification from './pages/EmployerVerification';
 import IndiqueGanhe from './pages/IndiqueGanhe';
 import ConsultorCadastro from './pages/ConsultorCadastro';
@@ -223,6 +224,7 @@ function App() {
       <Route path="/admin/preview-apoiador" element={<AdminDashboardPreview theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/admin/plans" element={<AdminPlansManager theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/admin/crescimento" element={<AdminGrowthDashboard theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/admin/nfse" element={<AdminNfseDashboard theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/empresa/verificacao" element={<EmployerVerification theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/indique-e-ganhe" element={<IndiqueGanhe theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/consultores/cadastro" element={<ConsultorCadastro theme={theme} toggleTheme={toggleTheme} />} />
