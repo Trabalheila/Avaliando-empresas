@@ -591,11 +591,15 @@ async function handleUpdatePlan(req, res) {
 }
 
 export default async function handler(req, res) {
+  const op = String(req.query?.op || "").toLowerCase();
+
+  // op=nfse-list permite GET (consulta read-only). As demais exigem POST.
+  if (op === "nfse-list" && req.method === "GET") return handleNfseList(req, res);
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const op = String(req.query?.op || "").toLowerCase();
   if (op === "delete") return handleDelete(req, res);
   if (op === "reviews") return handleReviews(req, res);
   if (op === "users") return handleListUsers(req, res);
@@ -609,6 +613,8 @@ export default async function handler(req, res) {
   if (op === "verify-resend") return handleVerifyResend(req, res);
   if (op === "verify-list") return handleVerifyList(req, res);
   if (op === "verify-decision") return handleVerifyDecision(req, res);
+  if (op === "nfse-list") return handleNfseList(req, res);
+  if (op === "nfse-refresh") return handleNfseRefresh(req, res);
 
   return res.status(400).json({
     error:
@@ -1328,4 +1334,127 @@ async function handleVerifyDecision(req, res) {
     console.error("[admin/verify-decision] erro:", err);
     return res.status(500).json({ error: err?.message || "Erro ao decidir." });
   }
+}
+
+/* ────────────────────────────────────────────────
+   op=nfse-list / op=nfse-refresh
+   Auditoria das emissoes automaticas (collection `nfse_emissoes`).
+   ──────────────────────────────────────────────── */
+
+function getFocusBaseUrl() {
+  const env = (process.env.FOCUS_NFE_ENV || "homologacao").toLowerCase();
+  return env === "producao"
+    ? "https://api.focusnfe.com.br"
+    : "https://homologacao.focusnfe.com.br";
+}
+
+function serializeNfseDoc(doc) {
+  const data = doc.data() || {};
+  const createdAt = data.createdAt?.toDate?.()?.toISOString?.() || null;
+  return {
+    id: doc.id,
+    ref: data.ref || doc.id,
+    paymentId: data.paymentId || null,
+    amount: data.amount ?? null,
+    cnpj: data.cnpj || null,
+    companySlug: data.companySlug || null,
+    apoiadorId: data.apoiadorId || null,
+    audience: data.audience || null,
+    ok: !!data.ok,
+    skipped: !!data.skipped,
+    reason: data.reason || null,
+    status: data.status || null,
+    message: data.message || null,
+    env: data.env || null,
+    provider: data.provider || null,
+    focusStatus: data.focusStatus || null,
+    focusUrlPdf: data.focusUrlPdf || null,
+    focusNumeroNfse: data.focusNumeroNfse || null,
+    createdAt,
+  };
+}
+
+async function handleNfseList(req, res) {
+  const uid = (req.query?.uid || req.body?.uid || "").toString().trim();
+  if (!requireAdminUid(uid)) {
+    return res.status(403).json({ error: "Acesso restrito ao administrador." });
+  }
+  const limit = Math.min(Number(req.query?.limit || 50) || 50, 200);
+
+  try {
+    const { db } = await ensureAdmin();
+    const snap = await db
+      .collection("nfse_emissoes")
+      .orderBy("createdAt", "desc")
+      .limit(limit)
+      .get();
+    const items = snap.docs.map(serializeNfseDoc);
+    return res.status(200).json({ items, count: items.length });
+  } catch (err) {
+    console.error("[admin/nfse-list] erro:", err);
+    return res.status(500).json({ error: err?.message || "Erro ao listar NFS-e." });
+  }
+}
+
+async function handleNfseRefresh(req, res) {
+  const body = req.body || {};
+  const uid = (body.uid || req.query?.uid || "").toString().trim();
+  if (!requireAdminUid(uid)) {
+    return res.status(403).json({ error: "Acesso restrito ao administrador." });
+  }
+
+  const ref = (body.ref || req.query?.ref || "").toString().trim();
+  if (!ref) {
+    return res.status(400).json({ error: "Parametro 'ref' obrigatorio." });
+  }
+
+  const token = (process.env.FOCUS_NFE_TOKEN || "").trim();
+  if (!token) {
+    return res.status(503).json({ error: "FOCUS_NFE_TOKEN nao configurado." });
+  }
+
+  const url = `${getFocusBaseUrl()}/v2/nfse?ref=${encodeURIComponent(ref)}`;
+  const basicAuth = Buffer.from(`${token}:`).toString("base64");
+
+  let response;
+  try {
+    response = await fetch(url, {
+      method: "GET",
+      headers: { Authorization: `Basic ${basicAuth}` },
+    });
+  } catch (err) {
+    return res.status(502).json({ error: err?.message || "Falha de rede" });
+  }
+
+  const text = await response.text();
+  let json;
+  try {
+    json = text ? JSON.parse(text) : {};
+  } catch {
+    json = { raw: text };
+  }
+
+  try {
+    const { db, FieldValue } = await ensureAdmin();
+    await db.collection("nfse_emissoes").doc(ref).set(
+      {
+        ref,
+        lastRefreshAt: FieldValue.serverTimestamp(),
+        focusStatus: json?.status || null,
+        focusUrlPdf: json?.url_danfse || json?.caminho_xml_nota_fiscal || null,
+        focusUrlXml: json?.caminho_xml_nota_fiscal || null,
+        focusNumeroNfse: json?.numero || null,
+        focusRaw: json,
+      },
+      { merge: true }
+    );
+  } catch (writeErr) {
+    console.warn("[admin/nfse-refresh] falha ao persistir:", writeErr?.message || writeErr);
+  }
+
+  return res.status(response.status).json({
+    ok: response.ok,
+    status: response.status,
+    data: json,
+  });
 }

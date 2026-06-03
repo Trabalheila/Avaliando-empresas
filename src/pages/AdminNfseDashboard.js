@@ -75,7 +75,7 @@ export default function AdminNfseDashboard({ theme, toggleTheme }) {
     try {
       const uid = getAdminUid();
       if (!uid) throw new Error("UID do administrador nao encontrado no perfil.");
-      const r = await fetch(`/api/admin-nfse?op=list&uid=${encodeURIComponent(uid)}&limit=100`);
+      const r = await fetch(`/api/admin?op=nfse-list&uid=${encodeURIComponent(uid)}&limit=100`);
       const data = await r.json();
       if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
       setItems(Array.isArray(data.items) ? data.items : []);
@@ -95,7 +95,7 @@ export default function AdminNfseDashboard({ theme, toggleTheme }) {
     setRefreshingRef(ref);
     try {
       const uid = getAdminUid();
-      const r = await fetch("/api/admin-nfse?op=refresh", {
+      const r = await fetch("/api/admin?op=nfse-refresh", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uid, ref }),
