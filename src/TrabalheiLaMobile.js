@@ -819,47 +819,6 @@ function TrabalheiLaMobile({
           )}
         </div>
 
-        {/* Banner Premium Mobile */}
-        <div
-          className="mobilePremiumBanner"
-          style={{
-            display: 'none',
-            background: 'linear-gradient(90deg, #1e3a5f 0%, #2563eb 100%)',
-            borderRadius: 12,
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 12px',
-            gap: 8,
-          }}
-        >
-          <span style={{ fontSize: '1rem', lineHeight: 1 }}>⭐</span>
-          <span style={{ color: '#fff', fontSize: '0.8rem', fontWeight: 600, flex: 1, textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.3 }}>
-            Premium para trabalhadores, empresas e especialistas — conheça os planos
-          </span>
-          <button
-            type="button"
-            onClick={() => navigate('/escolha-perfil?planos=1')}
-            style={{
-              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-              color: '#1e293b',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              border: 'none',
-              borderRadius: 8,
-              padding: '4px 10px',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Ver
-          </button>
-        </div>
-        <style>{`
-          @media (max-width: 768px) {
-            .mobilePremiumBanner { display: flex !important; }
-          }
-        `}</style>
-
         {/* HERO CARD MOBILE — unifica login + crie sua conta + saudação */}
         {(() => {
           const role = (userProfile?.role || "").toString().toLowerCase().trim();

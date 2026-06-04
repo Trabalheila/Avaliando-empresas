@@ -17,6 +17,7 @@ import { db } from "../../firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import AppHeader from "../AppHeader";
 import { filterOutTestApoiadores } from "../../utils/testAccounts";
+import { isPremiumWorker } from "../../utils/rbac";
 
 /* ────────────────────────────────────────────────────────────── */
 /* Especialidades suportadas (alinhadas ao SPECIALIST_CONFIGS).   */
@@ -186,7 +187,7 @@ function StarRow({ rating }) {
   );
 }
 
-function SpecialistCard({ specialist, workerIsPremium }) {
+function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
   const tipoLabel =
     SPECIALTY_OPTIONS.find((o) => o.value === normalizeTipo(specialist.tipo))?.label ||
     "Especialista";
@@ -304,16 +305,28 @@ function SpecialistCard({ specialist, workerIsPremium }) {
         >
           Ver perfil
         </Link>
-        <Link
-          to={`/chat/spec_${encodeURIComponent(specialist.id)}?peer=${encodeURIComponent(
-            specialist.nome || "Especialista"
-          )}&peerRole=especialista&specialistType=${encodeURIComponent(
-            normalizeTipo(specialist.tipo) || "outro"
-          )}`}
-          className="text-center px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
-        >
-          💬 Iniciar conversa
-        </Link>
+        {workerIsPremium ? (
+          <Link
+            to={`/chat/spec_${encodeURIComponent(specialist.id)}?peer=${encodeURIComponent(
+              specialist.nome || "Especialista"
+            )}&peerRole=especialista&specialistType=${encodeURIComponent(
+              normalizeTipo(specialist.tipo) || "outro"
+            )}`}
+            className="text-center px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
+            title="Consulta com acompanhamento contínuo (Premium)"
+          >
+            💬 Consulta com acompanhamento
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onPontualClick?.(specialist)}
+            className="text-center px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
+            title="Pergunta única, sem histórico nem follow-up"
+          >
+            ✉️ Consulta pontual
+          </button>
+        )}
       </div>
 
       {planType === "Premium" && (specialist.email || specialist.whatsapp) ? (
@@ -383,9 +396,12 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
   const [planTypeFilter, setPlanTypeFilter] = useState(""); // "", "Essencial", "Premium"
   const [sortBy, setSortBy] = useState("rating");
 
-  // Plano do trabalhador (mock via localStorage userProfile).
+  // Plano do trabalhador. Usa a util centralizada de RBAC (que considera
+  // is_premium_worker, role e fallback de apoiador). Aceita também as flags
+  // legadas (isWorkerPremium / isPremium / plano="premium").
   const workerIsPremium = useMemo(() => {
     try {
+      if (isPremiumWorker()) return true;
       const p = JSON.parse(localStorage.getItem("userProfile") || "{}") || {};
       return (
         p.isWorkerPremium === true ||
@@ -396,6 +412,9 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
       return false;
     }
   }, []);
+
+  // Especialista selecionado para "consulta pontual" (fluxo gratuito).
+  const [pontualSpecialist, setPontualSpecialist] = useState(null);
 
   // Dados
   const [remote, setRemote] = useState([]);
@@ -547,13 +566,47 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
             Diretório de especialistas
           </p>
           <h1 className="mt-1 text-2xl sm:text-3xl font-extrabold text-slate-800 dark:text-slate-100">
-            Encontre o especialista ideal para você
+            De quem você precisa de ajuda?
           </h1>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
-            Busque por nome, especialidade ou área de atuação e filtre por
-            preço, avaliação e verificação.
+            {workerIsPremium ? (
+              <>
+                Escolha a especialidade abaixo, selecione o profissional e
+                inicie uma <strong>consulta com acompanhamento</strong> contínuo.
+              </>
+            ) : (
+              <>
+                Selecione uma especialidade para ver os profissionais
+                disponíveis para uma <strong>consulta pontual</strong> (uma
+                pergunta, sem histórico).{" "}
+                <span className="text-blue-700 dark:text-blue-300 font-semibold">
+                  Para uma consulta com acompanhamento é necessário o plano
+                  Premium.
+                </span>
+              </>
+            )}
           </p>
         </header>
+
+        {!workerIsPremium && (
+          <div className="rounded-2xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-widest font-bold text-amber-700 dark:text-amber-300">
+                Plano Gratuito
+              </p>
+              <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">
+                Para consulta com acompanhamento e escolha de profissional,
+                assine o <strong>Plano Premium</strong> (R$ 29,90/mês).
+              </p>
+            </div>
+            <Link
+              to="/trabalhador/beneficios"
+              className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold transition"
+            >
+              ✨ Assinar Premium
+            </Link>
+          </div>
+        )}
 
         {/* Painel de filtros */}
         <section
@@ -593,6 +646,8 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
               </select>
             </div>
 
+            {workerIsPremium && (
+              <>
             <div>
               <label htmlFor="fsp-rating" className="text-xs font-bold text-slate-600 dark:text-slate-300">
                 Avaliação mínima
@@ -685,6 +740,8 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
                 Apenas verificados
               </label>
             </div>
+              </>
+            )}
           </div>
 
           <div className="flex items-center justify-between gap-3 pt-1">
@@ -718,7 +775,12 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
         ) : (
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((s) => (
-              <SpecialistCard key={s.id} specialist={s} workerIsPremium={workerIsPremium} />
+              <SpecialistCard
+                key={s.id}
+                specialist={s}
+                workerIsPremium={workerIsPremium}
+                onPontualClick={setPontualSpecialist}
+              />
             ))}
           </section>
         )}
@@ -741,6 +803,138 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
           </button>
         </div>
       </main>
+
+      {pontualSpecialist && (
+        <PontualConsultationModal
+          specialist={pontualSpecialist}
+          onClose={() => setPontualSpecialist(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────── */
+/* Modal de "Consulta Pontual" (fluxo gratuito).                  */
+/* Pergunta única, sem histórico, sem follow-up. Ao final, exibe  */
+/* CTA para o Plano Premium (acompanhamento).                     */
+/* ────────────────────────────────────────────────────────────── */
+function PontualConsultationModal({ specialist, onClose }) {
+  const navigate = useNavigate();
+  const [question, setQuestion] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const MAX = 600;
+
+  const send = () => {
+    const text = question.trim();
+    if (!text) return;
+    // Persistência simples local — o backend real de mensagem pontual
+    // pode ser plugado aqui (ex.: api/send-contact-request).
+    try {
+      const key = `pontualConsults:${specialist.id}`;
+      const list = JSON.parse(localStorage.getItem(key) || "[]");
+      list.push({ at: Date.now(), question: text });
+      localStorage.setItem(key, JSON.stringify(list));
+    } catch {
+      /* silencioso */
+    }
+    setSubmitted(true);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-lg w-full p-6 border border-slate-200 dark:border-slate-700"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {!submitted ? (
+          <>
+            <p className="text-[11px] uppercase tracking-widest font-bold text-blue-700 dark:text-blue-300">
+              Consulta Pontual · Plano Gratuito
+            </p>
+            <h2 className="mt-1 text-xl font-extrabold text-slate-800 dark:text-slate-100">
+              Pergunta única para {specialist.nome}
+            </h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              Você pode enviar <strong>uma pergunta</strong>. Não há histórico
+              nem follow-up. Para acompanhamento contínuo e escolha de
+              profissional, assine o Plano Premium.
+            </p>
+            <label htmlFor="pontual-q" className="sr-only">
+              Sua pergunta
+            </label>
+            <textarea
+              id="pontual-q"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value.slice(0, MAX))}
+              placeholder="Descreva sua dúvida em poucas linhas..."
+              rows={5}
+              className="mt-3 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100"
+            />
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 text-right">
+              {question.length}/{MAX}
+            </p>
+            <div className="mt-4 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={send}
+                disabled={!question.trim()}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold"
+              >
+                Enviar pergunta
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                Cancelar
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-100">
+              ✅ Pergunta enviada
+            </h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              Sua pergunta foi enviada a {specialist.nome}. Como você está no
+              plano Gratuito, esta é uma <strong>interação única</strong> —
+              não haverá histórico ou follow-up.
+            </p>
+            <div className="mt-4 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 p-3">
+              <p className="text-sm text-slate-700 dark:text-slate-200">
+                Para consulta com acompanhamento e escolha de profissional,
+                assine o <strong>Plano Premium</strong> (R$ 29,90/mês).
+              </p>
+            </div>
+            <div className="mt-4 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  navigate("/trabalhador/beneficios");
+                }}
+                className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold"
+              >
+                ✨ Assinar Premium
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                Fechar
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
