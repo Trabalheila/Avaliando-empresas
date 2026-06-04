@@ -14,6 +14,7 @@ import { getUserRole, isPremium, isAdmin } from "../utils/rbac";
 import { resolveProfileId } from "../utils/profileIdentity";
 import AppHeader from "../components/AppHeader";
 import WorkerProfessionalContactSettings from "../components/WorkerProfessionalContactSettings";
+import ConsultaAvulsaModal from "../components/ConsultaAvulsaModal";
 import { buildVideoCallLink, formatStartsIn } from "../utils/videoCall";
 
 /* ════════════════════════════════════════════════
@@ -60,6 +61,7 @@ export default function MinhaConta({ theme, toggleTheme }) {
   const [profile, setProfile] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [consultaAvulsaOpen, setConsultaAvulsaOpen] = useState(false);
 
   // Carregar dados
   useEffect(() => {
@@ -240,7 +242,7 @@ export default function MinhaConta({ theme, toggleTheme }) {
             {planLabel}
           </div>
           {!isPremium() && (
-            <div className="mt-4">
+            <div className="mt-4 flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => navigate("/escolha-perfil?planos=1")}
@@ -251,9 +253,34 @@ export default function MinhaConta({ theme, toggleTheme }) {
                 </svg>
                 Fazer upgrade
               </button>
+              <button
+                type="button"
+                onClick={() => setConsultaAvulsaOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 bg-white dark:bg-slate-900 text-sm font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/30 transition"
+                title="Solicite uma consulta pontual com um especialista (sem acompanhamento)"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Consulta Avulsa
+              </button>
             </div>
           )}
+          {!isPremium() && (
+            <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+              <strong>Consulta Avulsa</strong> é uma interação pontual com um
+              especialista (sujeita a aceite do profissional). A
+              <strong> consulta com acompanhamento</strong> e a escolha
+              avançada de profissionais são exclusivas do Plano Premium.
+            </p>
+          )}
         </section>
+
+        <ConsultaAvulsaModal
+          open={consultaAvulsaOpen}
+          onClose={() => setConsultaAvulsaOpen(false)}
+          worker={profile}
+        />
 
         {/* ══════ Próxima Videochamada (Premium) ══════ */}
         <NextVideoCallSection profile={profile} navigate={navigate} />

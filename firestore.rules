@@ -189,5 +189,39 @@ service cloud.firestore {
       allow update: if request.auth != null && request.auth.uid == userId;
       allow delete: if false;
     }
+
+    // Consultas (pontuais/avulsas e agendadas) entre Trabalhadores e
+    // Especialistas (apoiadores). Solicitadas pelo trabalhador; aceitas
+    // ou recusadas pelo apoiador.
+    //
+    // Campos obrigatórios na criação:
+    //   workerId       = request.auth.uid (solicitante)
+    //   apoiadorId     = id do apoiador (string)
+    //   status         = "pending"
+    //   tipo / type    = "avulsa" | "acompanhamento" | ...
+    match /consultas/{consultaId} {
+      // Apenas o trabalhador solicitante (workerId) e o apoiador
+      // destinatário (apoiadorId == auth.uid) podem ler.
+      allow read: if request.auth != null
+        && (resource.data.workerId == request.auth.uid
+            || resource.data.apoiadorId == request.auth.uid);
+
+      // Criação: o trabalhador autenticado registra a solicitação.
+      allow create: if request.auth != null
+        && request.resource.data.workerId == request.auth.uid
+        && request.resource.data.apoiadorId is string
+        && request.resource.data.status == "pending";
+
+      // Atualização: o apoiador destinatário pode aceitar/recusar
+      // e marcar como lida; o trabalhador pode cancelar a solicitação.
+      // Os identificadores (workerId/apoiadorId) não podem mudar.
+      allow update: if request.auth != null
+        && request.resource.data.workerId == resource.data.workerId
+        && request.resource.data.apoiadorId == resource.data.apoiadorId
+        && (resource.data.apoiadorId == request.auth.uid
+            || resource.data.workerId == request.auth.uid);
+
+      allow delete: if false;
+    }
   }
 }
