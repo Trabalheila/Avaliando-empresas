@@ -16,6 +16,8 @@ import AppHeader from "../components/AppHeader";
 import WorkerProfessionalContactSettings from "../components/WorkerProfessionalContactSettings";
 import ConsultaAvulsaModal from "../components/ConsultaAvulsaModal";
 import VerifyIdentitySection from "../components/VerifyIdentitySection";
+import ExperienceManagerModal from "../components/ExperienceManagerModal";
+import EditProfileModal from "../components/EditProfileModal";
 import { buildVideoCallLink, formatStartsIn } from "../utils/videoCall";
 
 /* ════════════════════════════════════════════════
@@ -63,6 +65,8 @@ export default function MinhaConta({ theme, toggleTheme }) {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [consultaAvulsaOpen, setConsultaAvulsaOpen] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [experienceModalOpen, setExperienceModalOpen] = useState(false);
 
   // Carregar dados
   useEffect(() => {
@@ -209,7 +213,7 @@ export default function MinhaConta({ theme, toggleTheme }) {
             <div className="flex flex-col gap-2 shrink-0">
               <button
                 type="button"
-                onClick={() => navigate("/pseudonym")}
+                onClick={() => setEditProfileOpen(true)}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition border border-slate-200 dark:border-slate-700"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -283,37 +287,91 @@ export default function MinhaConta({ theme, toggleTheme }) {
           worker={profile}
         />
 
+        <EditProfileModal
+          open={editProfileOpen}
+          onClose={() => setEditProfileOpen(false)}
+          profile={profile}
+          onSaved={(next) => setProfile(next)}
+        />
+
         {/* ══════ Próxima Videochamada (Premium) ══════ */}
         <NextVideoCallSection profile={profile} navigate={navigate} />
 
-        {/* ══════ Experiências ══════ */}
-        {experiences.length > 0 && (
-          <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
-            <h2 className="text-lg font-bold text-blue-800 dark:text-blue-200 mb-4 flex items-center gap-2">
+        {/* ══════ Minhas Experiências Profissionais ══════ */}
+        <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
+          <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+            <h2 className="text-lg font-bold text-blue-800 dark:text-blue-200 flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
-              Experiências
+              Minhas Experiências Profissionais
             </h2>
-            <div className="space-y-2">
-              {experiences.map((exp, i) => (
-                <div key={i} className="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm truncate">{exp.company}</p>
-                    {exp.role && <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{exp.role}</p>}
-                  </div>
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                    exp.verified || exp.source === "linkedin"
-                      ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-700"
-                      : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-600"
-                  }`}>
-                    {exp.verified || exp.source === "linkedin" ? "LinkedIn" : "Manual"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+            <button
+              type="button"
+              onClick={() => setExperienceModalOpen(true)}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Adicionar Experiência
+            </button>
+          </div>
+
+          {experiences.length === 0 ? (
+            <p className="text-slate-500 dark:text-slate-400 text-sm text-center py-6">
+              Nenhuma experiência profissional adicionada.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {experiences.map((exp, i) => {
+                const isVerified = exp.verified || exp.source === "linkedin";
+                return (
+                  <li
+                    key={`${exp.company}-${exp.role}-${i}`}
+                    className="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm truncate">
+                        {exp.company || "—"}
+                      </p>
+                      {exp.role && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                          {exp.role}
+                        </p>
+                      )}
+                    </div>
+                    {isVerified ? (
+                      <span
+                        className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-700"
+                        title="Experiência verificada via LinkedIn"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Verificada
+                      </span>
+                    ) : (
+                      <span
+                        className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-600"
+                        title="Adicionada manualmente — não verificada"
+                      >
+                        Não verificada
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
+        <ExperienceManagerModal
+          open={experienceModalOpen}
+          onClose={() => setExperienceModalOpen(false)}
+          profile={profile}
+          onSaved={(next) => setProfile(next)}
+        />
 
         {/* ══════ Histórico de Avaliações ══════ */}
         <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
