@@ -6,6 +6,7 @@ import { empresasBrasileiras } from "./empresas";
 import { saveReview, listRecentReviews, saveSelectionProcessReview, slugifyCompany } from "./services/reviews";
 import { saveCompany, listCompanies, enrichCompanyWithBrasilAPI, searchCompaniesByName } from "./services/companies";
 import { getUserProfile, saveUserProfile, findUnifiedProfile } from "./services/users";
+import { savePendingReview, clearPendingReview } from "./utils/pendingReview";
 import { auth, db } from "./firebase";
 import { signInAnonymously, signInWithPopup, signOut } from "firebase/auth";
 import { onAuthStateChanged } from "firebase/auth";
@@ -385,6 +386,12 @@ function Home({ theme, toggleTheme }) {
   const [responsibilityAccepted, setResponsibilityAccepted] = useState(false);
   const [pendingEvaluationData, setPendingEvaluationData] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // Lazy registration: modal de convite exibido após o usuário enviar
+  // uma avaliação SEM ter pseudônimo. A avaliação fica bufferizada em
+  // localStorage (savePendingReview) e só vai ao Firestore depois que o
+  // perfil for criado em /pseudonym (drenado em ChoosePseudonym).
+  const [showSignupInviteModal, setShowSignupInviteModal] = useState(false);
+  const [signupInviteCompanyName, setSignupInviteCompanyName] = useState("");
 
   // Após login bem-sucedido, se houver um destino solicitado (via query string
   // ou sessionStorage — que sobrevive ao redirect do OAuth), navega para lá.
@@ -1448,6 +1455,49 @@ function Home({ theme, toggleTheme }) {
     const pseudonym = (evaluationData?.pseudonym || "").toString().trim();
     const isAnonymousAuthor = !pseudonym;
 
+    // ──────────────────────────────────────────────────────────────────
+    // LAZY REGISTRATION (etapa 1): se o usuário NÃO tem pseudônimo, NÃO
+    // envia a avaliação ao Firestore agora. Bufferiza em localStorage e
+    // abre o modal de convite. O envio real acontecerá em ChoosePseudonym
+    // após o perfil ser criado (drainPendingReview).
+    // ──────────────────────────────────────────────────────────────────
+    if (isAnonymousAuthor) {
+      const buffered = savePendingReview(evaluationData);
+      // Dedup local rápido — evita reenvio acidental ao mesmo formulário
+      // antes de criar o perfil.
+      const evaluationsKey = `evaluations_${evaluationData.company}`;
+      try {
+        const storedEvals = localStorage.getItem(evaluationsKey);
+        const existingEvals = storedEvals ? JSON.parse(storedEvals) : {};
+        localStorage.setItem(
+          evaluationsKey,
+          JSON.stringify({ ...existingEvals, __anon_pending__: evaluationData })
+        );
+      } catch {
+        /* ignore */
+      }
+
+      try {
+        sessionStorage.setItem("trabalheiLa_postReviewPseudonymPrompt", "1");
+      } catch {
+        /* ignore */
+      }
+
+      localStorage.removeItem(REVIEW_DRAFT_STORAGE_KEY);
+      setSignupInviteCompanyName(evaluationData?.company || "");
+      setShowSignupInviteModal(true);
+
+      if (!buffered) {
+        // Fallback: se o localStorage falhar (modo privado), avisa o usuário.
+        setEmailVerificationToast({
+          type: "error",
+          message:
+            "Não conseguimos guardar sua avaliação localmente. Crie seu perfil para tentar enviar novamente.",
+        });
+      }
+      return;
+    }
+
     // Avaliação de Processo Seletivo (usuário NÃO contratado).
     // Persiste em coleção separada, NÃO atualiza médias da empresa.
     if (evaluationData?.type === "selectionProcess") {
@@ -1459,15 +1509,6 @@ function Home({ theme, toggleTheme }) {
           "Avaliação do processo seletivo enviada! Obrigado por sua contribuição.",
       });
       localStorage.removeItem(REVIEW_DRAFT_STORAGE_KEY);
-      if (isAnonymousAuthor) {
-        try {
-          sessionStorage.setItem("trabalheiLa_postReviewPseudonymPrompt", "1");
-        } catch { /* ignore */ }
-        setTimeout(() => {
-          navigate("/pseudonym?after-review=1");
-        }, 1500);
-        return;
-      }
       setTimeout(() => {
         navigate(`/empresa?name=${encodeURIComponent(evaluationData.company)}`);
       }, 1500);
@@ -1475,19 +1516,13 @@ function Home({ theme, toggleTheme }) {
     }
 
     // Não permite que o mesmo pseudônimo avalie a mesma empresa mais de uma vez (cache local rápido).
-    // Quando o usuário ainda é anônimo, usamos a chave especial "__anon__" para
-    // bloquear duplicatas na mesma sessão.
     const evaluationsKey = `evaluations_${evaluationData.company}`;
     const storedEvals = localStorage.getItem(evaluationsKey);
     const existingEvals = storedEvals ? JSON.parse(storedEvals) : {};
-    const dedupeKey = pseudonym || "__anon__";
+    const dedupeKey = pseudonym;
 
     if (existingEvals[dedupeKey]) {
-      setError(
-        pseudonym
-          ? "Você já avaliou essa empresa com este pseudônimo."
-          : "Você já enviou uma avaliação anônima para essa empresa nesta sessão."
-      );
+      setError("Você já avaliou essa empresa com este pseudônimo.");
       return;
     }
 
@@ -1553,28 +1588,15 @@ function Home({ theme, toggleTheme }) {
       })
     );
 
-    const successMessage = isAnonymousAuthor
-      ? "Avaliação enviada com sucesso! Crie seu pseudônimo para manter suas avaliações vinculadas ao seu perfil."
-      : evaluationData?.hasPotentialPersonalName
-        ? "Avaliação enviada com sucesso! Identificamos uma possível citação de nome no seu comentário; sua avaliação foi registrada e poderá ser revisada por nossa equipe."
-        : "Avaliação enviada com sucesso! Obrigado por sua contribuição.";
+    const successMessage = evaluationData?.hasPotentialPersonalName
+      ? "Avaliação enviada com sucesso! Identificamos uma possível citação de nome no seu comentário; sua avaliação foi registrada e poderá ser revisada por nossa equipe."
+      : "Avaliação enviada com sucesso! Obrigado por sua contribuição.";
     setEmailVerificationToast({ type: "success", message: successMessage });
     localStorage.removeItem(REVIEW_DRAFT_STORAGE_KEY);
-    // Aguarda alguns instantes para o usuário ver o toast antes de navegar.
-    // Lazy registration: se o usuário avaliou anonimamente, leva ele direto
-    // para a página de criação de pseudônimo com a flag `?after-review=1` para
-    // que o ChoosePseudonym exiba o convite específico e dispare o backfill.
     setTimeout(() => {
-      if (isAnonymousAuthor) {
-        try {
-          sessionStorage.setItem("trabalheiLa_postReviewPseudonymPrompt", "1");
-        } catch { /* ignore */ }
-        navigate("/pseudonym?after-review=1");
-      } else {
-        navigate(`/empresa?name=${encodeURIComponent(evaluationData.company)}`);
-      }
+      navigate(`/empresa?name=${encodeURIComponent(evaluationData.company)}`);
     }, 1500);
-  }, [navigate]);
+  }, [navigate, REVIEW_DRAFT_STORAGE_KEY]);
 
   // Roda as validações e abre o modal de Termo de Responsabilidade.
   // Compartilhado entre o clique inicial em "Enviar Avaliação" (quando o
@@ -2527,6 +2549,118 @@ function Home({ theme, toggleTheme }) {
                 }}
               >
                 Publicar Avaliação
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ──────────────────────────────────────────────────────────────
+          Lazy Registration — modal de convite após o usuário enviar
+          uma avaliação sem ter um perfil/pseudônimo. A avaliação fica
+          guardada em localStorage (pendingReview) e é enviada ao
+          Firestore quando o perfil for criado em /pseudonym.
+          ────────────────────────────────────────────────────────────── */}
+      {showSignupInviteModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Crie seu perfil para concluir"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 90,
+            backgroundColor: "rgba(15, 23, 42, 0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 480,
+              borderRadius: 16,
+              backgroundColor: "#ffffff",
+              color: "#0f172a",
+              boxShadow: "0 24px 48px rgba(2, 6, 23, 0.28)",
+              padding: "24px 24px 20px 24px",
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                margin: "0 auto 12px auto",
+                borderRadius: "50%",
+                backgroundColor: "#dcfce7",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 28,
+              }}
+              aria-hidden="true"
+            >
+              ✅
+            </div>
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#15803d" }}>
+              Sua avaliação foi enviada!
+            </h2>
+            <p style={{ marginTop: 10, marginBottom: 0, fontSize: 15, lineHeight: 1.5 }}>
+              {signupInviteCompanyName
+                ? `Sua avaliação de "${signupInviteCompanyName}" está pronta. `
+                : "Sua avaliação está pronta. "}
+              Agora, crie seu <strong>perfil anônimo</strong> para concluir o
+              envio e mantê-la vinculada a você.
+            </p>
+            <p style={{ marginTop: 8, marginBottom: 0, fontSize: 12, color: "#64748b" }}>
+              Você escolhe um pseudônimo — não pedimos seu nome real nem CPF.
+            </p>
+
+            <div
+              style={{
+                marginTop: 20,
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSignupInviteModal(false);
+                  navigate("/pseudonym?after-review=1");
+                }}
+                style={{
+                  border: "none",
+                  borderRadius: 10,
+                  padding: "12px 16px",
+                  backgroundColor: "#16a34a",
+                  color: "#ffffff",
+                  fontWeight: 800,
+                  fontSize: 15,
+                  cursor: "pointer",
+                }}
+              >
+                Criar meu perfil agora
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSignupInviteModal(false)}
+                style={{
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 10,
+                  padding: "8px 14px",
+                  backgroundColor: "#ffffff",
+                  color: "#475569",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+              >
+                Depois
               </button>
             </div>
           </div>

@@ -4,7 +4,8 @@ import { getUserProfile, saveUserProfile, findUnifiedProfile } from "../services
 import { normalizeEmail, resolveProfileId } from "../utils/profileIdentity";
 import { extractResumeText, parseResumeText } from "../utils/resumeParser";
 import { listCompanies } from "../services/companies";
-import { linkAnonymousReviewsToPseudonym } from "../services/reviews";
+import { linkAnonymousReviewsToPseudonym, saveReview } from "../services/reviews";
+import { loadPendingReview, clearPendingReview } from "../utils/pendingReview";
 import AppHeader from "../components/AppHeader";
 import YouTubeEmbed from "../components/YouTubeEmbed";
 import EssencialFreePopup from "../components/EssencialFreePopup";
@@ -1137,6 +1138,47 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     }
   }, [cpf, birthdate]);
 
+  // ─── Lazy Registration: drena o buffer de avaliação pendente ───
+  // Quando o usuário envia uma avaliação SEM ter pseudônimo, ela fica
+  // guardada em localStorage (savePendingReview, em Home.js). Após o
+  // perfil ser criado aqui, drenamos esse buffer e enviamos a avaliação
+  // ao Firestore com o pseudônimo correto. Falhas não bloqueiam o fluxo
+  // — o usuário poderá refazer a avaliação se necessário.
+  const drainPendingReview = useCallback(
+    async ({ pseudonym: chosenPseudo, authorProfileId }) => {
+      const wrapped = loadPendingReview();
+      if (!wrapped?.payload) return { drained: false };
+      const stored = wrapped.payload;
+      const enriched = {
+        ...stored,
+        pseudonym: chosenPseudo,
+        authorProfileId: authorProfileId || stored.authorProfileId,
+      };
+      try {
+        await saveReview(enriched);
+        clearPendingReview();
+        // Limpa também o dedup local da empresa (chave __anon_pending__).
+        try {
+          const evalsKey = `evaluations_${stored.company}`;
+          const stored2 = localStorage.getItem(evalsKey);
+          if (stored2) {
+            const parsed = JSON.parse(stored2);
+            if (parsed && typeof parsed === "object") {
+              delete parsed.__anon_pending__;
+              parsed[chosenPseudo] = enriched;
+              localStorage.setItem(evalsKey, JSON.stringify(parsed));
+            }
+          }
+        } catch { /* ignore */ }
+        return { drained: true, company: stored.company };
+      } catch (err) {
+        console.warn("[lazyReg] Falha ao drenar avaliação pendente:", err?.message || err);
+        return { drained: false, error: err };
+      }
+    },
+    []
+  );
+
   // ─── Etapa 1: pseudônimo + e-mail ───
   // Salva o mínimo no Firestore, marca o funil como concluído (a etapa 1 já
   // conta como cadastro ativo) e avança para a etapa 2 (opcional).
@@ -1284,6 +1326,17 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         console.warn("[etapa1] Falha ao vincular avaliações anônimas:", err?.message || err);
       }
 
+      // Lazy registration: drena buffer local de avaliação pendente
+      // (caso o usuário tenha submetido o formulário sem perfil antes).
+      try {
+        await drainPendingReview({
+          pseudonym: trimmedPseudo,
+          authorProfileId: unifiedId,
+        });
+      } catch (err) {
+        console.warn("[etapa1] Falha ao drenar avaliação pendente:", err?.message || err);
+      }
+
       // Limpa a flag de sessão do convite pós-avaliação (já cumprida).
       try {
         sessionStorage.removeItem("trabalheiLa_postReviewPseudonymPrompt");
@@ -1293,7 +1346,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       setInfo("Cadastro confirmado! Você pode enriquecer seu perfil ou pular essa etapa.");
       setStep(2);
     },
-    [pseudonym, email, password, confirmPassword, sendVerificationEmail]
+    [pseudonym, email, password, confirmPassword, sendVerificationEmail, drainPendingReview]
   );
 
   // Permite avançar sem preencher nada da etapa 2 — perfil já está ativo.
@@ -1500,6 +1553,16 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         console.warn("[etapa2] Falha ao vincular avaliações anônimas:", err?.message || err);
       }
 
+      // Lazy registration: drena buffer local de avaliação pendente.
+      try {
+        await drainPendingReview({
+          pseudonym: trimmed,
+          authorProfileId: nextProfile.profileId,
+        });
+      } catch (err) {
+        console.warn("[etapa2] Falha ao drenar avaliação pendente:", err?.message || err);
+      }
+
       try {
         sessionStorage.removeItem("trabalheiLa_postReviewPseudonymPrompt");
       } catch { /* ignore */ }
@@ -1523,6 +1586,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       isVerificationPending,
       verificationSource,
       sendVerificationEmail,
+      drainPendingReview,
     ]
   );
 
