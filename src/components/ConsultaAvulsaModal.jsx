@@ -8,6 +8,7 @@
 // por ApoiadorRequisicoes e pelo NotificationsBell do especialista.
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
 import {
   addDoc,
@@ -19,6 +20,46 @@ import {
 } from "firebase/firestore";
 import { filterOutTestApoiadores } from "../utils/testAccounts";
 import { buildApiUrl } from "../utils/apiBase";
+import {
+  getTabledPriceForTipo,
+  CONSULTATION_PLATFORM_FEE_PCT,
+} from "../data/consultationPricing";
+import StripePaymentForm from "./StripePaymentForm";
+import { registerConsultationTransaction } from "../services/consultaTransactions";
+
+/* Desconto aplicado a trabalhadores Premium em consultas avulsas. */
+const PREMIUM_WORKER_DISCOUNT_PCT = 0.1;
+
+/* Verifica se o usuário logado é Premium Trabalhador a partir do perfil
+   armazenado em localStorage. Não usa `isPremiumWorker()` do rbac porque
+   aquela função considera "Apoiadores" como premium também. */
+function isPremiumWorkerProfile() {
+  try {
+    const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+    const role = String(profile?.role || "").toLowerCase().trim();
+    const plano = String(profile?.plano || profile?.planStatus || "")
+      .toLowerCase()
+      .trim();
+    return (
+      Boolean(profile?.is_premium_worker) ||
+      plano === "premium" ||
+      plano === "premium_gratuito" ||
+      role === "premium_worker" ||
+      role === "trabalhador_premium"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function formatBRL(amount) {
+  const n = Number(amount) || 0;
+  return n.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+  });
+}
 
 /* Mesmas opções usadas em FindSpecialistPage para manter consistência. */
 const SPECIALTY_OPTIONS = [
@@ -39,6 +80,7 @@ function normalizeTipo(v) {
 }
 
 export default function ConsultaAvulsaModal({ open, onClose, worker }) {
+  const navigate = useNavigate();
   const [specialty, setSpecialty] = useState("");
   const [loading, setLoading] = useState(false);
   const [specialists, setSpecialists] = useState([]);
@@ -47,6 +89,9 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  // "select" → escolha de especialidade/profissional/mensagem
+  // "payment" → coleta de dados do cartão (StripePaymentForm)
+  const [step, setStep] = useState("select");
 
   /* Reset ao abrir/fechar. */
   useEffect(() => {
@@ -58,6 +103,7 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
       setError("");
       setSuccess(false);
       setSubmitting(false);
+      setStep("select");
     }
   }, [open]);
 
@@ -115,7 +161,24 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
     [specialists, selectedId]
   );
 
-  async function handleSubmit() {
+  /* ── Preço da consulta ── */
+  const isPremiumWorker = useMemo(() => isPremiumWorkerProfile(), [open]);
+  const originalAmount = useMemo(() => {
+    if (!selected) return 0;
+    return getTabledPriceForTipo(selected.tipo, "worker");
+  }, [selected]);
+  const discountAmount = useMemo(
+    () => (isPremiumWorker ? originalAmount * PREMIUM_WORKER_DISCOUNT_PCT : 0),
+    [isPremiumWorker, originalAmount]
+  );
+  const finalAmount = Math.max(0, originalAmount - discountAmount);
+  // Comissão fixa de 20% sobre o valor pago, conforme requisitos.
+  const PLATFORM_COMMISSION_PCT = 0.2;
+  const platformCommission = finalAmount * PLATFORM_COMMISSION_PCT;
+  const amountDueToSpecialist = finalAmount - platformCommission;
+
+  /* ── Submissão (após pagamento confirmado) ── */
+  async function persistConsultationAndTransaction(paymentMeta) {
     setError("");
     const workerId = auth.currentUser?.uid || worker?.uid || worker?.id || "";
     if (!workerId) {
@@ -146,12 +209,36 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
         message: String(message).trim().slice(0, 2000),
         status: "pending",
         readByApoiador: false,
+        // Snapshot financeiro — facilita a leitura no dashboard do especialista.
+        amount: finalAmount,
+        originalAmount,
+        discountApplied: discountAmount,
+        platformCommission,
+        amountDueToSpecialist,
+        paymentStatus: "paid",
         createdAt: serverTimestamp(),
       };
       const ref = await addDoc(collection(db, "consultas"), payload);
 
-      /* Best-effort: dispara o mesmo endpoint de notificação por e-mail
-         usado pelos contactRequests. Ignora erro de rede. */
+      /* Registra a transação no backend (placeholder). Não bloqueia o
+         fluxo caso o registro auxiliar falhe — a consulta já foi gravada. */
+      try {
+        await registerConsultationTransaction({
+          userId: workerId,
+          specialistId: selected.id,
+          consultationId: ref.id,
+          originalAmount,
+          discountApplied: discountAmount,
+          finalAmountPaid: finalAmount,
+          platformCommission,
+          amountDueToSpecialist,
+          paymentMeta,
+        });
+      } catch (err) {
+        console.warn("ConsultaAvulsa: falha ao registrar transação", err);
+      }
+
+      /* Best-effort: notificação por e-mail ao especialista. */
       try {
         await fetch(buildApiUrl("/api/send-contact-request"), {
           method: "POST",
@@ -180,6 +267,19 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
     }
   }
 
+  function handleAdvanceToPayment() {
+    setError("");
+    if (!selected) {
+      setError("Selecione um profissional.");
+      return;
+    }
+    if (!message.trim()) {
+      setError("Descreva brevemente sua dúvida.");
+      return;
+    }
+    setStep("payment");
+  }
+
   if (!open) return null;
 
   return (
@@ -196,45 +296,122 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
         {success ? (
           <>
             <h2 className="text-xl font-extrabold text-emerald-700 dark:text-emerald-300">
-              ✅ Solicitação enviada
+              ✅ Pagamento confirmado · Solicitação enviada
             </h2>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-              Sua solicitação de <strong>Consulta Avulsa</strong> foi enviada a{" "}
-              {selected?.nome}. O profissional receberá uma notificação para
-              <strong> aceitar ou recusar</strong> o pedido. Você será avisado
-              quando houver resposta.
+              Sua solicitação de <strong>Consulta Avulsa</strong> com{" "}
+              {selected?.nome} foi enviada. O profissional receberá uma
+              notificação para <strong>aceitar ou recusar</strong>. Você será
+              avisado quando houver resposta.
             </p>
-            <div className="mt-4 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 p-3">
-              <p className="text-sm text-slate-700 dark:text-slate-200">
-                Para consulta com acompanhamento contínuo e escolha avançada
-                de profissionais, assine o{" "}
-                <strong>Plano Premium do Trabalhador</strong> (R$ 29,90/mês).
-              </p>
+            <div className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-500 dark:text-slate-400">Valor pago</span>
+                <span className="font-bold text-slate-800 dark:text-slate-100">
+                  {formatBRL(finalAmount)}
+                </span>
+              </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between mt-1 text-xs text-emerald-700 dark:text-emerald-300">
+                  <span>Desconto Premium aplicado</span>
+                  <span>− {formatBRL(discountAmount)}</span>
+                </div>
+              )}
             </div>
-            <div className="mt-4 flex justify-end">
+            <div className="mt-4 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
               >
                 Fechar
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose?.();
+                  navigate("/my-contacts");
+                }}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold"
+              >
+                Ver minhas consultas
+              </button>
             </div>
+          </>
+        ) : step === "payment" ? (
+          <>
+            <p className="text-[11px] uppercase tracking-widest font-bold text-blue-700 dark:text-blue-300">
+              Consulta Avulsa · Pagamento
+            </p>
+            <h2 className="mt-1 text-xl font-extrabold text-slate-800 dark:text-slate-100">
+              Pagamento da consulta
+            </h2>
+            <div className="mt-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-600 dark:text-slate-300">Profissional</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-100">
+                  {selected?.nome}
+                </span>
+              </div>
+              <div className="flex justify-between mt-1">
+                <span className="text-slate-600 dark:text-slate-300">Valor</span>
+                <span className="font-bold text-slate-800 dark:text-slate-100">
+                  {discountAmount > 0 ? (
+                    <>
+                      <span className="line-through text-slate-400 dark:text-slate-500 mr-2 font-normal">
+                        {formatBRL(originalAmount)}
+                      </span>
+                      {formatBRL(finalAmount)}
+                    </>
+                  ) : (
+                    formatBRL(finalAmount)
+                  )}
+                </span>
+              </div>
+              {discountAmount > 0 && (
+                <p className="mt-2 text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold">
+                  Desconto Premium Trabalhador (−10%) aplicado automaticamente.
+                </p>
+              )}
+            </div>
+
+            <div className="mt-4">
+              <StripePaymentForm
+                amount={finalAmount}
+                currencyLabel={formatBRL(finalAmount)}
+                onPaymentSuccess={(paymentMeta) =>
+                  persistConsultationAndTransaction(paymentMeta)
+                }
+                onCancel={() => setStep("select")}
+                disabled={submitting}
+              />
+            </div>
+
+            {error && (
+              <p className="mt-3 text-sm text-red-600 dark:text-red-400">
+                {error}
+              </p>
+            )}
           </>
         ) : (
           <>
             <p className="text-[11px] uppercase tracking-widest font-bold text-blue-700 dark:text-blue-300">
-              Consulta Avulsa · Plano Gratuito
+              Consulta Avulsa
             </p>
             <h2 className="mt-1 text-xl font-extrabold text-slate-800 dark:text-slate-100">
               De quem você precisa de ajuda?
             </h2>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-              Para uma <strong>consulta com acompanhamento</strong> é
-              necessário o <strong>plano Premium</strong>. No plano Gratuito,
-              você pode solicitar uma <strong>consulta avulsa</strong>
-              {" "}(interação pontual) com um profissional disponível.
+              Selecione a especialidade, escolha um profissional disponível e
+              descreva sua dúvida. O pagamento é feito em seguida, antes do
+              envio ao especialista.
             </p>
+            {isPremiumWorker && (
+              <p className="mt-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                Você é Premium Trabalhador — desconto de 10% aplicado
+                automaticamente.
+              </p>
+            )}
 
             <div className="mt-4">
               <label
@@ -331,6 +508,40 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
               </div>
             )}
 
+            {selected && (
+              <div className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Valor da consulta
+                </p>
+                {discountAmount > 0 ? (
+                  <div className="mt-1 flex items-baseline gap-2 flex-wrap">
+                    <span className="text-sm line-through text-slate-400 dark:text-slate-500">
+                      {formatBRL(originalAmount)}
+                    </span>
+                    <span className="text-2xl font-extrabold text-emerald-700 dark:text-emerald-300">
+                      {formatBRL(finalAmount)}
+                    </span>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 rounded-full">
+                      −10% Premium
+                    </span>
+                  </div>
+                ) : (
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">
+                      {formatBRL(finalAmount)}
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Trabalhadores Premium pagam 10% menos.
+                    </span>
+                  </div>
+                )}
+                <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+                  Pagamento processado na plataforma. Após a confirmação, o
+                  especialista é notificado para aceitar a consulta.
+                </p>
+              </div>
+            )}
+
             {error && (
               <p className="mt-3 text-sm text-red-600 dark:text-red-400">
                 {error}
@@ -348,11 +559,11 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
               </button>
               <button
                 type="button"
-                onClick={handleSubmit}
+                onClick={handleAdvanceToPayment}
                 disabled={submitting || !selected || !message.trim()}
                 className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold"
               >
-                {submitting ? "Enviando..." : "Confirmar Solicitação"}
+                Avançar para pagamento
               </button>
             </div>
           </>
