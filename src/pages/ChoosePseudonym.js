@@ -22,10 +22,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   signInAnonymously,
-  signInWithPopup,
-  createUserWithEmailAndPassword,
-  EmailAuthProvider,
-  linkWithCredential,
   onAuthStateChanged,
 } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
@@ -33,22 +29,13 @@ import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import AppHeader from "../components/AppHeader";
 import LoginLinkedInButton from "../LoginLinkedInButton";
 
-import { auth, db, googleProvider } from "../firebase";
-import { resolveProfileId } from "../utils/profileIdentity";
-import { buildApiUrl } from "../utils/apiBase";
+import { auth, db } from "../firebase";
 import {
-  saveUserProfile,
-  getUserProfileByEmail,
-  findUnifiedProfile,
-} from "../services/users";
-import {
-  linkAnonymousReviewsToPseudonym,
-  saveReview,
-} from "../services/reviews";
-import {
-  loadPendingReview,
-  clearPendingReview,
-} from "../utils/pendingReview";
+  signInWithGoogle,
+  authenticateLinkedInCode,
+  finalizeSocialLogin,
+  signUpWithEmailPassword,
+} from "../services/socialAuth";
 
 // ─────────────────────────────────────────────────────────────────────
 // Helpers locais
@@ -68,20 +55,6 @@ function pseudonymFromName(name = "") {
 
 function isValidEmail(v) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((v || "").trim());
-}
-
-function persistLocalProfile(profile) {
-  try {
-    const stored = JSON.parse(localStorage.getItem("userProfile") || "{}");
-    const merged = { ...stored, ...profile };
-    localStorage.setItem("userProfile", JSON.stringify(merged));
-    if (profile?.pseudonimo) {
-      localStorage.setItem("userPseudonym", profile.pseudonimo);
-    }
-    window.dispatchEvent(new Event("trabalheiLa_user_updated"));
-  } catch {
-    /* localStorage indisponível */
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -156,110 +129,24 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
     }
   }, []);
 
-  // ─── Drena a avaliação pendente (lazy registration) ───
-  const drainPendingReview = useCallback(
-    async ({ pseudonym: chosen, authorProfileId }) => {
-      const wrapped = loadPendingReview();
-      if (!wrapped?.payload) return { drained: false };
-      const stored = wrapped.payload;
-      const enriched = {
-        ...stored,
-        pseudonym: chosen,
-        authorProfileId: authorProfileId || stored.authorProfileId,
-      };
-      try {
-        await saveReview(enriched);
-        clearPendingReview();
-        try {
-          const evalsKey = `evaluations_${stored.company}`;
-          const raw = localStorage.getItem(evalsKey);
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (parsed && typeof parsed === "object") {
-              delete parsed.__anon_pending__;
-              parsed[chosen] = enriched;
-              localStorage.setItem(evalsKey, JSON.stringify(parsed));
-            }
-          }
-        } catch { /* ignore */ }
-        return { drained: true, company: stored.company };
-      } catch (err) {
-        console.warn("[choosePseudonym] Falha ao drenar pending review:", err?.message || err);
-        return { drained: false, error: err };
-      }
-    },
-    []
-  );
-
-  // ─── Finaliza o cadastro: persiste profile, drena buffer, vincula reviews ───
+  // ─── Finaliza perfil delegando ao serviço de auth social ───
   const finalizeProfile = useCallback(
-    async ({ uid, chosenPseudonym, emailValue, providerLabel, extra = {} }) => {
-      const profileBase = {
-        ...extra,
-        id: uid,
+    async ({ uid, chosenPseudonym, emailValue, providerLabel, extra = {}, linkedinExperiences = null }) => {
+      const result = await finalizeSocialLogin({
         uid,
-        pseudonimo: chosenPseudonym,
-        name: chosenPseudonym,
-        email: emailValue || extra?.email || "",
-        loginProvider: providerLabel || "email",
-        status: "ativo",
-        fallback: false,
-      };
-      const profileId = resolveProfileId(profileBase, { persistGeneratedId: false }) || uid;
-      const persisted = { ...profileBase, profileId };
-
-      await saveUserProfile(persisted);
-      persistLocalProfile(persisted);
-
-      // Marca funil concluído.
-      try {
-        await setDoc(
-          doc(db, "cadastros_iniciados", uid),
-          {
-            uid,
-            concluido: true,
-            concluidoAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
-      } catch (err) {
-        console.warn("[choosePseudonym] Falha ao marcar funil concluído:", err?.message || err);
-      }
-
-      // Vincula reviews enviadas anonimamente com o mesmo UID.
-      try {
-        await linkAnonymousReviewsToPseudonym({
-          uid,
-          pseudonym: chosenPseudonym,
-          authorProfileId: profileId,
-        });
-      } catch (err) {
-        console.warn("[choosePseudonym] Falha no backfill de reviews anônimas:", err?.message || err);
-      }
-
-      // Drena buffer local de avaliação pendente (Lazy Registration).
-      let drained = null;
-      try {
-        drained = await drainPendingReview({
-          pseudonym: chosenPseudonym,
-          authorProfileId: profileId,
-        });
-      } catch (err) {
-        console.warn("[choosePseudonym] Falha ao drenar buffer:", err?.message || err);
-      }
-
-      try {
-        sessionStorage.removeItem("trabalheiLa_postReviewPseudonymPrompt");
-      } catch { /* ignore */ }
-
-      // Decide destino: empresa avaliada (se drenamos algo) ou home.
+        pseudonym: chosenPseudonym,
+        email: emailValue,
+        providerLabel: providerLabel || "email",
+        extra,
+        linkedinExperiences,
+      });
+      const drained = result?.pending;
       const destination = drained?.drained && drained?.company
         ? `/empresa?name=${encodeURIComponent(drained.company)}`
         : "/";
       navigate(destination);
     },
-    [drainPendingReview, navigate]
+    [navigate]
   );
 
   // ─── Login com Google ───
@@ -269,47 +156,39 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
     setSubmitting(true);
     try {
       await markFunnelStarted();
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result?.user;
-      if (!user) throw new Error("Login Google sem usuário retornado.");
+      const session = await signInWithGoogle();
 
-      const userEmail = (user.email || "").toLowerCase();
-      const displayName = user.displayName || "";
+      const existingPseudo = (
+        session.existingProfile?.pseudonimo ||
+        session.existingProfile?.pseudonym ||
+        ""
+      ).toString().trim();
 
-      // Se já existe perfil com esse e-mail, pula direto para finalize com
-      // pseudônimo existente. Caso contrário, pede o pseudônimo.
-      let existing = null;
-      try {
-        existing = userEmail ? await findUnifiedProfile({ email: userEmail }) : null;
-      } catch { existing = null; }
-
-      const existingPseudo = (existing?.pseudonimo || existing?.pseudonym || "").toString().trim();
       if (existingPseudo) {
         await finalizeProfile({
-          uid: user.uid,
+          uid: session.uid,
           chosenPseudonym: existingPseudo,
-          emailValue: userEmail,
+          emailValue: session.email,
           providerLabel: "google",
           extra: {
-            picture: user.photoURL || "",
-            avatar: user.photoURL || "",
-            nomeReal: existing?.nomeReal || displayName,
-            fullName: existing?.fullName || displayName,
+            picture: session.picture,
+            avatar: session.picture,
+            nomeReal: session.existingProfile?.nomeReal || session.displayName,
+            fullName: session.existingProfile?.fullName || session.displayName,
           },
         });
         return;
       }
 
-      // Não há pseudônimo ainda → pede em mini-view.
-      const suggested = pseudonymFromName(displayName);
+      const suggested = pseudonymFromName(session.displayName);
       setPseudonym(suggested);
-      setEmail(userEmail);
+      setEmail(session.email);
       setSocialContext({
         provider: "google",
-        uid: user.uid,
-        email: userEmail,
-        displayName,
-        picture: user.photoURL || "",
+        uid: session.uid,
+        email: session.email,
+        displayName: session.displayName,
+        picture: session.picture,
       });
       setSocialAwaitingPseudonym(true);
     } catch (err) {
@@ -335,74 +214,83 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
       setSubmitting(true);
       try {
         await markFunnelStarted();
-        let data = profile;
-        if (!data && code) {
-          const redirectUri =
-            process.env.REACT_APP_LINKEDIN_REDIRECT_URI ||
-            `${window.location.origin}/auth/auth/`;
-          const resp = await fetch(buildApiUrl("/api/linkedin-auth"), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code, redirectUri }),
+
+        let session;
+        if (profile && !code) {
+          // O componente já entregou o profile direto (raro).
+          const { extractLinkedInExperiences } = await import("../services/socialAuth");
+          session = {
+            provider: "linkedin",
+            uid: auth?.currentUser?.uid || profile?.id || profile?.sub || "",
+            email: (profile?.email || "").toLowerCase(),
+            displayName:
+              profile?.name ||
+              [profile?.localizedFirstName, profile?.localizedLastName].filter(Boolean).join(" ") ||
+              "",
+            picture: profile?.picture || profile?.avatar || "",
+            profile,
+            linkedinExperiences: extractLinkedInExperiences(profile),
+            existingProfile: null,
+            sealVerified: true,
+          };
+        } else {
+          session = await authenticateLinkedInCode({
+            code,
+            redirectUri:
+              process.env.REACT_APP_LINKEDIN_REDIRECT_URI ||
+              `${window.location.origin}/auth/auth/`,
           });
-          const json = await resp.json().catch(() => ({}));
-          if (!resp.ok || json?.error) {
-            throw new Error(json?.error || `Erro HTTP ${resp.status}`);
-          }
-          data = json;
         }
-        if (!data) throw new Error("Sem dados de perfil do LinkedIn.");
 
-        const userEmail = (data?.email || "").toLowerCase();
-        const displayName =
-          data?.name ||
-          [data?.localizedFirstName, data?.localizedLastName].filter(Boolean).join(" ") ||
-          "";
-        const picture = data?.picture || data?.avatar || "";
-        const uid = auth?.currentUser?.uid || data?.id || data?.sub || "";
-        if (!uid) throw new Error("UID indisponível após login LinkedIn.");
-
-        // Verifica se o e-mail já tem perfil.
-        let existing = null;
-        try {
-          existing = userEmail ? await findUnifiedProfile({ email: userEmail }) : null;
-        } catch { existing = null; }
-        const existingPseudo = (existing?.pseudonimo || existing?.pseudonym || "").toString().trim();
+        if (!session.uid) {
+          throw new Error("UID indisponível após login LinkedIn.");
+        }
 
         const linkedInExtras = {
-          picture,
-          avatar: picture,
-          nomeReal: existing?.nomeReal || displayName,
-          fullName: existing?.fullName || displayName,
-          linkedInUrl: data?.publicProfileUrl || data?.profileUrl || "",
-          linkedInId: data?.id || data?.sub || "",
-          // O Selo de Perfil Verificado: gravamos a marca para o restante
-          // do app saber que o usuário é "verified-anonymous" via LinkedIn.
+          picture: session.picture,
+          avatar: session.picture,
+          nomeReal: session.existingProfile?.nomeReal || session.displayName,
+          fullName: session.existingProfile?.fullName || session.displayName,
+          linkedInUrl:
+            session.profile?.linkedInUrl ||
+            session.profile?.publicProfileUrl ||
+            session.profile?.profileUrl ||
+            "",
+          linkedInId: session.profile?.id || session.profile?.sub || "",
+          linkedinExperiences: session.linkedinExperiences,
           verifiedProfileBadge: true,
           verifiedProfileBadgeSource: "linkedin",
         };
 
+        const existingPseudo = (
+          session.existingProfile?.pseudonimo ||
+          session.existingProfile?.pseudonym ||
+          ""
+        ).toString().trim();
+
         if (existingPseudo) {
           await finalizeProfile({
-            uid,
+            uid: session.uid,
             chosenPseudonym: existingPseudo,
-            emailValue: userEmail,
+            emailValue: session.email,
             providerLabel: "linkedin",
             extra: linkedInExtras,
+            linkedinExperiences: session.linkedinExperiences,
           });
           return;
         }
 
-        const suggested = pseudonymFromName(displayName);
+        const suggested = pseudonymFromName(session.displayName);
         setPseudonym(suggested);
-        setEmail(userEmail);
+        setEmail(session.email);
         setSocialContext({
           provider: "linkedin",
-          uid,
-          email: userEmail,
-          displayName,
-          picture,
+          uid: session.uid,
+          email: session.email,
+          displayName: session.displayName,
+          picture: session.picture,
           extra: linkedInExtras,
+          linkedinExperiences: session.linkedinExperiences,
         });
         setSocialAwaitingPseudonym(true);
       } catch (err) {
@@ -450,34 +338,19 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
       try {
         await markFunnelStarted();
 
-        // Bloqueia pseudônimo / e-mail já em uso por outra conta.
+        let signed;
         try {
-          const byEmail = await getUserProfileByEmail(emailValue);
-          if (byEmail && byEmail.id && byEmail.id !== auth?.currentUser?.uid) {
-            setError("Este e-mail já está cadastrado. Use o login social ou recupere sua senha.");
-            return;
-          }
-        } catch (lookupErr) {
-          console.warn("[choosePseudonym] Lookup por e-mail falhou:", lookupErr?.message || lookupErr);
-        }
-
-        // Tenta promover a conta anônima atual para e-mail/senha.
-        let firebaseUid = auth?.currentUser?.uid;
-        const current = auth?.currentUser;
-        try {
-          if (current && current.isAnonymous) {
-            const credential = EmailAuthProvider.credential(emailValue, password);
-            const linked = await linkWithCredential(current, credential);
-            firebaseUid = linked?.user?.uid || firebaseUid;
-          } else {
-            // Sessão atual não é anônima — cria uma conta nova.
-            const created = await createUserWithEmailAndPassword(auth, emailValue, password);
-            firebaseUid = created?.user?.uid || firebaseUid;
-          }
+          signed = await signUpWithEmailPassword({
+            email: emailValue,
+            password,
+          });
         } catch (authErr) {
           const code = String(authErr?.code || "");
-          if (code.includes("auth/email-already-in-use")) {
-            setError("Este e-mail já tem cadastro. Tente entrar pelo /login.");
+          if (
+            code === "trabalheila/email-already-in-use" ||
+            code.includes("auth/email-already-in-use")
+          ) {
+            setError("Este e-mail já está cadastrado. Tente entrar pelo /login.");
             return;
           }
           if (code.includes("auth/weak-password")) {
@@ -491,15 +364,10 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
           throw authErr;
         }
 
-        if (!firebaseUid) {
-          setError("Não foi possível identificar a conta. Recarregue e tente novamente.");
-          return;
-        }
-
         await finalizeProfile({
-          uid: firebaseUid,
+          uid: signed.uid,
           chosenPseudonym: pseudo,
-          emailValue,
+          emailValue: signed.email,
           providerLabel: "email",
           extra: {},
         });
@@ -541,6 +409,7 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
             nomeReal: socialContext.displayName,
             fullName: socialContext.displayName,
           },
+          linkedinExperiences: socialContext.linkedinExperiences || null,
         });
       } catch (err) {
         console.error("[choosePseudonym] Pseudônimo social falhou:", err);
