@@ -451,6 +451,19 @@ async function handleGrowthStats(req, res) {
       console.warn("[admin/growth-stats] funil de cadastros indisponível:", err?.message || err);
     }
 
+    // Total de avaliações de empresas submetidas (coleção /reviews).
+    // Usa a agregação count() do Firestore para evitar trazer todos os docs.
+    let reviewsSubmitted = null;
+    try {
+      const countSnap = await db.collection("reviews").count().get();
+      reviewsSubmitted = countSnap.data().count;
+    } catch (err) {
+      console.warn(
+        "[admin/growth-stats] contagem de avaliações indisponível:",
+        err?.message || err
+      );
+    }
+
     return res.status(200).json({
       totals,
       monthly,
@@ -458,6 +471,7 @@ async function handleGrowthStats(req, res) {
       registrationStarted,
       registrationCompleted,
       registrationAbandoned,
+      reviewsSubmitted,
     });
   } catch (err) {
     console.error("[admin/growth-stats] erro:", err);

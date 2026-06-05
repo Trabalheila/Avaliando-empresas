@@ -685,7 +685,7 @@ function TrabalheiLaDesktop({
 
               {/* Vídeo de apresentação */}
               <div className="max-w-2xl mx-auto mb-6">
-                <YouTubeEmbed videoId="8ly8z4F8iok" title="Apresentação Trabalhei Lá" />
+                <YouTubeEmbed videoId="JZkL0YJSQnw" title="Apresentação Trabalhei Lá" />
               </div>
 
               {/* CENÁRIO 1 — não autenticado: escolha de perfil + login social secundário */}
@@ -701,13 +701,6 @@ function TrabalheiLaDesktop({
                     >
                       <span>Sou Trabalhador</span>
                       <span className="block text-[11px] md:text-xs font-medium text-emerald-900/80 mt-0.5">(avalia anonimamente)</span>
-                    </Link>
-                    <Link
-                      to="/empresa/cadastro"
-                      className="flex-1 sm:max-w-xs flex flex-col items-center justify-center text-center py-2.5 px-4 rounded-lg bg-amber-400 text-amber-950 text-sm md:text-base font-bold shadow transition-all duration-200 hover:bg-amber-500 hover:scale-[1.03] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-amber-300"
-                    >
-                      <span>Sou Empresário</span>
-                      <span className="block text-[11px] md:text-xs font-medium text-amber-900/80 mt-0.5">(conta para empresas)</span>
                     </Link>
                     <Link
                       to="/apoiadores"
@@ -758,13 +751,6 @@ function TrabalheiLaDesktop({
                     >
                       <span>Sou Trabalhador</span>
                       <span className="block text-[11px] md:text-xs font-medium text-emerald-900/80 mt-0.5">(avalia anonimamente)</span>
-                    </Link>
-                    <Link
-                      to="/empresa/cadastro"
-                      className="flex-1 sm:max-w-xs flex flex-col items-center justify-center text-center py-2.5 px-4 rounded-lg bg-amber-400 text-amber-950 text-sm md:text-base font-bold shadow transition-all duration-200 hover:bg-amber-500 hover:scale-[1.03] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-amber-300"
-                    >
-                      <span>Sou Empresário</span>
-                      <span className="block text-[11px] md:text-xs font-medium text-amber-900/80 mt-0.5">(conta para empresas)</span>
                     </Link>
                     <Link
                       to="/apoiadores"
@@ -1487,6 +1473,10 @@ function TrabalheiLaDesktop({
               {" • "}
               <Link to="/purpose" className="text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-200 font-extrabold underline">
                 Qual o nosso propósito?
+              </Link>
+              {" • "}
+              <Link to="/para-empresas" className="text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-200 font-extrabold underline">
+                Para Empresas
               </Link>
               {" • "}
               <span>© 2026 Trabalhei Lá - Todos os direitos reservados</span>

@@ -499,7 +499,7 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
               {statsError}
             </div>
           )}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <MetricCard
               label="Total"
               value={statsLoading ? "…" : totals?.total ?? 0}
@@ -527,6 +527,18 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
               value={statsLoading ? "…" : totals?.premiumByType?.empresa ?? 0}
               hint="Empresas com plano Premium"
               accent="indigo"
+            />
+            <MetricCard
+              label="Avaliações Enviadas"
+              value={
+                statsLoading
+                  ? "…"
+                  : stats?.reviewsSubmitted === null || stats?.reviewsSubmitted === undefined
+                  ? "—"
+                  : Number(stats.reviewsSubmitted).toLocaleString("pt-BR")
+              }
+              hint="Total de avaliações de empresas submetidas"
+              accent="red"
             />
           </div>
         </section>

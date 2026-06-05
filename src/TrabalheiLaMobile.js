@@ -889,7 +889,7 @@ function TrabalheiLaMobile({
 
               {/* Vídeo de apresentação */}
               <div className="mb-4">
-                <YouTubeEmbed videoId="8ly8z4F8iok" title="Apresentação Trabalhei Lá" />
+                <YouTubeEmbed videoId="JZkL0YJSQnw" title="Apresentação Trabalhei Lá" />
               </div>
 
               {/* CENÁRIO 1 — não autenticado: escolha de perfil + login social secundário */}
@@ -905,13 +905,6 @@ function TrabalheiLaMobile({
                     >
                       <span>Sou Trabalhador</span>
                       <span className="block text-[10px] font-medium text-emerald-900/80 mt-0.5">(avalia anonimamente)</span>
-                    </Link>
-                    <Link
-                      to="/empresa/cadastro"
-                      className="w-full flex flex-col items-center justify-center text-center py-2.5 px-3 rounded-xl bg-amber-400 text-amber-950 text-sm font-bold shadow transition-all duration-200 hover:bg-amber-500 hover:scale-[1.02] hover:shadow-lg active:scale-100 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                    >
-                      <span>Sou Empresário</span>
-                      <span className="block text-[10px] font-medium text-amber-900/80 mt-0.5">(conta para empresas)</span>
                     </Link>
                     <Link
                       to="/apoiadores"
@@ -960,13 +953,6 @@ function TrabalheiLaMobile({
                     >
                       <span>Sou Trabalhador</span>
                       <span className="block text-[10px] font-medium text-emerald-900/80 mt-0.5">(avalia anonimamente)</span>
-                    </Link>
-                    <Link
-                      to="/empresa/cadastro"
-                      className="w-full flex flex-col items-center justify-center text-center py-2.5 px-3 rounded-xl bg-amber-400 text-amber-950 text-sm font-bold shadow transition-all duration-200 hover:bg-amber-500 hover:scale-[1.02] hover:shadow-lg active:scale-100 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                    >
-                      <span>Sou Empresário</span>
-                      <span className="block text-[10px] font-medium text-amber-900/80 mt-0.5">(conta para empresas)</span>
                     </Link>
                     <Link
                       to="/apoiadores"
@@ -1602,6 +1588,10 @@ function TrabalheiLaMobile({
           <span>•</span>
           <Link to="/purpose" className="text-blue-600 dark:text-blue-300 hover:underline">
             Qual o nosso propósito?
+          </Link>
+          <span>•</span>
+          <Link to="/para-empresas" className="text-blue-600 dark:text-blue-300 hover:underline font-semibold">
+            Para Empresas
           </Link>
         </div>
         <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">

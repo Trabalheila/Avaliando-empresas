@@ -2065,7 +2065,17 @@ function CompanyDetails({ theme, toggleTheme }) {
       {/* Bloco de cadastro/verificação de empresa */}
       <div className="w-full bg-transparent">
         <div className="max-w-5xl mx-auto px-4">
-          {company && (typeof company.verified === 'undefined' || company.verified === false) ? (
+          {(() => {
+            // Oculta o convite "Cadastrar empresa" para usuários trabalhadores,
+            // evitando confusão com funcionalidades destinadas a empresas.
+            let viewerType = "";
+            try {
+              const p = JSON.parse(localStorage.getItem("userProfile") || "{}");
+              viewerType = String(p?.userType || "").toLowerCase();
+            } catch {}
+            const isWorkerViewer = viewerType === "trabalhador";
+            if (isWorkerViewer) return null;
+            return company && (typeof company.verified === 'undefined' || company.verified === false) ? (
             <div className="flex items-center justify-between bg-blue-50 dark:bg-slate-900 border border-blue-100 dark:border-slate-700 rounded-lg px-4 py-2 mt-2 mb-2">
               <span className="text-xs text-blue-900 dark:text-blue-200">
                 Esta é a sua empresa? Cadastre-se gratuitamente até 31/07/2026 e gerencie este perfil.
@@ -2078,7 +2088,8 @@ function CompanyDetails({ theme, toggleTheme }) {
                 Cadastrar empresa
               </button>
             </div>
-          ) : null}
+          ) : null;
+          })()}
           {company && company.verified === true ? (
             <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900 border border-emerald-200 dark:border-emerald-700 rounded-lg px-4 py-2 mt-2 mb-2">
               <span className="inline-flex items-center text-xs text-emerald-800 dark:text-emerald-200 font-semibold">
