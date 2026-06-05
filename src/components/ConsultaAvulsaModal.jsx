@@ -162,7 +162,12 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
   );
 
   /* ── Preço da consulta ── */
-  const isPremiumWorker = useMemo(() => isPremiumWorkerProfile(), [open]);
+  // Reavaliamos a flag sempre que o modal abre para refletir mudanças no
+  // perfil em localStorage feitas entre aberturas.
+  const isPremiumWorker = useMemo(
+    () => (open ? isPremiumWorkerProfile() : false),
+    [open]
+  );
   const originalAmount = useMemo(() => {
     if (!selected) return 0;
     return getTabledPriceForTipo(selected.tipo, "worker");

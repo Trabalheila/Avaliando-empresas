@@ -22,11 +22,14 @@ import { buildApiUrl } from "../utils/apiBase";
  * @param {object} [payload.paymentMeta]     Metadados do gateway (last4, brand, paymentMethodId).
  */
 export async function registerConsultationTransaction(payload) {
-  const res = await fetch(buildApiUrl("/api/register-consultation-transaction"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload || {}),
-  });
+  const res = await fetch(
+    buildApiUrl("/api/admin?op=register-consultation-transaction"),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload || {}),
+    }
+  );
   let data = null;
   try {
     data = await res.json();

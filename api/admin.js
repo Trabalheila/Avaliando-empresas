@@ -604,6 +604,111 @@ async function handleUpdatePlan(req, res) {
   }
 }
 
+/* ────────────────────────────────────────────────
+   op=register-consultation-transaction
+   PLACEHOLDER — registra a transação financeira de uma consulta avulsa.
+   NÃO processa pagamentos reais e NÃO realiza repasse ao especialista.
+   Apenas grava os valores em /consultaTransactions para futura auditoria
+   quando um gateway real (Stripe / Mercado Pago) for integrado.
+   ──────────────────────────────────────────────── */
+async function handleRegisterConsultationTransaction(req, res) {
+  const {
+    userId,
+    specialistId,
+    consultationId,
+    originalAmount,
+    discountApplied,
+    finalAmountPaid,
+    platformCommission,
+    amountDueToSpecialist,
+    paymentMeta,
+  } = req.body || {};
+
+  if (!userId || !specialistId || !consultationId) {
+    return res
+      .status(400)
+      .json({ error: "userId, specialistId e consultationId são obrigatórios." });
+  }
+
+  const toFiniteNumber = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  const original = toFiniteNumber(originalAmount);
+  const discount = toFiniteNumber(discountApplied) ?? 0;
+  const finalPaid = toFiniteNumber(finalAmountPaid);
+  const commission = toFiniteNumber(platformCommission);
+  const dueToSpecialist = toFiniteNumber(amountDueToSpecialist);
+
+  if (
+    original === null ||
+    finalPaid === null ||
+    commission === null ||
+    dueToSpecialist === null
+  ) {
+    return res.status(400).json({
+      error:
+        "originalAmount, finalAmountPaid, platformCommission e amountDueToSpecialist devem ser numéricos.",
+    });
+  }
+
+  try {
+    const { db, FieldValue } = await ensureAdmin();
+
+    const doc = {
+      userId: String(userId),
+      specialistId: String(specialistId),
+      consultationId: String(consultationId),
+      originalAmount: original,
+      discountApplied: discount,
+      finalAmountPaid: finalPaid,
+      platformCommission: commission,
+      amountDueToSpecialist: dueToSpecialist,
+      currency: "BRL",
+      // Status do registro: "recorded" — apenas registro. Quando o gateway
+      // real estiver ativo, este valor passará a "captured" / "refunded" etc.
+      status: "recorded",
+      paymentMeta:
+        paymentMeta && typeof paymentMeta === "object"
+          ? {
+              paymentMethodId: String(paymentMeta.paymentMethodId || ""),
+              last4: String(paymentMeta.last4 || ""),
+              brand: String(paymentMeta.brand || ""),
+            }
+          : null,
+      createdAt: FieldValue.serverTimestamp(),
+    };
+
+    const ref = await db.collection("consultaTransactions").add(doc);
+
+    // Best-effort: marca a consulta como paga.
+    try {
+      await db
+        .collection("consultas")
+        .doc(String(consultationId))
+        .set(
+          {
+            paymentStatus: "paid",
+            paymentTransactionId: ref.id,
+            paidAmount: finalPaid,
+            paidAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+    } catch (err) {
+      console.warn(
+        "[admin/register-consultation-transaction] não foi possível atualizar /consultas:",
+        err?.message || err
+      );
+    }
+
+    return res.status(200).json({ success: true, transactionId: ref.id });
+  } catch (err) {
+    console.error("[admin/register-consultation-transaction] erro:", err);
+    return res.status(500).json({ error: "Erro interno ao registrar transação." });
+  }
+}
+
 export default async function handler(req, res) {
   const op = String(req.query?.op || "").toLowerCase();
 
@@ -629,10 +734,12 @@ export default async function handler(req, res) {
   if (op === "verify-decision") return handleVerifyDecision(req, res);
   if (op === "nfse-list") return handleNfseList(req, res);
   if (op === "nfse-refresh") return handleNfseRefresh(req, res);
+  if (op === "register-consultation-transaction")
+    return handleRegisterConsultationTransaction(req, res);
 
   return res.status(400).json({
     error:
-      "Parâmetro 'op' inválido. Ops válidas: delete, reviews, users, update-plan, growth-stats, update-user-status, restricted, moderate-segment, verify-request, verify-confirm, verify-resend, verify-list, verify-decision.",
+      "Parâmetro 'op' inválido. Ops válidas: delete, reviews, users, update-plan, growth-stats, update-user-status, restricted, moderate-segment, verify-request, verify-confirm, verify-resend, verify-list, verify-decision, register-consultation-transaction.",
   });
 }
 
