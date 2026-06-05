@@ -15,6 +15,7 @@ import { resolveProfileId } from "../utils/profileIdentity";
 import AppHeader from "../components/AppHeader";
 import WorkerProfessionalContactSettings from "../components/WorkerProfessionalContactSettings";
 import ConsultaAvulsaModal from "../components/ConsultaAvulsaModal";
+import VerifyIdentitySection from "../components/VerifyIdentitySection";
 import { buildVideoCallLink, formatStartsIn } from "../utils/videoCall";
 
 /* ════════════════════════════════════════════════
@@ -397,6 +398,9 @@ export default function MinhaConta({ theme, toggleTheme }) {
           isPremium={isPremium() && getUserRole() !== "admin_empresa"}
           onUpgradeClick={() => navigate("/escolha-perfil?planos=1")}
         />
+
+        {/* ══════ Verificar identidade (CPF opcional) ══════ */}
+        <VerifyIdentitySection profile={profile} onUpdated={setProfile} />
 
         {/* ══════ Ações ══════ */}
         <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">

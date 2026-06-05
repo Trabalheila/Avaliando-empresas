@@ -1,9 +1,10 @@
 import React, { useCallback, useState, useEffect, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { getUserProfile, getUserProfileByCpf, saveUserProfile, findUnifiedProfile } from "../services/users";
+import { useNavigate, useLocation } from "react-router-dom";
+import { getUserProfile, saveUserProfile, findUnifiedProfile } from "../services/users";
 import { normalizeEmail, resolveProfileId } from "../utils/profileIdentity";
 import { extractResumeText, parseResumeText } from "../utils/resumeParser";
 import { listCompanies } from "../services/companies";
+import { linkAnonymousReviewsToPseudonym } from "../services/reviews";
 import AppHeader from "../components/AppHeader";
 import YouTubeEmbed from "../components/YouTubeEmbed";
 import EssencialFreePopup from "../components/EssencialFreePopup";
@@ -120,15 +121,35 @@ function findCompanyInText(text, registeredCompanies) {
 
 function ChoosePseudonym({ theme, toggleTheme }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  // Lazy registration: quando o usuário chega via /pseudonym?after-review=1
+  // (logo depois de enviar uma avaliação anônima) exibimos um convite
+  // específico e forçamos o campo de pseudônimo a iniciar vazio.
+  const isAfterReview = useMemo(() => {
+    try {
+      const params = new URLSearchParams(location?.search || "");
+      if (params.get("after-review") === "1") return true;
+      return sessionStorage.getItem("trabalheiLa_postReviewPseudonymPrompt") === "1";
+    } catch {
+      return false;
+    }
+  }, [location?.search]);
   // UID anônimo (ou autenticado) usado para registrar o funil de cadastro
   // na coleção cadastros_iniciados. Persistido em ref para o handleSubmit.
   const funnelUidRef = useRef(null);
   // Cadastro em duas etapas:
   //   1 → obrigatório: pseudônimo + e-mail (com aviso de privacidade)
-  //   2 → opcional: CPF, escolaridade, avatar, experiências…
+  //   2 → opcional: nome completo, escolaridade, avatar, experiências…
   // Quem já tem pseudônimo+email salvos no profile entra direto na etapa 2.
+  // Lazy registration: se o usuário acabou de avaliar anonimamente
+  // (?after-review=1), forçamos a etapa 1 para que ele escolha o pseudônimo
+  // antes de qualquer outra coisa.
   const [step, setStep] = useState(() => {
     try {
+      const params = new URLSearchParams(
+        typeof window !== "undefined" ? window.location.search : ""
+      );
+      if (params.get("after-review") === "1") return 1;
       const saved = JSON.parse(localStorage.getItem("userProfile") || "{}");
       // IMPORTANTE: nunca usar `saved.name` como fallback de pseudônimo —
       // esse campo pode conter o nome real vindo do LinkedIn/Google e não
@@ -197,7 +218,6 @@ function ChoosePseudonym({ theme, toggleTheme }) {
     "Pseudônimo",
     "E-mail",
     "Nome completo",
-    "CPF",
     "Experiências",
     "Avatar",
     "Confirmação",
@@ -294,9 +314,25 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       // Só preenche o campo de pseudônimo a partir de `pseudonimo` salvo
       // pelo próprio usuário. Nunca cair em `profile.name`, pois esse
       // campo pode conter o nome real importado do LinkedIn/Google.
-      if (profile?.pseudonimo) setPseudonym(profile.pseudonimo);
+      // Lazy registration: quando o usuário chega após uma avaliação anônima,
+      // queremos que ele escolha um novo pseudônimo do zero — então NÃO
+      // pré-preenchemos o campo (mesmo se houver algo salvo localmente).
+      const skipPseudonymPrefill = (() => {
+        try {
+          const params = new URLSearchParams(
+            typeof window !== "undefined" ? window.location.search : ""
+          );
+          if (params.get("after-review") === "1") return true;
+          return sessionStorage.getItem("trabalheiLa_postReviewPseudonymPrompt") === "1";
+        } catch {
+          return false;
+        }
+      })();
+      if (profile?.pseudonimo && !skipPseudonymPrefill) setPseudonym(profile.pseudonimo);
       if (profile?.birthdate && /^\d{4}-\d{2}-\d{2}$/.test(profile.birthdate)) setBirthdate(profile.birthdate);
-      if (profile?.cpf) setCpf(maskCpf(profile.cpf));
+      // CPF intencionalmente NÃO é pré-preenchido aqui: o campo foi removido
+      // do fluxo de criação de pseudônimo. A entrada opcional de CPF para
+      // verificação de identidade fica em "Minha Conta" → "Verificar identidade".
       if (profile?.nomeReal || profile?.fullName) setFullName(profile.nomeReal || profile.fullName);
       if (profile?.email) setEmail(profile.email);
       if (profile?.emailVerified) {
@@ -1233,6 +1269,26 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         console.warn("[etapa1] Falha ao enviar e-mail de verificação:", err);
       }
 
+      // Lazy registration: vincula avaliações enviadas anonimamente (com o
+      // mesmo UID do Firebase Auth) ao novo pseudônimo. Não bloqueia o fluxo.
+      try {
+        const linkUid = funnelUidRef.current || auth?.currentUser?.uid;
+        if (linkUid) {
+          await linkAnonymousReviewsToPseudonym({
+            uid: linkUid,
+            pseudonym: trimmedPseudo,
+            authorProfileId: unifiedId,
+          });
+        }
+      } catch (err) {
+        console.warn("[etapa1] Falha ao vincular avaliações anônimas:", err?.message || err);
+      }
+
+      // Limpa a flag de sessão do convite pós-avaliação (já cumprida).
+      try {
+        sessionStorage.removeItem("trabalheiLa_postReviewPseudonymPrompt");
+      } catch { /* ignore */ }
+
       window.dispatchEvent(new Event("trabalheiLa_user_updated"));
       setInfo("Cadastro confirmado! Você pode enriquecer seu perfil ou pular essa etapa.");
       setStep(2);
@@ -1282,16 +1338,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         }
       }
 
-      const cpfNumbers = cpf.replace(/\D/g, "");
-      // CPF é opcional na etapa 2. Validamos apenas o formato quando preenchido.
-      if (cpfNumbers && cpfNumbers.length !== 11) {
-        setError("CPF deve conter 11 dígitos.");
-        return;
-      }
-      if (cpfNumbers && !isValidCpfDigits(cpfNumbers)) {
-        setError("CPF inválido.");
-        return;
-      }
+      const cpfNumbers = "";
+      // CPF foi removido deste fluxo (lazy registration). A coleta opcional
+      // é feita exclusivamente em "Minha Conta" → "Verificar identidade".
 
       const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
       const accountId = resolveProfileId(existingProfile, { persistGeneratedId: false });
@@ -1312,17 +1361,8 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       );
 
       if (cpfNumbers) {
-        try {
-          const cpfOwner = await getUserProfileByCpf(cpfNumbers);
-          const cpfOwnerId = (cpfOwner?.id || "").toString().trim();
-
-          if (cpfOwner && cpfOwnerId && !myIds.has(cpfOwnerId)) {
-            setError("Este CPF já está cadastrado em outra conta. Limpe o campo CPF se quiser salvar mesmo assim.");
-            return;
-          }
-        } catch (err) {
-          console.warn("Falha ao validar unicidade de CPF:", err);
-        }
+        // CPF removido do fluxo. Bloco mantido por segurança futura caso
+        // outro caminho repopule cpfNumbers (atualmente sempre vazio aqui).
       }
 
       localStorage.setItem("userPseudonym", trimmed);
@@ -1355,7 +1395,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
         birthdate: birthdateTrimmed || existingProfile?.birthdate || undefined,
         fullName: fullName.trim() || undefined,
         nomeReal: fullName.trim() || undefined,
-        cpf: cpfNumbers || undefined,
+        // CPF n\u00e3o \u00e9 mais coletado aqui. Preserva o valor antigo (caso o
+        // usu\u00e1rio j\u00e1 tenha cadastrado em "Minha Conta" \u2192 Verificar identidade).
+        cpf: existingProfile?.cpf || undefined,
         email: email.trim() || undefined,
         emailVerified: keepVerified,
         phone: phone.trim() || undefined,
@@ -1442,6 +1484,25 @@ function ChoosePseudonym({ theme, toggleTheme }) {
       } catch (err) {
         console.warn("[funil] Falha ao marcar conclusão:", err?.message || err);
       }
+
+      // Lazy registration: vincula avaliações enviadas anonimamente ao
+      // pseudônimo escolhido. Roda em segundo plano — falhas não bloqueiam.
+      try {
+        const linkUid = funnelUidRef.current || auth?.currentUser?.uid;
+        if (linkUid) {
+          await linkAnonymousReviewsToPseudonym({
+            uid: linkUid,
+            pseudonym: trimmed,
+            authorProfileId: nextProfile.profileId,
+          });
+        }
+      } catch (err) {
+        console.warn("[etapa2] Falha ao vincular avaliações anônimas:", err?.message || err);
+      }
+
+      try {
+        sessionStorage.removeItem("trabalheiLa_postReviewPseudonymPrompt");
+      } catch { /* ignore */ }
 
       navigate("/");
     },
@@ -1612,13 +1673,29 @@ function ChoosePseudonym({ theme, toggleTheme }) {
           )}
 
           <form ref={formRef} onSubmit={step === 1 ? handleContinueStep1 : handleSubmit} className="flex flex-col gap-4 md:space-y-4 md:gap-0">
+            {/* Lazy registration: convite logo ap\u00f3s o usu\u00e1rio enviar uma
+                avalia\u00e7\u00e3o de forma an\u00f4nima. */}
+            {step === 1 && isAfterReview && (
+              <div className="rounded-xl border border-emerald-300 bg-emerald-50 dark:bg-emerald-900/30 dark:border-emerald-700 px-4 py-3 text-sm text-emerald-900 dark:text-emerald-100 flex items-start gap-2">
+                <span aria-hidden="true" className="text-lg">\u2705</span>
+                <span>
+                  <strong>Sua avalia\u00e7\u00e3o foi enviada com sucesso!</strong>{" "}
+                  <span className="block mt-1">
+                    Crie agora seu <strong>pseud\u00f4nimo</strong> para manter suas avalia\u00e7\u00f5es
+                    vinculadas ao seu perfil e ter acesso a mais recursos da plataforma
+                    (hist\u00f3rico, edi\u00e7\u00e3o, contato com especialistas e mais).
+                  </span>
+                </span>
+              </div>
+            )}
+
             {/* Indicador visual de etapas */}
             <div className="flex items-center gap-2 text-xs font-semibold mb-2">
               <span className={`px-2 py-1 rounded-full ${step === 1 ? "bg-blue-600 text-white" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200"}`}>
-                {step === 1 ? "Etapa 1 de 2" : "✓ Etapa 1"}
+                {step === 1 ? "Etapa 1 de 2" : "\u2713 Etapa 1"}
               </span>
               <span className={`px-2 py-1 rounded-full ${step === 2 ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>
-                {step === 2 ? "Etapa 2 — opcional" : "Etapa 2"}
+                {step === 2 ? "Etapa 2 \u2014 opcional" : "Etapa 2"}
               </span>
             </div>
 
@@ -1709,11 +1786,6 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                     setBirthdateError("É necessário ter pelo menos 18 anos.");
                   } else {
                     setBirthdateError("");
-                    // Reconsulta CPF se já estiver preenchido — InfoSimples exige a data.
-                    const digits = cpf.replace(/\D/g, "");
-                    if (digits.length === 11 && isValidCpfDigits(digits)) {
-                      handleCpfBlur();
-                    }
                   }
                 }}
                 className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
@@ -1722,7 +1794,7 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                 <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{birthdateError}</p>
               ) : (
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Necessário para validação de CPF e para garantir a autenticidade das avaliações.
+                  Opcional. Usado apenas para garantir a maioridade.
                 </p>
               )}
             </div>
@@ -1853,64 +1925,15 @@ function ChoosePseudonym({ theme, toggleTheme }) {
             </div>
             )}
 
-            {/* CPF — opcional (etapa 2). Ao sair do campo, consulta a API e,
-                se possível, preenche o nome automaticamente. */}
-            {step === 2 && (
-            <div ref={(el) => assignSectionRef(el, 3)}>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                CPF <span className="text-xs font-normal text-slate-500">(opcional — apenas validação interna)</span>
-              </label>
-              <div className="relative">
-                <input
-                  value={cpf}
-                  onChange={(e) => {
-                    setError(null);
-                    setCpfError("");
-                    setCpfNotice("");
-                    setCpfVerified(false);
-                    setCpf(maskCpf(e.target.value));
-                  }}
-                  onBlur={handleCpfBlur}
-                  inputMode="numeric"
-                  autoComplete="off"
-                  placeholder="000.000.000-00"
-                  className="w-full p-3 pr-10 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
-                />
-                {cpfLoading && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 inline-block w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"
-                  />
-                )}
-                {!cpfLoading && cpfVerified && (
-                  <span
-                    aria-label="CPF verificado"
-                    title="CPF verificado"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-600 text-lg"
-                  >
-                    ✓
-                  </span>
-                )}
-              </div>
-              {cpfError && (
-                <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{cpfError}</p>
-              )}
-              {!cpfError && cpfNotice && (
-                <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">{cpfNotice}</p>
-              )}
-            </div>
-            )}
+            {/* CPF removido do fluxo de cria\u00e7\u00e3o de pseud\u00f4nimo (lazy registration).
+                A coleta opcional de CPF para verifica\u00e7\u00e3o de identidade fica em
+                "Minha Conta" \u2192 "Verificar identidade". */}
 
-            {/* Nome real (privado) — readOnly quando preenchido pela API. */}
+            {/* Nome real (privado) — opcional, sempre edit\u00e1vel. */}
             {step === 2 && (
             <div ref={(el) => assignSectionRef(el, 2)} className="md:col-span-2">
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Nome completo <span className="text-xs font-normal text-slate-500">(opcional — privado, nunca será exibido)</span>
-                {cpfVerified && (
-                  <span className="ml-2 text-[11px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 rounded-full px-2 py-0.5">
-                    Verificado pelo CPF
-                  </span>
-                )}
+                Nome completo <span className="text-xs font-normal text-slate-500">(opcional — privado, nunca ser\u00e1 exibido)</span>
               </label>
               <div className="flex gap-2">
                 <input
@@ -1919,23 +1942,9 @@ function ChoosePseudonym({ theme, toggleTheme }) {
                     setError(null);
                     setFullName(e.target.value);
                   }}
-                  readOnly={cpfVerified}
-                  placeholder="Será preenchido após a verificação do CPF"
-                  className={`flex-1 p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100 ${
-                    cpfVerified
-                      ? "bg-slate-100 dark:bg-slate-700 cursor-not-allowed"
-                      : "bg-white dark:bg-slate-800"
-                  }`}
+                  placeholder="Como aparece nos documentos (opcional)"
+                  className="flex-1 p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800"
                 />
-                {cpfVerified && (
-                  <button
-                    type="button"
-                    onClick={() => setCpfVerified(false)}
-                    className="px-3 text-sm font-medium text-blue-700 dark:text-blue-300 hover:underline"
-                  >
-                    Editar
-                  </button>
-                )}
               </div>
             </div>
             )}

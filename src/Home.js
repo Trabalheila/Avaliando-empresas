@@ -1442,11 +1442,11 @@ function Home({ theme, toggleTheme }) {
   }, [company, userProfile, rating, commentRating, salario, commentSalario, beneficios, commentBeneficios, cultura, commentCultura, oportunidades, commentOportunidades, inovacao, commentInovacao, lideranca, commentLideranca, diversidade, commentDiversidade, ambiente, commentAmbiente, equilibrio, commentEquilibrio, reconhecimento, commentReconhecimento, comunicacao, commentComunicacao, etica, commentEtica, desenvolvimento, commentDesenvolvimento, saudeBemEstar, commentSaudeBemEstar, impactoSocial, commentImpactoSocial, reputacao, commentReputacao, estimacaoOrganizacao, commentEstimacaoOrganizacao, generalComment, generalCommentRestrictedSegments, entrySource, contractType, workModel, discriminacao, commentDiscriminacao, cargaHoraria, commentCargaHoraria, crescimento, commentCrescimento, criterionRestrictedSegments, workPeriodStartMonth, workPeriodStartYear, workPeriodEndMonth, workPeriodEndYear, workPeriodStillWorking]);
 
   const submitEvaluation = useCallback(async (evaluationData) => {
-    const pseudonym = evaluationData?.pseudonym;
-    if (!pseudonym) {
-      setError("Por favor, defina um pseudônimo antes de avaliar.");
-      return;
-    }
+    // Lazy registration: o pseudônimo é OPCIONAL. Quando vazio, identificamos
+    // a avaliação apenas pelo UID anônimo do Firebase Auth e a exibimos como
+    // "Anônimo" até que o usuário crie um pseudônimo (ver linkAnonymousReviewsToPseudonym).
+    const pseudonym = (evaluationData?.pseudonym || "").toString().trim();
+    const isAnonymousAuthor = !pseudonym;
 
     // Avaliação de Processo Seletivo (usuário NÃO contratado).
     // Persiste em coleção separada, NÃO atualiza médias da empresa.
@@ -1459,25 +1459,41 @@ function Home({ theme, toggleTheme }) {
           "Avaliação do processo seletivo enviada! Obrigado por sua contribuição.",
       });
       localStorage.removeItem(REVIEW_DRAFT_STORAGE_KEY);
+      if (isAnonymousAuthor) {
+        try {
+          sessionStorage.setItem("trabalheiLa_postReviewPseudonymPrompt", "1");
+        } catch { /* ignore */ }
+        setTimeout(() => {
+          navigate("/pseudonym?after-review=1");
+        }, 1500);
+        return;
+      }
       setTimeout(() => {
         navigate(`/empresa?name=${encodeURIComponent(evaluationData.company)}`);
       }, 1500);
       return;
     }
 
-    // Não permite que o mesmo pseudônimo avalie a mesma empresa mais de uma vez (cache local rápido)
+    // Não permite que o mesmo pseudônimo avalie a mesma empresa mais de uma vez (cache local rápido).
+    // Quando o usuário ainda é anônimo, usamos a chave especial "__anon__" para
+    // bloquear duplicatas na mesma sessão.
     const evaluationsKey = `evaluations_${evaluationData.company}`;
     const storedEvals = localStorage.getItem(evaluationsKey);
     const existingEvals = storedEvals ? JSON.parse(storedEvals) : {};
+    const dedupeKey = pseudonym || "__anon__";
 
-    if (existingEvals[pseudonym]) {
-      setError("Você já avaliou essa empresa com este pseudônimo.");
+    if (existingEvals[dedupeKey]) {
+      setError(
+        pseudonym
+          ? "Você já avaliou essa empresa com este pseudônimo."
+          : "Você já enviou uma avaliação anônima para essa empresa nesta sessão."
+      );
       return;
     }
 
     const nextEvals = {
       ...existingEvals,
-      [pseudonym]: evaluationData,
+      [dedupeKey]: evaluationData,
     };
 
     try {
@@ -1537,14 +1553,26 @@ function Home({ theme, toggleTheme }) {
       })
     );
 
-    const successMessage = evaluationData?.hasPotentialPersonalName
-      ? "Avaliação enviada com sucesso! Identificamos uma possível citação de nome no seu comentário; sua avaliação foi registrada e poderá ser revisada por nossa equipe."
-      : "Avaliação enviada com sucesso! Obrigado por sua contribuição.";
+    const successMessage = isAnonymousAuthor
+      ? "Avaliação enviada com sucesso! Crie seu pseudônimo para manter suas avaliações vinculadas ao seu perfil."
+      : evaluationData?.hasPotentialPersonalName
+        ? "Avaliação enviada com sucesso! Identificamos uma possível citação de nome no seu comentário; sua avaliação foi registrada e poderá ser revisada por nossa equipe."
+        : "Avaliação enviada com sucesso! Obrigado por sua contribuição.";
     setEmailVerificationToast({ type: "success", message: successMessage });
     localStorage.removeItem(REVIEW_DRAFT_STORAGE_KEY);
     // Aguarda alguns instantes para o usuário ver o toast antes de navegar.
+    // Lazy registration: se o usuário avaliou anonimamente, leva ele direto
+    // para a página de criação de pseudônimo com a flag `?after-review=1` para
+    // que o ChoosePseudonym exiba o convite específico e dispare o backfill.
     setTimeout(() => {
-      navigate(`/empresa?name=${encodeURIComponent(evaluationData.company)}`);
+      if (isAnonymousAuthor) {
+        try {
+          sessionStorage.setItem("trabalheiLa_postReviewPseudonymPrompt", "1");
+        } catch { /* ignore */ }
+        navigate("/pseudonym?after-review=1");
+      } else {
+        navigate(`/empresa?name=${encodeURIComponent(evaluationData.company)}`);
+      }
     }, 1500);
   }, [navigate]);
 
@@ -1553,27 +1581,15 @@ function Home({ theme, toggleTheme }) {
   // captcha já está confirmado) e a confirmação do captcha (que continua o
   // fluxo automaticamente, sem exigir um segundo clique do usuário).
   const runSubmissionValidationsAndOpenResponsibility = useCallback(async () => {
-    if (!isAuthenticated) {
-      setError("Por favor, faça login para enviar sua avaliação.");
-      return;
-    }
+    // Lazy registration: NÃO exigimos mais que o usuário esteja autenticado
+    // via Google/LinkedIn nem que possua verification_level "identity". O
+    // signInAnonymously() roda no mount do Home (testFirebase) e garante um
+    // UID Firebase válido para gravar no Firestore. A avaliação é vinculada
+    // a esse UID e exibida como "Anônimo" até que o usuário crie um
+    // pseudônimo (fluxo /pseudonym?after-review=1).
     if (!company) {
       setError("Por favor, selecione uma empresa para avaliar.");
       return;
-    }
-
-    // Verificação mínima: só permite enviar avaliações para usuários com
-    // verification_level "identity" ou "proven". Usuários "free" continuam
-    // vendo o formulário, mas o envio é bloqueado com uma mensagem clara
-    // direcionando-os a autenticar com LinkedIn ou Google.
-    {
-      const detail = resolveUserVerificationDetail(userProfile || {}, company?.value || "");
-      if (!detail || detail.level === "free") {
-        setError(
-          "Para avaliar uma empresa, faça login com sua conta LinkedIn ou Google. Isso garante a autenticidade das avaliações sem revelar sua identidade."
-        );
-        return;
-      }
     }
 
     // Bloqueia empresários (role admin_empresa) de avaliar a própria empresa
@@ -1657,11 +1673,10 @@ function Home({ theme, toggleTheme }) {
         );
         return;
       }
-      const pseudonym = localStorage.getItem("userPseudonym");
-      if (!pseudonym) {
-        setError("Por favor, defina um pseudônimo antes de avaliar.");
-        return;
-      }
+      // Lazy registration: pseudônimo é opcional. Quando vazio, a avaliação
+      // é gravada como anônima e o usuário é convidado a criar o pseudônimo
+      // depois do envio (ver submitEvaluation).
+      const pseudonym = (localStorage.getItem("userPseudonym") || "").toString().trim();
       const authorProfileId = resolveProfileId(userProfile, { persistGeneratedId: false }) || "";
       const companyId =
         selectedCompanyData?.id ||
@@ -1717,12 +1732,8 @@ function Home({ theme, toggleTheme }) {
       return;
     }
 
-    const pseudonym = localStorage.getItem("userPseudonym");
-    if (!pseudonym) {
-      setError("Por favor, defina um pseudônimo antes de avaliar.");
-      return;
-    }
-
+    // Lazy registration: pseudônimo é opcional. Se ausente, a avaliação fica
+    // como "Anônimo" e o usuário é convidado a criar o pseudônimo depois.
     setError(null);
     setResponsibilityAccepted(false);
     setPendingEvaluationData(buildEvaluationData());

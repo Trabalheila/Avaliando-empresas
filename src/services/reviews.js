@@ -68,8 +68,8 @@ export async function listRecentReviews(take = 1000) {
 }
 
 export async function saveReview(review) {
-  if (!review?.company || !review?.pseudonym) {
-    throw new Error("Empresa e pseudônimo são obrigatórios para salvar a avaliação.");
+  if (!review?.company) {
+    throw new Error("Empresa é obrigatória para salvar a avaliação.");
   }
 
   // Certifica que há um usuário autenticado (pode ser anônimo) antes de gravar no Firestore.
@@ -78,24 +78,80 @@ export async function saveReview(review) {
   }
 
   const companySlug = slugifyCompany(review.company);
-  const pseudonymSlug = slugifyCompany(review.pseudonym);
+  const rawPseudonym = (review.pseudonym || "").toString().trim();
+  // Lazy registration: quando o usuário ainda não criou um pseudônimo,
+  // identificamos a avaliação pelo UID anônimo do Firebase Auth. Isso evita
+  // colisão de IDs e permite vincular as avaliações depois que o pseudônimo
+  // for criado (backfill em `linkAnonymousReviewsToPseudonym`).
+  const uid = auth.currentUser.uid;
+  const pseudonymSlug = rawPseudonym
+    ? slugifyCompany(rawPseudonym)
+    : `anon-${uid.slice(0, 12)}`;
   const reviewId = `${companySlug}_${pseudonymSlug}`;
   const reviewRef = doc(db, "reviews", reviewId);
 
   const existing = await getDoc(reviewRef);
   if (existing.exists()) {
-    throw new Error("Você já avaliou essa empresa com este pseudônimo.");
+    throw new Error(
+      rawPseudonym
+        ? "Você já avaliou essa empresa com este pseudônimo."
+        : "Você já enviou uma avaliação para esta empresa nesta sessão."
+    );
   }
 
   const payload = {
     ...review,
+    pseudonym: rawPseudonym,
     companySlug,
-    uid: auth.currentUser.uid,
+    uid,
+    // Marca explícita para facilitar backfill e exibição como "Anônimo".
+    isAnonymousAuthor: !rawPseudonym,
     createdAt: serverTimestamp(),
   };
 
   await setDoc(reviewRef, payload);
   return { id: reviewId, ...payload };
+}
+
+/**
+ * Vincula avaliações enviadas anonimamente (sem pseudônimo) ao novo
+ * pseudônimo escolhido pelo usuário. Procura por reviews do UID atual
+ * onde `pseudonym` está vazio ou onde `isAnonymousAuthor === true`.
+ *
+ * Não realoca o doc id — apenas atualiza os campos identificadores
+ * (`pseudonym`, `authorProfileId`, `isAnonymousAuthor`). Os doc ids
+ * `companySlug_anon-<uid...>` permanecem como ficaram para preservar a
+ * regra de unicidade já gravada.
+ */
+export async function linkAnonymousReviewsToPseudonym({ uid, pseudonym, authorProfileId } = {}) {
+  const cleanPseudonym = (pseudonym || "").toString().trim();
+  if (!uid || !cleanPseudonym) return { updated: 0 };
+
+  const ref = collection(db, "reviews");
+  const q = query(ref, where("uid", "==", uid), limit(200));
+  const snap = await getDocs(q);
+
+  let updated = 0;
+  await Promise.all(
+    snap.docs.map(async (d) => {
+      const data = d.data() || {};
+      const alreadyHasPseudonym = Boolean((data.pseudonym || "").toString().trim());
+      if (alreadyHasPseudonym && !data.isAnonymousAuthor) return;
+      try {
+        await updateDoc(d.ref, {
+          pseudonym: cleanPseudonym,
+          authorProfileId: authorProfileId || data.authorProfileId || "",
+          isAnonymousAuthor: false,
+          linkedFromAnonymousAt: serverTimestamp(),
+        });
+        updated += 1;
+      } catch (err) {
+        console.warn("[reviews] Falha ao vincular avaliação anônima ao pseudônimo:", err?.message || err);
+      }
+    })
+  );
+
+  return { updated };
 }
 
 /**
