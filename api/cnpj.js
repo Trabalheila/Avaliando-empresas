@@ -398,6 +398,8 @@ export default async function handler(req, res) {
 
   // Busca por nome não exige CNPJ na query.
   if (op === "search") return handleSearchByName(req, res);
+  // Logo da empresa por domínio (consolidado aqui para reduzir nº de funções serverless).
+  if (op === "company-logo" || op === "logo") return handleCompanyLogo(req, res);
 
   const cnpjRaw = (req.query?.cnpj ?? "").toString();
   const digits = cnpjRaw.replace(/\D/g, "");
@@ -409,5 +411,96 @@ export default async function handler(req, res) {
   if (op === "info") return handleInfo(req, res, digits);
   if (op === "status") return handleStatus(req, res, digits);
 
-  return res.status(400).json({ error: "Parâmetro 'op' inválido. Use ?op=info, ?op=status ou ?op=search." });
+  return res.status(400).json({ error: "Parâmetro 'op' inválido. Use ?op=info, ?op=status, ?op=search ou ?op=company-logo." });
+}
+
+// =========================================================================
+// op=company-logo — resolve logo/favicon de um domínio (antiga /api/company-logo).
+// =========================================================================
+function _logoNormalizeDomain(value) {
+  if (!value) return "";
+  const raw = String(value).trim();
+  if (!raw) return "";
+  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    return new URL(withProtocol).hostname.replace(/^www\./i, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function _logoWithTimeout(ms = 4500) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), ms);
+  return { signal: controller.signal, clear: () => clearTimeout(timeoutId) };
+}
+
+function _logoExtractMeta(html, propertyName) {
+  const escaped = propertyName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const rx1 = new RegExp(
+    `<meta[^>]+(?:property|name)=["']${escaped}["'][^>]+content=["']([^"']+)["'][^>]*>`,
+    "i"
+  );
+  const rx2 = new RegExp(
+    `<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${escaped}["'][^>]*>`,
+    "i"
+  );
+  return html.match(rx1)?.[1] || html.match(rx2)?.[1] || "";
+}
+
+function _logoExtractIcon(html) {
+  const rx = /<link[^>]+rel=["'][^"']*icon[^"']*["'][^>]+href=["']([^"']+)["'][^>]*>/i;
+  return html.match(rx)?.[1] || "";
+}
+
+function _logoAbsolute(baseUrl, maybeRelative) {
+  if (!maybeRelative) return "";
+  try {
+    return new URL(maybeRelative, baseUrl).toString();
+  } catch {
+    return "";
+  }
+}
+
+function _logoFallback(domain, size) {
+  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=${size}`;
+}
+
+async function handleCompanyLogo(req, res) {
+  const rawDomain = req.query?.domain || req.query?.website || "";
+  const domain = _logoNormalizeDomain(rawDomain);
+  const parsedSize = Number.parseInt(String(req.query?.size || "128"), 10);
+  const size = Number.isFinite(parsedSize) ? Math.min(Math.max(parsedSize, 32), 256) : 128;
+  if (!domain) return res.status(400).json({ error: "domain/website obrigatorio" });
+
+  const target = `https://${domain}`;
+  const timer = _logoWithTimeout();
+  try {
+    const pageResponse = await fetch(target, {
+      method: "GET",
+      redirect: "follow",
+      signal: timer.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; TrabalheiLaLogoBot/1.0)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+    });
+    timer.clear();
+    if (!pageResponse.ok) return res.redirect(302, _logoFallback(domain, size));
+
+    const html = await pageResponse.text();
+    const finalPageUrl = pageResponse.url || target;
+    const ogImage = _logoExtractMeta(html, "og:image");
+    const twitterImage = _logoExtractMeta(html, "twitter:image");
+    const iconHref = _logoExtractIcon(html);
+    const resolved =
+      _logoAbsolute(finalPageUrl, ogImage) ||
+      _logoAbsolute(finalPageUrl, twitterImage) ||
+      _logoAbsolute(finalPageUrl, iconHref);
+    if (resolved) return res.redirect(302, resolved);
+    return res.redirect(302, _logoFallback(domain, size));
+  } catch (error) {
+    timer.clear();
+    return res.redirect(302, _logoFallback(domain, size));
+  }
 }
