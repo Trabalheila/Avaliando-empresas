@@ -9,7 +9,155 @@
 // instruído pelo produto e devolve { response } com o texto gerado.
 // A chave GEMINI_API_KEY vive somente no servidor.
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+
+export const config = {
+  api: {
+    bodyParser: { sizeLimit: "5mb" },
+  },
+};
+
+// ============================================================
+// Sub-rota: ?op=parse-cv
+// Extrai experiências profissionais estruturadas de um currículo
+// (PDF ou DOCX) via Gemini JSON Mode.
+// Contrato: { filename, mimeType, base64 } -> { experiencias: [...] }
+// ============================================================
+const PARSE_CV_MAX_BYTES = 4 * 1024 * 1024; // 4 MB
+const PARSE_CV_SCHEMA = {
+  type: SchemaType.OBJECT,
+  properties: {
+    experiencias: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          empresa: { type: SchemaType.STRING },
+          funcao: { type: SchemaType.STRING },
+          data_inicio: { type: SchemaType.STRING },
+          data_fim: { type: SchemaType.STRING },
+        },
+        required: ["empresa", "funcao"],
+      },
+    },
+  },
+  required: ["experiencias"],
+};
+const PARSE_CV_SYSTEM = `Você extrai histórico profissional de currículos.
+Devolva APENAS JSON no schema definido.
+Para cada experiência, preencha:
+- empresa: nome oficial da empresa, sem cargo nem cidade.
+- funcao: cargo/função exercida.
+- data_inicio: formato "AAAA-MM" sempre que possível.
+- data_fim: formato "AAAA-MM" ou a string "Atual" se for o emprego atual.
+Ignore seções de educação, cursos, idiomas, habilidades, projetos pessoais,
+voluntariado sem empresa nomeada. Não invente datas — omita o campo se
+não houver indicação clara. Não duplique experiências.`;
+
+async function handleParseCv(req, res, body, apiKey) {
+  const { filename, mimeType, base64 } = body || {};
+  if (!base64 || typeof base64 !== "string") {
+    return res.status(400).json({ error: "Campo base64 é obrigatório." });
+  }
+  const mt = String(mimeType || "").toLowerCase();
+  const isPdf = mt === "application/pdf" || /\.pdf$/i.test(filename || "");
+  const isDocx =
+    mt ===
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    /\.docx$/i.test(filename || "");
+  if (!isPdf && !isDocx) {
+    return res
+      .status(415)
+      .json({ error: "Formato não suportado. Envie PDF ou DOCX." });
+  }
+
+  let buffer;
+  try {
+    buffer = Buffer.from(base64, "base64");
+  } catch {
+    return res.status(400).json({ error: "Base64 inválido." });
+  }
+  if (!buffer.length) return res.status(400).json({ error: "Arquivo vazio." });
+  if (buffer.length > PARSE_CV_MAX_BYTES) {
+    return res
+      .status(413)
+      .json({ error: "Arquivo maior que 4MB. Compacte ou envie um trecho." });
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const modelName =
+      process.env.GEMINI_CV_MODEL ||
+      process.env.GEMINI_MODEL ||
+      "gemini-2.0-flash";
+    const model = genAI.getGenerativeModel({
+      model: modelName,
+      systemInstruction: PARSE_CV_SYSTEM,
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: PARSE_CV_SCHEMA,
+        temperature: 0.1,
+      },
+    });
+
+    let result;
+    if (isPdf) {
+      result = await model.generateContent([
+        { text: "Extraia o histórico profissional deste currículo." },
+        {
+          inlineData: {
+            mimeType: "application/pdf",
+            data: buffer.toString("base64"),
+          },
+        },
+      ]);
+    } else {
+      const mammothMod = await import("mammoth");
+      const mammoth = mammothMod.default || mammothMod;
+      const extracted = await mammoth.extractRawText({ buffer });
+      const text = String(extracted?.value || "").trim();
+      if (!text) {
+        return res
+          .status(422)
+          .json({ error: "Não consegui ler o conteúdo do DOCX." });
+      }
+      result = await model.generateContent([
+        {
+          text: `Extraia o histórico profissional do texto abaixo.\n\n---\n${text.slice(
+            0,
+            60000
+          )}\n---`,
+        },
+      ]);
+    }
+
+    const raw = result?.response?.text?.() || "";
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      console.error("Gemini não retornou JSON válido:", raw.slice(0, 300));
+      return res
+        .status(502)
+        .json({ error: "Resposta da IA não veio em JSON. Tente novamente." });
+    }
+    const list = Array.isArray(parsed?.experiencias) ? parsed.experiencias : [];
+    const cleaned = list
+      .map((e) => ({
+        empresa: String(e?.empresa || "").trim(),
+        funcao: String(e?.funcao || "").trim(),
+        data_inicio: e?.data_inicio ? String(e.data_inicio).trim() : "",
+        data_fim: e?.data_fim ? String(e.data_fim).trim() : "",
+      }))
+      .filter((e) => e.empresa && e.funcao);
+    return res.status(200).json({ experiencias: cleaned });
+  } catch (err) {
+    console.error("Falha em parse-cv:", err);
+    return res
+      .status(500)
+      .json({ error: "Não foi possível processar o currículo." });
+  }
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -26,6 +174,20 @@ export default async function handler(req, res) {
     }
   }
 
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.error("GEMINI_API_KEY não configurada.");
+    return res
+      .status(500)
+      .json({ message: "Server configuration error: API key missing." });
+  }
+
+  // Roteamento de sub-operações.
+  const op = (req.query?.op || body?.op || "").toString().toLowerCase();
+  if (op === "parse-cv") {
+    return handleParseCv(req, res, body, apiKey);
+  }
+
   // Aceita o contrato novo (question + knowledgeBase) e o antigo (message)
   // por retrocompatibilidade.
   const { question, message, knowledgeBase } = body || {};
@@ -33,14 +195,6 @@ export default async function handler(req, res) {
 
   if (!userQuestion) {
     return res.status(400).json({ message: "question is required" });
-  }
-
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    console.error("GEMINI_API_KEY não configurada.");
-    return res
-      .status(500)
-      .json({ message: "Server configuration error: API key missing." });
   }
 
   // Serializa a base de conhecimento como pares Pergunta/Resposta.

@@ -736,11 +736,99 @@ export default async function handler(req, res) {
   if (op === "nfse-refresh") return handleNfseRefresh(req, res);
   if (op === "register-consultation-transaction")
     return handleRegisterConsultationTransaction(req, res);
+  if (op === "verify-review-linkedin")
+    return handleVerifyReviewLinkedIn(req, res);
 
   return res.status(400).json({
     error:
-      "Parâmetro 'op' inválido. Ops válidas: delete, reviews, users, update-plan, growth-stats, update-user-status, restricted, moderate-segment, verify-request, verify-confirm, verify-resend, verify-list, verify-decision, register-consultation-transaction.",
+      "Parâmetro 'op' inválido. Ops válidas: delete, reviews, users, update-plan, growth-stats, update-user-status, restricted, moderate-segment, verify-request, verify-confirm, verify-resend, verify-list, verify-decision, register-consultation-transaction, verify-review-linkedin.",
   });
+}
+
+/* ────────────────────────────────────────────────
+   op=verify-review-linkedin
+   Verifica server-side se o autor de uma avaliação trabalhou
+   na empresa avaliada de acordo com seu histórico LinkedIn
+   armazenado em users/{uid}.linkedInCompaniesNormalized.
+   Em caso de match, marca isVerifiedLinkedIn=true na review.
+   Nada do perfil LinkedIn é exposto na review pública.
+   ──────────────────────────────────────────────── */
+
+const VRL_SUFFIXES = [
+  "s a", "s/a", "sa", "ltda", "ltd", "me", "epp", "eireli",
+  "inc", "llc", "corp", "co", "company",
+];
+function vrlNormalize(value) {
+  if (!value && value !== 0) return "";
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]+/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((tok, _i, arr) => !(arr.length > 1 && VRL_SUFFIXES.includes(tok)))
+    .join(" ")
+    .trim();
+}
+function vrlKeys(value) {
+  const norm = vrlNormalize(value);
+  if (!norm) return [];
+  return Array.from(new Set([norm, norm.replace(/\s+/g, "-")]));
+}
+
+async function handleVerifyReviewLinkedIn(req, res) {
+  const { reviewId, uid } = req.body || {};
+  if (!reviewId || !uid) {
+    return res
+      .status(400)
+      .json({ error: "reviewId e uid são obrigatórios." });
+  }
+  try {
+    const { db } = await ensureAdmin();
+    const reviewRef = db.collection("reviews").doc(reviewId);
+    const reviewSnap = await reviewRef.get();
+    if (!reviewSnap.exists) {
+      return res.status(404).json({ error: "Review não encontrada." });
+    }
+    const review = reviewSnap.data() || {};
+    if (review.uid !== uid) {
+      return res.status(403).json({ error: "UID não corresponde à review." });
+    }
+    const userSnap = await db.collection("users").doc(uid).get();
+    const userData = userSnap.exists ? userSnap.data() : {};
+    const candidates = Array.isArray(userData?.linkedInCompaniesNormalized)
+      ? userData.linkedInCompaniesNormalized
+      : [];
+
+    const targetSlug =
+      review.companySlug || vrlNormalize(review.company || "");
+    const targetKeys = new Set(vrlKeys(targetSlug));
+    let verified = false;
+    if (targetKeys.size) {
+      for (const c of candidates) {
+        for (const k of vrlKeys(c)) {
+          if (targetKeys.has(k)) {
+            verified = true;
+            break;
+          }
+        }
+        if (verified) break;
+      }
+    }
+
+    if (verified) {
+      await reviewRef.update({
+        isVerifiedLinkedIn: true,
+        verificationSource: "linkedin",
+        verifiedAt: new Date().toISOString(),
+      });
+    }
+    return res.status(200).json({ verified });
+  } catch (err) {
+    console.error("verify-review-linkedin falhou:", err);
+    return res.status(500).json({ error: "Falha na verificação." });
+  }
 }
 
 /* ────────────────────────────────────────────────
