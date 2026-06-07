@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { db, storage } from "../firebase";
+import { db, storage, auth } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import {
   doc,
   getDoc,
@@ -79,11 +80,19 @@ export default function MinhaConta({ theme, toggleTheme }) {
   useEffect(() => {
     let cancelled = false;
 
-    async function load() {
+    async function load(authUid) {
       setLoading(true);
       try {
         const stored = JSON.parse(localStorage.getItem("userProfile") || "{}");
-        const profileId = stored?.profileId || resolveProfileId(stored, { persistGeneratedId: false });
+        // Ordem de preferência para localizar o doc do usuário no Firestore:
+        // 1) profileId já persistido (canonical); 2) resolveProfileId via
+        // email/id do perfil em cache; 3) uid do Firebase Auth (cobre o
+        // caso em que o cache local sumiu mas o usuário continua logado).
+        const profileId =
+          stored?.profileId ||
+          resolveProfileId(stored, { persistGeneratedId: false }) ||
+          authUid ||
+          "";
 
         if (!profileId) {
           if (!cancelled) {
@@ -93,18 +102,37 @@ export default function MinhaConta({ theme, toggleTheme }) {
           return;
         }
 
-        // Buscar perfil do Firestore
-        const userRef = doc(db, "users", profileId);
-        const userSnap = await getDoc(userRef);
+        // Buscar perfil do Firestore — tenta pelo profileId resolvido e,
+        // se não existir, tenta também pelo uid do Auth como fallback.
+        let userSnap = await getDoc(doc(db, "users", profileId));
+        let resolvedId = profileId;
+        if (!userSnap.exists() && authUid && authUid !== profileId) {
+          const altSnap = await getDoc(doc(db, "users", authUid));
+          if (altSnap.exists()) {
+            userSnap = altSnap;
+            resolvedId = authUid;
+          }
+        }
+
+        if (!userSnap.exists() && !stored?.pseudonym && !stored?.email) {
+          // Sem doc no Firestore e sem dados em cache: realmente não há
+          // perfil ainda — mostra a tela de "crie seu perfil".
+          if (!cancelled) {
+            setProfile(null);
+            setLoading(false);
+          }
+          return;
+        }
+
         const userData = userSnap.exists()
           ? { id: userSnap.id, ...userSnap.data() }
-          : { id: profileId, ...stored };
+          : { id: resolvedId, ...stored };
 
         if (!cancelled) setProfile(userData);
 
         // Buscar avaliações
         const reviewsRef = collection(db, "reviews");
-        const q = query(reviewsRef, where("authorProfileId", "==", profileId), limit(200));
+        const q = query(reviewsRef, where("authorProfileId", "==", resolvedId), limit(200));
         const reviewSnap = await getDocs(q);
         const userReviews = reviewSnap.docs
           .map((d) => ({ id: d.id, ...d.data() }))
@@ -117,8 +145,15 @@ export default function MinhaConta({ theme, toggleTheme }) {
       }
     }
 
-    load();
-    return () => { cancelled = true; };
+    // Aguarda o Firebase Auth resolver para podermos usar o uid como
+    // fallback quando o cache do localStorage não tem profileId.
+    const unsub = onAuthStateChanged(auth, (user) => {
+      load(user?.uid || "");
+    });
+    return () => {
+      cancelled = true;
+      unsub();
+    };
   }, []);
 
   // Resumo
