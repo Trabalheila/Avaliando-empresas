@@ -10,12 +10,13 @@
 // (Firestore + localStorage), com marcador `verified: true` para origem
 // "linkedin" e `verified: false` para origem "manual".
 
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { saveUserProfile } from "../services/users";
 import { extractLinkedInExperiences } from "../services/socialAuth";
 import LoginLinkedInButton from "../LoginLinkedInButton";
 import { getLinkedInRedirectUri } from "../utils/linkedinAuth";
 import { buildApiUrl } from "../utils/apiBase";
+import { normalizeCompanyName } from "../utils/companyMatching";
 
 function normalizeKey(company, role) {
   return `${(company || "").trim().toLowerCase()}__${(role || "")
@@ -41,8 +42,22 @@ function mergeIntoProfile(profile, newItems) {
     .map((e) => (e.company || "").trim())
     .filter(Boolean);
 
+  // Lista de empresas oriundas do LinkedIn, normalizada, para uso server-side
+  // na verificação de autenticidade das avaliações. Não é segredo, mas não
+  // deve ser exibida em público — mantenha as Firestore rules restringindo
+  // leitura do doc users/{uid} ao próprio usuário.
+  const linkedInCompaniesNormalized = Array.from(
+    new Set(
+      nextExperiences
+        .filter((e) => e.source === "linkedin" || e.verified === true)
+        .map((e) => normalizeCompanyName(e.company || ""))
+        .filter(Boolean)
+    )
+  );
+
   return {
     ...profile,
+    linkedInCompaniesNormalized,
     resumeData: {
       ...(profile?.resumeData || {}),
       experiencesStructured: nextExperiences,
@@ -75,6 +90,9 @@ export default function ExperienceManagerModal({
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [linkedInBusy, setLinkedInBusy] = useState(false);
+  const [cvBusy, setCvBusy] = useState(false);
+  const [cvParsed, setCvParsed] = useState([]); // [{empresa, funcao, data_inicio, data_fim, _selected}]
+  const cvInputRef = useRef(null);
 
   // Lista de experiências disponíveis no perfil que vieram do LinkedIn
   const linkedInAvailable = useMemo(() => {
@@ -125,6 +143,7 @@ export default function ExperienceManagerModal({
         pseudonimo: profile?.pseudonimo || "",
         status: profile?.status,
         resumeData: next.resumeData,
+        linkedInCompaniesNormalized: next.linkedInCompaniesNormalized,
       });
       persistLocalProfile(next);
       onSaved?.(next);
@@ -163,6 +182,7 @@ export default function ExperienceManagerModal({
         pseudonimo: profile?.pseudonimo || "",
         status: profile?.status,
         resumeData: next.resumeData,
+        linkedInCompaniesNormalized: next.linkedInCompaniesNormalized,
       });
       persistLocalProfile(next);
       onSaved?.(next);
@@ -240,6 +260,7 @@ export default function ExperienceManagerModal({
           status: profile?.status,
           resumeData: next.resumeData,
           linkedinExperiences: experiences,
+          linkedInCompaniesNormalized: next.linkedInCompaniesNormalized,
         });
         persistLocalProfile({ ...next, linkedinExperiences: experiences });
         onSaved?.({ ...next, linkedinExperiences: experiences });
@@ -258,6 +279,115 @@ export default function ExperienceManagerModal({
     setLinkedInBusy(false);
     setError(err?.message || "Falha ao conectar com LinkedIn.");
   }, []);
+
+  // ---- Importar do CV (PDF/DOCX) via /api/parse-cv ----
+  const handleCvFile = useCallback(async (event) => {
+    const file = event?.target?.files?.[0];
+    if (event?.target) event.target.value = "";
+    if (!file) return;
+    setError("");
+    setInfo("");
+    setCvParsed([]);
+
+    const okMime =
+      file.type === "application/pdf" ||
+      file.type ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      /\.(pdf|docx)$/i.test(file.name);
+    if (!okMime) {
+      setError("Envie um arquivo PDF ou DOCX.");
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setError("Arquivo maior que 4MB.");
+      return;
+    }
+
+    setCvBusy(true);
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(reader.error);
+        reader.onload = () => {
+          const result = String(reader.result || "");
+          // dataURL: "data:<mime>;base64,XXXX"
+          const i = result.indexOf(",");
+          resolve(i >= 0 ? result.slice(i + 1) : result);
+        };
+        reader.readAsDataURL(file);
+      });
+
+      const resp = await fetch(buildApiUrl("/api/parse-cv"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: file.name,
+          mimeType: file.type,
+          base64,
+        }),
+      });
+      const payload = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(payload?.error || `Erro HTTP ${resp.status}`);
+      }
+      const list = Array.isArray(payload?.experiencias)
+        ? payload.experiencias
+        : [];
+      if (!list.length) {
+        setError(
+          "A IA não encontrou experiências no documento. Tente outro arquivo."
+        );
+        return;
+      }
+      setCvParsed(list.map((e) => ({ ...e, _selected: true })));
+      setInfo(`${list.length} experiência(s) extraída(s). Revise antes de salvar.`);
+    } catch (err) {
+      setError(err?.message || "Falha ao processar o currículo.");
+    } finally {
+      setCvBusy(false);
+    }
+  }, []);
+
+  const handleSaveParsedCv = useCallback(async () => {
+    setError("");
+    setInfo("");
+    const chosen = cvParsed.filter((e) => e._selected);
+    if (!chosen.length) {
+      setError("Selecione ao menos uma experiência para salvar.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const items = chosen.map((e) => ({
+        company: e.empresa,
+        role: e.funcao,
+        startDate: e.data_inicio || "",
+        endDate: e.data_fim || "",
+        source: "cv",
+        verified: false,
+        addedAt: new Date().toISOString(),
+      }));
+      const next = mergeIntoProfile(profile, items);
+      const id = profile?.id || profile?.profileId || profile?.uid;
+      if (!id) throw new Error("Perfil sem identificador.");
+      await saveUserProfile({
+        id,
+        pseudonimo: profile?.pseudonimo || "",
+        status: profile?.status,
+        resumeData: next.resumeData,
+        linkedInCompaniesNormalized: next.linkedInCompaniesNormalized,
+      });
+      persistLocalProfile(next);
+      onSaved?.(next);
+      setInfo(`${items.length} experiência(s) salva(s).`);
+      setCvParsed([]);
+      setTimeout(() => onClose?.(), 700);
+    } catch (err) {
+      setError(err?.message || "Não foi possível salvar.");
+    } finally {
+      setBusy(false);
+    }
+  }, [cvParsed, profile, onSaved, onClose]);
 
   if (!open) return null;
 
@@ -313,6 +443,17 @@ export default function ExperienceManagerModal({
             }`}
           >
             Adicionar Manualmente
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("cv")}
+            className={`flex-1 px-3 py-2 rounded-xl text-sm font-semibold transition ${
+              tab === "cv"
+                ? "bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700"
+                : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-transparent hover:bg-slate-100 dark:hover:bg-slate-700"
+            }`}
+          >
+            ✨ Importar do Currículo
           </button>
         </div>
 
@@ -443,6 +584,107 @@ export default function ExperienceManagerModal({
                 Experiências adicionadas manualmente são marcadas como{" "}
                 <strong>Não Verificada</strong>.
               </p>
+            </div>
+          )}
+
+          {tab === "cv" && (
+            <div className="space-y-3">
+              <input
+                ref={cvInputRef}
+                type="file"
+                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={handleCvFile}
+                className="hidden"
+              />
+              {cvBusy ? (
+                <div className="rounded-2xl border border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-900/20 px-4 py-6 text-center">
+                  <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 animate-pulse">
+                    A Inteligência Artificial está lendo seu currículo…
+                  </p>
+                </div>
+              ) : cvParsed.length === 0 ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => cvInputRef.current?.click()}
+                    className="w-full rounded-2xl border-2 border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/40 dark:bg-blue-900/10 px-4 py-6 text-center hover:bg-blue-50 dark:hover:bg-blue-900/20 transition"
+                  >
+                    <p className="text-base font-bold text-blue-700 dark:text-blue-200">
+                      ✨ Importar do Currículo (PDF ou DOCX)
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Selecione um arquivo até 4MB. A IA extrai automaticamente seu histórico profissional para você revisar.
+                    </p>
+                  </button>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                    O conteúdo do currículo é enviado apenas para extração das experiências; nada é publicado sem sua aprovação.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    Revise as experiências extraídas pela IA antes de salvar:
+                  </p>
+                  <ul className="space-y-2 max-h-64 overflow-y-auto">
+                    {cvParsed.map((item, i) => (
+                      <li
+                        key={`${item.empresa}-${item.funcao}-${i}`}
+                        className="flex items-start gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2"
+                      >
+                        <input
+                          type="checkbox"
+                          className="mt-1 h-4 w-4 accent-blue-600"
+                          checked={!!item._selected}
+                          onChange={(e) =>
+                            setCvParsed((prev) =>
+                              prev.map((x, j) =>
+                                j === i ? { ...x, _selected: e.target.checked } : x
+                              )
+                            )
+                          }
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm truncate">
+                            {item.empresa}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                            {item.funcao}
+                            {(item.data_inicio || item.data_fim) && (
+                              <span className="ml-1 text-slate-400">
+                                · {item.data_inicio || "?"} — {item.data_fim || "?"}
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-700">
+                          IA
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCvParsed([]);
+                        setInfo("");
+                      }}
+                      disabled={busy}
+                      className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveParsedCv}
+                      disabled={busy}
+                      className="flex-1 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60"
+                    >
+                      {busy ? "Salvando…" : "Salvar selecionadas"}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
 

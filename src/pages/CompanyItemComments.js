@@ -7,6 +7,7 @@ import { collection, deleteDoc, doc, getDoc, getDocs, limit, orderBy, query, set
 import { getStoredProfileId } from "../utils/profileIdentity";
 import RestrictedComment from "../components/RestrictedComment";
 import VerificationLevelBadge from "../components/VerificationLevelBadge";
+import VerifiedLinkedInBadge from "../components/VerifiedLinkedInBadge";
 import {
   resolveUserVerificationDetail,
   resolveEntryVerificationDetail,
@@ -429,6 +430,7 @@ function CompanyItemComments({ theme, toggleTheme }) {
               authorLoginProvider: (review?.authorLoginProvider || "").toString().toLowerCase(),
               authorHasLinkedIn: Boolean(review?.authorHasLinkedIn),
               authorHasResume: Boolean(review?.authorHasResume),
+              isVerifiedLinkedIn: Boolean(review?.isVerifiedLinkedIn),
               comment: selectedComment.trim(),
               restrictedSegments,
               score: review?.[itemKey],
@@ -1257,6 +1259,7 @@ function CompanyItemComments({ theme, toggleTheme }) {
                         <>
                           <VerificationLevelBadge level={detail.level} provider={detail.provider} />
                           {tier && <VerificationLevelBadge tier={tier} />}
+                          {entry.isVerifiedLinkedIn && <VerifiedLinkedInBadge />}
                         </>
                       );
                     })()}

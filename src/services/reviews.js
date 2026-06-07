@@ -15,6 +15,7 @@ import {
   increment,
   serverTimestamp,
 } from "firebase/firestore";
+import { buildApiUrl } from "../utils/apiBase";
 
 export function slugifyCompany(name) {
   return (name ?? "")
@@ -110,6 +111,23 @@ export async function saveReview(review) {
   };
 
   await setDoc(reviewRef, payload);
+
+  // Fire-and-forget: dispara verificação server-side de autenticidade
+  // via histórico LinkedIn. Em caso de match, o endpoint marca
+  // `isVerifiedLinkedIn: true` no doc — nada do perfil LinkedIn é exposto.
+  try {
+    fetch(buildApiUrl("/api/verify-review-linkedin"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reviewId, uid }),
+      keepalive: true,
+    }).catch(() => {
+      /* silencioso: a verificação é best-effort */
+    });
+  } catch {
+    /* ignore */
+  }
+
   return { id: reviewId, ...payload };
 }
 
