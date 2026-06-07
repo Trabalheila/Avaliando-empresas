@@ -865,14 +865,12 @@ function TrabalheiLaMobile({
               {/* CENÁRIO 1 — não autenticado: escolha de perfil + login social secundário */}
               {!isAuthenticated && (
                 <>
-                  <p className="text-xs text-blue-100 text-center mb-3 font-semibold">
-                    Escolha seu perfil para começar a avaliar empresas:
-                  </p>
                   <div className="flex flex-col gap-2 mb-4">
                     <Link
                       to="/pseudonym"
-                      className="w-full flex flex-col items-center justify-center text-center py-2.5 px-3 rounded-xl bg-lime-400 text-emerald-950 text-sm font-bold shadow transition-all duration-200 hover:bg-lime-500 hover:scale-[1.02] hover:shadow-lg active:scale-100 focus:outline-none focus:ring-2 focus:ring-lime-300"
+                      className="relative w-full flex flex-col items-center justify-center text-center py-2.5 px-3 rounded-xl bg-lime-400 text-emerald-950 text-sm font-bold shadow ring-2 ring-amber-300/70 transition-all duration-200 hover:bg-lime-500 hover:scale-[1.02] hover:shadow-lg active:scale-100 focus:outline-none focus:ring-2 focus:ring-lime-300"
                     >
+                      <span className="absolute -top-2 right-2 inline-flex items-center gap-0.5 bg-amber-400 text-amber-950 text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full shadow-sm">★ Recomendado</span>
                       <span>Sou Trabalhador</span>
                       <span className="block text-[10px] font-medium text-emerald-900/80 mt-0.5">(avalia anonimamente)</span>
                     </Link>
@@ -911,6 +909,9 @@ function TrabalheiLaMobile({
                         disabled={isLoading}
                       />
                     </div>
+                    <p className="text-[10px] text-blue-100/70 text-center mt-2 leading-snug">
+                      Por padrão, você inicia como <strong className="text-white">Trabalhador</strong> (anônimo). É possível alterar o perfil depois.
+                    </p>
                   </div>
                 </>
               )}
@@ -1053,12 +1054,12 @@ function TrabalheiLaMobile({
                 <button
                   type="button"
                   onClick={() => navigate('/escolha-perfil?planos=1')}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-amber-950 text-xs font-bold shadow-md ring-1 ring-amber-300/60 hover:shadow-lg transition-all"
+                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-amber-950 text-[11px] leading-snug font-bold shadow-md ring-1 ring-amber-300/60 hover:shadow-lg transition-all"
                   aria-label="Ver benefícios do plano Premium"
                 >
-                  <span aria-hidden="true">⭐</span>
-                  <span className="flex-1 text-center">Premium para trabalhadores, empresas e especialistas</span>
-                  <span aria-hidden="true">›</span>
+                  <span aria-hidden="true" className="flex-shrink-0">⭐</span>
+                  <span className="flex-1 text-center">Premium para Trabalhadores, Empresas e Especialistas</span>
+                  <span aria-hidden="true" className="flex-shrink-0">›</span>
                 </button>
               </div>
             </section>

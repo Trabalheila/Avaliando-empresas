@@ -673,14 +673,12 @@ function TrabalheiLaDesktop({
               {/* CENÁRIO 1 — não autenticado: escolha de perfil + login social secundário */}
               {!isAuthenticated && (
                 <>
-                  <p className="text-sm md:text-base text-blue-100 text-center mb-4 font-semibold">
-                    Escolha seu perfil para começar a avaliar empresas:
-                  </p>
                   <div className="flex flex-col sm:flex-row items-stretch justify-center gap-3 mb-5">
                     <Link
                       to="/pseudonym"
-                      className="flex-1 sm:max-w-xs flex flex-col items-center justify-center text-center py-2.5 px-4 rounded-lg bg-lime-400 text-emerald-950 text-sm md:text-base font-bold shadow transition-all duration-200 hover:bg-lime-500 hover:scale-[1.03] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-lime-300"
+                      className="relative flex-1 sm:max-w-xs flex flex-col items-center justify-center text-center py-2.5 px-4 rounded-lg bg-lime-400 text-emerald-950 text-sm md:text-base font-bold shadow ring-2 ring-amber-300/70 transition-all duration-200 hover:bg-lime-500 hover:scale-[1.03] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-lime-300"
                     >
+                      <span className="absolute -top-2 right-3 inline-flex items-center gap-0.5 bg-amber-400 text-amber-950 text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm">★ Recomendado</span>
                       <span>Sou Trabalhador</span>
                       <span className="block text-[11px] md:text-xs font-medium text-emerald-900/80 mt-0.5">(avalia anonimamente)</span>
                     </Link>
@@ -721,6 +719,9 @@ function TrabalheiLaDesktop({
                         />
                       </div>
                     </div>
+                    <p className="text-xs text-blue-100/70 text-center mt-3 leading-snug">
+                      Por padrão, você inicia como <strong className="text-white">Trabalhador</strong> (anônimo). É possível alterar o perfil depois.
+                    </p>
                   </div>
                 </>
               )}
