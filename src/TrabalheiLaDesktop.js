@@ -834,11 +834,10 @@ function TrabalheiLaDesktop({
                       </button>
                     ) : isSpecialistProfile ? null : (
                       <a
-                        href="/pseudonym"
+                        href="/trabalhador/encontrar-especialista"
                         className="inline-flex items-center px-4 py-2 rounded-lg bg-white text-blue-800 text-sm font-bold shadow hover:bg-blue-50 transition"
                       >
-                        <FaUserEdit className="mr-1 text-xs" />
-                        {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
+                        Buscar ajuda
                       </a>
                     )}
                     {isSpecialistProfile ? (
@@ -868,19 +867,10 @@ function TrabalheiLaDesktop({
                     ) : (
                       <button
                         type="button"
-                        onClick={() => {
-                          const pid =
-                            userProfile?.profileId ||
-                            resolveProfileId(userProfile, { persistGeneratedId: false });
-                          if (pid) {
-                            navigate(`/perfil/${encodeURIComponent(pid)}`);
-                          } else {
-                            navigate("/minha-conta");
-                          }
-                        }}
+                        onClick={() => navigate("/minha-conta")}
                         className="inline-flex items-center px-4 py-2 rounded-lg bg-white text-blue-800 text-sm font-bold shadow hover:bg-blue-50 transition"
                       >
-                        Ver meu perfil
+                        Minha conta
                       </button>
                     )}
                     <button

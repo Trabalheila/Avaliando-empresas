@@ -1020,11 +1020,10 @@ function TrabalheiLaMobile({
                       </button>
                     ) : isSpecialistProfile ? null : (
                       <a
-                        href="/pseudonym"
+                        href="/trabalhador/encontrar-especialista"
                         className="inline-flex items-center px-3 py-2 rounded-lg bg-white text-blue-800 text-xs font-bold shadow hover:bg-blue-50 transition"
                       >
-                        <FaUserEdit className="mr-1 text-[10px]" />
-                        {hasCompletedProfile ? "Editar perfil" : "Crie seu perfil"}
+                        Buscar ajuda
                       </a>
                     )}
                     {isSpecialistProfile ? (
@@ -1054,17 +1053,10 @@ function TrabalheiLaMobile({
                     ) : (
                       <button
                         type="button"
-                        onClick={() => {
-                          const pid = userProfile?.profileId || "";
-                          if (pid) {
-                            navigate(`/perfil/${encodeURIComponent(pid)}`);
-                          } else {
-                            navigate("/minha-conta");
-                          }
-                        }}
+                        onClick={() => navigate("/minha-conta")}
                         className="inline-flex items-center px-3 py-2 rounded-lg bg-white text-blue-800 text-xs font-bold shadow hover:bg-blue-50 transition"
                       >
-                        Ver meu perfil
+                        Minha conta
                       </button>
                     )}
                     <button
