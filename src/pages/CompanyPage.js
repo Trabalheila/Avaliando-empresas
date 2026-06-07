@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import PremiumCardWorker from "../components/PremiumCardWorker";
-import PremiumCardEmployer from "../components/PremiumCardEmployer";
 import { useParams, Link } from "react-router-dom";
 import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase";
@@ -328,10 +327,9 @@ export default function CompanyPage() {
           </div>
         </div>
 
-        {/* Cards Premium para trabalhador e empresário */}
-        <div className="mt-8 flex flex-col md:flex-row gap-6 items-center justify-center">
+        {/* Card Premium para trabalhador */}
+        <div className="mt-8 flex justify-center">
           <PremiumCardWorker />
-          <PremiumCardEmployer />
         </div>
 
         <div className="mt-8">

@@ -26,6 +26,11 @@ import { buildApiUrl } from "./utils/apiBase";
 import { resolveUserVerificationDetail } from "./utils/verificationLevel";
 import { evaluationHasPotentialPersonalName } from "./utils/personNameDetection";
 import ReferralBanner from "./components/ReferralBanner";
+import {
+  getSelectedProfileType,
+  ensureSelectedProfileType,
+  clearSelectedProfileType,
+} from "./services/profileType";
 
 const CONNECTOR_WORDS = new Set(["de", "da", "do", "das", "dos", "e"]);
 const LEGAL_SUFFIXES = new Set(["S.A", "SA", "S/A", "LTDA", "ME", "MEI", "EPP", "EIRELI", "SPE", "SCP"]);
@@ -2022,10 +2027,12 @@ function Home({ theme, toggleTheme }) {
     window.dispatchEvent(new Event("trabalheiLa_user_updated"));
   }, []);
 
-  const promptProfileCompletion = useCallback(() => {
+  const promptProfileCompletion = useCallback((provider) => {
     if (typeof window === "undefined") return;
     // Evita depender de confirm() em mobile/in-app browsers, onde pode falhar silenciosamente.
-    navigate("/pseudonym");
+    const providerParam = (provider || "").toString().trim().toLowerCase();
+    const search = providerParam ? `?provider=${encodeURIComponent(providerParam)}` : "";
+    navigate(`/pseudonym${search}`);
   }, [navigate]);
 
   const loadPersistedProfile = useCallback(async (profile) => {
@@ -2067,6 +2074,9 @@ function Home({ theme, toggleTheme }) {
   const handleLoginSuccess = useCallback(async ({ code, profile }) => {
     setIsLoading(true);
     try {
+      // Captura o perfil escolhido na Landing (Trabalhador/Especialista)
+      // ANTES de qualquer processamento. Default "worker".
+      const selectedProfileType = ensureSelectedProfileType();
       let data = profile;
 
       if (!data && code) {
@@ -2114,6 +2124,10 @@ function Home({ theme, toggleTheme }) {
           linkedInUrl: data?.linkedInUrl || existingProfile?.linkedInUrl || null,
           avatar: incomingPicture || existingProfile?.avatar || existingProfile?.picture || "",
           picture: incomingPicture || existingProfile?.picture || existingProfile?.avatar || "",
+          // Mantém o tipo de perfil já escolhido; se vazio, aplica o
+          // selecionado na Landing (default "worker").
+          profileTypeChosen:
+            existingProfile?.profileTypeChosen || selectedProfileType,
         };
 
         let profileId = resolveProfileId(mergedProfile);
@@ -2188,6 +2202,7 @@ function Home({ theme, toggleTheme }) {
             verification_provider: "linkedin",
             linkedinProfile: mergedProfile.linkedInUrl || null,
             linkedinExperiences: Array.isArray(mergedProfile.linkedinExperiences) ? mergedProfile.linkedinExperiences : [],
+            profileTypeChosen: mergedProfile.profileTypeChosen || selectedProfileType,
             profileId,
             updatedAt: new Date().toISOString(),
           });
@@ -2197,8 +2212,13 @@ function Home({ theme, toggleTheme }) {
 
         const pseudonym = localStorage.getItem("userPseudonym");
         if (!pseudonym) {
-          promptProfileCompletion();
+          // Usuário NOVO via LinkedIn: vai EXCLUSIVAMENTE para a tela de
+          // pseudônimo (sem e-mail/senha).
+          promptProfileCompletion("linkedin");
         } else {
+          // Usuário recorrente: já logado. Limpa o storage temporário
+          // de perfil (já foi gravado em `profileTypeChosen`).
+          clearSelectedProfileType();
           window.dispatchEvent(new Event("trabalheiLa_user_updated"));
         }
       }
@@ -2216,6 +2236,9 @@ function Home({ theme, toggleTheme }) {
     setError(null);
 
     try {
+      // Captura o perfil escolhido na Landing (Trabalhador/Especialista)
+      // ANTES do popup. Default "worker".
+      const selectedProfileType = ensureSelectedProfileType();
       const result = await signInWithPopup(auth, googleProvider);
       const user = result?.user;
 
@@ -2243,6 +2266,10 @@ function Home({ theme, toggleTheme }) {
         fallback: false,
         avatar: googleData.avatar || existingProfile.avatar || existingProfile.picture || "",
         picture: googleData.picture || existingProfile.picture || existingProfile.avatar || "",
+        // Mantém o tipo de perfil já escolhido; se vazio, aplica o
+        // selecionado na Landing (default "worker").
+        profileTypeChosen:
+          existingProfile?.profileTypeChosen || selectedProfileType,
       };
 
       let profileId = resolveProfileId(mergedProfile);
@@ -2316,6 +2343,7 @@ function Home({ theme, toggleTheme }) {
           // "free" na próxima leitura.
           verification_level: "identity",
           verification_provider: "google",
+          profileTypeChosen: mergedProfile.profileTypeChosen || selectedProfileType,
           profileId,
           updatedAt: new Date().toISOString(),
         });
@@ -2325,8 +2353,12 @@ function Home({ theme, toggleTheme }) {
 
       const pseudonym = localStorage.getItem("userPseudonym");
       if (!pseudonym) {
-        promptProfileCompletion();
+        // Usuário NOVO via Google: vai EXCLUSIVAMENTE para a tela de
+        // pseudônimo (sem e-mail/senha).
+        promptProfileCompletion("google");
       } else {
+        // Usuário recorrente: já logado. Limpa o storage temporário.
+        clearSelectedProfileType();
         window.dispatchEvent(new Event("trabalheiLa_user_updated"));
       }
     } catch (err) {

@@ -1,22 +1,27 @@
 // src/pages/ChoosePseudonym.js
 //
-// Tela de criação de perfil — versão CRO (Lazy Registration).
+// Tela única de cadastro/coleta de pseudônimo.
 //
-// Substituiu o wizard de 4 etapas anterior. Princípios:
-//   1. Página única. Sem multistep, sem barra de progresso.
-//   2. Social login no topo (Google + LinkedIn).
-//   3. LinkedIn é destacado como caminho para o "Selo de Perfil Verificado".
-//   4. Cadastro manual com EXATAMENTE 3 campos: pseudônimo, e-mail, senha.
-//   5. Zero coleta de CPF nesta tela (CPF é opt-in em /minha-conta).
-//   6. Sem player de vídeo nem ilustração lateral.
+// Dois fluxos coexistem aqui — porém SEM redundância de UI:
 //
-// O fluxo de Lazy Registration continua intacto:
-//   - Ao chegar com ?after-review=1 ou flag de sessão, mostramos um banner
-//     verde de confirmação.
-//   - Após criar o perfil, drenamos a avaliação bufferizada
-//     (loadPendingReview → saveReview) e vinculamos quaisquer reviews
-//     anônimas existentes ao novo pseudônimo (linkAnonymousReviewsToPseudonym).
-//   - Mantemos o doc /cadastros_iniciados/{uid} para acompanhar funil.
+//   1) Fluxo MANUAL (e-mail/senha):
+//      Acionado quando o usuário clica em "Sou Trabalhador" ou
+//      "Sou Especialista" na Landing. A página exibe APENAS o formulário
+//      manual (pseudônimo + e-mail + senha + botão "Criar perfil").
+//      Não mostra botões sociais — eles ficaram na Landing.
+//
+//   2) Fluxo SOCIAL pós-OAuth (Google/LinkedIn):
+//      Acionado quando o usuário acaba de logar pelo Google ou LinkedIn
+//      na Landing e ainda não tem pseudônimo. A página exibe APENAS o
+//      campo de pseudônimo (sem e-mail, sem senha, sem botões sociais).
+//      Detectamos esse caso pelos query params (?provider=google|linkedin)
+//      ou pelo `userProfile` em localStorage (loginProvider definido,
+//      pseudonimo vazio).
+//
+// O tipo de perfil escolhido na Landing (Trabalhador/Especialista) fica
+// em sessionStorage via `src/services/profileType.js`. Quando o cadastro
+// é finalizado, esse valor é gravado em `profileTypeChosen` no Firestore
+// e o sessionStorage é limpo.
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -27,15 +32,16 @@ import {
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 import AppHeader from "../components/AppHeader";
-import LoginLinkedInButton from "../LoginLinkedInButton";
 
 import { auth, db } from "../firebase";
 import {
-  signInWithGoogle,
-  authenticateLinkedInCode,
   finalizeSocialLogin,
   signUpWithEmailPassword,
 } from "../services/socialAuth";
+import {
+  getSelectedProfileType,
+  clearSelectedProfileType,
+} from "../services/profileType";
 
 // ─────────────────────────────────────────────────────────────────────
 // Helpers locais
@@ -55,6 +61,14 @@ function pseudonymFromName(name = "") {
 
 function isValidEmail(v) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((v || "").trim());
+}
+
+function readStoredProfile() {
+  try {
+    return JSON.parse(localStorage.getItem("userProfile") || "{}") || {};
+  } catch {
+    return {};
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -87,12 +101,9 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
 
-  // Quando o login social termina, ainda precisamos garantir que existe um
-  // pseudônimo. Mostramos uma view enxuta apenas pedindo o pseudônimo se ele
-  // ainda não foi escolhido.
+  // View 2: pseudônimo após login social (Google/LinkedIn) feito na Landing.
   const [socialAwaitingPseudonym, setSocialAwaitingPseudonym] = useState(false);
   const [socialContext, setSocialContext] = useState(null);
-  // { provider: "google"|"linkedin", uid, email, displayName, picture, profile }
 
   // ─── Boot: garante UID anônimo do Firebase Auth para o funil ───
   useEffect(() => {
@@ -109,6 +120,68 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
       try { unsub(); } catch { /* ignore */ }
     };
   }, []);
+
+  // ─── Detecta arrivo via login social (Google/LinkedIn) ───
+  // Quando o Home.js conclui o OAuth e ainda não há pseudônimo, ele
+  // navega para /pseudonym?provider=google|linkedin. Reconstruímos o
+  // contexto social a partir do `userProfile` em localStorage.
+  //
+  // Contrato explícito: SÓ entramos na view social quando o caller
+  // passa ?provider=google|linkedin. Para o fluxo manual a Landing
+  // navega com ?manual=1 (ou sem query). Não usamos `loginProvider`
+  // do localStorage como gatilho para evitar falsos positivos quando
+  // existem resíduos de uma sessão social anterior.
+  useEffect(() => {
+    const params = new URLSearchParams(location?.search || "");
+    const providerParam = (params.get("provider") || "").toString().toLowerCase();
+    if (params.get("manual") === "1") return;
+    if (providerParam !== "google" && providerParam !== "linkedin") return;
+
+    const stored = readStoredProfile();
+    const provider = providerParam;
+
+    const storedPseudo = (
+      stored.pseudonimo ||
+      stored.pseudonym ||
+      localStorage.getItem("userPseudonym") ||
+      ""
+    ).toString().trim();
+
+    if (!storedPseudo) {
+      const uid = stored.uid || stored.id || auth?.currentUser?.uid || "";
+      if (uid) {
+        setSocialContext({
+          provider,
+          uid,
+          email: stored.email || "",
+          displayName: stored.nomeReal || stored.fullName || "",
+          picture: stored.picture || stored.avatar || "",
+          extra: {
+            picture: stored.picture || stored.avatar || "",
+            avatar: stored.avatar || stored.picture || "",
+            nomeReal: stored.nomeReal || "",
+            fullName: stored.fullName || "",
+            linkedInUrl: stored.linkedInUrl || "",
+            linkedInId: stored.linkedInId || "",
+            ...(provider === "linkedin"
+              ? {
+                  verifiedProfileBadge: true,
+                  verifiedProfileBadgeSource: "linkedin",
+                }
+              : {}),
+          },
+          linkedinExperiences: Array.isArray(stored.linkedinExperiences)
+            ? stored.linkedinExperiences
+            : null,
+        });
+        setPseudonym((prev) =>
+          prev || pseudonymFromName(stored.nomeReal || stored.fullName || "")
+        );
+        setEmail((prev) => prev || stored.email || "");
+        setSocialAwaitingPseudonym(true);
+      }
+    }
+  }, [location?.search]);
 
   // ─── Marca cadastros_iniciados no primeiro toque do usuário ───
   const markFunnelStarted = useCallback(async () => {
@@ -130,16 +203,23 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
   }, []);
 
   // ─── Finaliza perfil delegando ao serviço de auth social ───
+  // Inclui o tipo de perfil escolhido na Landing (Trabalhador/
+  // Especialista) e limpa o storage temporário ao concluir.
   const finalizeProfile = useCallback(
     async ({ uid, chosenPseudonym, emailValue, providerLabel, extra = {}, linkedinExperiences = null }) => {
+      const profileTypeChosen = getSelectedProfileType();
       const result = await finalizeSocialLogin({
         uid,
         pseudonym: chosenPseudonym,
         email: emailValue,
         providerLabel: providerLabel || "email",
-        extra,
+        extra: {
+          ...extra,
+          profileTypeChosen,
+        },
         linkedinExperiences,
       });
+      clearSelectedProfileType();
       const drained = result?.pending;
       const destination = drained?.drained && drained?.company
         ? `/empresa?name=${encodeURIComponent(drained.company)}`
@@ -148,164 +228,6 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
     },
     [navigate]
   );
-
-  // ─── Login com Google ───
-  const handleGoogleClick = useCallback(async () => {
-    setError("");
-    setInfo("");
-    setSubmitting(true);
-    try {
-      await markFunnelStarted();
-      const session = await signInWithGoogle();
-
-      const existingPseudo = (
-        session.existingProfile?.pseudonimo ||
-        session.existingProfile?.pseudonym ||
-        ""
-      ).toString().trim();
-
-      if (existingPseudo) {
-        await finalizeProfile({
-          uid: session.uid,
-          chosenPseudonym: existingPseudo,
-          emailValue: session.email,
-          providerLabel: "google",
-          extra: {
-            picture: session.picture,
-            avatar: session.picture,
-            nomeReal: session.existingProfile?.nomeReal || session.displayName,
-            fullName: session.existingProfile?.fullName || session.displayName,
-          },
-        });
-        return;
-      }
-
-      const suggested = pseudonymFromName(session.displayName);
-      setPseudonym(suggested);
-      setEmail(session.email);
-      setSocialContext({
-        provider: "google",
-        uid: session.uid,
-        email: session.email,
-        displayName: session.displayName,
-        picture: session.picture,
-      });
-      setSocialAwaitingPseudonym(true);
-    } catch (err) {
-      console.error("[choosePseudonym] Google falhou:", err);
-      const code = String(err?.code || "");
-      if (code.includes("auth/popup-closed-by-user")) {
-        setError("Login com Google cancelado.");
-      } else if (code.includes("auth/popup-blocked")) {
-        setError("Popup bloqueado. Permita popups e tente novamente.");
-      } else {
-        setError("Não foi possível entrar com o Google. Tente novamente.");
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  }, [finalizeProfile, markFunnelStarted]);
-
-  // ─── Login com LinkedIn ───
-  const handleLinkedInSuccess = useCallback(
-    async ({ profile, code } = {}) => {
-      setError("");
-      setInfo("");
-      setSubmitting(true);
-      try {
-        await markFunnelStarted();
-
-        let session;
-        if (profile && !code) {
-          // O componente já entregou o profile direto (raro).
-          const { extractLinkedInExperiences } = await import("../services/socialAuth");
-          session = {
-            provider: "linkedin",
-            uid: auth?.currentUser?.uid || profile?.id || profile?.sub || "",
-            email: (profile?.email || "").toLowerCase(),
-            displayName:
-              profile?.name ||
-              [profile?.localizedFirstName, profile?.localizedLastName].filter(Boolean).join(" ") ||
-              "",
-            picture: profile?.picture || profile?.avatar || "",
-            profile,
-            linkedinExperiences: extractLinkedInExperiences(profile),
-            existingProfile: null,
-            sealVerified: true,
-          };
-        } else {
-          session = await authenticateLinkedInCode({
-            code,
-            redirectUri:
-              process.env.REACT_APP_LINKEDIN_REDIRECT_URI ||
-              `${window.location.origin}/auth/auth/`,
-          });
-        }
-
-        if (!session.uid) {
-          throw new Error("UID indisponível após login LinkedIn.");
-        }
-
-        const linkedInExtras = {
-          picture: session.picture,
-          avatar: session.picture,
-          nomeReal: session.existingProfile?.nomeReal || session.displayName,
-          fullName: session.existingProfile?.fullName || session.displayName,
-          linkedInUrl:
-            session.profile?.linkedInUrl ||
-            session.profile?.publicProfileUrl ||
-            session.profile?.profileUrl ||
-            "",
-          linkedInId: session.profile?.id || session.profile?.sub || "",
-          linkedinExperiences: session.linkedinExperiences,
-          verifiedProfileBadge: true,
-          verifiedProfileBadgeSource: "linkedin",
-        };
-
-        const existingPseudo = (
-          session.existingProfile?.pseudonimo ||
-          session.existingProfile?.pseudonym ||
-          ""
-        ).toString().trim();
-
-        if (existingPseudo) {
-          await finalizeProfile({
-            uid: session.uid,
-            chosenPseudonym: existingPseudo,
-            emailValue: session.email,
-            providerLabel: "linkedin",
-            extra: linkedInExtras,
-            linkedinExperiences: session.linkedinExperiences,
-          });
-          return;
-        }
-
-        const suggested = pseudonymFromName(session.displayName);
-        setPseudonym(suggested);
-        setEmail(session.email);
-        setSocialContext({
-          provider: "linkedin",
-          uid: session.uid,
-          email: session.email,
-          displayName: session.displayName,
-          picture: session.picture,
-          extra: linkedInExtras,
-          linkedinExperiences: session.linkedinExperiences,
-        });
-        setSocialAwaitingPseudonym(true);
-      } catch (err) {
-        console.error("[choosePseudonym] LinkedIn falhou:", err);
-        setError(`Não foi possível entrar com LinkedIn: ${err?.message || String(err)}`);
-      } finally {
-        setSubmitting(false);
-      }
-    },
-    [finalizeProfile, markFunnelStarted]
-  );
-
-  const handleLinkedInFailure = useCallback((err) => {
-    setError(`Falha ao conectar com LinkedIn: ${err?.message || String(err)}`);
-  }, []);
 
   // ─── Cadastro manual (e-mail + senha) ───
   const handleManualSubmit = useCallback(
@@ -443,128 +365,85 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
           <p className="mt-1 text-center text-sm text-slate-500 dark:text-slate-400">
             {socialAwaitingPseudonym
               ? "Esse é o nome público das suas avaliações. Você nunca aparece pelo seu nome real."
-              : "Continuar leva menos de 30 segundos."}
+              : "Preencha os campos abaixo. Leva menos de 30 segundos."}
           </p>
 
-          {/* ───────────── View 1: login social + manual ───────────── */}
+          {/* ───────────── View 1: cadastro manual (3 campos) ─────────────
+              IMPORTANTE: sem botões sociais aqui. O login social está
+              apenas na Landing — esta página é exclusivamente para o
+              cadastro manual por e-mail/senha. */}
           {!socialAwaitingPseudonym && (
-            <>
-              {/* Botões sociais */}
-              <div className="mt-6 space-y-3">
-                <button
-                  type="button"
-                  onClick={handleGoogleClick}
-                  disabled={submitting}
-                  className="w-full h-12 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-semibold flex items-center justify-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-60"
-                  aria-label="Continuar com o Google"
-                >
-                  <svg className="w-5 h-5" viewBox="0 0 48 48" aria-hidden="true">
-                    <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.1 29.2 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.4 1 7.4 2.8l5.7-5.7C33.6 6.5 29.1 4.5 24 4.5 13.2 4.5 4.5 13.2 4.5 24S13.2 43.5 24 43.5 43.5 34.8 43.5 24c0-1.2-.1-2.4-.4-3.5z"/>
-                    <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c2.8 0 5.4 1 7.4 2.8l5.7-5.7C33.6 6.5 29.1 4.5 24 4.5 16.3 4.5 9.6 8.7 6.3 14.7z"/>
-                    <path fill="#4CAF50" d="M24 43.5c5 0 9.5-1.9 12.9-5.1l-6-4.9C29 35.5 26.6 36 24 36c-5.2 0-9.6-3.4-11.2-8l-6.5 5C9.6 39.3 16.3 43.5 24 43.5z"/>
-                    <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4 5.5l6 4.9c-.4.4 6.5-4.7 6.5-14.4 0-1.2-.1-2.4-.2-3.5z"/>
-                  </svg>
-                  Continuar com o Google
-                </button>
+            <form
+              onSubmit={handleManualSubmit}
+              className="mt-6 space-y-4"
+              noValidate
+            >
+              <label className="block">
+                <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">Pseudônimo</span>
+                <input
+                  type="text"
+                  autoComplete="off"
+                  value={pseudonym}
+                  onChange={(e) => setPseudonym(e.target.value)}
+                  placeholder="Como você quer ser identificado"
+                  className="mt-1 w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </label>
 
-                <div>
-                  <LoginLinkedInButton
-                    clientId={process.env.REACT_APP_LINKEDIN_CLIENT_ID}
-                    redirectUri={process.env.REACT_APP_LINKEDIN_REDIRECT_URI}
-                    onLoginSuccess={handleLinkedInSuccess}
-                    onLoginFailure={handleLinkedInFailure}
-                    disabled={submitting}
+              <label className="block">
+                <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">E-mail</span>
+                <input
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="voce@exemplo.com"
+                  className="mt-1 w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </label>
+
+              <label className="block">
+                <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">Senha</span>
+                <div className="relative mt-1">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                    className="w-full h-11 pl-3 pr-20 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  <p className="mt-2 text-xs text-slate-600 dark:text-slate-300 leading-snug">
-                    <span className="inline-flex items-center gap-1 font-semibold text-blue-700 dark:text-blue-300">
-                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Selo de Perfil Verificado
-                    </span>{" "}
-                    de forma <strong>100% anônima</strong>. Usamos o LinkedIn só para
-                    confirmar que você é uma pessoa real — seu nome continua oculto
-                    nas avaliações.
-                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    className="absolute inset-y-0 right-0 px-3 text-xs font-bold text-blue-700 dark:text-blue-300"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? "Ocultar" : "Mostrar"}
+                  </button>
                 </div>
-              </div>
+              </label>
 
-              {/* Divisor */}
-              <div className="my-6 flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
-                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
-                <span>ou criar perfil com e-mail e senha</span>
-                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
-              </div>
+              {error && (
+                <p role="alert" className="text-sm font-semibold text-rose-600 dark:text-rose-400">
+                  {error}
+                </p>
+              )}
+              {info && (
+                <p role="status" className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                  {info}
+                </p>
+              )}
 
-              {/* Form manual: pseudonimo + email + senha */}
-              <form onSubmit={handleManualSubmit} className="space-y-4" noValidate>
-                <label className="block">
-                  <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">Pseudônimo</span>
-                  <input
-                    type="text"
-                    autoComplete="off"
-                    value={pseudonym}
-                    onChange={(e) => setPseudonym(e.target.value)}
-                    placeholder="Como você quer ser identificado"
-                    className="mt-1 w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </label>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full h-12 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-extrabold text-base transition disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {submitting ? "Criando..." : "Criar perfil"}
+              </button>
 
-                <label className="block">
-                  <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">E-mail</span>
-                  <input
-                    type="email"
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="voce@exemplo.com"
-                    className="mt-1 w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">Senha</span>
-                  <div className="relative mt-1">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      autoComplete="new-password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Mínimo 6 caracteres"
-                      className="w-full h-11 pl-3 pr-20 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((s) => !s)}
-                      className="absolute inset-y-0 right-0 px-3 text-xs font-bold text-blue-700 dark:text-blue-300"
-                      tabIndex={-1}
-                    >
-                      {showPassword ? "Ocultar" : "Mostrar"}
-                    </button>
-                  </div>
-                </label>
-
-                {error && (
-                  <p role="alert" className="text-sm font-semibold text-rose-600 dark:text-rose-400">
-                    {error}
-                  </p>
-                )}
-                {info && (
-                  <p role="status" className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-                    {info}
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full h-12 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-extrabold text-base transition disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {submitting ? "Criando..." : "Criar perfil"}
-                </button>
-              </form>
-
-              <p className="mt-4 text-xs text-center text-slate-500 dark:text-slate-400">
+              <p className="mt-2 text-xs text-center text-slate-500 dark:text-slate-400">
                 Já tem conta?{" "}
                 <button
                   type="button"
@@ -574,7 +453,7 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
                   Entrar
                 </button>
               </p>
-            </>
+            </form>
           )}
 
           {/* ───────────── View 2: pseudônimo após login social ───────────── */}
@@ -614,19 +493,6 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
                 className="w-full h-12 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-extrabold text-base transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {submitting ? "Salvando..." : "Concluir cadastro"}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setSocialAwaitingPseudonym(false);
-                  setSocialContext(null);
-                  setPseudonym("");
-                  setError("");
-                }}
-                className="block w-full text-center text-xs text-slate-500 dark:text-slate-400 hover:underline"
-              >
-                Voltar
               </button>
             </form>
           )}

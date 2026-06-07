@@ -52,7 +52,6 @@ import SealDetailsPage from './pages/SealDetailsPage';
 import AuthAction from './pages/AuthAction';
 import ProfissionalApoioCadastro from './pages/ProfissionalApoioCadastro';
 import ProfissionalApoioPerfil from './pages/ProfissionalApoioPerfil';
-import ParaEmpresas from './pages/ParaEmpresas';
 import migrateApoiadoresToUsers from './scripts/migrateApoiadoresToUsers';
 
 // Função para aplicar o tema (dark/light)
@@ -260,8 +259,6 @@ function App() {
       <Route path="/auth/action" element={<AuthAction />} />
       <Route path="/profissionais-apoio/cadastro" element={<ProfissionalApoioCadastro theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/profissionais-apoio/:id" element={<ProfissionalApoioPerfil theme={theme} toggleTheme={toggleTheme} />} />
-      <Route path="/para-empresas" element={<ParaEmpresas theme={theme} toggleTheme={toggleTheme} />} />
-      <Route path="/planos-empresa" element={<ParaEmpresas theme={theme} toggleTheme={toggleTheme} />} />
     </Routes>
   );
 

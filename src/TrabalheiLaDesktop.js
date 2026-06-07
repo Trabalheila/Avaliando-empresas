@@ -19,6 +19,10 @@ import SelectionProcessReviewForm from "./components/SelectionProcessReviewForm"
 import SpellCheckSuggestions from "./components/SpellCheckSuggestions";
 import { handleAutoCorrectChange } from "./utils/ptBrAutoCorrect";
 import { resolveProfileId } from "./utils/profileIdentity";
+import {
+  ensureSelectedProfileType,
+  setSelectedProfileType,
+} from "./services/profileType";
 
 function CommentTextarea({
   value,
@@ -187,6 +191,39 @@ function TrabalheiLaDesktop({
   const [headerSpacerHeight, setHeaderSpacerHeight] = React.useState(0);
   const [showPaymentInfo, setShowPaymentInfo] = React.useState(false);
   const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
+
+  // Garante que ao carregar a Home o perfil padrão ("worker") esteja
+  // persistido em sessionStorage. Assim, mesmo que o usuário clique
+  // direto no login social sem escolher manualmente, ainda capturamos
+  // a intenção de Trabalhador no callback do OAuth.
+  React.useEffect(() => {
+    ensureSelectedProfileType();
+  }, []);
+
+  // Clique nos cards de perfil: persiste a escolha e leva ao formulário
+  // manual de cadastro (sem botões sociais — evita redundância).
+  const handleChooseProfile = React.useCallback(
+    (type) => {
+      setSelectedProfileType(type);
+      navigate("/pseudonym?manual=1");
+    },
+    [navigate]
+  );
+
+  // Wrappers para os botões sociais: marcam o perfil padrão antes de
+  // disparar o OAuth, garantindo que o callback saiba qual perfil aplicar.
+  const handleGoogleClick = React.useCallback(() => {
+    ensureSelectedProfileType();
+    if (typeof onGoogleLogin === "function") onGoogleLogin();
+  }, [onGoogleLogin]);
+
+  const handleLinkedInSuccessWrapped = React.useCallback(
+    (payload) => {
+      ensureSelectedProfileType();
+      if (typeof onLoginSuccess === "function") onLoginSuccess(payload);
+    },
+    [onLoginSuccess]
+  );
 
   React.useEffect(() => {
     const updateHeaderSpacer = () => {
@@ -674,21 +711,23 @@ function TrabalheiLaDesktop({
               {!isAuthenticated && (
                 <>
                   <div className="flex flex-col sm:flex-row items-stretch justify-center gap-3 mb-5">
-                    <Link
-                      to="/pseudonym"
+                    <button
+                      type="button"
+                      onClick={() => handleChooseProfile("worker")}
                       className="relative flex-1 sm:max-w-xs flex flex-col items-center justify-center text-center py-2.5 px-4 rounded-lg bg-lime-400 text-emerald-950 text-sm md:text-base font-bold shadow ring-2 ring-amber-300/70 transition-all duration-200 hover:bg-lime-500 hover:scale-[1.03] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-lime-300"
                     >
                       <span className="absolute -top-2 right-3 inline-flex items-center gap-0.5 bg-amber-400 text-amber-950 text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm">★ Recomendado</span>
                       <span>Sou Trabalhador</span>
                       <span className="block text-[11px] md:text-xs font-medium text-emerald-900/80 mt-0.5">(avalia anonimamente)</span>
-                    </Link>
-                    <Link
-                      to="/apoiadores"
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleChooseProfile("specialist")}
                       className="flex-1 sm:max-w-xs flex flex-col items-center justify-center text-center py-2.5 px-4 rounded-lg bg-white text-blue-800 text-sm md:text-base font-bold shadow transition-all duration-200 hover:bg-blue-50 hover:scale-[1.03] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
                     >
                       <span>Sou Especialista</span>
                       <span className="block text-[11px] md:text-xs font-medium text-blue-700/80 mt-0.5">(advogados, psicólogos, consultores e outros)</span>
-                    </Link>
+                    </button>
                   </div>
                   {/* Login social secundário — promovido a "Cadastre-se em 10s"
                       para reduzir abandono. O mesmo botão serve para login
@@ -703,7 +742,7 @@ function TrabalheiLaDesktop({
                     <div className="flex flex-col sm:flex-row items-stretch justify-center gap-2">
                       <button
                         type="button"
-                        onClick={onGoogleLogin}
+                        onClick={handleGoogleClick}
                         disabled={isLoading}
                         className="flex-1 sm:max-w-[16rem] inline-flex items-center justify-center gap-2 bg-white hover:bg-blue-50 text-slate-800 font-bold py-2.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all text-sm md:text-base disabled:opacity-60"
                       >
@@ -713,7 +752,7 @@ function TrabalheiLaDesktop({
                         <LoginLinkedInButton
                           clientId={linkedInClientId}
                           redirectUri={linkedInRedirectUri}
-                          onLoginSuccess={onLoginSuccess}
+                          onLoginSuccess={handleLinkedInSuccessWrapped}
                           onLoginFailure={(err) => setError(err?.message || String(err))}
                           disabled={isLoading}
                         />
@@ -733,20 +772,22 @@ function TrabalheiLaDesktop({
                     Bem-vindo(a)! Escolha seu perfil para começar:
                   </p>
                   <div className="flex flex-col sm:flex-row items-stretch justify-center gap-3">
-                    <Link
-                      to="/pseudonym"
+                    <button
+                      type="button"
+                      onClick={() => handleChooseProfile("worker")}
                       className="flex-1 sm:max-w-xs flex flex-col items-center justify-center text-center py-2.5 px-4 rounded-lg bg-lime-400 text-emerald-950 text-sm md:text-base font-bold shadow transition-all duration-200 hover:bg-lime-500 hover:scale-[1.03] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-lime-300"
                     >
                       <span>Sou Trabalhador</span>
                       <span className="block text-[11px] md:text-xs font-medium text-emerald-900/80 mt-0.5">(avalia anonimamente)</span>
-                    </Link>
-                    <Link
-                      to="/apoiadores"
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleChooseProfile("specialist")}
                       className="flex-1 sm:max-w-xs flex flex-col items-center justify-center text-center py-2.5 px-4 rounded-lg bg-white text-blue-800 text-sm md:text-base font-bold shadow transition-all duration-200 hover:bg-blue-50 hover:scale-[1.03] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
                     >
                       <span>Sou Especialista</span>
                       <span className="block text-[11px] md:text-xs font-medium text-blue-700/80 mt-0.5">(advogados, psicólogos, consultores e outros)</span>
-                    </Link>
+                    </button>
                   </div>
                 </>
               )}
@@ -886,7 +927,7 @@ function TrabalheiLaDesktop({
                   aria-label="Ver benefícios do plano Premium"
                 >
                   <span className="text-base leading-none" aria-hidden="true">⭐</span>
-                  <span>Premium para trabalhadores, empresas e especialistas</span>
+                  <span>Premium para trabalhadores e especialistas</span>
                   <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/30 text-amber-950 text-[10px] font-bold uppercase tracking-wider">
                     Ver benefícios
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -1499,10 +1540,6 @@ function TrabalheiLaDesktop({
               {" • "}
               <Link to="/purpose" className="text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-200 font-extrabold underline">
                 Qual o nosso propósito?
-              </Link>
-              {" • "}
-              <Link to="/para-empresas" className="text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-200 font-extrabold underline">
-                Para Empresas
               </Link>
               {" • "}
               <span>© 2026 Trabalhei Lá - Todos os direitos reservados</span>

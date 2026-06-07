@@ -41,24 +41,12 @@ const PREMIUM_WORKER_BENEFITS = [
   "Selo de perfil verificado com maior visibilidade",
 ];
 
-const PREMIUM_COMPANY_BENEFITS = [
-  "Comparar sua empresa com concorrentes em tempo real",
-  "Identificar tendências e riscos do setor",
-  "Relatórios executivos com oportunidades e ameaças",
-  "Dashboard dinâmico de desempenho e contratos",
-  "Acesso ao marketplace de consultores de RH com 20% de desconto",
-  "Acesso ao marketplace de prestadores de serviços corporativos com 15% de desconto",
-  "Benchmarks exclusivos e reputação de mercado",
-  "Respostas públicas às avaliações dos trabalhadores",
-  "Direito de resposta pública às avaliações — responda comentários dos funcionários diretamente na página da empresa",
-];
-
 const PREMIUM_SUPPORTER_BENEFITS = [
   "Seleção de até 3 nichos de atuação",
   "Perfil completo com descrição estendida de até 600 caracteres",
   "Portfólio com até 5 casos ou projetos",
   "Documentos e certificações visíveis no perfil",
-  "Destaque nas páginas de benefícios e empresas",
+  "Destaque nas páginas de benefícios",
   "Receber avaliações e estrelas de clientes",
   "Selo \"Especialista Premium Verificado\"",
   "Posicionamento prioritário por média de avaliações",
@@ -79,7 +67,7 @@ export default function Purpose({ theme, toggleTheme }) {
         />
 
         {/* ── Grid de Cards ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
           {/* ═══ Card Gratuito ═══ */}
           <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col">
@@ -149,41 +137,6 @@ export default function Purpose({ theme, toggleTheme }) {
               className="block w-full text-center py-3 rounded-xl font-semibold bg-blue-600 text-white hover:bg-blue-700 transition"
             >
               Assinar Premium
-            </Link>
-          </div>
-
-          {/* ═══ Card Premium Empresa ═══ */}
-          <div className="bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col">
-            <div className="flex items-center gap-3 mb-1">
-              <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-100">Premium Empresa</h2>
-              <span className="px-2.5 py-0.5 text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 rounded-full">
-                PARA EMPRESAS
-              </span>
-            </div>
-            <p className="text-2xl font-extrabold text-amber-600 dark:text-amber-400 mb-1">
-              R$ 1.499,90<span className="text-sm font-semibold text-slate-500 dark:text-slate-400">/mês</span>
-            </p>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">Empresa</p>
-
-            <ul className="space-y-2.5 mb-6 flex-1">
-              {PREMIUM_COMPANY_BENEFITS.map((b) => (
-                <li key={b} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-200">
-                  {CHECK} <span>{b}</span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 mb-6 text-center">
-              <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
-                Empresas Premium aumentam em até 3x a assertividade nas decisões.
-              </p>
-            </div>
-
-            <Link
-              to="/escolha-perfil?planos=1"
-              className="block w-full text-center py-3 rounded-xl font-semibold bg-amber-600 text-white hover:bg-amber-700 transition"
-            >
-              Contratar Plano Empresa
             </Link>
           </div>
         </div>
