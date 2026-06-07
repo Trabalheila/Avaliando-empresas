@@ -14,6 +14,7 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   sendPasswordResetEmail,
+  onAuthStateChanged,
 } from "firebase/auth";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { auth, db, googleProvider } from "../firebase";
@@ -64,20 +65,25 @@ export default function Login({ theme, toggleTheme }) {
   // Equivalente do route guard do Vue: se já está logado (e não é anônimo),
   // pula a tela de login e manda direto para a busca de especialista — a menos
   // que exista um redirectAfterLogin explícito na URL/sessão.
+  // Importante: usamos onAuthStateChanged porque `auth.currentUser` ainda é
+  // null no primeiro render enquanto o Firebase Auth restaura a sessão do
+  // IndexedDB. Sem isso o redirect nunca dispara quando o usuário chega
+  // direto em /login estando logado (ex.: clicando "Voltar" de outra página).
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user || user.isAnonymous) return;
-    let target = "/trabalhador/encontrar-especialista";
-    try {
-      const fromSession = sessionStorage.getItem(REDIRECT_AFTER_LOGIN_KEY);
-      if (fromSession && fromSession.startsWith("/")) target = fromSession;
-    } catch {
-      /* ignore */
-    }
-    const fromQuery = searchParams.get("redirectAfterLogin") || "";
-    if (fromQuery.startsWith("/")) target = fromQuery;
-    navigate(target, { replace: true });
-    // Só queremos disparar no mount (e quando a query mudar).
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (!user || user.isAnonymous) return;
+      let target = "/trabalhador/encontrar-especialista";
+      try {
+        const fromSession = sessionStorage.getItem(REDIRECT_AFTER_LOGIN_KEY);
+        if (fromSession && fromSession.startsWith("/")) target = fromSession;
+      } catch {
+        /* ignore */
+      }
+      const fromQuery = searchParams.get("redirectAfterLogin") || "";
+      if (fromQuery.startsWith("/")) target = fromQuery;
+      navigate(target, { replace: true });
+    });
+    return () => unsub();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

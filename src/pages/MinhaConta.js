@@ -12,7 +12,7 @@ import {
   getDocs,
   limit,
 } from "firebase/firestore";
-import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { getUserRole, isPremium, isAdmin } from "../utils/rbac";
 import { resolveProfileId } from "../utils/profileIdentity";
 import AppHeader from "../components/AppHeader";
@@ -199,20 +199,42 @@ export default function MinhaConta({ theme, toggleTheme }) {
       return;
     }
 
-    const uid = profile?.id;
-    if (!uid) {
-      setAvatarError("Perfil não identificado.");
+    const authUid = auth.currentUser?.uid || "";
+    const docId = profile?.id || authUid;
+    // Para o Firebase Storage usamos SEMPRE o uid do Auth, porque as regras
+    // padr\u00e3o (avatars/{uid}) checam `request.auth.uid == uid`. Usar o
+    // profileId (que pode ser `email:xxx`) gera permission-denied silencioso.
+    const storageUid = authUid || docId;
+    if (!docId || !storageUid) {
+      setAvatarError("Perfil n\u00e3o identificado.");
       return;
     }
 
     setUploadingAvatar(true);
     try {
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-      const ref = storageRef(storage, `avatars/${uid}/avatar-${Date.now()}.${ext}`);
-      await uploadBytes(ref, file, { contentType: file.type });
+      const ref = storageRef(storage, `avatars/${storageUid}/avatar-${Date.now()}.${ext}`);
+
+      // uploadBytesResumable + Promise expl\u00edcito permite anexar um timeout
+      // de seguran\u00e7a (90s) para evitar que a UI fique presa em "enviando"
+      // caso o request fique pendurado (rede instavel, bucket sem CORS etc.).
+      const task = uploadBytesResumable(ref, file, { contentType: file.type });
+      await new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          try { task.cancel(); } catch { /* ignore */ }
+          reject(new Error("timeout"));
+        }, 90000);
+        task.on(
+          "state_changed",
+          null,
+          (err) => { clearTimeout(timeoutId); reject(err); },
+          () => { clearTimeout(timeoutId); resolve(); }
+        );
+      });
+
       const url = await getDownloadURL(ref);
 
-      await updateDoc(doc(db, "users", uid), { avatar: url });
+      await updateDoc(doc(db, "users", docId), { avatar: url });
 
       setProfile((prev) => (prev ? { ...prev, avatar: url } : prev));
 
@@ -228,7 +250,18 @@ export default function MinhaConta({ theme, toggleTheme }) {
       }
     } catch (err) {
       console.error("Falha no upload do avatar:", err);
-      setAvatarError("Não foi possível enviar a imagem. Tente novamente.");
+      const code = err?.code || err?.message || "";
+      let msg = "N\u00e3o foi poss\u00edvel enviar a imagem. Tente novamente.";
+      if (/timeout/i.test(code)) {
+        msg = "O envio demorou demais. Verifique sua conex\u00e3o e tente de novo.";
+      } else if (/unauthorized|permission/i.test(code)) {
+        msg = "Sem permiss\u00e3o para enviar a imagem. Fa\u00e7a login novamente.";
+      } else if (/quota/i.test(code)) {
+        msg = "Cota do armazenamento excedida. Tente mais tarde.";
+      } else if (/network|retry-limit|canceled/i.test(code)) {
+        msg = "Falha de rede ao enviar a imagem. Tente novamente.";
+      }
+      setAvatarError(msg);
     } finally {
       setUploadingAvatar(false);
     }
