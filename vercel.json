@@ -26,6 +26,9 @@
     { "source": "/api/chat-with-gemini", "destination": "/api/chat-gemini" },
     { "source": "/api/parse-cv", "destination": "/api/chat-gemini?op=parse-cv" },
     { "source": "/api/verify-review-linkedin", "destination": "/api/admin?op=verify-review-linkedin" },
+    { "source": "/api/payments/create-charge", "destination": "/api/payments?op=create-charge" },
+    { "source": "/api/payments/webhook", "destination": "/api/payments?op=webhook" },
+    { "source": "/api/payments/release-funds", "destination": "/api/payments?op=release-funds" },
     { "source": "/(.*)", "destination": "/" }
   ]
 }
