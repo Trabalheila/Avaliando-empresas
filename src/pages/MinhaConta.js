@@ -17,6 +17,7 @@ import { resolveProfileId } from "../utils/profileIdentity";
 import AppHeader from "../components/AppHeader";
 import WorkerProfessionalContactSettings from "../components/WorkerProfessionalContactSettings";
 import ConsultaAvulsaModal from "../components/ConsultaAvulsaModal";
+import ConsultaAvulsaIntroModal from "../components/ConsultaAvulsaIntroModal";
 import VerifyIdentitySection from "../components/VerifyIdentitySection";
 import ExperienceManagerModal from "../components/ExperienceManagerModal";
 import EditProfileModal from "../components/EditProfileModal";
@@ -67,6 +68,7 @@ export default function MinhaConta({ theme, toggleTheme }) {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [consultaAvulsaOpen, setConsultaAvulsaOpen] = useState(false);
+  const [consultaIntroOpen, setConsultaIntroOpen] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [experienceModalOpen, setExperienceModalOpen] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -335,17 +337,34 @@ export default function MinhaConta({ theme, toggleTheme }) {
                 </svg>
                 Fazer upgrade
               </button>
-              <button
-                type="button"
-                onClick={() => setConsultaAvulsaOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 bg-white dark:bg-slate-900 text-sm font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/30 transition"
-                title="Solicite uma consulta pontual com um especialista (sem acompanhamento)"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Consulta Avulsa
-              </button>
+              <div className="relative inline-flex items-center group">
+                <button
+                  type="button"
+                  onClick={() => setConsultaIntroOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 bg-white dark:bg-slate-900 text-sm font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/30 transition"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Consulta Avulsa
+                </button>
+                <span
+                  tabIndex={0}
+                  role="button"
+                  aria-label="Sobre Consulta Avulsa"
+                  className="ml-1.5 inline-flex items-center justify-center h-6 w-6 rounded-full text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/40 cursor-help focus:outline-none focus:ring-2 focus:ring-blue-300"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span
+                    role="tooltip"
+                    className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 z-20 w-64 max-w-[80vw] px-3 py-2 rounded-xl bg-slate-900 text-white text-xs leading-snug shadow-xl opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition"
+                  >
+                    Agende um atendimento individual com um especialista para tirar dúvidas pontuais ou enviar provas de forma segura. Pagamento processado pela plataforma.
+                  </span>
+                </span>
+              </div>
             </div>
           )}
           {!isPremium() && (
@@ -357,6 +376,15 @@ export default function MinhaConta({ theme, toggleTheme }) {
             </p>
           )}
         </section>
+
+        <ConsultaAvulsaIntroModal
+          open={consultaIntroOpen}
+          onClose={() => setConsultaIntroOpen(false)}
+          onContinue={() => {
+            setConsultaIntroOpen(false);
+            setConsultaAvulsaOpen(true);
+          }}
+        />
 
         <ConsultaAvulsaModal
           open={consultaAvulsaOpen}

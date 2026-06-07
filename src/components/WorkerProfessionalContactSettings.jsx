@@ -127,9 +127,8 @@ export default function WorkerProfessionalContactSettings({
         Ser Contatado por Profissionais Especializados
       </h2>
       <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-        Ative esta opção para permitir que advogados, psicólogos e médicos parceiros do Trabalhei Lá
-        entrem em contato com você, de forma prioritária e com base em suas necessidades, para
-        oferecer suporte e soluções.
+        Ative esta opção para permitir que advogados, psicólogos e demais especialistas parceiros do Trabalhei Lá
+        entrem em contato de forma prioritária.
       </p>
 
       {/* Toggle principal */}
