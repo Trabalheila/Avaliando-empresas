@@ -200,12 +200,18 @@ function TrabalheiLaDesktop({
     ensureSelectedProfileType();
   }, []);
 
-  // Clique nos cards de perfil: persiste a escolha e leva ao formulário
-  // manual de cadastro (sem botões sociais — evita redundância).
+  // Clique nos cards de perfil: persiste a escolha e roteia conforme o tipo.
+  // - Trabalhador: cadastro manual em /pseudonym?manual=1.
+  // - Especialista: landing dedicada em /apoiadores (destino distinto do
+  //   trabalhador, conforme comportamento histórico do botão).
   const handleChooseProfile = React.useCallback(
     (type) => {
       setSelectedProfileType(type);
-      navigate("/pseudonym?manual=1");
+      if (type === "specialist") {
+        navigate("/apoiadores");
+      } else {
+        navigate("/pseudonym?manual=1");
+      }
     },
     [navigate]
   );
