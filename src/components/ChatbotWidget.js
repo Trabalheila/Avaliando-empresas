@@ -1,8 +1,18 @@
 // src/components/ChatbotWidget.js
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import styles from '../styles/ChatbotWidget.module.css';
 import { askGemini } from '../api/geminiService';
 import knowledgeBase from '../chatbotKnowledge.json';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CRO: Na primeira tela (Home) o avatar do chatbot competia pela atenção
+// com os botões principais de conversão. Para deixar a dobra limpa, o
+// widget agora aparece SOMENTE depois que o usuário começa a rolar a
+// página inicial. Em qualquer outra rota (já passou da Home), aparece
+// imediatamente como antes.
+// ─────────────────────────────────────────────────────────────────────────────
+const HOME_SCROLL_REVEAL_PX = 120;
 
 /**
  * Subcomponente: avatar arrastável e redimensionável (pinça/Ctrl+scroll).
@@ -274,6 +284,34 @@ const ChatbotWidget = () => {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
 
+  // Esconde o widget na primeira dobra da Home até o usuário rolar.
+  // Em qualquer outra rota, mostramos imediatamente.
+  const location = useLocation();
+  const isHome = location.pathname === '/';
+  const [revealedOnHome, setRevealedOnHome] = useState(false);
+
+  useEffect(() => {
+    if (!isHome) {
+      setRevealedOnHome(false);
+      return undefined;
+    }
+    // Se a página foi recarregada já com scroll (ex.: deep-link com hash),
+    // revela na hora.
+    if (typeof window !== 'undefined' && window.scrollY > HOME_SCROLL_REVEAL_PX) {
+      setRevealedOnHome(true);
+      return undefined;
+    }
+    const onScroll = () => {
+      if (window.scrollY > HOME_SCROLL_REVEAL_PX) {
+        setRevealedOnHome(true);
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [isHome, location.pathname]);
+
+  const shouldShowAvatar = !isHome || revealedOnHome;
+
   const handleToggleOpen = () => setIsOpen((v) => !v);
 
   const scrollToBottom = () => {
@@ -330,12 +368,15 @@ const ChatbotWidget = () => {
 
   return (
     <>
-      {/* Avatar único, ancorado à DIREITA da página. */}
-      <DraggableAvatar
-        anchor="right"
-        onActivate={handleToggleOpen}
-        ariaLabel="Abrir assistente do Trabalhei Lá (arraste para mover, pinça para redimensionar)"
-      />
+      {/* Avatar único, ancorado à DIREITA da página.
+          Na Home, só aparece após o usuário rolar (HOME_SCROLL_REVEAL_PX). */}
+      {shouldShowAvatar && (
+        <DraggableAvatar
+          anchor="right"
+          onActivate={handleToggleOpen}
+          ariaLabel="Abrir assistente do Trabalhei Lá (arraste para mover, pinça para redimensionar)"
+        />
+      )}
 
       {isOpen && (
         <div className={styles.chatbotWindow}>

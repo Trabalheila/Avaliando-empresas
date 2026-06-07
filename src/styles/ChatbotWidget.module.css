@@ -26,6 +26,21 @@
   transition: filter 0.2s ease;
 }
 
+/* ───────────────────────────────────────────────────────────────────────────
+   Desktop (>= 1024px): reduz o widget para 75% do tamanho original para
+   evitar que o avatar e o balão de fala dominem a viewport e compitam
+   com o conteúdo principal. Mobile/tablet permanecem no tamanho cheio.
+   410 × 0.75 = 308 ; 33vw × 0.75 = 25vw
+   ──────────────────────────────────────────────────────────────────────── */
+@media (min-width: 1024px) {
+  .chatbotToggle {
+    width: 308px;
+    height: 308px;
+    max-width: 25vw;
+    max-height: 25vw;
+  }
+}
+
 /* Âncora alternativa: instancia posicionada no canto inferior direito.
    Mantém todas as características (mobilidade, escala) — muda apenas o
    ponto de partida quando ainda não há posição salva. */
@@ -82,6 +97,17 @@
   flex-direction: column;
   z-index: 1000;
   overflow: hidden;
+}
+
+/* Desktop 75%: janela proporcional ao avatar reduzido.
+   420 × 0.75 ≈ 315 ; 560 × 0.75 = 420 ; 340 × 0.75 = 255 */
+@media (min-width: 1024px) {
+  .chatbotWindow {
+    bottom: 255px;
+    width: 315px;
+    height: 420px;
+    max-height: calc(100vh - 255px - 16px);
+  }
 }
 
 /* Em telas baixas (típico de notebooks 13"–15" ou janelas não maximizadas

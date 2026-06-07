@@ -652,41 +652,23 @@ function TrabalheiLaDesktop({
                 }
               `}</style>
 
-              {/* Título principal */}
-              <h2 className="text-xl md:text-2xl font-extrabold text-white text-center mb-1 tracking-wide font-azonix drop-shadow">
-                Trabalhei Lá: Sua Voz no Mercado de Trabalho
+              {/*
+                Hero redesenhado para reduzir atrito de cadastro:
+                - Headline forte com benefício direto
+                - Subtítulo objetivo (apenas para visitantes/não convertidos)
+                - Badges grandes e vídeo grande saíram daqui:
+                  • badges viraram um "trust strip" discreto após os botões (cenários 1 e 2)
+                  • vídeo foi para a seção "Como funciona?" mais abaixo
+              */}
+              <h2 className="text-2xl md:text-3xl font-extrabold text-white text-center mb-2 tracking-tight drop-shadow leading-snug">
+                Avalie suas experiências profissionais de forma 100% anônima e segura.
               </h2>
-              <div className="w-28 h-1 mx-auto mb-4 rounded-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.6)]" />
-
-              {/* Badges de destaque (Anônimo / Verificado / Confiável) — proeminentes */}
-              <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 mb-6">
-                <span
-                  title="Sua identidade é mantida em sigilo: avaliações são publicadas sob pseudônimo."
-                  className="inline-flex items-center gap-2 bg-white dark:bg-slate-100 text-blue-800 px-4 py-2 rounded-full text-sm md:text-base font-extrabold shadow-lg ring-2 ring-amber-300 cursor-help transition-transform hover:scale-105"
-                >
-                  <FaUserSecret className="text-lg md:text-xl text-blue-700" aria-hidden="true" />
-                  Anônimo
-                </span>
-                <span
-                  title="Conta verificada via login LinkedIn ou Google."
-                  className="inline-flex items-center gap-2 bg-white dark:bg-slate-100 text-emerald-800 px-4 py-2 rounded-full text-sm md:text-base font-extrabold shadow-lg ring-2 ring-amber-300 cursor-help transition-transform hover:scale-105"
-                >
-                  <FaCheckCircle className="text-lg md:text-xl text-emerald-600" aria-hidden="true" />
-                  Verificado
-                </span>
-                <span
-                  title="Plataforma com regras anti-fraude e moderação de avaliações."
-                  className="inline-flex items-center gap-2 bg-white dark:bg-slate-100 text-indigo-800 px-4 py-2 rounded-full text-sm md:text-base font-extrabold shadow-lg ring-2 ring-amber-300 cursor-help transition-transform hover:scale-105"
-                >
-                  <FaShieldAlt className="text-lg md:text-xl text-indigo-600" aria-hidden="true" />
-                  Confiável
-                </span>
-              </div>
-
-              {/* Vídeo de apresentação */}
-              <div className="max-w-2xl mx-auto mb-6">
-                <YouTubeEmbed videoId="JZkL0YJSQnw" title="Apresentação Trabalhei Lá" />
-              </div>
+              {(!isAuthenticated || !hasDefinedProfileType) && (
+                <p className="text-sm md:text-base text-blue-100/90 text-center mb-4 max-w-2xl mx-auto leading-relaxed font-semibold">
+                  Qual é o seu perfil para começar?
+                </p>
+              )}
+              <div className="w-20 h-1 mx-auto mb-6 rounded-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.6)]" />
 
               {/* CENÁRIO 1 — não autenticado: escolha de perfil + login social secundário */}
               {!isAuthenticated && (
@@ -710,21 +692,26 @@ function TrabalheiLaDesktop({
                       <span className="block text-[11px] md:text-xs font-medium text-blue-700/80 mt-0.5">(advogados, psicólogos, consultores e outros)</span>
                     </Link>
                   </div>
-                  {/* Login social secundário */}
+                  {/* Login social secundário — promovido a "Cadastre-se em 10s"
+                      para reduzir abandono. O mesmo botão serve para login
+                      e cadastro instantâneo (signInWithGoogle/LinkedIn). */}
                   <div className="pt-4 border-t border-white/15">
-                    <p className="text-xs md:text-sm text-blue-100/80 text-center mb-2">
-                      Já tem conta?
+                    <p className="text-xs md:text-sm uppercase tracking-wider text-amber-200 text-center mb-1 font-extrabold">
+                      ⚡ Cadastre-se em 10 segundos
+                    </p>
+                    <p className="text-xs md:text-sm text-blue-100/90 text-center mb-3">
+                      Sem formulários. Sem senha. Sua identidade fica oculta nas avaliações.
                     </p>
                     <div className="flex flex-col sm:flex-row items-stretch justify-center gap-2">
                       <button
                         type="button"
                         onClick={onGoogleLogin}
                         disabled={isLoading}
-                        className="flex-1 sm:max-w-[14rem] inline-flex items-center justify-center gap-2 bg-white/90 hover:bg-white text-blue-800 font-semibold py-1.5 px-3 rounded-md shadow-sm hover:shadow transition-all text-xs md:text-sm disabled:opacity-60"
+                        className="flex-1 sm:max-w-[16rem] inline-flex items-center justify-center gap-2 bg-white hover:bg-blue-50 text-slate-800 font-bold py-2.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all text-sm md:text-base disabled:opacity-60"
                       >
-                        <FaGoogle className="text-sm" /> Entrar com Google
+                        <FaGoogle className="text-base" /> Continuar com Google
                       </button>
-                      <div className="flex-1 sm:max-w-[14rem]">
+                      <div className="flex-1 sm:max-w-[16rem]">
                         <LoginLinkedInButton
                           clientId={linkedInClientId}
                           redirectUri={linkedInRedirectUri}
@@ -761,6 +748,31 @@ function TrabalheiLaDesktop({
                     </Link>
                   </div>
                 </>
+              )}
+
+              {/* Trust strip — sinaliza Anônimo/Verificado/Confiável de forma discreta
+                  apenas nas telas de aquisição (visitante ou logado sem perfil). */}
+              {(!isAuthenticated || !hasDefinedProfileType) && (
+                <div className="mt-5 pt-4 border-t border-white/15 flex flex-wrap items-center justify-center gap-2">
+                  <span
+                    title="Sua identidade é mantida em sigilo: avaliações são publicadas sob pseudônimo."
+                    className="inline-flex items-center gap-1.5 bg-white/10 text-white px-2.5 py-1 rounded-full text-xs font-semibold"
+                  >
+                    <FaUserSecret aria-hidden="true" /> Anônimo
+                  </span>
+                  <span
+                    title="Conta verificada via login LinkedIn ou Google."
+                    className="inline-flex items-center gap-1.5 bg-white/10 text-white px-2.5 py-1 rounded-full text-xs font-semibold"
+                  >
+                    <FaCheckCircle aria-hidden="true" /> Verificado
+                  </span>
+                  <span
+                    title="Plataforma com regras anti-fraude e moderação de avaliações."
+                    className="inline-flex items-center gap-1.5 bg-white/10 text-white px-2.5 py-1 rounded-full text-xs font-semibold"
+                  >
+                    <FaShieldAlt aria-hidden="true" /> Confiável
+                  </span>
+                </div>
               )}
 
               {/* CENÁRIO 3 — autenticado com tipo de perfil definido */}
@@ -885,6 +897,19 @@ function TrabalheiLaDesktop({
             </div>
           );
         })()}
+
+        {/* Como funciona? — vídeo de apresentação movido do topo do Hero para
+            reduzir atrito de cadastro. Fica visível para quem rolar a página
+            em busca de mais informações sobre a plataforma. */}
+        <section className="mx-auto max-w-2xl mb-6 bg-white dark:bg-slate-900 rounded-2xl shadow-md p-6 border border-blue-100 dark:border-slate-700">
+          <h3 className="text-sm md:text-base uppercase tracking-[0.14em] font-extrabold text-blue-800 dark:text-blue-200 text-center mb-2">
+            Como funciona?
+          </h3>
+          <p className="text-sm text-slate-600 dark:text-slate-300 text-center mb-4">
+            Em 2 minutos, veja como avaliar empresas de forma anônima e verificada.
+          </p>
+          <YouTubeEmbed videoId="JZkL0YJSQnw" title="Apresentação Trabalhei Lá" />
+        </section>
 
         {/* CONTEÚDO - 3 COLUNAS NO DESKTOP (>1024px), 2 COLUNAS NO MOBILE (<1024px) */}
         <div className="flex flex-col lg:flex-row lg:flex-nowrap gap-6 mb-8">

@@ -2,6 +2,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ──────────────────────────────────────────────────────────────────
+    // Ping de conexão (Home.js -> testFirebase). Apenas usuários
+    // autenticados (anônimos inclusive) podem escrever/ler o doc 'ping'.
+    // ──────────────────────────────────────────────────────────────────
+    match /app_test/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
     // Empresas publicas com campos basicos.
     match /empresas/{cnpj} {
       allow read: if true;
@@ -62,12 +70,98 @@ service cloud.firestore {
         && resource.data.uid == request.auth.uid;
     }
 
+    // Avaliações de processo seletivo (usuário NÃO contratado).
+    // Mesmo padrão das reviews, em coleção separada.
+    match /selectionProcessReviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null
+        && resource.data.uid == request.auth.uid;
+      allow delete: if request.auth != null
+        && resource.data.uid == request.auth.uid;
+    }
+
+    // Avaliações B2B entre empresas (EvaluatePartner). O documento é
+    // identificado pelo CNPJ avaliador; só o autor autenticado cria.
+    match /companyReviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if false;
+    }
+
     // Reações a avaliações (uma por usuário por review).
     match /reviewReactions/{reactionId} {
       allow read: if true;
       allow create: if request.auth != null;
       // Reações são imutáveis (idempotência garantida no cliente).
       allow update, delete: if false;
+    }
+
+    // Reações em comentários gerais (CompanyDetails).
+    match /commentReactions/{reactionId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null;
+    }
+
+    // Reações em comentários por item da empresa.
+    match /item_comment_reactions/{reactionId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null;
+    }
+
+    // Denúncias de conteúdo (CompanyDetails -> content_reports).
+    // Qualquer usuário autenticado pode criar; sem update/delete pelo cliente.
+    match /content_reports/{reportId} {
+      allow read: if false;
+      allow create: if request.auth != null;
+      allow update, delete: if false;
+    }
+
+    // Pedidos de suporte de empresas (EmpresaDashboard).
+    match /supportRequests/{requestId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if false;
+    }
+
+    // Lista de espera para empresas (CompanyProfile).
+    match /waitlist_empresa/{entryId} {
+      allow read: if false;
+      allow create: if request.auth != null;
+      allow update, delete: if false;
+    }
+
+    // Catálogo de profissões (read público, escrita só admin/backend).
+    match /professions/{professionId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Catálogo de serviços de RH (BusinessDashboard).
+    match /servicosRH/{servicoId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Apoiadores antigos / dashboard administrativo (supporters).
+    // Leitura pública para listagens; escrita restrita ao próprio dono.
+    match /supporters/{supporterId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null;
+    }
+
+    // Perfis de trabalhador profissional (WorkerProfessionalContactSettings).
+    // O documento é identificado pelo profileId do usuário.
+    match /profiles/{profileId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null;
     }
 
     // Comentários de discussão por item da empresa.
