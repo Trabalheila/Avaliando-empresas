@@ -54,16 +54,30 @@ service cloud.firestore {
       allow read: if true;
 
       // Criação: requer usuário autenticado (mínimo anônimo).
-      allow create: if request.auth != null;
+      // O cliente NÃO pode marcar a review como verificada — esses
+      // campos são preenchidos apenas pelo backend (Admin SDK) via
+      // /api/verify-review-linkedin.
+      allow create: if request.auth != null
+        && (!('isVerifiedLinkedIn' in request.resource.data)
+            || request.resource.data.isVerifiedLinkedIn == false)
+        && !('verificationSource' in request.resource.data)
+        && !('verifiedAt' in request.resource.data);
 
       // Edição: apenas o autor original pode editar, identificado pelo uid do Firebase Auth.
       // Campos de identidade (uid, pseudonym, company, companySlug, createdAt) não podem ser alterados.
+      // Campos de verificação só podem ser preservados — nunca alterados pelo cliente.
       allow update: if request.auth != null
         && resource.data.uid == request.auth.uid
         && request.resource.data.uid == resource.data.uid
         && request.resource.data.pseudonym == resource.data.pseudonym
         && request.resource.data.company == resource.data.company
-        && request.resource.data.companySlug == resource.data.companySlug;
+        && request.resource.data.companySlug == resource.data.companySlug
+        && request.resource.data.get('isVerifiedLinkedIn', false)
+            == resource.data.get('isVerifiedLinkedIn', false)
+        && request.resource.data.get('verificationSource', '')
+            == resource.data.get('verificationSource', '')
+        && request.resource.data.get('verifiedAt', '')
+            == resource.data.get('verifiedAt', '');
 
       // Exclusão: apenas o autor original pode apagar.
       allow delete: if request.auth != null
