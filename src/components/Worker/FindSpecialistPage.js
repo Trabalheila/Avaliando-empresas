@@ -787,12 +787,20 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
 
         <div className="text-center pt-2 flex flex-col items-center gap-2">
           {!workerIsPremium && (
-            <Link
-              to="/trabalhador/beneficios"
-              className="text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline"
-            >
-              ✨ Conheça o Plano Premium do trabalhador
-            </Link>
+            <>
+              <Link
+                to="/consulta-avulsa"
+                className="text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline"
+              >
+                ✉️ Iniciar consulta avulsa
+              </Link>
+              <Link
+                to="/trabalhador/beneficios"
+                className="text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline"
+              >
+                ✨ Conheça o Plano Premium do trabalhador
+              </Link>
+            </>
           )}
           <button
             type="button"

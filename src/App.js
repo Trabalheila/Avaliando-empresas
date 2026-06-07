@@ -53,6 +53,8 @@ import SealDetailsPage from './pages/SealDetailsPage';
 import AuthAction from './pages/AuthAction';
 import ProfissionalApoioCadastro from './pages/ProfissionalApoioCadastro';
 import ProfissionalApoioPerfil from './pages/ProfissionalApoioPerfil';
+import ConsultaAvulsaPage from './pages/ConsultaAvulsaPage';
+import PagamentoConsultaPage from './pages/PagamentoConsultaPage';
 import migrateApoiadoresToUsers from './scripts/migrateApoiadoresToUsers';
 
 // Função para aplicar o tema (dark/light)
@@ -248,6 +250,8 @@ function App() {
       <Route path="/especialista/beneficios" element={<RequireAuth><SpecialistBenefitsPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/trabalhador/encontrar-especialista" element={<RequireAuth><FindSpecialistPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/trabalhador/beneficios" element={<RequireAuth><WorkerBenefitsPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/consulta-avulsa" element={<RequireAuth><ConsultaAvulsaPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/pagamento-consulta" element={<RequireAuth><PagamentoConsultaPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/chat/:conversationId" element={<RequireAuth><PlatformChat theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/apoiador/requisicoes" element={<RequireAuth><ApoiadorRequisicoes theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/empresa/cadastro" element={<CompanyRegister />} />
