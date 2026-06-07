@@ -114,7 +114,25 @@ export default function MinhaConta({ theme, toggleTheme }) {
           }
         }
 
-        if (!userSnap.exists() && !stored?.pseudonym && !stored?.email) {
+        // Fallback adicional: especialistas (advogados, psicólogos etc.) tem
+        // o perfil persistido em `apoiadores` (legado) — campo `uid` aponta
+        // para o Firebase Auth UID. Sem este fallback, o login do tipo
+        // "Sou Especialista" cai na tela "Você precisa criar um perfil".
+        let apoiadorData = null;
+        if (!userSnap.exists() && authUid) {
+          try {
+            const apoSnap = await getDocs(
+              query(collection(db, "apoiadores"), where("uid", "==", authUid), limit(1))
+            );
+            if (!apoSnap.empty) {
+              const d = apoSnap.docs[0];
+              apoiadorData = { id: d.id, ...(d.data() || {}) };
+              resolvedId = d.id;
+            }
+          } catch { /* ignore */ }
+        }
+
+        if (!userSnap.exists() && !apoiadorData && !stored?.pseudonym && !stored?.email) {
           // Sem doc no Firestore e sem dados em cache: realmente não há
           // perfil ainda — mostra a tela de "crie seu perfil".
           if (!cancelled) {
@@ -126,7 +144,15 @@ export default function MinhaConta({ theme, toggleTheme }) {
 
         const userData = userSnap.exists()
           ? { id: userSnap.id, ...userSnap.data() }
-          : { id: resolvedId, ...stored };
+          : apoiadorData
+            ? {
+                ...apoiadorData,
+                // Normaliza campos esperados por esta página.
+                pseudonimo: apoiadorData.pseudonimo || apoiadorData.nome || stored?.pseudonym || "",
+                userType: "apoiador",
+                isApoiador: true,
+              }
+            : { id: resolvedId, ...stored };
 
         if (!cancelled) setProfile(userData);
 

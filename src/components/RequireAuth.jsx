@@ -27,7 +27,7 @@
 import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, limit, query, where } from "firebase/firestore";
 
 import { auth, db } from "../firebase";
 
@@ -74,7 +74,19 @@ export default function RequireAuth({ children }) {
           // para evitar loop no caso de leitura eventualmente consistente.
           setStatus("ready");
         } else {
-          setStatus("no-profile");
+          // Fallback: especialistas (advogados, psicólogos etc.) tem o
+          // perfil persistido em `apoiadores` (campo `uid` = auth.uid).
+          // Sem este lookup, o login de especialista cai em /pseudonym.
+          try {
+            const apoSnap = await getDocs(
+              query(collection(db, "apoiadores"), where("uid", "==", user.uid), limit(1))
+            );
+            if (!cancelled) {
+              setStatus(apoSnap.empty ? "no-profile" : "ready");
+            }
+          } catch {
+            if (!cancelled) setStatus("no-profile");
+          }
         }
       } catch (err) {
         if (cancelled) return;
