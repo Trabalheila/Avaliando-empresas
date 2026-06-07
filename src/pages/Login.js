@@ -61,6 +61,26 @@ export default function Login({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  // Equivalente do route guard do Vue: se já está logado (e não é anônimo),
+  // pula a tela de login e manda direto para a busca de especialista — a menos
+  // que exista um redirectAfterLogin explícito na URL/sessão.
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user || user.isAnonymous) return;
+    let target = "/trabalhador/encontrar-especialista";
+    try {
+      const fromSession = sessionStorage.getItem(REDIRECT_AFTER_LOGIN_KEY);
+      if (fromSession && fromSession.startsWith("/")) target = fromSession;
+    } catch {
+      /* ignore */
+    }
+    const fromQuery = searchParams.get("redirectAfterLogin") || "";
+    if (fromQuery.startsWith("/")) target = fromQuery;
+    navigate(target, { replace: true });
+    // Só queremos disparar no mount (e quando a query mudar).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Lê parâmetros e persiste em sessionStorage (sobrevive ao OAuth).
   const companyConfirmed = useMemo(() => {
     const fromQuery = searchParams.get("companyConfirmed") === "true";

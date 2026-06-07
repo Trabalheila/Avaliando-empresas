@@ -41,6 +41,7 @@ import PlatformChat from './components/Chat/PlatformChat';
 import ApoiadorRequisicoes from './pages/ApoiadorRequisicoes';
 import CookieBanner from './components/CookieBanner';
 import ChatbotWidget from './components/ChatbotWidget';
+import RequireAuth from './components/RequireAuth';
 import CompanyRegister from './pages/CompanyRegister';
 import CompanyConfirm from './pages/CompanyConfirm';
 import CompanyRegisterAwait from './pages/CompanyRegisterAwait';
@@ -225,8 +226,8 @@ function App() {
       <Route path="/admin/plans" element={<AdminPlansManager theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/admin/crescimento" element={<AdminGrowthDashboard theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/admin/nfse" element={<AdminNfseDashboard theme={theme} toggleTheme={toggleTheme} />} />
-      <Route path="/empresa/verificacao" element={<EmployerVerification theme={theme} toggleTheme={toggleTheme} />} />
-      <Route path="/indique-e-ganhe" element={<IndiqueGanhe theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/empresa/verificacao" element={<RequireAuth><EmployerVerification theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/indique-e-ganhe" element={<RequireAuth><IndiqueGanhe theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/consultores/cadastro" element={<ConsultorCadastro theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/prestadores/cadastro" element={<PrestadorCadastro theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/apoiadores" element={<Apoiadores theme={theme} toggleTheme={toggleTheme} />} />
@@ -237,24 +238,24 @@ function App() {
       <Route path="/purpose" element={<Purpose theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/termos-de-uso" element={<TermsOfUse theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/escolha-perfil" element={<EscolhaPerfil theme={theme} toggleTheme={toggleTheme} />} />
-      <Route path="/excluir-dados" element={<DeleteData theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/excluir-dados" element={<RequireAuth><DeleteData theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/perfil/:profileId" element={<WorkerProfile theme={theme} toggleTheme={toggleTheme} />} />
-      <Route path="/minha-conta" element={<MinhaConta theme={theme} toggleTheme={toggleTheme} />} />
-      <Route path="/my-contacts" element={<MyContacts theme={theme} toggleTheme={toggleTheme} />} />
-      <Route path="/apoiador/my-contacts" element={<MyContactsApoiador theme={theme} toggleTheme={toggleTheme} />} />
-      <Route path="/apoiador/perfil" element={<ApoiadorPerfilGerenciar theme={theme} toggleTheme={toggleTheme} />} />
-      <Route path="/especialista/:specialistType/caso/:caseId" element={<CaseDetailsPage theme={theme} toggleTheme={toggleTheme} />} />
-      <Route path="/especialista/beneficios" element={<SpecialistBenefitsPage theme={theme} toggleTheme={toggleTheme} />} />
-      <Route path="/trabalhador/encontrar-especialista" element={<FindSpecialistPage theme={theme} toggleTheme={toggleTheme} />} />
-      <Route path="/trabalhador/beneficios" element={<WorkerBenefitsPage theme={theme} toggleTheme={toggleTheme} />} />
-      <Route path="/chat/:conversationId" element={<PlatformChat theme={theme} toggleTheme={toggleTheme} />} />
-      <Route path="/apoiador/requisicoes" element={<ApoiadorRequisicoes theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/minha-conta" element={<RequireAuth><MinhaConta theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/my-contacts" element={<RequireAuth><MyContacts theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/apoiador/my-contacts" element={<RequireAuth><MyContactsApoiador theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/apoiador/perfil" element={<RequireAuth><ApoiadorPerfilGerenciar theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/especialista/:specialistType/caso/:caseId" element={<RequireAuth><CaseDetailsPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/especialista/beneficios" element={<RequireAuth><SpecialistBenefitsPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/trabalhador/encontrar-especialista" element={<RequireAuth><FindSpecialistPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/trabalhador/beneficios" element={<RequireAuth><WorkerBenefitsPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/chat/:conversationId" element={<RequireAuth><PlatformChat theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/apoiador/requisicoes" element={<RequireAuth><ApoiadorRequisicoes theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/empresa/cadastro" element={<CompanyRegister />} />
       <Route path="/empresa/cadastro/aguarde" element={<CompanyRegisterAwait />} />
       <Route path="/empresa/confirmar" element={<CompanyConfirm />} />
-      <Route path="/empresa/perfil" element={<CompanyProfile theme={theme} toggleTheme={toggleTheme} />} />
-      <Route path="/empresa-dashboard" element={<EmpresaDashboard theme={theme} toggleTheme={toggleTheme} />} />
-      <Route path="/empresa/avaliar-parceiro" element={<EvaluatePartner theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/empresa/perfil" element={<RequireAuth><CompanyProfile theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/empresa-dashboard" element={<RequireAuth><EmpresaDashboard theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/empresa/avaliar-parceiro" element={<RequireAuth><EvaluatePartner theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/selo-trabalheila" element={<SealDetailsPage />} />
       <Route path="/auth/action" element={<AuthAction />} />
       <Route path="/profissionais-apoio/cadastro" element={<ProfissionalApoioCadastro theme={theme} toggleTheme={toggleTheme} />} />

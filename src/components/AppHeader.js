@@ -174,10 +174,10 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
                 <div className="absolute right-0 top-full mt-2 w-48 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl z-[60] py-1">
                   <button
                     type="button"
-                    onClick={() => { setDropdownOpen(false); navigate("/pseudonym"); }}
-                    className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+                    onClick={() => { setDropdownOpen(false); navigate("/trabalhador/encontrar-especialista"); }}
+                    className="w-full text-left px-4 py-2 text-sm font-semibold text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-slate-700 transition"
                   >
-                    Editar perfil
+                    Buscar especialista
                   </button>
                   <button
                     type="button"
