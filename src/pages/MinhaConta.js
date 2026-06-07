@@ -1,15 +1,17 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { db } from "../firebase";
+import { db, storage } from "../firebase";
 import {
   doc,
   getDoc,
+  updateDoc,
   collection,
   query,
   where,
   getDocs,
   limit,
 } from "firebase/firestore";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getUserRole, isPremium, isAdmin } from "../utils/rbac";
 import { resolveProfileId } from "../utils/profileIdentity";
 import AppHeader from "../components/AppHeader";
@@ -67,6 +69,9 @@ export default function MinhaConta({ theme, toggleTheme }) {
   const [consultaAvulsaOpen, setConsultaAvulsaOpen] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [experienceModalOpen, setExperienceModalOpen] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
+  const avatarInputRef = useRef(null);
 
   // Carregar dados
   useEffect(() => {
@@ -140,6 +145,58 @@ export default function MinhaConta({ theme, toggleTheme }) {
     if (pid) navigate(`/perfil/${encodeURIComponent(pid)}`);
   }, [navigate]);
 
+  // Upload de avatar (Firebase Storage -> users/{uid}.avatar)
+  const handleAvatarFile = useCallback(async (event) => {
+    const file = event?.target?.files?.[0];
+    if (event?.target) event.target.value = "";
+    if (!file) return;
+    setAvatarError("");
+
+    if (!file.type.startsWith("image/")) {
+      setAvatarError("Selecione um arquivo de imagem.");
+      return;
+    }
+    const MAX_BYTES = 2 * 1024 * 1024; // 2MB
+    if (file.size > MAX_BYTES) {
+      setAvatarError("Imagem muito grande (máximo 2MB).");
+      return;
+    }
+
+    const uid = profile?.id;
+    if (!uid) {
+      setAvatarError("Perfil não identificado.");
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+      const ref = storageRef(storage, `avatars/${uid}/avatar-${Date.now()}.${ext}`);
+      await uploadBytes(ref, file, { contentType: file.type });
+      const url = await getDownloadURL(ref);
+
+      await updateDoc(doc(db, "users", uid), { avatar: url });
+
+      setProfile((prev) => (prev ? { ...prev, avatar: url } : prev));
+
+      // Reflete no cache local pra AppHeader/Home enxergarem o novo avatar.
+      try {
+        const stored = JSON.parse(localStorage.getItem("userProfile") || "{}");
+        localStorage.setItem(
+          "userProfile",
+          JSON.stringify({ ...stored, avatar: url })
+        );
+      } catch {
+        /* ignore */
+      }
+    } catch (err) {
+      console.error("Falha no upload do avatar:", err);
+      setAvatarError("Não foi possível enviar a imagem. Tente novamente.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }, [profile]);
+
   // Loading
   if (loading) {
     return (
@@ -191,7 +248,27 @@ export default function MinhaConta({ theme, toggleTheme }) {
         {/* ══════ Dados do Perfil ══════ */}
         <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
           <div className="flex flex-col sm:flex-row items-center gap-5">
-            {avatarDisplay}
+            <div className="flex flex-col items-center gap-2">
+              {avatarDisplay}
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarFile}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="text-xs font-semibold text-blue-700 dark:text-blue-300 hover:underline disabled:opacity-60 disabled:no-underline"
+              >
+                {uploadingAvatar ? "Enviando…" : "Trocar foto"}
+              </button>
+              {avatarError && (
+                <p className="text-xs text-red-600 dark:text-red-400 max-w-[10rem] text-center">{avatarError}</p>
+              )}
+            </div>
             <div className="flex-1 text-center sm:text-left">
               <h1 className="text-2xl font-extrabold text-blue-800 dark:text-blue-200 tracking-wide">
                 {pseudonym}
