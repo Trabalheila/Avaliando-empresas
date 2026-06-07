@@ -59,6 +59,46 @@ export function buildVideoRoomUrl(consultaId) {
   return `${base}-${consultaId}`;
 }
 
+// Gera URL da sala de chat. Use sua rota interna que valida a consulta paga.
+export function buildChatRoomUrl(consultaId) {
+  const base = (process.env.CHAT_ROOM_BASE_URL || `${(process.env.APP_BASE_URL || "").replace(/\/+$/, "")}/consulta-chat`).replace(/\/+$/, "");
+  return `${base}/${encodeURIComponent(consultaId)}`;
+}
+
+// Tabela de precos por plano + modalidade. Premium usa o valor customizado
+// salvo em `precoConsulta` no perfil do especialista.
+export const CONSULTA_PRICE_TABLE = {
+  essencial: { chat: 45, video: 75 },
+};
+export const PREMIUM_DEFAULT_PRICE = 150;
+
+export function normalizePlan(v) {
+  const s = String(v || "").toLowerCase().trim();
+  if (!s) return "";
+  if (s.includes("premium")) return "premium";
+  if (s.includes("essencial") || s.includes("essential") || s === "free" || s === "gratuito" || s.includes("basic")) {
+    return "essencial";
+  }
+  return s;
+}
+
+export function normalizeModalidade(v) {
+  const s = String(v || "").toLowerCase().trim();
+  return s === "video" || s === "videochamada" || s === "videocall" ? "video" : "chat";
+}
+
+// Calcula valor_total a partir do plano do especialista + modalidade.
+export function resolveConsultaPrice(especialista, modalidade) {
+  const plan = normalizePlan(especialista?.plan || especialista?.plano || especialista?.planStatus);
+  const mod = normalizeModalidade(modalidade);
+  if (plan === "essencial") {
+    return CONSULTA_PRICE_TABLE.essencial[mod];
+  }
+  // Premium (default): valor customizado do especialista.
+  const custom = Number(especialista?.precoConsulta || especialista?.preco || 0);
+  return custom > 0 ? custom : PREMIUM_DEFAULT_PRICE;
+}
+
 // Verificacao de assinatura HMAC do webhook (compartilhada).
 // Mercado Pago: header `x-signature` (ts,v1). Asaas: header `asaas-access-token`.
 // Adapte conforme o gateway escolhido.

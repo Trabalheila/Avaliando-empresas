@@ -28,7 +28,10 @@
     { "source": "/api/verify-review-linkedin", "destination": "/api/admin?op=verify-review-linkedin" },
     { "source": "/api/company-logo", "destination": "/api/cnpj?op=company-logo" },
     { "source": "/api/payments/create-charge", "destination": "/api/payments?op=create-charge" },
+    { "source": "/api/payments/mercado-pago-checkout", "destination": "/api/payments?op=mp-checkout" },
+    { "source": "/api/payments/mp-checkout", "destination": "/api/payments?op=mp-checkout" },
     { "source": "/api/payments/webhook", "destination": "/api/payments?op=webhook" },
+    { "source": "/api/payments/mp-webhook", "destination": "/api/payments?op=webhook" },
     { "source": "/api/payments/release-funds", "destination": "/api/payments?op=release-funds" },
     { "source": "/(.*)", "destination": "/" }
   ]
