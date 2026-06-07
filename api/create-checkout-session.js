@@ -63,12 +63,12 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
     },
     supporter: {
       essential: {
-        amount: 199.90,
+        amount: 49.00,
         reason: "Apoiador Essencial - Trabalhei La",
         envPlanId: "MP_PLAN_SUPPORTER_ESSENTIAL",
       },
       premium: {
-        amount: 399.90,
+        amount: 89.90,
         reason: "Apoiador Premium - Trabalhei La",
         envPlanId: "MP_PLAN_SUPPORTER_PREMIUM",
       },
