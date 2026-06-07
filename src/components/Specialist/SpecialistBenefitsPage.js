@@ -191,7 +191,11 @@ export default function SpecialistBenefitsPage({ theme, toggleTheme }) {
       // 1) PRIORIDADE MAXIMA: link direto do Mercado Pago configurado via env.
       //    Funciona para qualquer usuario (logado ou nao). A associacao do
       //    pagamento ao apoiador eh feita pelo webhook do MP.
-      const directMpUrl = getMpPlanUrl("supporter", tier);
+      //    Excecao: para o tier "premium" pulamos o link direto porque ele
+      //    vinha retornando "Ocorreu um problema" (SUB17-*) do MP. Usamos
+      //    o backend, que monta uma preapproval nominal com back_url HTTPS
+      //    sempre valida e tem fallback dinamico em caso de falha.
+      const directMpUrl = tier === "premium" ? "" : getMpPlanUrl("supporter", tier);
       if (directMpUrl) {
         window.location.assign(directMpUrl);
         return;

@@ -38,7 +38,15 @@ export default function PlanosApoiador() {
     setLoadingTier(tier);
     setError("");
     try {
-      const directMpUrl = getMpPlanUrl("supporter", tier);
+      // Para o tier "premium" pulamos o link direto do MP e SEMPRE usamos
+      // o backend. O link direto (...?preapproval_plan_id=...) vinha
+      // retornando o erro genérico "Ocorreu um problema" (SUB17-*)
+      // quando o plano pré-cadastrado entra em estados inconsistentes
+      // (back_url desatualizada, conflito de assinante, etc.). O endpoint
+      // /api/create-checkout-session cria uma preapproval nominal e tem
+      // fallback automático para plano dinâmico em caso de falha.
+      // O Essencial continua usando o link direto, que está estável.
+      const directMpUrl = tier === "premium" ? "" : getMpPlanUrl("supporter", tier);
       if (directMpUrl) {
         if (!auth.currentUser) await signInAnonymously(auth);
         const uid = auth.currentUser?.uid;
