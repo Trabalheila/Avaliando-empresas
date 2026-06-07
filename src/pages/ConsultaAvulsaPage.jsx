@@ -6,6 +6,47 @@ import AppHeader from "../components/AppHeader";
 import { filterOutTestApoiadores } from "../utils/testAccounts";
 
 const PREMIUM_WORKER_DISCOUNT_PCT = 0.1;
+// Preço fixo para especialistas do Plano Essencial. Especialistas Premium
+// definem o preço no próprio perfil (campo `precoConsulta`).
+const ESSENCIAL_FIXED_PRICE = 80;
+const PREMIUM_DEFAULT_PRICE = 150;
+
+function normalizePlan(v) {
+  const s = String(v || "").toLowerCase().trim();
+  if (!s) return "";
+  if (s.includes("premium")) return "premium";
+  if (s.includes("essencial") || s.includes("essential") || s.includes("basic") || s === "free" || s === "gratuito") {
+    return "essencial";
+  }
+  return s;
+}
+
+// Calcula o preço final da consulta com base no plano do especialista e
+// aplica o desconto Premium do usuário (10%) quando aplicável.
+function calculateConsultationPrice(professionalData, isUserPremium) {
+  if (!professionalData) return 0;
+  const plan = normalizePlan(professionalData.plan);
+  let basePrice;
+  if (plan === "essencial") {
+    basePrice = ESSENCIAL_FIXED_PRICE;
+  } else if (plan === "premium") {
+    basePrice = Number(professionalData.precoConsulta) || PREMIUM_DEFAULT_PRICE;
+  } else {
+    basePrice = Number(professionalData.precoConsulta) || PREMIUM_DEFAULT_PRICE;
+  }
+  if (isUserPremium) {
+    basePrice = basePrice * (1 - PREMIUM_WORKER_DISCOUNT_PCT);
+  }
+  return basePrice;
+}
+
+// Preço base (sem desconto do usuário), já aplicada a regra de plano.
+function getBaseSpecialistPrice(professionalData) {
+  if (!professionalData) return 0;
+  const plan = normalizePlan(professionalData.plan);
+  if (plan === "essencial") return ESSENCIAL_FIXED_PRICE;
+  return Number(professionalData.precoConsulta) || PREMIUM_DEFAULT_PRICE;
+}
 
 const SPECIALTY_OPTIONS = [
   { value: "", label: "Selecione uma especialidade" },
@@ -142,6 +183,9 @@ export default function ConsultaAvulsaPage({ theme, toggleTheme }) {
               data.especialidadeId || data.tipo || data.profissao || "outro"
             ),
             precoConsulta: Number(data.precoConsulta || data.preco || 150) || 150,
+            plan: normalizePlan(
+              data.plan || data.plano || data.planStatus || data.tier || ""
+            ),
             isTest: data.isTest === true,
           };
         };
@@ -207,11 +251,9 @@ export default function ConsultaAvulsaPage({ theme, toggleTheme }) {
       return;
     }
 
-    const basePrice = Number(professionalData.precoConsulta || 150) || 150;
-    const price = isPremiumWorker
-      ? basePrice * (1 - PREMIUM_WORKER_DISCOUNT_PCT)
-      : basePrice;
-    setDisplayedConsultationPrice(price);
+    setDisplayedConsultationPrice(
+      calculateConsultationPrice(professionalData, isPremiumWorker)
+    );
   }, [selectedProfessionalId, profissionaisDisponiveis, isPremiumWorker]);
 
   const selectedSpecialtyLabel = useMemo(() => {
@@ -221,9 +263,7 @@ export default function ConsultaAvulsaPage({ theme, toggleTheme }) {
     );
   }, [especialidades, selectedEspecialidade]);
 
-  const originalPrice = selectedProfessionalData
-    ? Number(selectedProfessionalData.precoConsulta || 150) || 150
-    : 0;
+  const originalPrice = getBaseSpecialistPrice(selectedProfessionalData);
   const discountAmount = Math.max(0, originalPrice - displayedConsultationPrice);
 
   const handleAdvanceToPayment = () => {
@@ -339,7 +379,17 @@ export default function ConsultaAvulsaPage({ theme, toggleTheme }) {
                             </p>
                           )}
                           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                            Valor base: {formatBRL(pro.precoConsulta)}
+                            Valor base: {formatBRL(getBaseSpecialistPrice(pro))}
+                            {pro.plan === "essencial" && (
+                              <span className="ml-1 text-[10px] uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                                Plano Essencial
+                              </span>
+                            )}
+                            {pro.plan === "premium" && (
+                              <span className="ml-1 text-[10px] uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                                Plano Premium
+                              </span>
+                            )}
                           </p>
                         </div>
                       </label>
