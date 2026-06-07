@@ -16,7 +16,7 @@ import {
   sendPasswordResetEmail,
   onAuthStateChanged,
 } from "firebase/auth";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import { auth, db, googleProvider } from "../firebase";
 // Usa o LoginLinkedInButton "robusto" (suporta callback {code,state} e tem
 // onLoginFailure/disabled). O de src/components/ entrega só {profile} e quebra
@@ -34,24 +34,48 @@ const PROFILE_ROUTES = {
   trabalhador: { label: "Sou Trabalhador", route: "/minha-conta", color: "bg-lime-500 hover:bg-lime-600 text-emerald-950" },
 };
 
-// Detecta todos os perfis associados a um e-mail (empresário em `companies`,
-// trabalhador/apoiador em `users` via campo userType). Retorna lista ordenada
-// e sem duplicatas, sempre na ordem: empresário, apoiador, trabalhador.
-async function detectProfilesByEmail(email) {
+// Detecta todos os perfis associados a um usuário. Olha:
+//   - `companies` por email     → empresario
+//   - `users`     por email     → apoiador (se userType="apoiador") ou trabalhador
+//   - `apoiadores` por uid      → apoiador (especialistas legados que NÃO têm
+//                                  doc em /users — sem este lookup, o login
+//                                  cai em /minha-conta em vez de
+//                                  /apoiador/my-contacts).
+// Retorna lista ordenada e sem duplicatas: empresário, apoiador, trabalhador.
+async function detectProfilesByEmail(email, uid) {
   const normalized = (email || "").toString().trim().toLowerCase();
-  if (!normalized) return [];
+  const userUid = (uid || "").toString().trim();
+  if (!normalized && !userUid) return [];
   const found = new Set();
   try {
-    const [compSnap, usersSnap] = await Promise.all([
-      getDocs(query(collection(db, "companies"), where("email", "==", normalized))).catch(() => ({ empty: true, forEach: () => {} })),
-      getDocs(query(collection(db, "users"), where("email", "==", normalized))).catch(() => ({ empty: true, forEach: () => {} })),
-    ]);
-    if (!compSnap.empty) found.add("empresario");
-    usersSnap.forEach((d) => {
-      const t = (d.data()?.userType || "").toString().toLowerCase();
-      if (t === "apoiador") found.add("apoiador");
-      else found.add("trabalhador");
-    });
+    const tasks = [];
+    if (normalized) {
+      tasks.push(
+        getDocs(query(collection(db, "companies"), where("email", "==", normalized))).catch(() => ({ empty: true, forEach: () => {} })),
+        getDocs(query(collection(db, "users"), where("email", "==", normalized))).catch(() => ({ empty: true, forEach: () => {} })),
+      );
+    }
+    if (userUid) {
+      tasks.push(
+        getDocs(query(collection(db, "apoiadores"), where("uid", "==", userUid), limit(1))).catch(() => ({ empty: true, forEach: () => {} })),
+      );
+    }
+    const results = await Promise.all(tasks);
+    let idx = 0;
+    if (normalized) {
+      const compSnap = results[idx++];
+      const usersSnap = results[idx++];
+      if (!compSnap.empty) found.add("empresario");
+      usersSnap.forEach((d) => {
+        const t = (d.data()?.userType || "").toString().toLowerCase();
+        if (t === "apoiador") found.add("apoiador");
+        else found.add("trabalhador");
+      });
+    }
+    if (userUid) {
+      const apoSnap = results[idx++];
+      if (apoSnap && !apoSnap.empty) found.add("apoiador");
+    }
   } catch (err) {
     console.warn("detectProfilesByEmail falhou:", err);
   }
@@ -221,7 +245,7 @@ export default function Login({ theme, toggleTheme }) {
       return;
     }
     // Sem redirect explícito: descobre quais perfis o e-mail tem.
-    const profiles = await detectProfilesByEmail(user?.email);
+    const profiles = await detectProfilesByEmail(user?.email, user?.uid);
     if (profiles.length >= 2) {
       // Conflito: pergunta com qual perfil deseja entrar.
       setProfileChoice({ profiles });
