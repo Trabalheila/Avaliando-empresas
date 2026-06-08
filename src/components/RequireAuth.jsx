@@ -30,81 +30,123 @@ import { onAuthStateChanged } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, limit, query, where } from "firebase/firestore";
 
 import { auth, db } from "../firebase";
+import { findUnifiedProfile } from "../services/users";
+
+function readStoredProfile() {
+  try {
+    return JSON.parse(localStorage.getItem("userProfile") || "{}") || {};
+  } catch {
+    return {};
+  }
+}
 
 function getStoredPseudonym() {
-  try {
-    const stored = JSON.parse(localStorage.getItem("userProfile") || "{}") || {};
-    return (
-      stored.pseudonimo ||
-      stored.pseudonym ||
-      localStorage.getItem("userPseudonym") ||
-      ""
-    ).toString().trim();
-  } catch {
-    return (localStorage.getItem("userPseudonym") || "").toString().trim();
-  }
+  const stored = readStoredProfile();
+  return (
+    stored.pseudonimo ||
+    stored.pseudonym ||
+    localStorage.getItem("userPseudonym") ||
+    ""
+  ).toString().trim();
+}
+
+function getStoredProfileId() {
+  const stored = readStoredProfile();
+  return (stored.profileId || stored.id || "").toString().trim();
 }
 
 export default function RequireAuth({ children }) {
   const location = useLocation();
+  // `status` inicia OBRIGATORIAMENTE como "checking". Enquanto estiver
+  // nesse estado nao redirecionamos para /login nem /pseudonym, pois o
+  // Firebase Auth ainda pode estar restaurando a sessao persistida no
+  // IndexedDB (especialmente em mobile / WebView, onde a hidratacao demora
+  // alguns ciclos a mais que o primeiro render do React).
   const [status, setStatus] = useState("checking");
 
   useEffect(() => {
     let cancelled = false;
-    let firstResolved = false;
 
     const unsub = onAuthStateChanged(auth, async (user) => {
       // Trata usuário anônimo como "sem usuário" para fins de gate.
       const isAnonymous = !!user?.isAnonymous;
       if (!user || isAnonymous) {
         if (!cancelled) setStatus("anonymous");
-        firstResolved = true;
         return;
       }
 
+      // Resolve profile usando a mesma cadeia de fallbacks de MinhaConta:
+      //   1) users/{uid}
+      //   2) users/{profileId} salvo no localStorage (ex.: "email:xxx")
+      //   3) busca unificada por email (cobre contas cujo doc id e
+      //      "email:foo@bar" criadas antes do uid existir)
+      //   4) coleção `apoiadores` (especialistas legados onde uid e campo)
+      //   5) tolerancia: pseudonimo persistido localmente
+      // Enquanto qualquer um desses lookups esta em andamento, NUNCA muda
+      // o status. So definimos "ready" ou "no-profile" apos a cadeia toda.
       try {
+        // (1) lookup direto por uid
         const snap = await getDoc(doc(db, "users", user.uid));
         if (cancelled) return;
-
         if (snap.exists()) {
           setStatus("ready");
-        } else if (getStoredPseudonym()) {
-          // Tolerância: pseudônimo já existe localmente (cadastro em
-          // andamento que ainda não propagou no Firestore). Deixa passar
-          // para evitar loop no caso de leitura eventualmente consistente.
-          setStatus("ready");
-        } else {
-          // Fallback: especialistas (advogados, psicólogos etc.) tem o
-          // perfil persistido em `apoiadores` (campo `uid` = auth.uid).
-          // Sem este lookup, o login de especialista cai em /pseudonym.
-          try {
-            const apoSnap = await getDocs(
-              query(collection(db, "apoiadores"), where("uid", "==", user.uid), limit(1))
-            );
-            if (!cancelled) {
-              setStatus(apoSnap.empty ? "no-profile" : "ready");
-            }
-          } catch {
-            if (!cancelled) setStatus("no-profile");
-          }
+          return;
         }
+
+        // (2) lookup por profileId persistido no localStorage
+        const storedProfileId = getStoredProfileId();
+        if (storedProfileId && storedProfileId !== user.uid) {
+          try {
+            const altSnap = await getDoc(doc(db, "users", storedProfileId));
+            if (cancelled) return;
+            if (altSnap.exists()) {
+              setStatus("ready");
+              return;
+            }
+          } catch { /* ignore — tenta proximo */ }
+        }
+
+        // (3) busca unificada por email do auth
+        if (user.email) {
+          try {
+            const unified = await findUnifiedProfile({ email: user.email });
+            if (cancelled) return;
+            if (unified) {
+              setStatus("ready");
+              return;
+            }
+          } catch { /* ignore — tenta proximo */ }
+        }
+
+        // (4) apoiadores legados (campo uid)
+        try {
+          const apoSnap = await getDocs(
+            query(collection(db, "apoiadores"), where("uid", "==", user.uid), limit(1))
+          );
+          if (cancelled) return;
+          if (!apoSnap.empty) {
+            setStatus("ready");
+            return;
+          }
+        } catch { /* ignore — segue para tolerancia local */ }
+
+        // (5) tolerancia: pseudonimo ja existe localmente (cadastro em
+        // andamento que ainda nao propagou no Firestore). Deixa passar
+        // para evitar loop na leitura eventualmente consistente.
+        if (cancelled) return;
+        setStatus(getStoredPseudonym() ? "ready" : "no-profile");
       } catch (err) {
         if (cancelled) return;
         console.warn("[RequireAuth] Falha ao consultar perfil:", err?.message || err);
         // Falha de leitura: prefere liberar (a página decide o fallback)
         // a deixar o usuário preso numa tela em branco.
         setStatus("ready");
-      } finally {
-        firstResolved = true;
       }
     });
 
     return () => {
       cancelled = true;
       try { unsub(); } catch { /* ignore */ }
-      // Evita warning de "useless return" do linter caso firstResolved
-      // não seja consumido no fluxo síncrono.
-      void firstResolved;
     };
   }, []);
 

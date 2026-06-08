@@ -15,6 +15,7 @@ import {
 import { ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { getUserRole, isPremium, isAdmin } from "../utils/rbac";
 import { resolveProfileId } from "../utils/profileIdentity";
+import { findUnifiedProfile } from "../services/users";
 import AppHeader from "../components/AppHeader";
 import WorkerProfessionalContactSettings from "../components/WorkerProfessionalContactSettings";
 import ConsultaAvulsaModal from "../components/ConsultaAvulsaModal";
@@ -144,7 +145,23 @@ export default function MinhaConta({ theme, toggleTheme }) {
           } catch { /* ignore */ }
         }
 
-        if (!userSnap.exists() && !apoiadorData && !stored?.pseudonym && !stored?.email) {
+        // Fallback final por email: cobre o cenario em que o doc de users/
+        // foi criado com id alternativo (ex.: "email:foo@bar") e o cache
+        // local nao tem profileId — caso classico do bug em que o usuario
+        // clica em "Minha Conta" no mobile e e jogado em /pseudonym mesmo
+        // logado (sessao Firebase ok via IndexedDB).
+        let unifiedByEmail = null;
+        if (!userSnap.exists() && !apoiadorData) {
+          const authEmail = (auth.currentUser?.email || stored?.email || "").toString().trim();
+          if (authEmail) {
+            try {
+              unifiedByEmail = await findUnifiedProfile({ email: authEmail });
+              if (unifiedByEmail) resolvedId = unifiedByEmail.id || resolvedId;
+            } catch { /* ignore */ }
+          }
+        }
+
+        if (!userSnap.exists() && !apoiadorData && !unifiedByEmail && !stored?.pseudonimo && !stored?.pseudonym && !stored?.email) {
           // Sem doc no Firestore e sem dados em cache: realmente não há
           // perfil ainda — mostra a tela de "crie seu perfil".
           if (!cancelled) {
@@ -164,7 +181,9 @@ export default function MinhaConta({ theme, toggleTheme }) {
                 userType: "apoiador",
                 isApoiador: true,
               }
-            : { id: resolvedId, ...stored };
+            : unifiedByEmail
+              ? { ...unifiedByEmail }
+              : { id: resolvedId, ...stored };
 
         if (!cancelled) setProfile(userData);
 
