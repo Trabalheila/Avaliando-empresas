@@ -52,14 +52,18 @@ function normalizePlan(v) {
 function priceForSpecialist(specialist, modalidade) {
   if (!specialist) return 0;
   const plan = normalizePlan(specialist.plan);
-  if (plan === "essencial") {
-    return modalidade === "video" ? ESSENCIAL_VIDEO_PRICE : ESSENCIAL_CHAT_PRICE;
+  // Convenção: somente Premium EXPLÍCITO usa valor customizado. Qualquer
+  // outro caso (Essencial, plano em branco, novo cadastro) cai no
+  // tabelado por modalidade — evita o bug de "preco fixo 150" quando o
+  // doc do especialista ainda não tem `plano_tipo` definido.
+  if (plan === "premium") {
+    return (
+      Number(specialist.valorConsultaCustomizado) ||
+      Number(specialist.precoConsulta) ||
+      PREMIUM_DEFAULT_PRICE
+    );
   }
-  return (
-    Number(specialist.valorConsultaCustomizado) ||
-    Number(specialist.precoConsulta) ||
-    PREMIUM_DEFAULT_PRICE
-  );
+  return modalidade === "video" ? ESSENCIAL_VIDEO_PRICE : ESSENCIAL_CHAT_PRICE;
 }
 
 /* Verifica se o usuário logado é Premium Trabalhador a partir do perfil

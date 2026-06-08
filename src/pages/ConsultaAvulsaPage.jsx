@@ -41,21 +41,22 @@ function calculateConsultationPrice(professionalData, isUserPremium, modalidade)
 }
 
 // Preço base (sem desconto do usuário), já aplicada a regra de plano +
-// modalidade. Para Premium, prioriza `valor_consulta_customizado` e cai
-// em `precoConsulta` (legado) e por fim em `PREMIUM_DEFAULT_PRICE`.
+// modalidade. Convenção: somente Premium EXPLÍCITO usa valor customizado;
+// qualquer outro caso (Essencial, plano em branco, novo cadastro) cai no
+// tabelado por modalidade — evita o bug de "preco fixo 150" quando o doc
+// do especialista ainda não tem `plano_tipo` definido.
 function getBaseSpecialistPrice(professionalData, modalidade) {
   if (!professionalData) return 0;
   const plan = normalizePlan(professionalData.plan);
   const mod = normalizeModalidade(modalidade);
-  if (plan === "essencial") {
-    return mod === "video" ? ESSENCIAL_VIDEO_PRICE : ESSENCIAL_CHAT_PRICE;
+  if (plan === "premium") {
+    return (
+      Number(professionalData.valorConsultaCustomizado) ||
+      Number(professionalData.precoConsulta) ||
+      PREMIUM_DEFAULT_PRICE
+    );
   }
-  // Premium (ou desconhecido) → valor customizado pelo próprio especialista.
-  return (
-    Number(professionalData.valorConsultaCustomizado) ||
-    Number(professionalData.precoConsulta) ||
-    PREMIUM_DEFAULT_PRICE
-  );
+  return mod === "video" ? ESSENCIAL_VIDEO_PRICE : ESSENCIAL_CHAT_PRICE;
 }
 
 const SPECIALTY_OPTIONS = [
@@ -408,14 +409,13 @@ export default function ConsultaAvulsaPage({ theme, toggleTheme }) {
                           )}
                           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                             Valor base: {formatBRL(getBaseSpecialistPrice(pro, modalidade))}
-                            {pro.plan === "essencial" && (
-                              <span className="ml-1 text-[10px] uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
-                                Plano Essencial
-                              </span>
-                            )}
-                            {pro.plan === "premium" && (
+                            {pro.plan === "premium" ? (
                               <span className="ml-1 text-[10px] uppercase tracking-wider text-amber-700 dark:text-amber-300">
                                 Plano Premium
+                              </span>
+                            ) : (
+                              <span className="ml-1 text-[10px] uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                                Plano Essencial
                               </span>
                             )}
                           </p>
