@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth } from "../firebase";
 import { isAdmin } from "../utils/rbac";
+import { isProfileAuthenticated } from "../utils/profileIdentity";
 import NotificationsBell from "./NotificationsBell";
 
 /* ════════════════════════════════════════════════
@@ -67,6 +70,45 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
+  // Estado de autenticação REAL (Firebase Auth), reconciliado com o cache
+  // local. O header precisa saber se há sessão para decidir entre mostrar o
+  // menu do usuário (logado) ou um botão "Entrar" (anônimo). Sem isso o menu
+  // exibia "Minha conta"/"Sair" mesmo deslogado, levando o usuário anônimo a
+  // /minha-conta (rota protegida) e à tela cinza.
+  const [isAuthed, setIsAuthed] = useState(() => {
+    try {
+      return isProfileAuthenticated(getProfile());
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    const syncFromStorage = () => {
+      try {
+        setIsAuthed(isProfileAuthenticated(getProfile()));
+      } catch {
+        setIsAuthed(false);
+      }
+    };
+    // onAuthStateChanged é a fonte de verdade: usuário REAL (não anônimo)
+    // → logado; null ou anônimo → mostra "Entrar".
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (user && !user.isAnonymous) {
+        setIsAuthed(true);
+      } else {
+        syncFromStorage();
+      }
+    });
+    window.addEventListener("trabalheiLa_user_updated", syncFromStorage);
+    window.addEventListener("focus", syncFromStorage);
+    return () => {
+      try { unsub(); } catch { /* ignore */ }
+      window.removeEventListener("trabalheiLa_user_updated", syncFromStorage);
+      window.removeEventListener("focus", syncFromStorage);
+    };
+  }, []);
+
   // Fechar dropdown ao clicar fora
   useEffect(() => {
     if (!dropdownOpen) return;
@@ -79,14 +121,26 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
     return () => document.removeEventListener("mousedown", handler);
   }, [dropdownOpen]);
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback(async () => {
     setDropdownOpen(false);
+    // Encerra a sessão REAL do Firebase Auth ANTES de limpar o cache. Sem
+    // isso a sessão do IndexedDB/localStorage permanecia ativa e a Home
+    // re-autenticava o usuário automaticamente (logout "não pegava").
+    try {
+      await signOut(auth);
+    } catch { /* segue limpando mesmo se o signOut falhar */ }
     try {
       localStorage.removeItem("userProfile");
       localStorage.removeItem("userPseudonym");
       window.dispatchEvent(new Event("trabalheiLa_user_updated"));
     } catch { /* silencioso */ }
+    setIsAuthed(false);
     navigate("/");
+  }, [navigate]);
+
+  const handleLogin = useCallback(() => {
+    setDropdownOpen(false);
+    navigate("/login");
   }, [navigate]);
 
   const avatarSrc = getAvatarSrc();
@@ -145,9 +199,24 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
             }
           `}</style>
 
-          {!hideAvatar && <NotificationsBell />}
+          {!hideAvatar && isAuthed && <NotificationsBell />}
 
-          {!hideAvatar && (
+          {/* Anônimo: botão claro "Entrar" (evita levar o usuário deslogado
+              para /minha-conta — rota protegida que resultava em tela cinza). */}
+          {!hideAvatar && !isAuthed && (
+            <button
+              type="button"
+              onClick={handleLogin}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
+              </svg>
+              Entrar
+            </button>
+          )}
+
+          {!hideAvatar && isAuthed && (
             <div className="relative" ref={dropdownRef}>
               <button
                 type="button"
