@@ -862,6 +862,10 @@ function TrabalheiLaMobile({
         {(() => {
           const role = (userProfile?.role || "").toString().toLowerCase().trim();
           const userType = (userProfile?.userType || "").toString().toLowerCase().trim();
+          // Tipo de perfil escolhido na seleção inicial (gravado em
+          // `profileTypeChosen` no fim do cadastro). Garante que, após a
+          // escolha, a Home pare de exibir "Escolha seu perfil".
+          const chosenType = (userProfile?.profileTypeChosen || "").toString().toLowerCase().trim();
           const isEmployerProfile =
             role === "admin_empresa" ||
             userType === "empresario" ||
@@ -871,11 +875,16 @@ function TrabalheiLaMobile({
           const isSpecialistProfile =
             userType === "apoiador" ||
             userType === "especialista" ||
+            chosenType === "specialist" ||
+            chosenType === "apoiador" ||
+            chosenType === "especialista" ||
             Boolean(userProfile?.apoiadorId);
           const isWorkerProfile =
             hasCompletedProfile ||
             userType === "trabalhador" ||
-            role === "trabalhador";
+            role === "trabalhador" ||
+            chosenType === "worker" ||
+            chosenType === "trabalhador";
           const hasDefinedProfileType = isEmployerProfile || isSpecialistProfile || isWorkerProfile;
           const greetingName =
             (userPseudonym || userProfile?.name || "").toString().trim() || "amigo(a)";

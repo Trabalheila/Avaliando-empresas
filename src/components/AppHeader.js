@@ -217,6 +217,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
           )}
 
           {!hideAvatar && isAuthed && (
+            <>
             <div className="relative" ref={dropdownRef}>
               <button
                 type="button"
@@ -289,6 +290,20 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
                 </div>
               )}
             </div>
+            {/* Botão "Sair" sempre visível ao lado do nome (paridade com o
+                pedido de UX: logout claro, sem precisar abrir o dropdown). */}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/20 dark:hover:bg-red-900/40 dark:text-red-400 text-sm font-bold transition"
+              title="Sair da conta"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span className="hidden sm:inline">Sair</span>
+            </button>
+            </>
           )}
         </div>
       </div>
