@@ -55,6 +55,23 @@ function getStoredProfileId() {
   return (stored.profileId || stored.id || "").toString().trim();
 }
 
+// Qualquer evidencia local de que o usuario JA tem cadastro (mesmo que a
+// leitura no Firestore falhe por permission-denied — caso classico de doc
+// com id alternativo `email:xxx`, que as rules de users/{uid} bloqueiam
+// para qualquer auth.uid != userId).
+function hasLocalProfileEvidence() {
+  const stored = readStoredProfile();
+  return Boolean(
+    getStoredPseudonym() ||
+    (stored.email || "").toString().trim() ||
+    (stored.profileId || "").toString().trim() ||
+    (stored.id || "").toString().trim() ||
+    (stored.uid || "").toString().trim() ||
+    (stored.nomeReal || "").toString().trim() ||
+    (stored.fullName || "").toString().trim()
+  );
+}
+
 export default function RequireAuth({ children }) {
   const location = useLocation();
   // `status` inicia OBRIGATORIAMENTE como "checking". Enquanto estiver
@@ -130,11 +147,16 @@ export default function RequireAuth({ children }) {
           }
         } catch { /* ignore — segue para tolerancia local */ }
 
-        // (5) tolerancia: pseudonimo ja existe localmente (cadastro em
-        // andamento que ainda nao propagou no Firestore). Deixa passar
-        // para evitar loop na leitura eventualmente consistente.
+        // (5) tolerancia: o Firebase Auth confirmou a sessao, mas as
+        // rules de users/{uid} so liberam quando o id do doc == auth.uid.
+        // Perfis criados com id alternativo (`email:foo@bar`) ou via
+        // fluxo manual antigo caem aqui mesmo existindo no Firestore.
+        // Se temos QUALQUER evidencia local de cadastro (email,
+        // pseudonimo, profileId, nome no localStorage), confiamos no
+        // Auth e liberamos — caso contrario o usuario logado e jogado
+        // em /pseudonym indevidamente toda vez que clica em "Minha Conta".
         if (cancelled) return;
-        setStatus(getStoredPseudonym() ? "ready" : "no-profile");
+        setStatus(hasLocalProfileEvidence() ? "ready" : "no-profile");
       } catch (err) {
         if (cancelled) return;
         console.warn("[RequireAuth] Falha ao consultar perfil:", err?.message || err);
