@@ -86,17 +86,22 @@ export default function Login({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Equivalente do route guard do Vue: se já está logado (e não é anônimo),
-  // pula a tela de login e manda direto para a busca de especialista — a menos
-  // que exista um redirectAfterLogin explícito na URL/sessão.
+  // Equivalente do route guard do Vue: se já está logado (e não é anônimo)
+  // E o caller passou um `redirectAfterLogin` explicito (URL ou sessao),
+  // pulamos a tela de login e vamos para esse destino.
   // Importante: usamos onAuthStateChanged porque `auth.currentUser` ainda é
   // null no primeiro render enquanto o Firebase Auth restaura a sessão do
   // IndexedDB. Sem isso o redirect nunca dispara quando o usuário chega
   // direto em /login estando logado (ex.: clicando "Voltar" de outra página).
+  //
+  // NUNCA auto-redirecionamos para um destino "padrao" so porque o usuario
+  // esta logado. Fazer isso quebra o botao "Voltar" (que precisava de
+  // multiplos cliques porque a cada montagem de /login o useEffect chamava
+  // navigate(target, { replace: true }) e jogava o user de volta a frente).
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       if (!user || user.isAnonymous) return;
-      let target = "/trabalhador/encontrar-especialista";
+      let target = "";
       try {
         const fromSession = sessionStorage.getItem(REDIRECT_AFTER_LOGIN_KEY);
         if (fromSession && fromSession.startsWith("/")) target = fromSession;
@@ -105,6 +110,10 @@ export default function Login({ theme, toggleTheme }) {
       }
       const fromQuery = searchParams.get("redirectAfterLogin") || "";
       if (fromQuery.startsWith("/")) target = fromQuery;
+      // Sem redirecionamento explicito, deixa o usuario na propria /login
+      // (ele pode estar abrindo de proposito para trocar de conta, ou
+      // chegou aqui via Voltar e nao quer ser empurrado de volta).
+      if (!target) return;
       navigate(target, { replace: true });
     });
     return () => unsub();

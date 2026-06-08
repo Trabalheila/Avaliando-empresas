@@ -162,10 +162,25 @@ export default function MinhaConta({ theme, toggleTheme }) {
         }
 
         if (!userSnap.exists() && !apoiadorData && !unifiedByEmail && !stored?.pseudonimo && !stored?.pseudonym && !stored?.email) {
-          // Sem doc no Firestore e sem dados em cache: realmente não há
-          // perfil ainda — mostra a tela de "crie seu perfil".
+          // Nenhuma fonte forneceu perfil — pode ser perfil legitimo
+          // invisivel ao cliente (rules de users/{uid} bloqueiam leituras
+          // por id alternativo `email:xxx` e por `where("email","==",x)`)
+          // ou cache local apagado pelo mobile sob pressao de memoria.
+          // NAO redireciona para /pseudonym (causava loop em mobile):
+          // sintetiza profile minimo a partir de `auth.currentUser` para
+          // que o painel renderize. O usuario logado nunca fica preso.
           if (!cancelled) {
-            setProfile(null);
+            const cu = auth.currentUser || {};
+            setProfile({
+              id: cu.uid || uid,
+              uid: cu.uid || uid,
+              email: cu.email || "",
+              pseudonimo: "",
+              avatar: cu.photoURL || "",
+              picture: cu.photoURL || "",
+              nomeReal: cu.displayName || "",
+              fullName: cu.displayName || "",
+            });
             setLoading(false);
           }
           return;
@@ -353,12 +368,6 @@ export default function MinhaConta({ theme, toggleTheme }) {
   // logado" quanto "sem perfil").
   if (!authUid) {
     return <Navigate to="/login" replace state={{ from: "/minha-conta" }} />;
-  }
-
-  // Autenticado mas sem perfil em users/ nem em apoiadores/: leva direto
-  // \u00e0 cria\u00e7\u00e3o do perfil (em vez de exibir cadeado est\u00e1tico).
-  if (!profile) {
-    return <Navigate to="/pseudonym" replace state={{ from: "/minha-conta" }} />;
   }
 
   // Nunca cair em `profile.name` aqui: esse campo pode ter sido um dia

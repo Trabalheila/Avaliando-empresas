@@ -1,167 +1,53 @@
 // src/components/RequireAuth.jsx
 //
-// Guard de rotas para áreas que exigem usuário autenticado E com perfil
-// criado no Firestore (coleção `users`).
+// Guard de rotas que exigem usuario autenticado no Firebase Auth.
 //
-// Equivalente em React Router à lógica:
+// IMPORTANTE: este componente verifica APENAS autenticacao. NAO consulta
+// `users/{uid}` no Firestore, nem tenta inferir "existencia de perfil".
 //
-//   router.beforeEach(async (to, from, next) => {
-//     const user = auth.currentUser;
-//     if (!to.meta.requiresAuth) return next();
-//     if (!user) return next('/login');
-//     const snap = await getDoc(doc(db, 'profiles', user.uid));
-//     if (!snap.exists()) return next('/criar-perfil');
-//     next();
-//   });
+// Por que? As rules de `users/{userId}` exigem `auth.uid == userId`. Perfis
+// salvos com id alternativo (`email:foo@bar`) ou consultados por email
+// (`where("email","==",...)`) retornam permission-denied silencioso. Quando
+// o RequireAuth tentava inferir "no-profile" a partir disso, usuarios
+// validamente logados eram redirecionados para `/pseudonym` toda vez que
+// clicavam em "Minha conta" — comportamento intermitente porque dependia
+// do `localStorage` (que mobile/PWA limpa sob pressao de memoria mantendo
+// o IndexedDB do Auth intacto). Ver memoria do repo: profile-sync.md.
+//
+// A unica fonte de verdade confiavel cross-device e o `onAuthStateChanged`.
+// Cada pagina decide como apresentar perfil ausente (ex.: MinhaConta
+// sintetiza profile a partir de `auth.currentUser`).
 //
 // Estados:
 //   - "checking": esperando `onAuthStateChanged` resolver pela 1ª vez.
-//   - "anonymous": sem usuário OU usuário anônimo do Firebase Auth.
-//                  → redireciona para /login (preservando `from` para
-//                  retorno pós-login).
-//   - "no-profile": usuário autenticado, mas não há doc em users/{uid}
-//                   e tampouco pseudônimo persistido localmente.
-//                   → redireciona para /pseudonym (criação de perfil).
-//   - "ready": ok, renderiza children.
+//   - "anonymous": sem usuario OU usuario anonimo → /login (preservando
+//     `from` para retorno pos-login).
+//   - "ready": autenticado → renderiza children.
 
 import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, limit, query, where } from "firebase/firestore";
 
-import { auth, db } from "../firebase";
-import { findUnifiedProfile } from "../services/users";
-
-function readStoredProfile() {
-  try {
-    return JSON.parse(localStorage.getItem("userProfile") || "{}") || {};
-  } catch {
-    return {};
-  }
-}
-
-function getStoredPseudonym() {
-  const stored = readStoredProfile();
-  return (
-    stored.pseudonimo ||
-    stored.pseudonym ||
-    localStorage.getItem("userPseudonym") ||
-    ""
-  ).toString().trim();
-}
-
-function getStoredProfileId() {
-  const stored = readStoredProfile();
-  return (stored.profileId || stored.id || "").toString().trim();
-}
-
-// Qualquer evidencia local de que o usuario JA tem cadastro (mesmo que a
-// leitura no Firestore falhe por permission-denied — caso classico de doc
-// com id alternativo `email:xxx`, que as rules de users/{uid} bloqueiam
-// para qualquer auth.uid != userId).
-function hasLocalProfileEvidence() {
-  const stored = readStoredProfile();
-  return Boolean(
-    getStoredPseudonym() ||
-    (stored.email || "").toString().trim() ||
-    (stored.profileId || "").toString().trim() ||
-    (stored.id || "").toString().trim() ||
-    (stored.uid || "").toString().trim() ||
-    (stored.nomeReal || "").toString().trim() ||
-    (stored.fullName || "").toString().trim()
-  );
-}
+import { auth } from "../firebase";
 
 export default function RequireAuth({ children }) {
   const location = useLocation();
   // `status` inicia OBRIGATORIAMENTE como "checking". Enquanto estiver
-  // nesse estado nao redirecionamos para /login nem /pseudonym, pois o
-  // Firebase Auth ainda pode estar restaurando a sessao persistida no
-  // IndexedDB (especialmente em mobile / WebView, onde a hidratacao demora
-  // alguns ciclos a mais que o primeiro render do React).
+  // nesse estado nao redirecionamos para /login, pois o Firebase Auth
+  // ainda pode estar restaurando a sessao persistida no IndexedDB
+  // (especialmente em mobile / WebView, onde a hidratacao demora alguns
+  // ciclos a mais que o primeiro render do React).
   const [status, setStatus] = useState("checking");
 
   useEffect(() => {
     let cancelled = false;
 
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      // Trata usuário anônimo como "sem usuário" para fins de gate.
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (cancelled) return;
       const isAnonymous = !!user?.isAnonymous;
       if (!user || isAnonymous) {
-        if (!cancelled) setStatus("anonymous");
-        return;
-      }
-
-      // Resolve profile usando a mesma cadeia de fallbacks de MinhaConta:
-      //   1) users/{uid}
-      //   2) users/{profileId} salvo no localStorage (ex.: "email:xxx")
-      //   3) busca unificada por email (cobre contas cujo doc id e
-      //      "email:foo@bar" criadas antes do uid existir)
-      //   4) coleção `apoiadores` (especialistas legados onde uid e campo)
-      //   5) tolerancia: pseudonimo persistido localmente
-      // Enquanto qualquer um desses lookups esta em andamento, NUNCA muda
-      // o status. So definimos "ready" ou "no-profile" apos a cadeia toda.
-      try {
-        // (1) lookup direto por uid
-        const snap = await getDoc(doc(db, "users", user.uid));
-        if (cancelled) return;
-        if (snap.exists()) {
-          setStatus("ready");
-          return;
-        }
-
-        // (2) lookup por profileId persistido no localStorage
-        const storedProfileId = getStoredProfileId();
-        if (storedProfileId && storedProfileId !== user.uid) {
-          try {
-            const altSnap = await getDoc(doc(db, "users", storedProfileId));
-            if (cancelled) return;
-            if (altSnap.exists()) {
-              setStatus("ready");
-              return;
-            }
-          } catch { /* ignore — tenta proximo */ }
-        }
-
-        // (3) busca unificada por email do auth
-        if (user.email) {
-          try {
-            const unified = await findUnifiedProfile({ email: user.email });
-            if (cancelled) return;
-            if (unified) {
-              setStatus("ready");
-              return;
-            }
-          } catch { /* ignore — tenta proximo */ }
-        }
-
-        // (4) apoiadores legados (campo uid)
-        try {
-          const apoSnap = await getDocs(
-            query(collection(db, "apoiadores"), where("uid", "==", user.uid), limit(1))
-          );
-          if (cancelled) return;
-          if (!apoSnap.empty) {
-            setStatus("ready");
-            return;
-          }
-        } catch { /* ignore — segue para tolerancia local */ }
-
-        // (5) tolerancia: o Firebase Auth confirmou a sessao, mas as
-        // rules de users/{uid} so liberam quando o id do doc == auth.uid.
-        // Perfis criados com id alternativo (`email:foo@bar`) ou via
-        // fluxo manual antigo caem aqui mesmo existindo no Firestore.
-        // Se temos QUALQUER evidencia local de cadastro (email,
-        // pseudonimo, profileId, nome no localStorage), confiamos no
-        // Auth e liberamos — caso contrario o usuario logado e jogado
-        // em /pseudonym indevidamente toda vez que clica em "Minha Conta".
-        if (cancelled) return;
-        setStatus(hasLocalProfileEvidence() ? "ready" : "no-profile");
-      } catch (err) {
-        if (cancelled) return;
-        console.warn("[RequireAuth] Falha ao consultar perfil:", err?.message || err);
-        // Falha de leitura: prefere liberar (a página decide o fallback)
-        // a deixar o usuário preso numa tela em branco.
+        setStatus("anonymous");
+      } else {
         setStatus("ready");
       }
     });
@@ -191,16 +77,6 @@ export default function RequireAuth({ children }) {
     return (
       <Navigate
         to="/login"
-        replace
-        state={{ from: `${location.pathname}${location.search}` }}
-      />
-    );
-  }
-
-  if (status === "no-profile") {
-    return (
-      <Navigate
-        to="/pseudonym"
         replace
         state={{ from: `${location.pathname}${location.search}` }}
       />
