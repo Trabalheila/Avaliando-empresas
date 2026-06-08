@@ -109,9 +109,16 @@ export default function RequireAuth({ children }) {
   }, []);
 
   if (status === "checking") {
+    // Spinner sutil enquanto onAuthStateChanged nao resolveu (Firebase ainda
+    // restaurando a sessao do IndexedDB). Evita renderizar a tela "Crie um
+    // perfil" antes da resposta definitiva do Auth.
     return (
-      <div className="min-h-screen flex items-center justify-center bg-blue-50 dark:bg-slate-900">
-        <p className="text-sm text-slate-600 dark:text-slate-300">Carregando...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-blue-50 dark:bg-slate-900">
+        <div
+          aria-hidden="true"
+          className="h-10 w-10 rounded-full border-2 border-blue-200 dark:border-slate-700 border-t-blue-600 dark:border-t-blue-400 animate-spin"
+        />
+        <p className="text-sm text-slate-500 dark:text-slate-400">Verificando sessão…</p>
       </div>
     );
   }

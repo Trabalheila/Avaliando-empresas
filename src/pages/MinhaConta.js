@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { db, storage, auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -67,6 +67,12 @@ export default function MinhaConta({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [reviews, setReviews] = useState([]);
+  // `authResolved` = onAuthStateChanged ja respondeu pelo menos uma vez.
+  // Sem isso, o primeiro render (antes do Firebase restaurar a sessao do
+  // IndexedDB) considerava user=null e renderizava o cadeado por uma fracao
+  // de segundo, causando o bug "volta da Home -> cadeado pisca".
+  const [authResolved, setAuthResolved] = useState(false);
+  const [authUid, setAuthUid] = useState("");
   const [loading, setLoading] = useState(true);
   const [consultaAvulsaOpen, setConsultaAvulsaOpen] = useState(false);
   const [consultaIntroOpen, setConsultaIntroOpen] = useState(false);
@@ -80,7 +86,14 @@ export default function MinhaConta({ theme, toggleTheme }) {
   useEffect(() => {
     let cancelled = false;
 
-    async function load(authUid) {
+    async function load(uid) {
+      // Sem uid resolvido: nao tente carregar. RequireAuth ja redireciona
+      // usuarios anonimos para /login, entao se chegamos aqui sem uid e
+      // porque o Firebase ainda esta restaurando a sessao.
+      if (!uid) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
       setLoading(true);
       try {
         const stored = JSON.parse(localStorage.getItem("userProfile") || "{}");
@@ -91,8 +104,7 @@ export default function MinhaConta({ theme, toggleTheme }) {
         const profileId =
           stored?.profileId ||
           resolveProfileId(stored, { persistGeneratedId: false }) ||
-          authUid ||
-          "";
+          uid;
 
         if (!profileId) {
           if (!cancelled) {
@@ -106,11 +118,11 @@ export default function MinhaConta({ theme, toggleTheme }) {
         // se não existir, tenta também pelo uid do Auth como fallback.
         let userSnap = await getDoc(doc(db, "users", profileId));
         let resolvedId = profileId;
-        if (!userSnap.exists() && authUid && authUid !== profileId) {
-          const altSnap = await getDoc(doc(db, "users", authUid));
+        if (!userSnap.exists() && uid && uid !== profileId) {
+          const altSnap = await getDoc(doc(db, "users", uid));
           if (altSnap.exists()) {
             userSnap = altSnap;
-            resolvedId = authUid;
+            resolvedId = uid;
           }
         }
 
@@ -119,10 +131,10 @@ export default function MinhaConta({ theme, toggleTheme }) {
         // para o Firebase Auth UID. Sem este fallback, o login do tipo
         // "Sou Especialista" cai na tela "Você precisa criar um perfil".
         let apoiadorData = null;
-        if (!userSnap.exists() && authUid) {
+        if (!userSnap.exists() && uid) {
           try {
             const apoSnap = await getDocs(
-              query(collection(db, "apoiadores"), where("uid", "==", authUid), limit(1))
+              query(collection(db, "apoiadores"), where("uid", "==", uid), limit(1))
             );
             if (!apoSnap.empty) {
               const d = apoSnap.docs[0];
@@ -174,7 +186,11 @@ export default function MinhaConta({ theme, toggleTheme }) {
     // Aguarda o Firebase Auth resolver para podermos usar o uid como
     // fallback quando o cache do localStorage não tem profileId.
     const unsub = onAuthStateChanged(auth, (user) => {
-      load(user?.uid || "");
+      if (cancelled) return;
+      const uid = user?.uid || "";
+      setAuthUid(uid);
+      setAuthResolved(true);
+      load(uid);
     });
     return () => {
       cancelled = true;
@@ -293,36 +309,37 @@ export default function MinhaConta({ theme, toggleTheme }) {
     }
   }, [profile]);
 
-  // Loading
-  if (loading) {
+  // Loading: espera o Firebase Auth resolver E o load() terminar.
+  // Importante: NUNCA renderize o cadeado enquanto authResolved=false,
+  // sen\u00e3o vai piscar a tela "Crie um perfil" antes do Firebase restaurar
+  // a sess\u00e3o do IndexedDB.
+  if (loading || !authResolved) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
         <AppHeader theme={theme} toggleTheme={toggleTheme} />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-slate-500 dark:text-slate-400 text-lg animate-pulse">Carregando…</div>
+        <div className="flex-1 flex flex-col items-center justify-center gap-3">
+          <div
+            aria-hidden="true"
+            className="h-10 w-10 rounded-full border-2 border-blue-200 dark:border-slate-700 border-t-blue-600 dark:border-t-blue-400 animate-spin"
+          />
+          <div className="text-slate-500 dark:text-slate-400 text-sm">Carregando seu painel…</div>
         </div>
       </div>
     );
   }
 
-  // Não logado
+  // Auth confirmou que n\u00e3o h\u00e1 usu\u00e1rio: deveria j\u00e1 estar redirecionado por
+  // RequireAuth, mas como guarda redundante mandamos para /login em vez
+  // de mostrar o cadeado (que era ambiguo \u2014 podia significar tanto "n\u00e3o
+  // logado" quanto "sem perfil").
+  if (!authUid) {
+    return <Navigate to="/login" replace state={{ from: "/minha-conta" }} />;
+  }
+
+  // Autenticado mas sem perfil em users/ nem em apoiadores/: leva direto
+  // \u00e0 cria\u00e7\u00e3o do perfil (em vez de exibir cadeado est\u00e1tico).
   if (!profile) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
-        <AppHeader theme={theme} toggleTheme={toggleTheme} />
-        <div className="flex-1 flex flex-col items-center justify-center gap-4">
-          <span className="text-6xl">🔒</span>
-          <p className="text-slate-600 dark:text-slate-300 text-lg font-semibold">Você precisa criar um perfil primeiro.</p>
-          <button
-            type="button"
-            onClick={() => navigate("/pseudonym")}
-            className="px-5 py-2 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
-          >
-            Criar perfil
-          </button>
-        </div>
-      </div>
-    );
+    return <Navigate to="/pseudonym" replace state={{ from: "/minha-conta" }} />;
   }
 
   // Nunca cair em `profile.name` aqui: esse campo pode ter sido um dia
