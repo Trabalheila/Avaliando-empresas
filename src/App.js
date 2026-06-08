@@ -41,6 +41,7 @@ import PlatformChat from './components/Chat/PlatformChat';
 import ApoiadorRequisicoes from './pages/ApoiadorRequisicoes';
 import CookieBanner from './components/CookieBanner';
 import ChatbotWidget from './components/ChatbotWidget';
+import ErrorBoundary from './components/ErrorBoundary';
 import RequireAuth from './components/RequireAuth';
 import CompanyRegister from './pages/CompanyRegister';
 import CompanyConfirm from './pages/CompanyConfirm';
@@ -284,7 +285,9 @@ function App() {
                 transitionDirection === 'back' ? 'route-exit-back' : 'route-exit-forward'
               }`}
             >
-              {renderRoutes(outgoingLocation)}
+              <ErrorBoundary key={`eb-out-${outgoingLocation.pathname}`}>
+                {renderRoutes(outgoingLocation)}
+              </ErrorBoundary>
             </div>
             <div
               key={`in-${incomingLocation.pathname}${incomingLocation.search}`}
@@ -292,12 +295,16 @@ function App() {
                 transitionDirection === 'back' ? 'route-enter-back' : 'route-enter-forward'
               }`}
             >
-              {renderRoutes(incomingLocation)}
+              <ErrorBoundary key={`eb-in-${incomingLocation.pathname}`}>
+                {renderRoutes(incomingLocation)}
+              </ErrorBoundary>
             </div>
           </>
         ) : (
           <div className="route-layer route-layer-steady">
-            {renderRoutes(currentLocation)}
+            <ErrorBoundary key={`eb-${currentLocation.pathname}`}>
+              {renderRoutes(currentLocation)}
+            </ErrorBoundary>
           </div>
         )}
       </div>

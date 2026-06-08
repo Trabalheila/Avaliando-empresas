@@ -212,6 +212,27 @@ export default function MinhaConta({ theme, toggleTheme }) {
         if (!cancelled) setReviews(userReviews);
       } catch (err) {
         console.warn("Erro ao carregar conta:", err);
+        // Se a leitura no Firestore falhou (ex.: permission-denied em
+        // users/{uid} com id alternativo, ou rede), NÃO deixe `profile`
+        // nulo — isso quebrava a renderização (profile.pseudonimo) e
+        // resultava em TELA CINZA. Sintetiza um perfil mínimo a partir do
+        // usuário autenticado para que o painel sempre renderize.
+        if (!cancelled) {
+          setProfile((prev) => {
+            if (prev) return prev;
+            const cu = auth.currentUser || {};
+            return {
+              id: cu.uid || uid,
+              uid: cu.uid || uid,
+              email: cu.email || "",
+              pseudonimo: "",
+              avatar: cu.photoURL || "",
+              picture: cu.photoURL || "",
+              nomeReal: cu.displayName || "",
+              fullName: cu.displayName || "",
+            };
+          });
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -370,15 +391,32 @@ export default function MinhaConta({ theme, toggleTheme }) {
     return <Navigate to="/login" replace state={{ from: "/minha-conta" }} />;
   }
 
+  // Guarda defensivo: em nenhuma hipótese renderize com `profile` nulo —
+  // acessar `profile.pseudonimo` abaixo lançaria "Cannot read properties of
+  // null" e produziria a TELA CINZA. Se chegamos aqui autenticados mas sem
+  // profile (ex.: exceção no carregamento), sintetiza o mínimo a partir do
+  // usuário do Firebase Auth.
+  const safeProfile =
+    profile || {
+      id: auth.currentUser?.uid || authUid,
+      uid: auth.currentUser?.uid || authUid,
+      email: auth.currentUser?.email || "",
+      pseudonimo: "",
+      avatar: auth.currentUser?.photoURL || "",
+      picture: auth.currentUser?.photoURL || "",
+      nomeReal: auth.currentUser?.displayName || "",
+      fullName: auth.currentUser?.displayName || "",
+    };
+
   // Nunca cair em `profile.name` aqui: esse campo pode ter sido um dia
   // populado com o nome real vindo do Google/LinkedIn. Pseudônimo só
   // a partir de `profile.pseudonimo`.
-  const pseudonym = profile.pseudonimo || "Anônimo";
-  const memberSince = formatDate(profile.createdAt || profile.updatedAt);
-  const planLabel = getPlanLabel(profile);
-  const planColor = getPlanColor(profile);
-  const experiences = profile?.resumeData?.experiencesStructured || [];
-  const credibility = profile?.credibilityIndex || "—";
+  const pseudonym = safeProfile.pseudonimo || "Anônimo";
+  const memberSince = formatDate(safeProfile.createdAt || safeProfile.updatedAt);
+  const planLabel = getPlanLabel(safeProfile);
+  const planColor = getPlanColor(safeProfile);
+  const experiences = safeProfile?.resumeData?.experiencesStructured || [];
+  const credibility = safeProfile?.credibilityIndex || "—";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
@@ -417,9 +455,9 @@ export default function MinhaConta({ theme, toggleTheme }) {
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                 Membro desde {memberSince}
               </p>
-              {profile?.email && (
+              {safeProfile?.email && (
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                  {profile.email}
+                  {safeProfile.email}
                 </p>
               )}
               {credibility && credibility !== "—" && (
@@ -528,18 +566,18 @@ export default function MinhaConta({ theme, toggleTheme }) {
         <ConsultaAvulsaModal
           open={consultaAvulsaOpen}
           onClose={() => setConsultaAvulsaOpen(false)}
-          worker={profile}
+          worker={safeProfile}
         />
 
         <EditProfileModal
           open={editProfileOpen}
           onClose={() => setEditProfileOpen(false)}
-          profile={profile}
+          profile={safeProfile}
           onSaved={(next) => setProfile(next)}
         />
 
         {/* ══════ Próxima Videochamada (Premium) ══════ */}
-        <NextVideoCallSection profile={profile} navigate={navigate} />
+        <NextVideoCallSection profile={safeProfile} navigate={navigate} />
 
         {/* ══════ Minhas Experiências Profissionais ══════ */}
         <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
@@ -613,7 +651,7 @@ export default function MinhaConta({ theme, toggleTheme }) {
         <ExperienceManagerModal
           open={experienceModalOpen}
           onClose={() => setExperienceModalOpen(false)}
-          profile={profile}
+          profile={safeProfile}
           onSaved={(next) => setProfile(next)}
         />
 
@@ -696,13 +734,13 @@ export default function MinhaConta({ theme, toggleTheme }) {
 
         {/* ══════ Contato por profissionais (Premium Trabalhador) ══════ */}
         <WorkerProfessionalContactSettings
-          profileId={profile?.id}
+          profileId={safeProfile?.id}
           isPremium={isPremium() && getUserRole() !== "admin_empresa"}
           onUpgradeClick={() => navigate("/escolha-perfil?planos=1")}
         />
 
         {/* ══════ Verificar identidade (CPF opcional) ══════ */}
-        <VerifyIdentitySection profile={profile} onUpdated={setProfile} />
+        <VerifyIdentitySection profile={safeProfile} onUpdated={setProfile} />
 
         {/* ══════ Ações ══════ */}
         <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
