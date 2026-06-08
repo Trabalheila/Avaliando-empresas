@@ -1,8 +1,8 @@
 ﻿import React from "react";
-
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  FaStar, FaUserEdit, FaGoogle, FaUserSecret, FaCheckCircle, FaShieldAlt,
+  FaPlus, FaStar, FaRegStar, FaUserEdit, FaGoogle, FaUserSecret, FaCheckCircle, FaShieldAlt,
 } from "react-icons/fa";
 import YouTubeEmbed from "./components/YouTubeEmbed";
 import PaymentInfoModal from "./components/Specialist/PaymentInfoModal";
@@ -217,10 +217,14 @@ function TrabalheiLaMobile({
   onGoogleLogin,
   userVerificationLevel,
   selectedCompanyData,
+  calcularMedia: calcularMediaProp,
+  getMedalColor: getMedalColorProp,
+  getMedalEmoji: getMedalEmojiProp,
+  getBadgeColor: getBadgeColorProp,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
   handleCaptchaConfirmed,
 }) {
-  // const { t } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const COMMENT_GUIDANCE_TEXT = "Descreva comportamentos e situações. Evite citar nomes de pessoas.";
   const COMMENT_WARNING_TEXT = "Identificamos possível citação de nome. Considere substituir por descrição do comportamento ou situação.";
@@ -284,7 +288,10 @@ function TrabalheiLaMobile({
   };
   void legacyMetricsBridge;
 
-  const calcularMedia = (emp) => {
+  // Fallback local caso o pai (Home.js) não envie a função. Preferimos a
+  // implementação injetada via props para manter paridade com Desktop e
+  // herdar quaisquer ajustes futuros de pesos/critérios.
+  const calcularMediaFallback = React.useCallback((emp) => {
     if (!emp) return "--";
 
     const ratings = [
@@ -297,7 +304,8 @@ function TrabalheiLaMobile({
     if (ratings.length === 0) return "--";
     const sum = ratings.reduce((acc, curr) => acc + curr, 0);
     return (sum / ratings.length).toFixed(1);
-  };
+  }, []);
+  const calcularMedia = typeof calcularMediaProp === "function" ? calcularMediaProp : calcularMediaFallback;
 
   const logoCandidates = selectedCompanyData
     ? getCompanyLogoCandidates(selectedCompanyData.company, {
@@ -316,8 +324,8 @@ function TrabalheiLaMobile({
   const companyAverageValue = Number.parseFloat(companyAverage);
   const isCompanyRecommended = companyAverage !== "--" && Number.isFinite(companyAverageValue) && companyAverageValue >= 3;
 
-
-  const getBadgeColor = (media) => {
+  // Fallbacks locais — usados apenas se o pai não passar as funções via props.
+  const getBadgeColorFallback = React.useCallback((media) => {
     if (media == null || media === "--") return "bg-slate-500";
 
     const numeric = typeof media === "number" ? media : Number(media);
@@ -328,23 +336,25 @@ function TrabalheiLaMobile({
     if (numeric >= 3) return "bg-yellow-600";
     if (numeric >= 2) return "bg-purple-600";
     return "bg-red-600";
-  };
+  }, []);
 
-  const getMedalColor = (index) => {
-      // Exemplo de uso de tradução:
-      // t('Processo de Recrutamento')
+  const getMedalColorFallback = React.useCallback((index) => {
     if (index === 0) return "from-yellow-400 to-yellow-600";
     if (index === 1) return "from-gray-300 to-gray-500";
     if (index === 2) return "from-orange-300 to-orange-500";
     return "from-blue-300 to-blue-500";
-  };
+  }, []);
 
-  const getMedalEmoji = (index) => {
+  const getMedalEmojiFallback = React.useCallback((index) => {
     if (index === 0) return "🥇";
     if (index === 1) return "🥈";
     if (index === 2) return "🥉";
     return "🏅";
-  };
+  }, []);
+
+  const getBadgeColor = typeof getBadgeColorProp === "function" ? getBadgeColorProp : getBadgeColorFallback;
+  const getMedalColor = typeof getMedalColorProp === "function" ? getMedalColorProp : getMedalColorFallback;
+  const getMedalEmoji = typeof getMedalEmojiProp === "function" ? getMedalEmojiProp : getMedalEmojiFallback;
 
   const isDark = theme === "dark";
   const selectStyles = {
@@ -430,8 +440,8 @@ function TrabalheiLaMobile({
       <div className="flex flex-col w-full mt-2">
         <div className="flex items-center gap-3 mb-2" role="radiogroup" aria-label={label}>
           {[
-            { v: "sim", l: "Sim" },
-            { v: "nao", l: "Não" },
+            { v: "sim", l: t("Sim") },
+            { v: "nao", l: t("Não") },
           ].map((opt) => (
             <button
               key={opt.v}
@@ -475,22 +485,22 @@ function TrabalheiLaMobile({
   };
 
   const campos = [
-    { restrictKey: "comunicacao", label: "Processo de Recrutamento", icon: <FiMessageCircle className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao },
-    { restrictKey: "etica", label: "Proposta salarial e benefícios", icon: <FiDollarSign className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200", value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica },
-    { restrictKey: "cultura", label: "Visão e valores da empresa", icon: <FiCompass className="text-slate-700" />, iconBg: "from-slate-50 to-slate-100 border-slate-300", value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura },
-    { restrictKey: "salario", label: "Data do Pagamento", icon: <FiCalendar className="text-rose-600" />, iconBg: "from-rose-50 to-red-100 border-rose-200", value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario },
-    { restrictKey: "lideranca", label: "Acessibilidade e respeito da liderança", icon: <FiUsers className="text-violet-700" />, iconBg: "from-violet-50 to-indigo-100 border-violet-200", value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca },
-    { restrictKey: "estimacaoOrganizacao", label: "Condições de trabalho", icon: <FiBriefcase className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao },
-    { restrictKey: "ambiente", label: "Estímulo ao respeito", icon: <FiUsers className="text-teal-700" />, iconBg: "from-teal-50 to-emerald-100 border-teal-200", value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente },
-    { type: "yesno", label: "Sofreu discriminação?", restrictedNote: "Informação de visualização restrita a especialistas.", icon: <FiAlertCircle className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: discriminacao, set: setDiscriminacao, comment: commentDiscriminacao, setComment: setCommentDiscriminacao },
-    { restrictKey: "diversidade", label: "Diversidade e Inclusão", icon: <FiUsers className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade },
-    { restrictKey: "cargaHoraria", label: "Carga Horária / Jornada de Trabalho", icon: <FiClock className="text-indigo-700" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200", value: cargaHoraria, set: setCargaHoraria, comment: commentCargaHoraria, setComment: setCommentCargaHoraria },
-    { restrictKey: "crescimento", label: "Oportunidades de Desenvolvimento / Crescimento", icon: <FiArrowUpCircle className="text-emerald-700" />, iconBg: "from-emerald-50 to-teal-100 border-emerald-200", value: crescimento, set: setCrescimento, comment: commentCrescimento, setComment: setCommentCrescimento },
-    { restrictKey: "rating", label: "Segurança e integridade", icon: <FiShield className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating },
-    { restrictKey: "saudeBemEstar", label: "Preocupação com o bem estar", icon: <FiHeart className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200", value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar },
-    { restrictKey: "equilibrio", label: "Rotatividade", subtitle: "(Demite com facilidade?)", icon: <FiRepeat className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio },
-    { restrictKey: "reconhecimento", label: "Reconhecimento", icon: <FiAward className="text-amber-600" />, iconBg: "from-amber-50 to-orange-100 border-amber-200", value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento },
-    { restrictKey: "desenvolvimento", label: "Planos de cargos e salários", icon: <FiTrendingUp className="text-fuchsia-700" />, iconBg: "from-fuchsia-50 to-pink-100 border-fuchsia-200", value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento },
+    { restrictKey: "comunicacao", label: t("Processo de Recrutamento"), icon: <FiMessageCircle className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: comunicacao, set: setComunicacao, comment: commentComunicacao, setComment: setCommentComunicacao },
+    { restrictKey: "etica", label: t("Proposta salarial e benefícios"), icon: <FiDollarSign className="text-emerald-600" />, iconBg: "from-emerald-50 to-lime-100 border-emerald-200", value: etica, set: setEtica, comment: commentEtica, setComment: setCommentEtica },
+    { restrictKey: "cultura", label: t("Visão e valores da empresa"), icon: <FiCompass className="text-slate-700" />, iconBg: "from-slate-50 to-slate-100 border-slate-300", value: cultura, set: setCultura, comment: commentCultura, setComment: setCommentCultura },
+    { restrictKey: "salario", label: t("Data do Pagamento"), icon: <FiCalendar className="text-rose-600" />, iconBg: "from-rose-50 to-red-100 border-rose-200", value: salario, set: setSalario, comment: commentSalario, setComment: setCommentSalario },
+    { restrictKey: "lideranca", label: t("Acessibilidade e respeito da liderança"), icon: <FiUsers className="text-violet-700" />, iconBg: "from-violet-50 to-indigo-100 border-violet-200", value: lideranca, set: setLideranca, comment: commentLideranca, setComment: setCommentLideranca },
+    { restrictKey: "estimacaoOrganizacao", label: t("Condições de trabalho"), icon: <FiBriefcase className="text-blue-600" />, iconBg: "from-blue-50 to-indigo-100 border-blue-200", value: estimacaoOrganizacao, set: setEstimacaoOrganizacao, comment: commentEstimacaoOrganizacao, setComment: setCommentEstimacaoOrganizacao },
+    { restrictKey: "ambiente", label: t("Estímulo ao respeito"), icon: <FiUsers className="text-teal-700" />, iconBg: "from-teal-50 to-emerald-100 border-teal-200", value: ambiente, set: setAmbiente, comment: commentAmbiente, setComment: setCommentAmbiente },
+    { type: "yesno", label: t("Sofreu discriminação?"), restrictedNote: "Informação de visualização restrita a especialistas.", icon: <FiAlertCircle className="text-cyan-700" />, iconBg: "from-cyan-50 to-sky-100 border-cyan-200", value: discriminacao, set: setDiscriminacao, comment: commentDiscriminacao, setComment: setCommentDiscriminacao },
+    { restrictKey: "diversidade", label: t("Diversidade e Inclusão"), icon: <FiUsers className="text-pink-600" />, iconBg: "from-pink-50 to-rose-100 border-pink-200", value: diversidade, set: setDiversidade, comment: commentDiversidade, setComment: setCommentDiversidade },
+    { restrictKey: "cargaHoraria", label: t("Carga Horária / Jornada de Trabalho"), icon: <FiClock className="text-indigo-700" />, iconBg: "from-indigo-50 to-blue-100 border-indigo-200", value: cargaHoraria, set: setCargaHoraria, comment: commentCargaHoraria, setComment: setCommentCargaHoraria },
+    { restrictKey: "crescimento", label: t("Oportunidades de Desenvolvimento / Crescimento"), icon: <FiArrowUpCircle className="text-emerald-700" />, iconBg: "from-emerald-50 to-teal-100 border-emerald-200", value: crescimento, set: setCrescimento, comment: commentCrescimento, setComment: setCommentCrescimento },
+    { restrictKey: "rating", label: t("Segurança e integridade"), icon: <FiShield className="text-amber-600" />, iconBg: "from-amber-50 to-yellow-100 border-amber-200", value: rating, set: setRating, comment: commentRating, setComment: setCommentRating },
+    { restrictKey: "saudeBemEstar", label: t("Preocupação com o bem estar"), icon: <FiHeart className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200", value: saudeBemEstar, set: setSaudeBemEstar, comment: commentSaudeBemEstar, setComment: setCommentSaudeBemEstar },
+    { restrictKey: "equilibrio", label: t("Rotatividade"), subtitle: t("(Demite com facilidade?)"), icon: <FiRepeat className="text-slate-700" />, iconBg: "from-slate-50 to-gray-100 border-slate-300", value: equilibrio, set: setEquilibrio, comment: commentEquilibrio, setComment: setCommentEquilibrio },
+    { restrictKey: "reconhecimento", label: t("Reconhecimento"), icon: <FiAward className="text-amber-600" />, iconBg: "from-amber-50 to-orange-100 border-amber-200", value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento },
+    { restrictKey: "desenvolvimento", label: t("Planos de cargos e salários"), icon: <FiTrendingUp className="text-fuchsia-700" />, iconBg: "from-fuchsia-50 to-pink-100 border-fuchsia-200", value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento },
   ];
 
   // Progress bar: IntersectionObserver para critérios
@@ -558,6 +568,9 @@ function TrabalheiLaMobile({
   const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
   const headerRef = React.useRef(null);
   const [headerSpacerHeight, setHeaderSpacerHeight] = React.useState(0);
+  // Offset dinâmico para a barra de progresso sticky — alinha com a altura
+  // atual do header (paridade com Desktop), evitando sobreposição visual.
+  const stickyProgressTop = headerSpacerHeight + 8;
   const [showPaymentInfo, setShowPaymentInfo] = React.useState(false);
 
   // Garante perfil padrão ("worker") em sessionStorage no boot da Home.
@@ -1423,8 +1436,8 @@ function TrabalheiLaMobile({
               {/* Barra de progresso dos critérios */}
               {!selectionProcessOnly && visibleCriterionIdx >= 0 && (
                 <div
-                  className="sticky top-0 z-10 mb-2 mx-auto w-full max-w-[380px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-lg border border-blue-100 dark:border-slate-700 px-3 py-2 shadow-sm"
-                  style={{ left: 0, right: 0 }}
+                  className="sticky z-10 mb-2 mx-auto w-full max-w-[380px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-lg border border-blue-100 dark:border-slate-700 px-3 py-2 shadow-sm"
+                  style={{ top: stickyProgressTop, left: 0, right: 0 }}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-bold text-blue-800 dark:text-blue-200">Critério {visibleCriterionIdx + 1} de {campos.length}</span>
