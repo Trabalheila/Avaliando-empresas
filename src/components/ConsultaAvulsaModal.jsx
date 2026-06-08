@@ -20,15 +20,47 @@ import {
 } from "firebase/firestore";
 import { filterOutTestApoiadores } from "../utils/testAccounts";
 import { buildApiUrl } from "../utils/apiBase";
-import {
-  getTabledPriceForTipo,
-  CONSULTATION_PLATFORM_FEE_PCT,
-} from "../data/consultationPricing";
 import StripePaymentForm from "./StripePaymentForm";
 import { registerConsultationTransaction } from "../services/consultaTransactions";
 
 /* Desconto aplicado a trabalhadores Premium em consultas avulsas. */
 const PREMIUM_WORKER_DISCOUNT_PCT = 0.1;
+
+/* Preços fixos do Plano Essencial (alinhados ao backend `api/payments`).
+   Especialistas Premium definem o preço em `valor_consulta_customizado`
+   (ou `precoConsulta` legado). */
+const ESSENCIAL_CHAT_PRICE = 45;
+const ESSENCIAL_VIDEO_PRICE = 75;
+const PREMIUM_DEFAULT_PRICE = 150;
+
+function normalizePlan(v) {
+  const s = String(v || "").toLowerCase().trim();
+  if (!s) return "";
+  if (s.includes("premium")) return "premium";
+  if (
+    s.includes("essencial") ||
+    s.includes("essential") ||
+    s.includes("basic") ||
+    s === "free" ||
+    s === "gratuito"
+  ) {
+    return "essencial";
+  }
+  return s;
+}
+
+function priceForSpecialist(specialist, modalidade) {
+  if (!specialist) return 0;
+  const plan = normalizePlan(specialist.plan);
+  if (plan === "essencial") {
+    return modalidade === "video" ? ESSENCIAL_VIDEO_PRICE : ESSENCIAL_CHAT_PRICE;
+  }
+  return (
+    Number(specialist.valorConsultaCustomizado) ||
+    Number(specialist.precoConsulta) ||
+    PREMIUM_DEFAULT_PRICE
+  );
+}
 
 /* Verifica se o usuário logado é Premium Trabalhador a partir do perfil
    armazenado em localStorage. Não usa `isPremiumWorker()` do rbac porque
@@ -86,6 +118,10 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
   const [specialists, setSpecialists] = useState([]);
   const [selectedId, setSelectedId] = useState("");
   const [message, setMessage] = useState("");
+  // Modalidade do atendimento (chat=texto / video). Afeta o preço
+  // exibido quando o especialista é Essencial e o tipo de sala criada
+  // pelo webhook após o pagamento aprovado.
+  const [modalidade, setModalidade] = useState("chat");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -100,6 +136,7 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
       setSpecialists([]);
       setSelectedId("");
       setMessage("");
+      setModalidade("chat");
       setError("");
       setSuccess(false);
       setSubmitting(false);
@@ -134,6 +171,21 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
               tipo: normalizeTipo(data.tipo || data.profissao),
               bio: data.bio || data.descricao || data.about || "",
               foto: data.foto || data.photoURL || data.avatar || "",
+              plan: normalizePlan(
+                data.plano_tipo ||
+                  data.plan ||
+                  data.plano ||
+                  data.planStatus ||
+                  data.tier ||
+                  ""
+              ),
+              precoConsulta: Number(data.precoConsulta || data.preco || 0) || 0,
+              valorConsultaCustomizado:
+                Number(
+                  data.valor_consulta_customizado ||
+                    data.valorConsultaCustomizado ||
+                    0
+                ) || 0,
               isTest: data.isTest === true,
             };
           })
@@ -170,8 +222,8 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
   );
   const originalAmount = useMemo(() => {
     if (!selected) return 0;
-    return getTabledPriceForTipo(selected.tipo, "worker");
-  }, [selected]);
+    return priceForSpecialist(selected, modalidade);
+  }, [selected, modalidade]);
   const discountAmount = useMemo(
     () => (isPremiumWorker ? originalAmount * PREMIUM_WORKER_DISCOUNT_PCT : 0),
     [isPremiumWorker, originalAmount]
@@ -211,6 +263,7 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
         // Tipo da consulta — "avulsa" (sem follow-up nem acompanhamento).
         tipo: "avulsa",
         type: "avulsa",
+        modalidade,
         message: String(message).trim().slice(0, 2000),
         status: "pending",
         readByApoiador: false,
@@ -492,6 +545,45 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
             )}
 
             {selected && (
+              <fieldset className="mt-4">
+                <legend className="text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">
+                  Modalidade do atendimento
+                </legend>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {[
+                    { value: "chat", emoji: "\uD83D\uDCAC", label: "Atendimento por Chat (Texto)" },
+                    { value: "video", emoji: "\uD83C\uDFA5", label: "Atendimento por Vídeo" },
+                  ].map((opt) => {
+                    const checked = modalidade === opt.value;
+                    return (
+                      <label
+                        key={opt.value}
+                        className={[
+                          "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition",
+                          checked
+                            ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40"
+                            : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800",
+                        ].join(" ")}
+                      >
+                        <input
+                          type="radio"
+                          name="ca-modalidade"
+                          value={opt.value}
+                          checked={checked}
+                          onChange={() => setModalidade(opt.value)}
+                        />
+                        <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                          <span aria-hidden="true" className="mr-1">{opt.emoji}</span>
+                          {opt.label}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            )}
+
+            {selected && (
               <div className="mt-4">
                 <label
                   htmlFor="ca-msg"
@@ -517,6 +609,9 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
               <div className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-3">
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Valor da consulta
+                  <span className="ml-2 normal-case font-medium text-slate-400 dark:text-slate-500">
+                    ({modalidade === "video" ? "Vídeo" : "Chat"})
+                  </span>
                 </p>
                 {discountAmount > 0 ? (
                   <div className="mt-1 flex items-baseline gap-2 flex-wrap">
@@ -531,18 +626,14 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
                     </span>
                   </div>
                 ) : (
-                  <div className="mt-1 flex items-baseline gap-2">
+                  <div className="mt-1">
                     <span className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">
                       {formatBRL(finalAmount)}
-                    </span>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Trabalhadores Premium pagam 10% menos.
                     </span>
                   </div>
                 )}
                 <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-                  Pagamento processado na plataforma. Após a confirmação, o
-                  especialista é notificado para aceitar a consulta.
+                  Pagamento 100% seguro processado via Mercado Pago. O valor só é liberado ao profissional após a conclusão do atendimento.
                 </p>
               </div>
             )}

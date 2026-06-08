@@ -43,7 +43,11 @@ export default function PagamentoConsultaPage({ theme, toggleTheme }) {
     originalAmount,
     discountAmount,
     userDoubt,
+    modalidade: modalidadeFromState,
+    planoTipo,
   } = location.state || {};
+
+  const modalidade = modalidadeFromState === "video" ? "video" : "chat";
 
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -89,6 +93,8 @@ export default function PagamentoConsultaPage({ theme, toggleTheme }) {
         especialidade: especialidadeId || "outro",
         tipo: "avulsa",
         type: "avulsa",
+        modalidade,
+        planoTipo: planoTipo || "",
         message: String(userDoubt).trim().slice(0, 2000),
         status: "pending",
         readByApoiador: false,
@@ -222,7 +228,12 @@ export default function PagamentoConsultaPage({ theme, toggleTheme }) {
 
               <div className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-3 text-sm">
                 <div className="flex justify-between items-baseline">
-                  <span className="text-slate-600 dark:text-slate-300">Valor</span>
+                  <span className="text-slate-600 dark:text-slate-300">
+                    Valor
+                    <span className="ml-2 text-xs text-slate-400 dark:text-slate-500">
+                      ({modalidade === "video" ? "Vídeo" : "Chat"})
+                    </span>
+                  </span>
                   <span className="font-bold text-slate-800 dark:text-slate-100">
                     {normalizedDiscount > 0 ? (
                       <>
@@ -236,6 +247,9 @@ export default function PagamentoConsultaPage({ theme, toggleTheme }) {
                     )}
                   </span>
                 </div>
+                <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+                  Pagamento 100% seguro processado via Mercado Pago. O valor só é liberado ao profissional após a conclusão do atendimento.
+                </p>
               </div>
 
               <div className="mt-4">

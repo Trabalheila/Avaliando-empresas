@@ -6,9 +6,11 @@ import AppHeader from "../components/AppHeader";
 import { filterOutTestApoiadores } from "../utils/testAccounts";
 
 const PREMIUM_WORKER_DISCOUNT_PCT = 0.1;
-// Preço fixo para especialistas do Plano Essencial. Especialistas Premium
-// definem o preço no próprio perfil (campo `precoConsulta`).
-const ESSENCIAL_FIXED_PRICE = 80;
+// Preços fixos do Plano Essencial (alinhados ao backend `api/payments`).
+// Especialistas Premium definem o valor customizado em
+// `valor_consulta_customizado` (ou `precoConsulta` legado).
+const ESSENCIAL_CHAT_PRICE = 45;
+const ESSENCIAL_VIDEO_PRICE = 75;
 const PREMIUM_DEFAULT_PRICE = 150;
 
 function normalizePlan(v) {
@@ -21,31 +23,39 @@ function normalizePlan(v) {
   return s;
 }
 
-// Calcula o preço final da consulta com base no plano do especialista e
-// aplica o desconto Premium do usuário (10%) quando aplicável.
-function calculateConsultationPrice(professionalData, isUserPremium) {
+function normalizeModalidade(v) {
+  const s = String(v || "").toLowerCase().trim();
+  return s === "video" || s === "vídeo" ? "video" : "chat";
+}
+
+// Calcula o preço final da consulta com base no plano do especialista, na
+// modalidade escolhida (chat/vídeo) e aplica o desconto Premium do usuário
+// (10%) quando aplicável.
+function calculateConsultationPrice(professionalData, isUserPremium, modalidade) {
   if (!professionalData) return 0;
-  const plan = normalizePlan(professionalData.plan);
-  let basePrice;
-  if (plan === "essencial") {
-    basePrice = ESSENCIAL_FIXED_PRICE;
-  } else if (plan === "premium") {
-    basePrice = Number(professionalData.precoConsulta) || PREMIUM_DEFAULT_PRICE;
-  } else {
-    basePrice = Number(professionalData.precoConsulta) || PREMIUM_DEFAULT_PRICE;
-  }
+  let basePrice = getBaseSpecialistPrice(professionalData, modalidade);
   if (isUserPremium) {
     basePrice = basePrice * (1 - PREMIUM_WORKER_DISCOUNT_PCT);
   }
   return basePrice;
 }
 
-// Preço base (sem desconto do usuário), já aplicada a regra de plano.
-function getBaseSpecialistPrice(professionalData) {
+// Preço base (sem desconto do usuário), já aplicada a regra de plano +
+// modalidade. Para Premium, prioriza `valor_consulta_customizado` e cai
+// em `precoConsulta` (legado) e por fim em `PREMIUM_DEFAULT_PRICE`.
+function getBaseSpecialistPrice(professionalData, modalidade) {
   if (!professionalData) return 0;
   const plan = normalizePlan(professionalData.plan);
-  if (plan === "essencial") return ESSENCIAL_FIXED_PRICE;
-  return Number(professionalData.precoConsulta) || PREMIUM_DEFAULT_PRICE;
+  const mod = normalizeModalidade(modalidade);
+  if (plan === "essencial") {
+    return mod === "video" ? ESSENCIAL_VIDEO_PRICE : ESSENCIAL_CHAT_PRICE;
+  }
+  // Premium (ou desconhecido) → valor customizado pelo próprio especialista.
+  return (
+    Number(professionalData.valorConsultaCustomizado) ||
+    Number(professionalData.precoConsulta) ||
+    PREMIUM_DEFAULT_PRICE
+  );
 }
 
 const SPECIALTY_OPTIONS = [
@@ -127,6 +137,11 @@ export default function ConsultaAvulsaPage({ theme, toggleTheme }) {
   const [selectedProfessionalData, setSelectedProfessionalData] = useState(null);
   const [displayedConsultationPrice, setDisplayedConsultationPrice] = useState(0);
   const [userDoubt, setUserDoubt] = useState("");
+  // Modalidade do atendimento. Afeta o preço quando o especialista é do
+  // Plano Essencial (chat=R$45 / vídeo=R$75). Para Premium o preço
+  // customizado independe da modalidade, mas o valor segue para o backend
+  // para que a sala correta (chat ou vídeo) seja criada no webhook.
+  const [modalidade, setModalidade] = useState("chat");
   const [isPremiumWorker, setIsPremiumWorker] = useState(false);
   const [loadingPremium, setLoadingPremium] = useState(true);
   const [loadingProfessionals, setLoadingProfessionals] = useState(false);
@@ -182,9 +197,20 @@ export default function ConsultaAvulsaPage({ theme, toggleTheme }) {
             especialidadeId: normalizeTipo(
               data.especialidadeId || data.tipo || data.profissao || "outro"
             ),
-            precoConsulta: Number(data.precoConsulta || data.preco || 150) || 150,
+            precoConsulta: Number(data.precoConsulta || data.preco || 0) || 0,
+            valorConsultaCustomizado:
+              Number(
+                data.valor_consulta_customizado ||
+                  data.valorConsultaCustomizado ||
+                  0
+              ) || 0,
             plan: normalizePlan(
-              data.plan || data.plano || data.planStatus || data.tier || ""
+              data.plano_tipo ||
+                data.plan ||
+                data.plano ||
+                data.planStatus ||
+                data.tier ||
+                ""
             ),
             isTest: data.isTest === true,
           };
@@ -252,9 +278,9 @@ export default function ConsultaAvulsaPage({ theme, toggleTheme }) {
     }
 
     setDisplayedConsultationPrice(
-      calculateConsultationPrice(professionalData, isPremiumWorker)
+      calculateConsultationPrice(professionalData, isPremiumWorker, modalidade)
     );
-  }, [selectedProfessionalId, profissionaisDisponiveis, isPremiumWorker]);
+  }, [selectedProfessionalId, profissionaisDisponiveis, isPremiumWorker, modalidade]);
 
   const selectedSpecialtyLabel = useMemo(() => {
     return (
@@ -263,7 +289,7 @@ export default function ConsultaAvulsaPage({ theme, toggleTheme }) {
     );
   }, [especialidades, selectedEspecialidade]);
 
-  const originalPrice = getBaseSpecialistPrice(selectedProfessionalData);
+  const originalPrice = getBaseSpecialistPrice(selectedProfessionalData, modalidade);
   const discountAmount = Math.max(0, originalPrice - displayedConsultationPrice);
 
   const handleAdvanceToPayment = () => {
@@ -293,6 +319,8 @@ export default function ConsultaAvulsaPage({ theme, toggleTheme }) {
         discountAmount,
         userDoubt: userDoubt.trim(),
         isPremiumWorker,
+        modalidade,
+        planoTipo: normalizePlan(selectedProfessionalData.plan) || "premium",
       },
     });
   };
@@ -379,7 +407,7 @@ export default function ConsultaAvulsaPage({ theme, toggleTheme }) {
                             </p>
                           )}
                           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                            Valor base: {formatBRL(getBaseSpecialistPrice(pro))}
+                            Valor base: {formatBRL(getBaseSpecialistPrice(pro, modalidade))}
                             {pro.plan === "essencial" && (
                               <span className="ml-1 text-[10px] uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
                                 Plano Essencial
@@ -398,6 +426,45 @@ export default function ConsultaAvulsaPage({ theme, toggleTheme }) {
                 </ul>
               )}
             </div>
+          )}
+
+          {selectedProfessionalData && (
+            <fieldset className="mt-4">
+              <legend className="text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">
+                Modalidade do atendimento
+              </legend>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {[
+                  { value: "chat", emoji: "\uD83D\uDCAC", label: "Atendimento por Chat (Texto)" },
+                  { value: "video", emoji: "\uD83C\uDFA5", label: "Atendimento por Vídeo" },
+                ].map((opt) => {
+                  const checked = modalidade === opt.value;
+                  return (
+                    <label
+                      key={opt.value}
+                      className={[
+                        "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition",
+                        checked
+                          ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40"
+                          : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800",
+                      ].join(" ")}
+                    >
+                      <input
+                        type="radio"
+                        name="ca-modalidade"
+                        value={opt.value}
+                        checked={checked}
+                        onChange={() => setModalidade(opt.value)}
+                      />
+                      <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                        <span aria-hidden="true" className="mr-1">{opt.emoji}</span>
+                        {opt.label}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
           )}
 
           {selectedProfessionalData && (
@@ -423,6 +490,9 @@ export default function ConsultaAvulsaPage({ theme, toggleTheme }) {
             <div className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-3">
               <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Valor da consulta
+                <span className="ml-2 normal-case font-medium text-slate-400 dark:text-slate-500">
+                  ({modalidade === "video" ? "Vídeo" : "Chat"})
+                </span>
               </p>
               {discountAmount > 0 ? (
                 <div className="mt-1 flex items-baseline gap-2 flex-wrap">
@@ -437,17 +507,14 @@ export default function ConsultaAvulsaPage({ theme, toggleTheme }) {
                   </span>
                 </div>
               ) : (
-                <div className="mt-1 flex items-baseline gap-2">
+                <div className="mt-1">
                   <span className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">
                     {formatBRL(displayedConsultationPrice)}
-                  </span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Trabalhadores Premium pagam 10% menos.
                   </span>
                 </div>
               )}
               <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-                Pagamento processado na plataforma. Apos confirmacao, o especialista e notificado para aceitar a consulta.
+                Pagamento 100% seguro processado via Mercado Pago. O valor só é liberado ao profissional após a conclusão do atendimento.
               </p>
             </div>
           )}
