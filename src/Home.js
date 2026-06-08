@@ -1919,6 +1919,63 @@ function Home({ theme, toggleTheme }) {
     };
   }, []);
 
+  // Reconciliação com a sessão REAL do Firebase Auth.
+  //
+  // A Home deriva `isAuthenticated` do `localStorage.userProfile` (durável),
+  // mas a sessão do Auth pode expirar / ser despejada do storage. Sem esta
+  // reconciliação a Home segue mostrando "Bem-vindo(a)" enquanto RequireAuth/
+  // MinhaConta (que olham `onAuthStateChanged`) redirecionam para /login —
+  // exatamente a divergência relatada ("desloga após horas").
+  //
+  // A PRIMEIRA emissão do `onAuthStateChanged` é autoritativa: o SDK só a
+  // dispara depois de tentar restaurar a sessão persistida. Se nessa primeira
+  // emissão não houver usuário REAL (null ou anônimo), a sessão realmente não
+  // existe → rebaixamos a Home para o estado deslogado e limpamos o cache
+  // local (senão o handler de `focus` re-autenticaria a partir do
+  // localStorage, gerando flip-flop). Emissões posteriores só fazem UPGRADE
+  // (login real); nunca rebaixam por causa do nosso próprio
+  // `signInAnonymously` (usado para ler dados públicos).
+  const authReconciledRef = React.useRef(false);
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      const isRealUser = !!u && !u.isAnonymous;
+
+      if (!authReconciledRef.current) {
+        authReconciledRef.current = true;
+        if (isRealUser) {
+          setIsAuthenticated(true);
+          return;
+        }
+        // Sessão ausente na restauração: alinha a Home ao que os guards veem.
+        let hadLocalProfile = false;
+        try {
+          hadLocalProfile = isProfileAuthenticated(
+            JSON.parse(localStorage.getItem("userProfile") || "{}")
+          );
+        } catch {
+          hadLocalProfile = false;
+        }
+        if (hadLocalProfile) {
+          try {
+            localStorage.removeItem("userProfile");
+            localStorage.removeItem("userPseudonym");
+          } catch {
+            /* ignore */
+          }
+          try { clearStoredProfileId(); } catch { /* ignore */ }
+          setUserProfile({});
+          window.dispatchEvent(new Event("trabalheiLa_user_updated"));
+        }
+        setIsAuthenticated(false);
+        return;
+      }
+
+      // Emissões subsequentes: apenas promover ao detectar login real.
+      if (isRealUser) setIsAuthenticated(true);
+    });
+    return () => unsub();
+  }, []);
+
   // Enriquecimento do userProfile via /users/{uid} no Firestore.
   // Sem isso, role/userType/managedCompanyId/isEmployer ficam ausentes em
   // localStorage para empresários que cadastraram via fluxos que não

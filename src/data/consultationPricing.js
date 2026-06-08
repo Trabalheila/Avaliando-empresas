@@ -59,6 +59,39 @@ export const SPECIALTIES_BY_AUDIENCE = {
 export const CONSULTATION_DEFAULT_PRICE = 100.0;
 
 /**
+ * Preços FIXOS das consultas avulsas solicitadas por trabalhadores no
+ * Plano Gratuito. Independem do plano/tipo do especialista — o que difere
+ * é apenas a modalidade (texto/chat vs. videochamada).
+ *
+ * Espelha a tabela do backend em `api/_paymentsHelpers.js`
+ * (CONSULTA_PRICE_TABLE.essencial) — mantenha os dois lados em sincronia.
+ */
+export const FREE_PLAN_CONSULTATION_PRICE = {
+  chat: 45.0,
+  video: 75.0,
+};
+
+/**
+ * SLA de resposta (em minutos) que o profissional assume ao aceitar uma
+ * consulta avulsa do Plano Gratuito. Exibido ao trabalhador (promessa) e
+ * ao especialista (compromisso) na interface.
+ */
+export const FREE_PLAN_RESPONSE_SLA_MINUTES = 10;
+
+/**
+ * Retorna o preço fixo do Plano Gratuito para a modalidade informada.
+ * `modalidade` aceita "video"/"videochamada"/"videocall" → vídeo; o resto
+ * cai em chat (texto).
+ */
+export function getFreePlanConsultationPrice(modalidade) {
+  const m = String(modalidade || "").toLowerCase().trim();
+  const isVideo = m === "video" || m === "videochamada" || m === "videocall";
+  return isVideo
+    ? FREE_PLAN_CONSULTATION_PRICE.video
+    : FREE_PLAN_CONSULTATION_PRICE.chat;
+}
+
+/**
  * Percentual retido pela plataforma na consulta intermediada.
  * - Essencial: 10% plataforma → 90% profissional
  * - Premium:   12.5% plataforma → 87.5% profissional

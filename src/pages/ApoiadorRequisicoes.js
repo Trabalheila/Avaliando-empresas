@@ -14,7 +14,10 @@ import {
 } from "firebase/firestore";
 import AppHeader from "../components/AppHeader";
 import SpecialistDemandInsights from "../components/Specialist/SpecialistDemandInsights";
-import { getRatingLabel } from "../data/consultationPricing";
+import {
+  getRatingLabel,
+  FREE_PLAN_RESPONSE_SLA_MINUTES,
+} from "../data/consultationPricing";
 import {
   buildVideoCallLink,
   ESSENCIAL_VIDEO_MAX_MINUTES,
@@ -218,9 +221,24 @@ export default function ApoiadorRequisicoes({ theme, toggleTheme }) {
 
   async function handleStatusChange(consultaId, nextStatus) {
     try {
-      await updateDoc(doc(db, "consultas", consultaId), { status: nextStatus });
+      const patch = { status: nextStatus };
+      // Ao ACEITAR uma consulta avulsa (Plano Gratuito), registra o início
+      // do SLA e o prazo de resposta — usados para exibir o contador e
+      // cobrar o compromisso de atendimento em até N minutos.
+      if (nextStatus === "accepted") {
+        const target = consultas.find((c) => c.id === consultaId);
+        const slaMin =
+          Number(target?.responseSlaMinutes) || FREE_PLAN_RESPONSE_SLA_MINUTES;
+        const acceptedAtMs = Date.now();
+        patch.acceptedAt = new Date(acceptedAtMs).toISOString();
+        patch.responseDeadlineAt = new Date(
+          acceptedAtMs + slaMin * 60 * 1000
+        ).toISOString();
+        patch.responseSlaMinutes = slaMin;
+      }
+      await updateDoc(doc(db, "consultas", consultaId), patch);
       setConsultas((prev) =>
-        prev.map((c) => (c.id === consultaId ? { ...c, status: nextStatus } : c))
+        prev.map((c) => (c.id === consultaId ? { ...c, ...patch } : c))
       );
     } catch (err) {
       setError(err?.message || "Erro ao atualizar requisição.");
@@ -367,25 +385,47 @@ export default function ApoiadorRequisicoes({ theme, toggleTheme }) {
 
                   {/* Ações */}
                   {activeTab === "pending" && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleStatusChange(c.id, "accepted")}
-                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold"
-                      >
-                        Aceitar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleStatusChange(c.id, "declined")}
-                        className="px-3 py-1.5 rounded-lg border border-red-300 dark:border-red-700 text-red-600 dark:text-red-300 text-xs font-bold hover:bg-red-50 dark:hover:bg-red-900/20"
-                      >
-                        Recusar
-                      </button>
+                    <div className="mt-3">
+                      <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 p-2 mb-2">
+                        <span aria-hidden="true">⏱️</span>
+                        <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-200">
+                          Ao aceitar, você se compromete a responder este
+                          trabalhador em até{" "}
+                          {Number(c.responseSlaMinutes) ||
+                            FREE_PLAN_RESPONSE_SLA_MINUTES}{" "}
+                          minutos.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(c.id, "accepted")}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold"
+                        >
+                          Aceitar e responder em até{" "}
+                          {Number(c.responseSlaMinutes) ||
+                            FREE_PLAN_RESPONSE_SLA_MINUTES}{" "}
+                          min
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(c.id, "declined")}
+                          className="px-3 py-1.5 rounded-lg border border-red-300 dark:border-red-700 text-red-600 dark:text-red-300 text-xs font-bold hover:bg-red-50 dark:hover:bg-red-900/20"
+                        >
+                          Recusar
+                        </button>
+                      </div>
                     </div>
                   )}
                   {activeTab === "accepted" && (
                     <div className="mt-3 flex flex-wrap gap-2 items-center">
+                      <SlaCountdown
+                        deadlineAt={c.responseDeadlineAt}
+                        slaMinutes={
+                          Number(c.responseSlaMinutes) ||
+                          FREE_PLAN_RESPONSE_SLA_MINUTES
+                        }
+                      />
                       <VideoCallButton
                         consulta={c}
                         apoiadorId={apoiadorId}
@@ -413,6 +453,56 @@ export default function ApoiadorRequisicoes({ theme, toggleTheme }) {
 
 // Evita warning de variável não utilizada em ambientes que linkam auth.
 void auth;
+/* ════════════════════════════════════════════════
+   SlaCountdown (especialista)
+   ────────────────────────────────────────────────
+   Contador regressivo do SLA de resposta (Plano Gratuito). Mostra o tempo
+   restante para o profissional responder após aceitar a consulta. Quando
+   o prazo estoura, exibe "Prazo de resposta esgotado" para reforçar o
+   compromisso assumido.
+   ════════════════════════════════════════════════ */
+function SlaCountdown({ deadlineAt, slaMinutes }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  const deadlineMs = useMemo(() => {
+    if (!deadlineAt) return null;
+    const ms = new Date(deadlineAt).getTime();
+    return Number.isFinite(ms) ? ms : null;
+  }, [deadlineAt]);
+
+  useEffect(() => {
+    if (!deadlineMs) return undefined;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [deadlineMs]);
+
+  if (!deadlineMs) {
+    return (
+      <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+        ⏱️ Responda em até {slaMinutes} min
+      </span>
+    );
+  }
+
+  const remainingMs = deadlineMs - now;
+  if (remainingMs <= 0) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-600 dark:text-red-400">
+        ⏱️ Prazo de resposta esgotado
+      </span>
+    );
+  }
+
+  const totalSec = Math.floor(remainingMs / 1000);
+  const mm = String(Math.floor(totalSec / 60)).padStart(2, "0");
+  const ss = String(totalSec % 60).padStart(2, "0");
+  return (
+    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+      ⏱️ Responder em {mm}:{ss}
+    </span>
+  );
+}
+
 /* ════════════════════════════════════════════════
    VideoCallButton (especialista)
    ────────────────────────────────────────────────

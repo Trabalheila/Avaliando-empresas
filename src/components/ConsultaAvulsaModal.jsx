@@ -22,16 +22,13 @@ import { filterOutTestApoiadores } from "../utils/testAccounts";
 import { buildApiUrl } from "../utils/apiBase";
 import StripePaymentForm from "./StripePaymentForm";
 import { registerConsultationTransaction } from "../services/consultaTransactions";
+import {
+  getFreePlanConsultationPrice,
+  FREE_PLAN_RESPONSE_SLA_MINUTES,
+} from "../data/consultationPricing";
 
 /* Desconto aplicado a trabalhadores Premium em consultas avulsas. */
 const PREMIUM_WORKER_DISCOUNT_PCT = 0.1;
-
-/* Preços fixos do Plano Essencial (alinhados ao backend `api/payments`).
-   Especialistas Premium definem o preço em `valor_consulta_customizado`
-   (ou `precoConsulta` legado). */
-const ESSENCIAL_CHAT_PRICE = 45;
-const ESSENCIAL_VIDEO_PRICE = 75;
-const PREMIUM_DEFAULT_PRICE = 150;
 
 function normalizePlan(v) {
   const s = String(v || "").toLowerCase().trim();
@@ -51,19 +48,11 @@ function normalizePlan(v) {
 
 function priceForSpecialist(specialist, modalidade) {
   if (!specialist) return 0;
-  const plan = normalizePlan(specialist.plan);
-  // Convenção: somente Premium EXPLÍCITO usa valor customizado. Qualquer
-  // outro caso (Essencial, plano em branco, novo cadastro) cai no
-  // tabelado por modalidade — evita o bug de "preco fixo 150" quando o
-  // doc do especialista ainda não tem `plano_tipo` definido.
-  if (plan === "premium") {
-    return (
-      Number(specialist.valorConsultaCustomizado) ||
-      Number(specialist.precoConsulta) ||
-      PREMIUM_DEFAULT_PRICE
-    );
-  }
-  return modalidade === "video" ? ESSENCIAL_VIDEO_PRICE : ESSENCIAL_CHAT_PRICE;
+  // Consulta avulsa do Plano Gratuito: preço FIXO por modalidade
+  // (R$ 45 texto / R$ 75 vídeo), independente do plano do especialista.
+  // O profissional que aceitar assume o SLA de resposta em até
+  // FREE_PLAN_RESPONSE_SLA_MINUTES minutos.
+  return getFreePlanConsultationPrice(modalidade);
 }
 
 /* Verifica se o usuário logado é Premium Trabalhador a partir do perfil
@@ -268,6 +257,11 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
         tipo: "avulsa",
         type: "avulsa",
         modalidade,
+        // SLA de resposta assumido pelo profissional ao aceitar (Plano
+        // Gratuito): responder em até N minutos. A contagem real começa
+        // no aceite (gravado em `acceptedAt`/`responseDeadlineAt` pelo
+        // especialista em ApoiadorRequisicoes).
+        responseSlaMinutes: FREE_PLAN_RESPONSE_SLA_MINUTES,
         message: String(message).trim().slice(0, 2000),
         status: "pending",
         readByApoiador: false,
@@ -366,6 +360,13 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
               notificação para <strong>aceitar ou recusar</strong>. Você será
               avisado quando houver resposta.
             </p>
+            <div className="mt-3 flex items-start gap-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 p-2">
+              <span aria-hidden="true">⏱️</span>
+              <p className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-200">
+                Assim que o profissional aceitar, ele se compromete a responder
+                em até {FREE_PLAN_RESPONSE_SLA_MINUTES} minutos.
+              </p>
+            </div>
             <div className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-slate-500 dark:text-slate-400">Valor pago</span>
@@ -639,6 +640,14 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
                 <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
                   Pagamento 100% seguro processado via Mercado Pago. O valor só é liberado ao profissional após a conclusão do atendimento.
                 </p>
+                <div className="mt-2 flex items-start gap-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 p-2">
+                  <span aria-hidden="true">⏱️</span>
+                  <p className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-200">
+                    Resposta rápida garantida: ao aceitar, o profissional se
+                    compromete a responder em até{" "}
+                    {FREE_PLAN_RESPONSE_SLA_MINUTES} minutos.
+                  </p>
+                </div>
               </div>
             )}
 
