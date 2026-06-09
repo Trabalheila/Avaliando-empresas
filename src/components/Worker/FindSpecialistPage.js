@@ -18,6 +18,7 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import AppHeader from "../AppHeader";
 import { filterOutTestApoiadores } from "../../utils/testAccounts";
 import { isPremiumWorker } from "../../utils/rbac";
+import { FREE_PLAN_CONSULTATION_PRICE } from "../../data/consultationPricing";
 
 /* ────────────────────────────────────────────────────────────── */
 /* Especialidades suportadas (alinhadas ao SPECIALIST_CONFIGS).   */
@@ -199,23 +200,22 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
       .map((p) => p[0]?.toUpperCase())
       .join("") || "?";
   const planType = specialist.planType === "Premium" ? "Premium" : "Essencial";
-  const showsDiscount =
-    planType === "Essencial" && specialist.offersFirstConsultationDiscount;
   const avgPrice = Number(
     specialist.averageConsultationPrice || specialist.precoConsulta || 0
   );
-  const discountedPrice = showsDiscount ? Math.round(avgPrice * 0.7) : avgPrice;
 
   let scheduleHint = "";
-  if (workerIsPremium) {
+  if (planType === "Essencial") {
+    // Essencial: a consulta pontual tem preço fixo da plataforma — esse valor
+    // tem PRIORIDADE sobre qualquer outro preço configurado pelo profissional.
+    scheduleHint = `Consulta pontual: R$ ${FREE_PLAN_CONSULTATION_PRICE.chat} (chat) ou R$ ${FREE_PLAN_CONSULTATION_PRICE.video} (videochamada).`;
+  } else if (workerIsPremium) {
     scheduleHint =
       planType === "Premium"
         ? "Usa seus créditos / consultas gratuitas Premium."
         : "Pague normalmente ao especialista (sem crédito Premium).";
   } else {
-    scheduleHint = showsDiscount
-      ? `Preço com desconto na 1ª consulta: R$ ${discountedPrice}.`
-      : "Preço integral; assine o Premium do trabalhador para ganhar créditos.";
+    scheduleHint = "Preço integral; assine o Premium do trabalhador para ganhar créditos.";
   }
 
   return (
@@ -260,9 +260,9 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
           <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mt-0.5">
             {tipoLabel}
           </p>
-          {showsDiscount && (
+          {planType === "Essencial" && (
             <p className="mt-1 inline-flex items-center text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
-              🎁 Desconto na 1ª consulta para Essencial
+              ✉️ Consulta pontual: R$ {FREE_PLAN_CONSULTATION_PRICE.chat} chat · R$ {FREE_PLAN_CONSULTATION_PRICE.video} vídeo
             </p>
           )}
         </div>
@@ -282,20 +282,27 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
           </span>
           <span className="text-slate-400">({specialist.totalAvaliacoes || 0})</span>
         </div>
-        <p className="text-sm font-bold text-slate-800 dark:text-slate-100 text-right">
-          {avgPrice > 0 ? (
-            showsDiscount ? (
-              <>
-                <span className="line-through text-slate-400 mr-1">R$ {avgPrice}</span>
-                R$ {discountedPrice}
-              </>
-            ) : (
-              <>R$ {avgPrice}</>
-            )
-          ) : (
-            "Sob consulta"
-          )}
-        </p>
+        {planType === "Essencial" ? (
+          // Plano Essencial: a consulta pontual tem preço FIXO da plataforma
+          // (independe do valor configurado pelo profissional) — chat R$ 45 /
+          // videochamada R$ 75. Exibimos ambas as modalidades no card.
+          <div className="text-right">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              Consulta pontual
+            </p>
+            <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
+              R$ {FREE_PLAN_CONSULTATION_PRICE.chat} <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">chat</span>
+            </p>
+            <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
+              R$ {FREE_PLAN_CONSULTATION_PRICE.video} <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">vídeo</span>
+            </p>
+          </div>
+        ) : (
+          // Plano Premium: usa o valor definido pelo próprio profissional.
+          <p className="text-sm font-bold text-slate-800 dark:text-slate-100 text-right">
+            {avgPrice > 0 ? <>R$ {avgPrice}</> : "Sob consulta"}
+          </p>
+        )}
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
