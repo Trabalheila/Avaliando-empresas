@@ -7,7 +7,7 @@ import { saveReview, listRecentReviews, saveSelectionProcessReview, slugifyCompa
 import { saveCompany, listCompanies, enrichCompanyWithBrasilAPI, searchCompaniesByName } from "./services/companies";
 import { getUserProfile, saveUserProfile, findUnifiedProfile } from "./services/users";
 import { savePendingReview, clearPendingReview } from "./utils/pendingReview";
-import { auth, db } from "./firebase";
+import { auth, db, ensureAuthReady } from "./firebase";
 import { signInAnonymously, signInWithPopup, signOut } from "firebase/auth";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
@@ -247,6 +247,11 @@ function Home({ theme, toggleTheme }) {
     const testFirebase = async () => {
       try {
         // Caso as regras do Firestore exijam autenticação, faz login anônimo primeiro.
+        // IMPORTANTE: aguarda a restauração da sessão persistida antes de
+        // checar `auth.currentUser`. Sem isso, logo após um reload/volta para
+        // "/" o `currentUser` ainda é null e o login anônimo SUBSTITUIRIA a
+        // sessão real do usuário (gerando o "Escolha seu perfil" indevido).
+        await ensureAuthReady();
         if (!auth.currentUser) {
           await signInAnonymously(auth);
         }
@@ -503,6 +508,9 @@ function Home({ theme, toggleTheme }) {
 
     const syncFromFirestore = async () => {
       try {
+        // Aguarda a restauração da sessão antes de eventual login anônimo,
+        // para não substituir a sessão real do usuário já logado.
+        await ensureAuthReady();
         if (!auth.currentUser) {
           await signInAnonymously(auth);
         }

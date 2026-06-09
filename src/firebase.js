@@ -78,6 +78,34 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
 
+// Aguarda o SDK terminar a restauração da sessão persistida antes de
+// qualquer decisão que dependa de `auth.currentUser`.
+//
+// Bug que isto corrige: no mount da Home, efeitos de leitura faziam
+// `if (!auth.currentUser) signInAnonymously(auth)`. Como a restauração da
+// sessão é ASSÍNCRONA, logo após um reload / navegação de volta para "/"
+// o `auth.currentUser` ainda é `null` por alguns milissegundos — então o
+// login anônimo disparava e SUBSTITUÍA a sessão real do usuário por uma
+// anônima. Em seguida a reconciliação da Home via `onAuthStateChanged`
+// via um usuário anônimo, rebaixava a Home para "deslogado" e limpava o
+// `localStorage.userProfile` — fazendo a tela de "Escolha seu perfil"
+// reaparecer para um usuário que já estava logado e com perfil definido.
+//
+// `authStateReady()` (Firebase v9.16+) resolve somente após a primeira
+// determinação do estado de auth, garantindo que a sessão persistida já
+// foi restaurada. Só então faz sentido checar `auth.currentUser`.
+export async function ensureAuthReady() {
+  try {
+    if (typeof authInstance.authStateReady === "function") {
+      await authInstance.authStateReady();
+    }
+  } catch {
+    /* segue mesmo assim — o caller ainda checa auth.currentUser */
+  }
+  return authInstance.currentUser;
+}
+
+
 // analytics (opcional)
 export const analyticsPromise = isSupported().then((yes) =>
   yes ? getAnalytics(app) : null
