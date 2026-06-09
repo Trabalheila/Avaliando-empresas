@@ -652,6 +652,15 @@ function TrabalheiLaDesktop({
           </div>
         )}
 
+        {/* CONTEÚDO - 3 COLUNAS NO DESKTOP (>1024px), 2 COLUNAS NO MOBILE (<1024px).
+            O hero e o vídeo agora vivem dentro da COLUNA CENTRAL para que as colunas
+            laterais (Ranking e Gráficos) subam e fiquem alinhadas ao topo, sem o
+            espaço vazio que existia quando o hero ficava acima da grade. */}
+        <div className="flex flex-col lg:flex-row lg:flex-nowrap gap-6 mb-8 items-start">
+
+          {/* COLUNA CENTRAL - HERO + VÍDEO + FORMULÁRIO (empilha primeiro no tablet; ordem 2 no desktop) */}
+          <div className="w-full lg:basis-[56%] lg:min-w-[520px] xl:basis-[58%] xl:min-w-[600px] lg:flex-none flex flex-col gap-6 order-1 lg:order-2">
+
         {/* HERO CARD — único card dinâmico que substitui Evoluindo + Login + Crie sua conta */}
         {(() => {
           const role = (userProfile?.role || "").toString().toLowerCase().trim();
@@ -957,123 +966,6 @@ function TrabalheiLaDesktop({
           </p>
           <YouTubeEmbed videoId="JZkL0YJSQnw" title="Apresentação Trabalhei Lá" />
         </section>
-
-        {/* CONTEÚDO - 3 COLUNAS NO DESKTOP (>1024px), 2 COLUNAS NO MOBILE (<1024px) */}
-        <div className="flex flex-col lg:flex-row lg:flex-nowrap gap-6 mb-8">
-
-          {/* COLUNA ESQUERDA - CADASTRO + RANKING (flex-col ordem 1) */}
-          <div className="w-full lg:basis-[20%] lg:max-w-[20%] lg:min-w-[220px] xl:basis-[19%] xl:max-w-[19%] xl:min-w-[240px] lg:shrink-0 flex flex-col gap-6 order-1 lg:order-1 break-words">
-
-            {/* LOGO LATERAL — favicon + "Trabalhei Lá" (destaque visual) */}
-            <section
-              className="relative overflow-hidden rounded-3xl p-6 md:p-7 flex flex-col items-center border-2 border-blue-300/70 dark:border-blue-500/40 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 dark:from-slate-800 dark:via-slate-900 dark:to-blue-950 shadow-2xl shadow-blue-900/40 dark:shadow-black/60 ring-1 ring-white/10"
-              style={{ animation: "homeLoginSectionIn 700ms ease-out both" }}
-            >
-              {/* brilho decorativo */}
-              <div
-                className="pointer-events-none absolute -top-10 -right-10 w-32 h-32 rounded-full bg-white/10 blur-2xl"
-                aria-hidden="true"
-              />
-              <div
-                className="pointer-events-none absolute -bottom-12 -left-10 w-32 h-32 rounded-full bg-blue-300/20 dark:bg-blue-400/10 blur-2xl"
-                aria-hidden="true"
-              />
-
-              <div className="relative bg-white dark:bg-slate-100 rounded-2xl p-3 shadow-xl shadow-black/30 ring-1 ring-white/40">
-                <img
-                  src="/favicon.png"
-                  alt="Trabalhei Lá"
-                  className="w-32 h-32 md:w-36 md:h-36 object-contain select-none drop-shadow-md"
-                  draggable="false"
-                />
-              </div>
-              <span className="relative mt-4 text-2xl md:text-3xl font-black text-white tracking-wide text-center leading-tight drop-shadow-[0_2px_0_rgba(15,23,42,0.5)]">
-                Trabalhei Lá
-              </span>
-              <span className="relative mt-1 h-1 w-16 rounded-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.6)]" />
-            </section>
-
-            {/* CADASTRO POR PERFIL — movido para o card central destacado acima */}
-
-            {/* RANKING DE EMPRESAS — order-first para subir os cards e alinhar com o topo do formulário */}
-            <section className="order-first bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-5 lg:p-6 border border-blue-100 dark:border-slate-700">
-              <h2 className="text-2xl xl:text-3xl font-extrabold text-blue-900 dark:text-blue-200 text-center mb-2 font-azonix tracking-wide leading-tight">🏆 Ranking de Empresas</h2>
-              <div className="w-24 h-1 mx-auto mb-4 rounded-full bg-gradient-to-r from-yellow-300 via-amber-500 to-yellow-300" />
-              {Array.isArray(setoresList) && setoresList.length > 0 && (
-                <select
-                  value={sectorFilter}
-                  onChange={(e) => setSectorFilter(e.target.value)}
-                  className="block w-full mb-3 px-3 py-2.5 text-sm border border-blue-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  title="Filtrar por setor"
-                >
-                  <option value="">Todos os setores</option>
-                  {setoresList.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              )}
-              {Array.isArray(segmentosList) && segmentosList.length > 0 && (
-                <select
-                  value={segmentFilter}
-                  onChange={(e) => setSegmentFilter(e.target.value)}
-                  className="block w-full mb-3 px-3 py-2.5 text-sm border border-blue-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  title="Filtrar por segmento (CNAE)"
-                >
-                  <option value="">Todos os segmentos (CNAE)</option>
-                  {segmentosList.map((seg) => {
-                    const opt = (cnaeSegmentOptions || []).find((item) => item.code === seg);
-                    return <option key={seg} value={seg}>{opt ? opt.label : seg}</option>;
-                  })}
-                </select>
-              )}
-
-              {Array.isArray(top3) && top3.length > 0 && (
-                <div className="mb-4 space-y-2">
-                  {top3.map((emp, i) => {
-                    const media = calcularMedia(emp);
-                    const isUnrated = media === "--";
-                    const mediaValue = Number.parseFloat(media);
-                    const isRecommendedCompany = !isUnrated && Number.isFinite(mediaValue) && mediaValue >= 3;
-                    return (
-                      <div key={i} className={`${isUnrated ? "bg-slate-200 text-slate-600" : `bg-gradient-to-r ${getMedalColor(i)} text-white`} rounded-2xl px-3.5 py-3`}>
-                        <div className="flex items-center gap-2 w-full">
-                          <span className="text-2xl shrink-0 leading-none">{getMedalEmoji(i)}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-base leading-snug truncate tracking-tight" title={emp.company}>{emp.company}</p>
-                            {!isUnrated && (
-                              <p className={`text-xs font-semibold leading-tight mt-0.5 ${isUnrated ? "text-slate-600" : "text-white/90"}`}>
-                                {isRecommendedCompany ? "✓ Acima da média" : "✗ Abaixo da média"}
-                              </p>
-                            )}
-                          </div>
-                          <div className={`shrink-0 ${isUnrated ? "bg-slate-300 text-slate-700" : "bg-white/20 text-white"} px-2.5 py-1 rounded-full font-bold text-sm inline-flex items-center gap-1 leading-none`}>
-                            {isUnrated ? (
-                              <span>--</span>
-                            ) : (
-                              <>
-                                <span>{media}</span>
-                                <FaStar className="text-yellow-200" />
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              <div className="bg-blue-50 dark:bg-slate-800 rounded-2xl p-4 border border-blue-200 dark:border-slate-700">
-                <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-200 mb-1.5 tracking-wide leading-snug">Empresas por Autocompletação</h3>
-                <p className="text-sm text-blue-900 dark:text-slate-200 leading-relaxed">
-                  Para manter performance com muitas empresas, a seleção é feita pelo campo <span className="font-semibold">"Selecione a Empresa"</span> no formulário. Digite parte do nome para buscar rapidamente.
-                </p>
-              </div>
-            </section>
-          </div>
-
-          {/* COLUNA CENTRAL - FORMULÁRIO (ordem 2 no desktop) */}
-          <div className="w-full lg:basis-[56%] lg:min-w-[520px] xl:basis-[58%] xl:min-w-[600px] lg:flex-none flex flex-col gap-6 order-2 lg:order-2">
 
             {/* FORMULÁRIO */}
             <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-blue-100 dark:border-slate-700">
@@ -1451,6 +1343,115 @@ function TrabalheiLaDesktop({
                 </div>
 
               </form>
+            </section>
+          </div>
+
+          {/* COLUNA ESQUERDA - RANKING + LOGO (empilha depois do hero no tablet; ordem 1 no desktop) */}
+          <div className="w-full lg:basis-[20%] lg:max-w-[20%] lg:min-w-[220px] xl:basis-[19%] xl:max-w-[19%] xl:min-w-[240px] lg:shrink-0 flex flex-col gap-6 order-2 lg:order-1 break-words">
+
+            {/* RANKING DE EMPRESAS */}
+            <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-5 lg:p-6 border border-blue-100 dark:border-slate-700">
+              <h2 className="text-2xl xl:text-3xl font-extrabold text-blue-900 dark:text-blue-200 text-center mb-2 font-azonix tracking-wide leading-tight">🏆 Ranking de Empresas</h2>
+              <div className="w-24 h-1 mx-auto mb-4 rounded-full bg-gradient-to-r from-yellow-300 via-amber-500 to-yellow-300" />
+              {Array.isArray(setoresList) && setoresList.length > 0 && (
+                <select
+                  value={sectorFilter}
+                  onChange={(e) => setSectorFilter(e.target.value)}
+                  className="block w-full mb-3 px-3 py-2.5 text-sm border border-blue-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  title="Filtrar por setor"
+                >
+                  <option value="">Todos os setores</option>
+                  {setoresList.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              )}
+              {Array.isArray(segmentosList) && segmentosList.length > 0 && (
+                <select
+                  value={segmentFilter}
+                  onChange={(e) => setSegmentFilter(e.target.value)}
+                  className="block w-full mb-3 px-3 py-2.5 text-sm border border-blue-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  title="Filtrar por segmento (CNAE)"
+                >
+                  <option value="">Todos os segmentos (CNAE)</option>
+                  {segmentosList.map((seg) => {
+                    const opt = (cnaeSegmentOptions || []).find((item) => item.code === seg);
+                    return <option key={seg} value={seg}>{opt ? opt.label : seg}</option>;
+                  })}
+                </select>
+              )}
+
+              {Array.isArray(top3) && top3.length > 0 && (
+                <div className="mb-4 space-y-2">
+                  {top3.map((emp, i) => {
+                    const media = calcularMedia(emp);
+                    const isUnrated = media === "--";
+                    const mediaValue = Number.parseFloat(media);
+                    const isRecommendedCompany = !isUnrated && Number.isFinite(mediaValue) && mediaValue >= 3;
+                    return (
+                      <div key={i} className={`${isUnrated ? "bg-slate-200 text-slate-600" : `bg-gradient-to-r ${getMedalColor(i)} text-white`} rounded-2xl px-3.5 py-3`}>
+                        <div className="flex items-center gap-2 w-full">
+                          <span className="text-2xl shrink-0 leading-none">{getMedalEmoji(i)}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-base leading-snug truncate tracking-tight" title={emp.company}>{emp.company}</p>
+                            {!isUnrated && (
+                              <p className={`text-xs font-semibold leading-tight mt-0.5 ${isUnrated ? "text-slate-600" : "text-white/90"}`}>
+                                {isRecommendedCompany ? "✓ Acima da média" : "✗ Abaixo da média"}
+                              </p>
+                            )}
+                          </div>
+                          <div className={`shrink-0 ${isUnrated ? "bg-slate-300 text-slate-700" : "bg-white/20 text-white"} px-2.5 py-1 rounded-full font-bold text-sm inline-flex items-center gap-1 leading-none`}>
+                            {isUnrated ? (
+                              <span>--</span>
+                            ) : (
+                              <>
+                                <span>{media}</span>
+                                <FaStar className="text-yellow-200" />
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="bg-blue-50 dark:bg-slate-800 rounded-2xl p-4 border border-blue-200 dark:border-slate-700">
+                <h3 className="text-base font-extrabold text-blue-900 dark:text-blue-200 mb-1.5 tracking-wide leading-snug">Empresas por Autocompletação</h3>
+                <p className="text-sm text-blue-900 dark:text-slate-200 leading-relaxed">
+                  Para manter performance com muitas empresas, a seleção é feita pelo campo <span className="font-semibold">"Selecione a Empresa"</span> no formulário. Digite parte do nome para buscar rapidamente.
+                </p>
+              </div>
+            </section>
+
+            {/* LOGO LATERAL — favicon + "Trabalhei Lá" (destaque visual) */}
+            <section
+              className="relative overflow-hidden rounded-3xl p-6 md:p-7 flex flex-col items-center border-2 border-blue-300/70 dark:border-blue-500/40 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 dark:from-slate-800 dark:via-slate-900 dark:to-blue-950 shadow-2xl shadow-blue-900/40 dark:shadow-black/60 ring-1 ring-white/10"
+              style={{ animation: "homeLoginSectionIn 700ms ease-out both" }}
+            >
+              {/* brilho decorativo */}
+              <div
+                className="pointer-events-none absolute -top-10 -right-10 w-32 h-32 rounded-full bg-white/10 blur-2xl"
+                aria-hidden="true"
+              />
+              <div
+                className="pointer-events-none absolute -bottom-12 -left-10 w-32 h-32 rounded-full bg-blue-300/20 dark:bg-blue-400/10 blur-2xl"
+                aria-hidden="true"
+              />
+
+              <div className="relative bg-white dark:bg-slate-100 rounded-2xl p-3 shadow-xl shadow-black/30 ring-1 ring-white/40">
+                <img
+                  src="/favicon.png"
+                  alt="Trabalhei Lá"
+                  className="w-32 h-32 md:w-36 md:h-36 object-contain select-none drop-shadow-md"
+                  draggable="false"
+                />
+              </div>
+              <span className="relative mt-4 text-2xl md:text-3xl font-black text-white tracking-wide text-center leading-tight drop-shadow-[0_2px_0_rgba(15,23,42,0.5)]">
+                Trabalhei Lá
+              </span>
+              <span className="relative mt-1 h-1 w-16 rounded-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.6)]" />
             </section>
           </div>
 

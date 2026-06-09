@@ -497,7 +497,7 @@ export default function MinhaConta({ theme, toggleTheme }) {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
       <AppHeader theme={theme} toggleTheme={toggleTheme} title="Minha Conta" />
 
-      <div className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <div className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
         {/* ══════ Dados do Perfil ══════ */}
         <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
@@ -673,6 +673,11 @@ export default function MinhaConta({ theme, toggleTheme }) {
           profile={safeProfile}
           onSaved={(next) => setProfile(next)}
         />
+
+        {/* ══════ GRADE DE 2 COLUNAS (DESKTOP) — usa CSS columns para preencher
+            os espaços vazios em masonry; cada card evita quebra interna. No
+            mobile permanece em coluna única. ══════ */}
+        <div className="lg:columns-2 lg:gap-6 [&>*]:break-inside-avoid [&>*]:mb-6">
 
         {/* ══════ Próxima Videochamada (Premium) ══════ */}
         <NextVideoCallSection profile={safeProfile} navigate={navigate} />
@@ -860,6 +865,8 @@ export default function MinhaConta({ theme, toggleTheme }) {
             </button>
           </div>
         </section>
+
+        </div>
 
       </div>
     </div>
