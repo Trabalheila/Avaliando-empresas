@@ -29,6 +29,43 @@ import { buildVideoCallLink, formatStartsIn } from "../utils/videoCall";
    MinhaConta — Página privada "Minha conta"
    ════════════════════════════════════════════════ */
 
+// Comprime/redimensiona a imagem no cliente ANTES do upload.
+// Avatares não precisam de mais de ~256px; reduzir o arquivo de vários MB
+// (foto de câmera de celular) para ~30-80KB é o que evita os timeouts de
+// envio. Retorna { blob, dataUrl } — o blob vai para o Storage e o dataUrl
+// serve de fallback (gravável direto no doc do Firestore, < 1MB).
+async function compressImage(file, maxDim = 256, quality = 0.82) {
+  const dataUrl = await new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result || ""));
+    r.onerror = () => reject(new Error("read-failed"));
+    r.readAsDataURL(file);
+  });
+  const img = await new Promise((resolve, reject) => {
+    const i = new Image();
+    i.onload = () => resolve(i);
+    i.onerror = () => reject(new Error("decode-failed"));
+    i.src = dataUrl;
+  });
+  const scale = Math.min(1, maxDim / Math.max(img.width || 1, img.height || 1));
+  const w = Math.max(1, Math.round((img.width || 1) * scale));
+  const h = Math.max(1, Math.round((img.height || 1) * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0, w, h);
+  const outDataUrl = canvas.toDataURL("image/jpeg", quality);
+  const blob = await new Promise((resolve) => {
+    if (canvas.toBlob) {
+      canvas.toBlob((b) => resolve(b), "image/jpeg", quality);
+    } else {
+      resolve(null);
+    }
+  });
+  return { blob, dataUrl: outDataUrl };
+}
+
 function toMillis(value) {
   if (!value) return 0;
   if (typeof value?.toDate === "function") return value.toDate().getTime();
@@ -80,6 +117,7 @@ export default function MinhaConta({ theme, toggleTheme }) {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [experienceModalOpen, setExperienceModalOpen] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [avatarError, setAvatarError] = useState("");
   const avatarInputRef = useRef(null);
 
@@ -287,12 +325,12 @@ export default function MinhaConta({ theme, toggleTheme }) {
     setAvatarError("");
 
     if (!file.type.startsWith("image/")) {
-      setAvatarError("Selecione um arquivo de imagem.");
+      setAvatarError("Selecione um arquivo de imagem (JPG, PNG, WEBP…).");
       return;
     }
-    const MAX_BYTES = 2 * 1024 * 1024; // 2MB
+    const MAX_BYTES = 10 * 1024 * 1024; // 10MB de entrada — comprimimos depois
     if (file.size > MAX_BYTES) {
-      setAvatarError("Imagem muito grande (máximo 2MB).");
+      setAvatarError("Imagem muito grande (máximo 10MB). Tente outra foto.");
       return;
     }
 
@@ -303,50 +341,86 @@ export default function MinhaConta({ theme, toggleTheme }) {
     // profileId (que pode ser `email:xxx`) gera permission-denied silencioso.
     const storageUid = authUid || docId;
     if (!docId || !storageUid) {
-      setAvatarError("Perfil n\u00e3o identificado.");
+      setAvatarError("Perfil n\u00e3o identificado. Fa\u00e7a login novamente.");
       return;
     }
 
     setUploadingAvatar(true);
+    setUploadProgress(0);
+
+    // 1) Comprime no cliente ANTES de enviar. Reduz drasticamente o tamanho
+    //    (foto de celular de 4-8MB → ~30-80KB), que é a causa real dos
+    //    timeouts. Também produz um dataUrl usado como fallback.
+    let compressed = null;
     try {
-      const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-      const ref = storageRef(storage, `avatars/${storageUid}/avatar-${Date.now()}.${ext}`);
+      compressed = await compressImage(file, 256, 0.82);
+    } catch (err) {
+      console.warn("Falha ao comprimir avatar; tentando enviar original:", err);
+    }
+    const uploadBlob = compressed?.blob || file;
+    const fallbackDataUrl = compressed?.dataUrl || "";
 
-      // uploadBytesResumable + Promise expl\u00edcito permite anexar um timeout
-      // de seguran\u00e7a (90s) para evitar que a UI fique presa em "enviando"
-      // caso o request fique pendurado (rede instavel, bucket sem CORS etc.).
-      const task = uploadBytesResumable(ref, file, { contentType: file.type });
-      await new Promise((resolve, reject) => {
-        const timeoutId = setTimeout(() => {
-          try { task.cancel(); } catch { /* ignore */ }
-          reject(new Error("timeout"));
-        }, 90000);
-        task.on(
-          "state_changed",
-          null,
-          (err) => { clearTimeout(timeoutId); reject(err); },
-          () => { clearTimeout(timeoutId); resolve(); }
-        );
-      });
-
-      const url = await getDownloadURL(ref);
-
+    // Persiste a URL final (Storage ou dataURL) no Firestore + cache local.
+    const persistAvatar = async (url) => {
       await updateDoc(doc(db, "users", docId), { avatar: url });
-
       setProfile((prev) => (prev ? { ...prev, avatar: url } : prev));
-
-      // Reflete no cache local pra AppHeader/Home enxergarem o novo avatar.
       try {
         const stored = JSON.parse(localStorage.getItem("userProfile") || "{}");
         localStorage.setItem(
           "userProfile",
           JSON.stringify({ ...stored, avatar: url })
         );
+        window.dispatchEvent(new Event("trabalheiLa_user_updated"));
       } catch {
         /* ignore */
       }
+    };
+
+    try {
+      const ref = storageRef(storage, `avatars/${storageUid}/avatar-${Date.now()}.jpg`);
+
+      // uploadBytesResumable + Promise expl\u00edcito: emite progresso e permite
+      // anexar um timeout de seguran\u00e7a (45s, suficiente para um arquivo j\u00e1
+      // comprimido) para n\u00e3o deixar a UI presa em "enviando".
+      const task = uploadBytesResumable(ref, uploadBlob, { contentType: "image/jpeg" });
+      await new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          try { task.cancel(); } catch { /* ignore */ }
+          reject(new Error("timeout"));
+        }, 45000);
+        task.on(
+          "state_changed",
+          (snap) => {
+            if (snap.totalBytes > 0) {
+              setUploadProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100));
+            }
+          },
+          (err) => { clearTimeout(timeoutId); reject(err); },
+          () => { clearTimeout(timeoutId); resolve(); }
+        );
+      });
+
+      const url = await getDownloadURL(ref);
+      await persistAvatar(url);
     } catch (err) {
-      console.error("Falha no upload do avatar:", err);
+      console.error("Falha no upload do avatar via Storage:", err);
+
+      // Fallback: se o Storage falhar (timeout, CORS, regras, rede), grava a
+      // imagem comprimida como dataURL direto no doc do usu\u00e1rio. Como ela j\u00e1
+      // foi reduzida para ~256px JPEG, cabe folgadamente no limite de 1MB do
+      // Firestore — e o usu\u00e1rio consegue salvar a foto mesmo assim.
+      if (fallbackDataUrl && fallbackDataUrl.length < 900 * 1024) {
+        try {
+          await persistAvatar(fallbackDataUrl);
+          setAvatarError("");
+          setUploadingAvatar(false);
+          setUploadProgress(0);
+          return;
+        } catch (fallbackErr) {
+          console.error("Fallback de avatar (dataURL) tamb\u00e9m falhou:", fallbackErr);
+        }
+      }
+
       const code = err?.code || err?.message || "";
       let msg = "N\u00e3o foi poss\u00edvel enviar a imagem. Tente novamente.";
       if (/timeout/i.test(code)) {
@@ -361,6 +435,7 @@ export default function MinhaConta({ theme, toggleTheme }) {
       setAvatarError(msg);
     } finally {
       setUploadingAvatar(false);
+      setUploadProgress(0);
     }
   }, [profile]);
 
@@ -442,8 +517,31 @@ export default function MinhaConta({ theme, toggleTheme }) {
                 disabled={uploadingAvatar}
                 className="text-xs font-semibold text-blue-700 dark:text-blue-300 hover:underline disabled:opacity-60 disabled:no-underline"
               >
-                {uploadingAvatar ? "Enviando…" : "Trocar foto"}
+                {uploadingAvatar
+                  ? uploadProgress > 0
+                    ? `Enviando… ${uploadProgress}%`
+                    : "Enviando…"
+                  : "Trocar foto"}
               </button>
+              {uploadingAvatar && (
+                <div
+                  className="w-28 h-1.5 rounded-full bg-blue-100 dark:bg-slate-700 overflow-hidden"
+                  role="progressbar"
+                  aria-valuenow={uploadProgress}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
+                  <div
+                    className="h-full bg-blue-600 dark:bg-blue-400 transition-all duration-200"
+                    style={{ width: `${Math.max(8, uploadProgress)}%` }}
+                  />
+                </div>
+              )}
+              {!uploadingAvatar && (
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center max-w-[10rem]">
+                  JPG, PNG ou WEBP · até 10MB
+                </p>
+              )}
               {avatarError && (
                 <p className="text-xs text-red-600 dark:text-red-400 max-w-[10rem] text-center">{avatarError}</p>
               )}
