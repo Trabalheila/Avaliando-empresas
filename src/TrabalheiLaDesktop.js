@@ -995,8 +995,8 @@ function TrabalheiLaDesktop({
 
             {/* CADASTRO POR PERFIL — movido para o card central destacado acima */}
 
-            {/* RANKING DE EMPRESAS */}
-            <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-5 lg:p-6 border border-blue-100 dark:border-slate-700">
+            {/* RANKING DE EMPRESAS — order-first para subir os cards e alinhar com o topo do formulário */}
+            <section className="order-first bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-5 lg:p-6 border border-blue-100 dark:border-slate-700">
               <h2 className="text-2xl xl:text-3xl font-extrabold text-blue-900 dark:text-blue-200 text-center mb-2 font-azonix tracking-wide leading-tight">🏆 Ranking de Empresas</h2>
               <div className="w-24 h-1 mx-auto mb-4 rounded-full bg-gradient-to-r from-yellow-300 via-amber-500 to-yellow-300" />
               {Array.isArray(setoresList) && setoresList.length > 0 && (
