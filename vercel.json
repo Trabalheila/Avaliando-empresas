@@ -23,6 +23,7 @@
     { "source": "/api/confirm-company", "destination": "/api/send-confirmation" },
     { "source": "/api/verify-email", "destination": "/api/send-verification-email" },
     { "source": "/api/send-contact-request-apoiador", "destination": "/api/send-contact-request" },
+    { "source": "/api/send-receipt", "destination": "/api/send-contact-request?op=receipt" },
     { "source": "/api/chat-with-gemini", "destination": "/api/chat-gemini" },
     { "source": "/api/parse-cv", "destination": "/api/chat-gemini?op=parse-cv" },
     { "source": "/api/verify-review-linkedin", "destination": "/api/admin?op=verify-review-linkedin" },

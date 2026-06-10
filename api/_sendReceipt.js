@@ -1,21 +1,18 @@
-// api/send-receipt.js
+// api/_sendReceipt.js
+//
+// Handler do envio de recibo de atendimento. Mantido como helper (prefixo
+// "_") para NÃO contar como Serverless Function na Vercel — é despachado a
+// partir de api/send-contact-request.js quando `?op=receipt`.
 //
 // Envia o recibo emitido pelo profissional (especialista) para o e-mail
-// do trabalhador (cliente/paciente) de um caso/consulta.
-//
-// Fluxo: o painel do profissional (CaseDetailsPage) lê o arquivo do recibo,
-// converte para base64 e faz POST para este endpoint. O e-mail real do
+// do trabalhador (cliente/paciente) de um caso/consulta. O e-mail real do
 // trabalhador nunca é exposto no response — é resolvido no servidor a
 // partir de `workerUid` (coleção `users`) quando disponível, ou usa o
 // `toEmail` informado pelo profissional.
 //
-// Best-effort: se RESEND_API_KEY / EMAIL_FROM_ADDRESS não estão
-// configurados, retorna 200 com `emailed: false`.
-//
 // Variáveis de ambiente:
 //   RESEND_API_KEY        chave da Resend
 //   EMAIL_FROM_ADDRESS    remetente verificado
-//   APP_BASE_URL          base URL pública do app (opcional)
 //   FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY
 
 import { Resend } from "resend";
@@ -102,7 +99,7 @@ async function logReceiptHistory(consultaId, entry) {
   }
 }
 
-export default async function handler(req, res) {
+export async function handleSendReceipt(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, error: "Método não permitido" });

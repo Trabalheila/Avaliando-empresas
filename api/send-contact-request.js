@@ -15,6 +15,7 @@
 //   FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY
 
 import { Resend } from "resend";
+import { handleSendReceipt } from "./_sendReceipt.js";
 
 function escapeHtml(value) {
   return String(value || "")
@@ -107,6 +108,13 @@ async function tryResolveEmail(collectionName, docId, tag) {
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
+
+  // Rota consolidada: /api/send-receipt → /api/send-contact-request?op=receipt
+  // (mantém a contagem de Serverless Functions dentro do limite da Vercel).
+  if (String(req.query?.op || "").toLowerCase() === "receipt") {
+    return handleSendReceipt(req, res);
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, error: "Método não permitido" });
   }
