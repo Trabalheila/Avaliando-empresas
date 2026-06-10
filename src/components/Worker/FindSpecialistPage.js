@@ -778,6 +778,29 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
           </div>
         </section>
 
+        {/* CTA destacado de Consulta Avulsa (trabalhador não-Premium) */}
+        {!workerIsPremium && (
+          <section className="rounded-2xl border-2 border-blue-300 dark:border-blue-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-widest font-bold text-blue-700 dark:text-blue-300">
+                Sem assinatura? Sem problema
+              </p>
+              <h2 className="mt-1 text-base sm:text-lg font-extrabold text-slate-800 dark:text-slate-100">
+                Faça uma <span className="text-blue-700 dark:text-blue-300">Consulta Avulsa</span> agora
+              </h2>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                Pague apenas pela pergunta que precisa — chat ou vídeo, sem mensalidade.
+              </p>
+            </div>
+            <Link
+              to="/consulta-avulsa"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-base font-extrabold shadow-lg shadow-blue-600/20 transition transform hover:-translate-y-0.5 whitespace-nowrap"
+            >
+              ✉️ Consulta Avulsa
+            </Link>
+          </section>
+        )}
+
         {/* Resultados */}
         {filtered.length === 0 ? (
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-8 text-center">
@@ -810,7 +833,7 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
             <>
               <Link
                 to="/consulta-avulsa"
-                className="text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-base font-extrabold shadow-lg shadow-blue-600/20 transition transform hover:-translate-y-0.5"
               >
                 ✉️ Iniciar consulta avulsa
               </Link>
