@@ -334,6 +334,7 @@ function ReceiptUploadCard({ caseId, data, apoiadorId, specialistName }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           caseId,
+          consultaId: data?.consultaId || data?.consultationId || caseId,
           apoiadorId,
           specialistName,
           workerUid: workerUid || undefined,

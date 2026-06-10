@@ -19,6 +19,7 @@
 //   FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY
 
 import { Resend } from "resend";
+import { getAdminResources } from "./_firebaseAdmin.js";
 
 // Limite do arquivo do recibo (2 MB). base64 infla ~33%, mantendo o corpo
 // da requisição com folga abaixo do limite das funções serverless da Vercel.
@@ -73,6 +74,34 @@ async function resolveWorkerEmail(workerUid) {
   }
 }
 
+// Registra o envio do recibo no histórico para auditoria:
+//   consultas/{consultaId}.recibos[]  (apenas metadados, nunca o arquivo).
+// Best-effort: falha de log não invalida o envio do e-mail.
+async function logReceiptHistory(consultaId, entry) {
+  if (!consultaId) return { logged: false, reason: "no_consulta_id" };
+  try {
+    const { db, FieldValue, Timestamp } = await getAdminResources();
+    const record = {
+      ...entry,
+      sentAt: Timestamp.now(),
+    };
+    await db
+      .collection("consultas")
+      .doc(consultaId)
+      .set(
+        {
+          recibos: FieldValue.arrayUnion(record),
+          ultimoReciboEnviadoEm: record.sentAt,
+        },
+        { merge: true }
+      );
+    return { logged: true };
+  } catch (err) {
+    console.warn("[send-receipt] logReceiptHistory falhou:", err?.message || err);
+    return { logged: false, reason: "exception" };
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (req.method !== "POST") {
@@ -81,6 +110,8 @@ export default async function handler(req, res) {
 
   const body = req.body || {};
   const caseId = String(body.caseId || "").trim();
+  const consultaId = String(body.consultaId || "").trim();
+  const apoiadorId = String(body.apoiadorId || "").trim();
   const workerUid = String(body.workerUid || "").trim();
   const toEmail = String(body.toEmail || "").trim().toLowerCase();
   const specialistName = String(body.specialistName || "").trim();
@@ -146,9 +177,6 @@ export default async function handler(req, res) {
       .json({ ok: true, emailed: false, reason: "email_disabled" });
   }
 
-  const fromLabel = specialistName
-    ? `${specialistName} (Trabalhei Lá)`
-    : "Trabalhei Lá";
   const subject = "Seu recibo de atendimento — Trabalhei Lá";
   const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#0f172a;">
@@ -213,7 +241,21 @@ export default async function handler(req, res) {
         .status(200)
         .json({ ok: true, emailed: false, reason: "send_failed" });
     }
-    return res.status(200).json({ ok: true, emailed: true });
+
+    // Registra o histórico do recibo enviado (auditoria) — best-effort.
+    const { logged } = await logReceiptHistory(consultaId, {
+      caseId: caseId || null,
+      apoiadorId: apoiadorId || null,
+      specialistName: specialistName || null,
+      workerUid: workerUid || null,
+      recipientEmail: recipient,
+      fileName,
+      fileType: fileType || null,
+      fileSizeBytes: buffer.length,
+      note: note || null,
+    });
+
+    return res.status(200).json({ ok: true, emailed: true, logged });
   } catch (err) {
     console.error("[send-receipt] erro inesperado:", err?.message || err);
     return res
