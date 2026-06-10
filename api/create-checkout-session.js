@@ -320,14 +320,15 @@ async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tie
   const feePct = tier === "premium" ? 0.125 : 0.1;
   const marketplaceFee = Number((safeAmount * feePct).toFixed(2));
 
-  // O `marketplace_fee` SÓ pode ser enviado quando a conta do Mercado Pago
-  // está habilitada como marketplace (split de pagamentos via OAuth). Se for
-  // enviado com um access token de vendedor comum, o MP renderiza o checkout
-  // mas DESABILITA o botão "Pagar" e oculta meios como o PIX. Por isso ele
-  // fica atrás de uma flag explícita. Enquanto desligado, a comissão segue
-  // registrada no metadata para reconciliação manual.
-  const marketplaceEnabled =
-    String(process.env.MP_MARKETPLACE_ENABLED || "").toLowerCase().trim() === "true";
+  // IMPORTANTE: NÃO enviamos `marketplace_fee` na preferência.
+  // O `marketplace_fee` só é válido em uma integração de MARKETPLACE real,
+  // onde o pagamento é processado em nome de um VENDEDOR CONECTADO via OAuth
+  // (access token do vendedor + collector distinto da plataforma). Com um
+  // access token de vendedor comum, enviar `marketplace_fee` faz o Mercado
+  // Pago renderizar o checkout mas DESABILITAR o botão "Pagar" e ocultar
+  // meios como o PIX. Como esta integração usa um único access token (sem
+  // OAuth do vendedor), o campo é OMITIDO. A comissão (feePct) segue
+  // registrada no metadata para reconciliação manual / repasse ao especialista.
 
   const appOrigin = getAppOrigin(req);
   const serverBase = getServerBaseUrl(req);
@@ -353,9 +354,6 @@ async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tie
         currency_id: "BRL",
       },
     ],
-    // Só inclui marketplace_fee quando a conta é marketplace habilitada;
-    // caso contrário, omitir evita o botão "Pagar" desabilitado no MP.
-    ...(marketplaceEnabled ? { marketplace_fee: marketplaceFee } : {}),
     external_reference: `consulta:${apoiadorId}:${workerId || "anon"}:${Date.now()}`,
     // Métodos de pagamento — garante que o PIX (payment_type "bank_transfer")
     // e demais meios fiquem disponíveis no Checkout Pro. Nada é excluído.
@@ -419,6 +417,21 @@ async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tie
   if (!checkoutUrl) {
     throw new Error("Resposta do Mercado Pago invalida: init_point ausente.");
   }
+
+  // Diagnóstico (logs na Vercel › Functions). Mostra a preferência criada e os
+  // meios de pagamento que o MP devolveu para ESTA preferência — útil para
+  // confirmar que nada está sendo excluído e que não há marketplace_fee.
+  console.log(
+    "[CHECKOUT-DIAG] Preferência criada:",
+    JSON.stringify({
+      preferenceId: json?.id || null,
+      collectorId: json?.collector_id || null,
+      isSandbox: !json?.init_point && !!json?.sandbox_init_point,
+      marketplaceFeeSent: Object.prototype.hasOwnProperty.call(preferencePayload, "marketplace_fee"),
+      excludedPaymentTypes: json?.payment_methods?.excluded_payment_types || [],
+      excludedPaymentMethods: json?.payment_methods?.excluded_payment_methods || [],
+    })
+  );
 
   // Diagnóstico do PIX (best-effort). Loga, no painel da Vercel, se a conta
   // de vendedor realmente oferece PIX — causa raiz de "o PIX não aparece".
