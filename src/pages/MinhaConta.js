@@ -24,7 +24,7 @@ import VerifyIdentitySection from "../components/VerifyIdentitySection";
 import ExperienceManagerModal from "../components/ExperienceManagerModal";
 import EditProfileModal from "../components/EditProfileModal";
 import { buildVideoCallLink, formatStartsIn } from "../utils/videoCall";
-
+import { openReceiptPdf } from "../utils/receiptDocument";
 /* ════════════════════════════════════════════════
    MinhaConta — Página privada "Minha conta"
    ════════════════════════════════════════════════ */
@@ -682,6 +682,9 @@ export default function MinhaConta({ theme, toggleTheme }) {
         {/* ══════ Próxima Videochamada (Premium) ══════ */}
         <NextVideoCallSection profile={safeProfile} navigate={navigate} />
 
+        {/* ══════ Histórico de Consultas ══════ */}
+        <ConsultationHistorySection profile={safeProfile} navigate={navigate} />
+
         {/* ══════ Minhas Experiências Profissionais ══════ */}
         <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
           <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
@@ -992,6 +995,154 @@ function NextVideoCallSection({ profile, navigate }) {
                 >
                   🎥 Acessar Videochamada
                 </a>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/* ════════════════════════════════════════════════
+   ConsultationHistorySection
+   ────────────────────────────────────────────────
+   Lista o histórico de consultas do trabalhador (todos os status).
+   Cada card mostra "Ver detalhes" com o status da consulta e um botão
+   "Ver nota fiscal ou recibo" que gera/baixa o documento em PDF
+   (impressão do navegador → Salvar como PDF).
+   ════════════════════════════════════════════════ */
+const CONSULTA_STATUS_LABELS = {
+  pending: { label: "Aguardando confirmação", cls: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200" },
+  accepted: { label: "Confirmada", cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200" },
+  in_progress: { label: "Em andamento", cls: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-200" },
+  completed: { label: "Concluída", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200" },
+  cancelled: { label: "Cancelada", cls: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-200" },
+};
+
+function ConsultationHistorySection({ profile }) {
+  const workerId = profile?.id || profile?.profileId || "";
+  const [consultas, setConsultas] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [openId, setOpenId] = useState(null);
+
+  useEffect(() => {
+    if (!workerId) return undefined;
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      try {
+        const q1 = query(
+          collection(db, "consultas"),
+          where("workerId", "==", workerId),
+          limit(50)
+        );
+        const snap = await getDocs(q1);
+        if (!cancelled) {
+          const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          rows.sort((a, b) => {
+            const ta = a.scheduledFor?.toDate?.()?.getTime?.() || a.createdAt?.toDate?.()?.getTime?.() || 0;
+            const tb = b.scheduledFor?.toDate?.()?.getTime?.() || b.createdAt?.toDate?.()?.getTime?.() || 0;
+            return tb - ta;
+          });
+          setConsultas(rows);
+        }
+      } catch {
+        // best-effort
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [workerId]);
+
+  const handleReceipt = (c) => {
+    const ok = openReceiptPdf({ ...c, workerNome: profile?.pseudonym || profile?.name || "" });
+    if (!ok) {
+      alert("Não foi possível abrir o recibo. Permita pop-ups para este site e tente novamente.");
+    }
+  };
+
+  return (
+    <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
+      <h2 className="text-lg font-bold text-blue-800 dark:text-blue-200 mb-4 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+        </svg>
+        Histórico de Consultas
+      </h2>
+
+      {loading ? (
+        <p className="text-sm text-slate-500 dark:text-slate-400 animate-pulse">
+          Carregando histórico…
+        </p>
+      ) : consultas.length === 0 ? (
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Você ainda não possui consultas registradas.
+        </p>
+      ) : (
+        <ul className="space-y-3">
+          {consultas.map((c) => {
+            const status = CONSULTA_STATUS_LABELS[c.status] || {
+              label: c.status || "—",
+              cls: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
+            };
+            const when =
+              c.scheduledFor?.toDate?.().toLocaleString("pt-BR") ||
+              c.createdAt?.toDate?.().toLocaleString("pt-BR") ||
+              "";
+            const isOpen = openId === c.id;
+            return (
+              <li
+                key={c.id}
+                className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
+                      {c.apoiadorNome || c.especialistaNome || c.especialidade || "Consulta"}
+                    </p>
+                    {c.especialidade && (
+                      <p className="text-xs text-slate-600 dark:text-slate-300">{c.especialidade}</p>
+                    )}
+                    {when && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{when}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={"inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold " + status.cls}>
+                      {status.label}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setOpenId(isOpen ? null : c.id)}
+                      className="inline-flex items-center px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-700"
+                    >
+                      {isOpen ? "Ocultar" : "Ver detalhes"}
+                    </button>
+                  </div>
+                </div>
+
+                {isOpen && (
+                  <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 grid sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
+                    <p><span className="font-semibold">Status:</span> {status.label}</p>
+                    <p><span className="font-semibold">Formato:</span> {c.modalidade === "video" || c.formato === "video" ? "Videochamada" : c.modalidade === "chat" || c.formato === "chat" ? "Chat" : (c.formato || "—")}</p>
+                    <p><span className="font-semibold">Valor:</span> {Number(c.valor ?? c.amount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
+                    <p><span className="font-semibold">Profissional:</span> {c.apoiadorNome || c.especialistaNome || "—"}</p>
+                  </div>
+                )}
+
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={() => handleReceipt(c)}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition"
+                  >
+                    🧾 Ver nota fiscal ou recibo (PDF)
+                  </button>
+                </div>
               </li>
             );
           })}

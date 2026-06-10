@@ -42,6 +42,10 @@ import {
   getSelectedProfileType,
   clearSelectedProfileType,
 } from "../services/profileType";
+import {
+  passwordChecklist,
+  passwordStrengthError,
+} from "../utils/passwordValidation";
 
 // ─────────────────────────────────────────────────────────────────────
 // Helpers locais
@@ -94,7 +98,9 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
   const [pseudonym, setPseudonym] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // UX
   const [submitting, setSubmitting] = useState(false);
@@ -251,8 +257,13 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
         setError("Informe um e-mail válido.");
         return;
       }
-      if (!password || password.length < 6) {
-        setError("A senha precisa ter pelo menos 6 caracteres.");
+      const strengthError = passwordStrengthError(password);
+      if (strengthError) {
+        setError(strengthError);
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError("As senhas não coincidem.");
         return;
       }
 
@@ -410,7 +421,7 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
                     autoComplete="new-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Mínimo 6 caracteres"
+                    placeholder="Mínimo 8 caracteres"
                     className="w-full h-11 pl-3 pr-20 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <button
@@ -418,10 +429,56 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
                     onClick={() => setShowPassword((s) => !s)}
                     className="absolute inset-y-0 right-0 px-3 text-xs font-bold text-blue-700 dark:text-blue-300"
                     tabIndex={-1}
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                   >
-                    {showPassword ? "Ocultar" : "Mostrar"}
+                    {showPassword ? "🙈 Ocultar" : "👁️ Mostrar"}
                   </button>
                 </div>
+                <ul className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">
+                  {passwordChecklist(password).map((rule) => (
+                    <li
+                      key={rule.label}
+                      className={rule.ok ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"}
+                    >
+                      {rule.ok ? "✓" : "•"} {rule.label}
+                    </li>
+                  ))}
+                </ul>
+              </label>
+
+              <label className="block">
+                <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">Confirmar senha</span>
+                <div className="relative mt-1">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repita a senha"
+                    className="w-full h-11 pl-3 pr-20 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((s) => !s)}
+                    className="absolute inset-y-0 right-0 px-3 text-xs font-bold text-blue-700 dark:text-blue-300"
+                    tabIndex={-1}
+                    aria-label={showConfirmPassword ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {showConfirmPassword ? "🙈 Ocultar" : "👁️ Mostrar"}
+                  </button>
+                </div>
+                {confirmPassword.length > 0 && (
+                  <p
+                    className={
+                      "mt-1 text-[11px] font-semibold " +
+                      (password === confirmPassword
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-rose-600 dark:text-rose-400")
+                    }
+                  >
+                    {password === confirmPassword ? "✓ Senhas coincidem" : "Senhas não coincidem"}
+                  </p>
+                )}
               </label>
 
               {error && (

@@ -63,6 +63,7 @@ function validarSenha(s) {
   return {
     tamanho: s.length >= 8,
     maiuscula: /[A-Z]/.test(s),
+    minuscula: /[a-z]/.test(s),
     numero: /\d/.test(s),
     especial: /[@#$%&*!]/.test(s),
   };
@@ -78,6 +79,8 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [specialties, setSpecialties] = useState([]);
   const [bio, setBio] = useState("");
   const [profileLink, setProfileLink] = useState("");
@@ -97,7 +100,11 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
 
   const senhaChecks = useMemo(() => validarSenha(password), [password]);
   const senhaValida =
-    senhaChecks.tamanho && senhaChecks.maiuscula && senhaChecks.numero && senhaChecks.especial;
+    senhaChecks.tamanho &&
+    senhaChecks.maiuscula &&
+    senhaChecks.minuscula &&
+    senhaChecks.numero &&
+    senhaChecks.especial;
   const senhasCoincidem = password.length > 0 && password === confirmPassword;
   const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const cpfDigits = cpf.replace(/\D/g, "");
@@ -457,22 +464,36 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
                 <label htmlFor="prof-senha" className={labelClass}>
                   Senha <span className="text-rose-600">*</span>
                 </label>
-                <input
-                  id="prof-senha"
-                  name="password"
-                  type="password"
-                  required
-                  autoComplete="new-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={inputClass}
-                />
+                <div className="relative">
+                  <input
+                    id="prof-senha"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={inputClass + " pr-20"}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    className="absolute inset-y-0 right-0 px-3 text-xs font-bold text-blue-700"
+                    tabIndex={-1}
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {showPassword ? "🙈 Ocultar" : "👁️ Mostrar"}
+                  </button>
+                </div>
                 <ul className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">
                   <li className={senhaChecks.tamanho ? "text-emerald-600" : "text-slate-500"}>
                     {senhaChecks.tamanho ? "✓" : "•"} Mínimo 8 caracteres
                   </li>
                   <li className={senhaChecks.maiuscula ? "text-emerald-600" : "text-slate-500"}>
                     {senhaChecks.maiuscula ? "✓" : "•"} Uma letra maiúscula
+                  </li>
+                  <li className={senhaChecks.minuscula ? "text-emerald-600" : "text-slate-500"}>
+                    {senhaChecks.minuscula ? "✓" : "•"} Uma letra minúscula
                   </li>
                   <li className={senhaChecks.numero ? "text-emerald-600" : "text-slate-500"}>
                     {senhaChecks.numero ? "✓" : "•"} Um número
@@ -486,16 +507,27 @@ export default function ProfissionalApoioCadastro({ theme, toggleTheme }) {
                 <label htmlFor="prof-confirma" className={labelClass}>
                   Confirmar senha <span className="text-rose-600">*</span>
                 </label>
-                <input
-                  id="prof-confirma"
-                  name="confirmPassword"
-                  type="password"
-                  required
-                  autoComplete="new-password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={inputClass}
-                />
+                <div className="relative">
+                  <input
+                    id="prof-confirma"
+                    name="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    required
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className={inputClass + " pr-20"}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((s) => !s)}
+                    className="absolute inset-y-0 right-0 px-3 text-xs font-bold text-blue-700"
+                    tabIndex={-1}
+                    aria-label={showConfirmPassword ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {showConfirmPassword ? "🙈 Ocultar" : "👁️ Mostrar"}
+                  </button>
+                </div>
                 {confirmPassword.length > 0 && (
                   <p
                     className={

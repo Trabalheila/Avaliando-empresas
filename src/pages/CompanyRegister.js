@@ -31,6 +31,7 @@ function validarSenha(s) {
   return {
     tamanho: s.length >= 8,
     maiuscula: /[A-Z]/.test(s),
+    minuscula: /[a-z]/.test(s),
     numero: /\d/.test(s),
     especial: /[@#$%&*!]/.test(s),
   };
@@ -185,7 +186,7 @@ export default function CompanyRegister() {
   }
 
   const senhaChecks = useMemo(() => validarSenha(senha), [senha]);
-  const senhaValida = senhaChecks.tamanho && senhaChecks.maiuscula && senhaChecks.numero && senhaChecks.especial;
+  const senhaValida = senhaChecks.tamanho && senhaChecks.maiuscula && senhaChecks.minuscula && senhaChecks.numero && senhaChecks.especial;
   const senhasCoincidem = senha.length > 0 && senha === confirmarSenha;
   const cnpjCompleto = cnpj.replace(/\D/g, "").length === 14;
 
@@ -547,6 +548,7 @@ export default function CompanyRegister() {
             {[
               { ok: senhaChecks.tamanho, label: "Mínimo 8 caracteres" },
               { ok: senhaChecks.maiuscula, label: "Uma letra maiúscula" },
+              { ok: senhaChecks.minuscula, label: "Uma letra minúscula" },
               { ok: senhaChecks.numero, label: "Um número" },
               { ok: senhaChecks.especial, label: "Um especial (@#$%&*!)" },
             ].map((req, i) => (
