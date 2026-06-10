@@ -22,6 +22,7 @@ import {
   readEssencialVideoUsage,
   incrementEssencialVideoUsage,
 } from "../../utils/videoCall";
+import { buildApiUrl } from "../../utils/apiBase";
 
 /** Card de videoconferência: botão de iniciar, link compartilhável
  *  e aviso de privacidade. Só é renderizado quando o tipo de
@@ -253,6 +254,223 @@ function VideoEssencialCard({ caseId, navigate }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Card de upload e envio de recibo ao trabalhador (cliente/paciente).
+ *  O profissional anexa o recibo do atendimento e, ao confirmar, ele é
+ *  enviado por e-mail ao trabalhador via /api/send-receipt. */
+const MAX_RECEIPT_MB = 2;
+const ACCEPT_RECEIPT =
+  ".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp";
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      // result = "data:<mime>;base64,<conteúdo>"
+      const base64 = result.includes(",") ? result.split(",")[1] : result;
+      resolve(base64);
+    };
+    reader.onerror = () =>
+      reject(reader.error || new Error("Falha ao ler o arquivo."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function ReceiptUploadCard({ caseId, data, apoiadorId, specialistName }) {
+  const [file, setFile] = useState(null);
+  const [email, setEmail] = useState(
+    () => data?.workerEmail || data?.clientEmail || ""
+  );
+  const [note, setNote] = useState("");
+  const [sending, setSending] = useState(false);
+  const [feedback, setFeedback] = useState(null); // { ok, msg }
+
+  const workerUid = data?.workerUid || data?.workerId || "";
+
+  const handleFile = (e) => {
+    setFeedback(null);
+    const f = e.target.files?.[0] || null;
+    if (!f) {
+      setFile(null);
+      return;
+    }
+    if (f.size > MAX_RECEIPT_MB * 1024 * 1024) {
+      setFile(null);
+      setFeedback({
+        ok: false,
+        msg: `O arquivo excede o limite de ${MAX_RECEIPT_MB} MB.`,
+      });
+      e.target.value = "";
+      return;
+    }
+    setFile(f);
+  };
+
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const canSend = !!file && !sending && (Boolean(workerUid) || emailValid);
+
+  const handleSend = async () => {
+    if (!file) {
+      setFeedback({ ok: false, msg: "Anexe o arquivo do recibo." });
+      return;
+    }
+    if (!workerUid && !emailValid) {
+      setFeedback({
+        ok: false,
+        msg: "Informe um e-mail de destinatário válido.",
+      });
+      return;
+    }
+    setSending(true);
+    setFeedback(null);
+    try {
+      const fileContentBase64 = await fileToBase64(file);
+      const resp = await fetch(buildApiUrl("/api/send-receipt"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          caseId,
+          apoiadorId,
+          specialistName,
+          workerUid: workerUid || undefined,
+          toEmail: email.trim() || undefined,
+          note: note.trim() || undefined,
+          fileName: file.name,
+          fileType: file.type,
+          fileContentBase64,
+        }),
+      });
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok || json?.ok === false) {
+        setFeedback({
+          ok: false,
+          msg:
+            json?.error ||
+            "Não foi possível enviar o recibo. Tente novamente.",
+        });
+      } else if (json?.emailed === false) {
+        setFeedback({
+          ok: false,
+          msg: "Envio de e-mail indisponível no momento. Tente mais tarde.",
+        });
+      } else {
+        setFeedback({
+          ok: true,
+          msg: "Recibo enviado para o trabalhador com sucesso.",
+        });
+        setFile(null);
+        setNote("");
+      }
+    } catch (err) {
+      setFeedback({
+        ok: false,
+        msg: err?.message || "Erro inesperado ao enviar o recibo.",
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-emerald-100 dark:border-slate-700 p-5">
+      <h2 className="text-base md:text-lg font-bold text-emerald-800 dark:text-emerald-200 flex items-center gap-2">
+        <span aria-hidden="true">🧾</span> Enviar recibo ao trabalhador
+      </h2>
+      <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+        Anexe o recibo do atendimento. Ao confirmar, ele será enviado por
+        e-mail diretamente ao trabalhador deste caso.
+      </p>
+
+      <div className="mt-4 space-y-3">
+        <div>
+          <label className="text-[11px] uppercase tracking-wide font-semibold text-slate-500 dark:text-slate-400">
+            Arquivo do recibo (PDF, PNG, JPG ou WEBP · até {MAX_RECEIPT_MB} MB)
+          </label>
+          <input
+            type="file"
+            accept={ACCEPT_RECEIPT}
+            onChange={handleFile}
+            className="mt-1 block w-full text-sm text-slate-700 dark:text-slate-200 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-emerald-600 file:text-white hover:file:bg-emerald-700 cursor-pointer"
+          />
+          {file && (
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              Selecionado: {file.name} (
+              {(file.size / (1024 * 1024)).toFixed(2)} MB)
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label
+            htmlFor={`receipt-email-${caseId}`}
+            className="text-[11px] uppercase tracking-wide font-semibold text-slate-500 dark:text-slate-400"
+          >
+            E-mail do trabalhador
+            {workerUid ? " (opcional — já vinculado ao caso)" : ""}
+          </label>
+          <input
+            id={`receipt-email-${caseId}`}
+            type="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setFeedback(null);
+            }}
+            placeholder="email@exemplo.com"
+            className="mt-1 block w-full text-sm px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor={`receipt-note-${caseId}`}
+            className="text-[11px] uppercase tracking-wide font-semibold text-slate-500 dark:text-slate-400"
+          >
+            Mensagem ao trabalhador (opcional)
+          </label>
+          <textarea
+            id={`receipt-note-${caseId}`}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={2}
+            maxLength={1000}
+            placeholder="Ex.: Segue o recibo referente à consulta realizada."
+            className="mt-1 block w-full text-sm px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 resize-y"
+          />
+        </div>
+
+        {feedback && (
+          <p
+            className={
+              "text-sm font-semibold " +
+              (feedback.ok
+                ? "text-emerald-700 dark:text-emerald-300"
+                : "text-red-600 dark:text-red-400")
+            }
+          >
+            {feedback.ok ? "✅ " : "⚠️ "}
+            {feedback.msg}
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={handleSend}
+          disabled={!canSend}
+          className={
+            "inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition " +
+            (canSend
+              ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+              : "bg-slate-300 text-slate-500 cursor-not-allowed dark:bg-slate-700 dark:text-slate-400")
+          }
+        >
+          {sending ? "Enviando…" : "Confirmar e enviar recibo"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -571,6 +789,8 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
   // MOCK: se userProfile.isPremium estiver presente, prevalece;
   // senão buscamos o doc /apoiadores/{apoiadorId} para ler `plano`.
   const [isPremium, setIsPremium] = useState(false);
+  const [apoiadorId, setApoiadorId] = useState("");
+  const [specialistName, setSpecialistName] = useState("");
   useEffect(() => {
     let prof = {};
     try {
@@ -580,6 +800,10 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
     }
     const apoiadorId = prof?.apoiadorId || prof?.uid || prof?.id || "";
     setAuthorized(Boolean(apoiadorId));
+    setApoiadorId(apoiadorId);
+    setSpecialistName(
+      prof?.nomeCompleto || prof?.name || prof?.displayName || prof?.nome || ""
+    );
 
     // Mock/override imediato vindo do localStorage.
     if (typeof prof?.isPremium === "boolean") {
@@ -693,6 +917,12 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
                 <VideoEssencialCard caseId={caseId} navigate={navigate} />
               ))}
             <CaseBody tipo={tipo} data={data} />
+            <ReceiptUploadCard
+              caseId={caseId}
+              data={data}
+              apoiadorId={apoiadorId}
+              specialistName={specialistName}
+            />
           </>
         )}
       </main>
