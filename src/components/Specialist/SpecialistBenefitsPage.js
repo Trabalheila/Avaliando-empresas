@@ -71,6 +71,11 @@ const ESSENCIAL_BENEFITS = [
 
 const PREMIUM_BENEFITS = [
   { included: true, label: "Todos os benefícios do Plano Essencial" },
+  {
+    included: true,
+    label:
+      "Você define o valor que cobra por consulta — o preço escolhido aparece no seu perfil e na busca de especialistas",
+  },
   { included: true, label: "Gestão ilimitada de casos ativos" },
   { included: true, label: "Acesso total a oportunidades de clientes" },
   { included: true, label: "Maior visibilidade no diretório de especialistas" },

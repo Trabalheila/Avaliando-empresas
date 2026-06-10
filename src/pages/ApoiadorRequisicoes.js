@@ -209,8 +209,17 @@ export default function ApoiadorRequisicoes({ theme, toggleTheme }) {
     setSavingPreco(true);
     setPrecoMsg("");
     try {
-      await updateDoc(doc(db, "apoiadores", apoiadorId), { precoConsulta: value });
-      setApoiador((prev) => (prev ? { ...prev, precoConsulta: value } : prev));
+      // Mantém `precoConsulta` e `averageConsultationPrice` em sincronia: a
+      // busca de especialistas (FindSpecialistPage) prioriza
+      // `averageConsultationPrice`, então atualizar apenas `precoConsulta`
+      // faria o valor exibido divergir do que o profissional escolheu.
+      await updateDoc(doc(db, "apoiadores", apoiadorId), {
+        precoConsulta: value,
+        averageConsultationPrice: value,
+      });
+      setApoiador((prev) =>
+        prev ? { ...prev, precoConsulta: value, averageConsultationPrice: value } : prev
+      );
       setPrecoMsg("Preço atualizado com sucesso.");
     } catch (err) {
       setPrecoMsg(err?.message || "Erro ao salvar preço.");
