@@ -1030,7 +1030,10 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
         })()}
 
         {/* ─── Seções dinâmicas (ordem definida em specialistConfig.dashboardSections) ─── */}
-        {(specialistConfig.dashboardSections || DEFAULT_DASHBOARD_SECTIONS).map((sectionId) => {
+        {(specialistConfig.dashboardSections || DEFAULT_DASHBOARD_SECTIONS)
+          // Card "Pedidos de contato de empresas" removido da interface.
+          .filter((sectionId) => sectionId !== "pendingRequests")
+          .map((sectionId) => {
           switch (sectionId) {
             case "overview":
               return (

@@ -50,6 +50,9 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
   const [plano, setPlano] = useState("");
   const [precoConsulta, setPrecoConsulta] = useState("");
   const isPremium = String(plano || "").toLowerCase() === "premium";
+  // E-mail da conta Mercado Pago do especialista. Usado pelo backend para
+  // direcionar a parte do profissional no split de pagamentos das consultas.
+  const [mpEmail, setMpEmail] = useState("");
 
   /* Carrega o doc atual do apoiador. */
   useEffect(() => {
@@ -80,6 +83,7 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
           setNichosText(nichos.join(", "));
           setDisponibilidade(d.disponibilidade || "");
           setPlano(d.plano || d.planType || d.tier || "");
+          setMpEmail(d.mercadoPagoEmail || d.mpEmail || "");
           const preco = Number(d.precoConsulta || d.preco || 0);
           setPrecoConsulta(preco > 0 ? String(preco) : "");
         }
@@ -171,6 +175,21 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
           disponibilidade: disponibilidade.trim(),
         };
 
+        // E-mail do Mercado Pago — valida o formato antes de salvar. Permite
+        // limpar o campo (string vazia) ou informar um e-mail válido.
+        const mpEmailTrim = mpEmail.trim().toLowerCase();
+        if (mpEmailTrim) {
+          const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mpEmailTrim);
+          if (!emailOk) {
+            setError("Informe um e-mail do Mercado Pago válido (ex.: voce@email.com).");
+            setSaving(false);
+            return;
+          }
+          updates.mercadoPagoEmail = mpEmailTrim;
+        } else {
+          updates.mercadoPagoEmail = "";
+        }
+
         // Preço de consulta — somente Premium define o próprio valor. O campo
         // de entrada nem aparece para outros planos, mas validamos aqui também
         // por segurança. Valor inválido/zerado é ignorado (não sobrescreve).
@@ -241,6 +260,7 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
             areas: updates.areas,
             nichos: updates.nichos,
             disponibilidade: updates.disponibilidade,
+            mercadoPagoEmail: updates.mercadoPagoEmail,
           };
           if (typeof updates.precoConsulta === "number") {
             merged.precoConsulta = updates.precoConsulta;
@@ -267,7 +287,7 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
         setSaving(false);
       }
     },
-    [apoiadorId, descricao, areasText, nichosText, disponibilidade, fotoFile, compressImageToDataUrl, isPremium, precoConsulta]
+    [apoiadorId, descricao, areasText, nichosText, disponibilidade, fotoFile, compressImageToDataUrl, isPremium, precoConsulta, mpEmail]
   );
 
   if (!apoiadorId) {
@@ -441,6 +461,31 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
                 placeholder="Ex.: Atendimento de seg. a sex., 9h–18h. Reuniões online ou presenciais em SP."
                 className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+
+            {/* Dados de pagamento (Mercado Pago) — destino do repasse no split */}
+            <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-900/20 p-4">
+              <label
+                htmlFor="mp-email"
+                className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1"
+              >
+                E-mail da conta Mercado Pago
+              </label>
+              <input
+                id="mp-email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                value={mpEmail}
+                onChange={(e) => setMpEmail(e.target.value)}
+                placeholder="Ex.: voce@email.com"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+                Informe o e-mail vinculado à sua conta Mercado Pago. É para ele que
+                enviaremos a sua parte de cada consulta paga (split de pagamentos).
+                Sem este dado, não conseguimos repassar o valor das suas consultas.
+              </p>
             </div>
 
             {/* Valor da consulta — exclusivo Premium */}

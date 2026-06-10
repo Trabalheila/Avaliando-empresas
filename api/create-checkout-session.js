@@ -1,3 +1,5 @@
+import { getAdminResources } from "./_firebaseAdmin.js";
+
 function getAppOrigin(req) {
   const headerOrigin = req.headers.origin;
   if (headerOrigin) return headerOrigin;
@@ -288,6 +290,26 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
 }
 
 /**
+ * Busca o e-mail da conta Mercado Pago do especialista (apoiador) no
+ * Firestore. Esse e-mail é o destino do repasse no split de pagamentos:
+ * é informado pelo próprio especialista em /apoiador/perfil. Retorna ""
+ * quando ausente ou em caso de falha (não bloqueia o checkout).
+ */
+async function getApoiadorMpEmail(apoiadorId) {
+  if (!apoiadorId) return "";
+  try {
+    const { db } = await getAdminResources();
+    const snap = await db.collection("apoiadores").doc(apoiadorId).get();
+    if (!snap.exists) return "";
+    const data = snap.data() || {};
+    return (data.mercadoPagoEmail || data.mpEmail || "").toString().trim().toLowerCase();
+  } catch (err) {
+    console.warn("[create-checkout-session] Falha ao buscar mercadoPagoEmail do apoiador:", err?.message || err);
+    return "";
+  }
+}
+
+/**
  * Cria uma `preference` (one-shot) no Mercado Pago para uma consulta
  * avulsa entre trabalhador Premium e Apoiador. Usa `marketplace_fee`
  * para o split (10% essential / 12.5% premium) — funcional quando o
@@ -319,6 +341,20 @@ async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tie
 
   const feePct = tier === "premium" ? 0.125 : 0.1;
   const marketplaceFee = Number((safeAmount * feePct).toFixed(2));
+  // Valor líquido a repassar ao especialista (total - comissão da plataforma).
+  const recipientAmount = Number((safeAmount - marketplaceFee).toFixed(2));
+
+  // E-mail da conta Mercado Pago do especialista — destino do repasse. É
+  // coletado no perfil do especialista (/apoiador/perfil). Vai no metadata e
+  // nos parâmetros de notificação para que o webhook saiba para onde enviar a
+  // parte do profissional ao reconciliar/efetuar o split do pagamento.
+  const recipientMpEmail = await getApoiadorMpEmail(apoiadorId);
+  if (!recipientMpEmail) {
+    console.warn(
+      `[create-checkout-session] Apoiador ${apoiadorId} sem mercadoPagoEmail cadastrado; ` +
+        "o repasse do split precisará ser tratado manualmente."
+    );
+  }
 
   // IMPORTANTE: NÃO enviamos `marketplace_fee` na preferência.
   // O `marketplace_fee` só é válido em uma integração de MARKETPLACE real,
@@ -341,6 +377,9 @@ async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tie
     workerId: workerId || "",
     requesterAudience: requesterAudience === "employer" ? "employer" : "worker",
   });
+  if (recipientMpEmail) {
+    notificationParams.set("recipientMpEmail", recipientMpEmail);
+  }
 
   const preferencePayload = {
     items: [
@@ -388,6 +427,10 @@ async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tie
       requesterAudience: requesterAudience === "employer" ? "employer" : "worker",
       feePct,
       marketplaceFee,
+      // Dados do repasse (split) ao especialista — usados na reconciliação /
+      // transferência da parte do profissional pelo webhook.
+      recipientMpEmail: recipientMpEmail || null,
+      recipientAmount,
     },
   };
 
@@ -443,6 +486,8 @@ async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tie
     checkoutUrl,
     preferenceId: json?.id || null,
     marketplaceFee,
+    recipientMpEmail: recipientMpEmail || null,
+    recipientAmount,
     amount: safeAmount,
   };
 }
