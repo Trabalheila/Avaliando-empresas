@@ -31,6 +31,58 @@ function normalizeCompanySlug(value) {
     .replace(/^-+|-+$/g, "");
 }
 
+/**
+ * Diagnóstico do PIX (best-effort, não bloqueia o checkout).
+ *
+ * Consulta GET /v1/payment_methods do Mercado Pago para descobrir QUAIS meios
+ * a CONTA realmente oferece. Se o PIX não estiver nessa lista (ou estiver com
+ * status != "active"), o problema NÃO é o código — é a conta de vendedor que
+ * precisa cadastrar uma chave PIX em "Seu negócio > Meios de pagamento".
+ *
+ * Os logs aparecem no painel da Vercel (Functions > Logs).
+ */
+async function logPixAvailability(accessToken) {
+  try {
+    const resp = await fetch("https://api.mercadopago.com/v1/payment_methods", {
+      method: "GET",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const text = await resp.text();
+    let methods;
+    try {
+      methods = text ? JSON.parse(text) : [];
+    } catch {
+      methods = [];
+    }
+    if (!resp.ok || !Array.isArray(methods)) {
+      console.warn(
+        `[PIX-DIAG] Não foi possível listar payment_methods (HTTP ${resp.status}). ` +
+          `Verifique se o MERCADO_PAGO_ACCESS_TOKEN é válido.`
+      );
+      return;
+    }
+    const pix = methods.find((m) => (m?.id || "").toString().toLowerCase() === "pix");
+    if (!pix) {
+      console.warn(
+        "[PIX-DIAG] ⚠️ A conta do Mercado Pago NÃO oferece PIX (id 'pix' ausente em /v1/payment_methods). " +
+          "Cadastre uma CHAVE PIX na conta de vendedor (Seu negócio > Meios de pagamento). " +
+          "Enquanto isso, o PIX não aparecerá no checkout, independentemente do código."
+      );
+      return;
+    }
+    if ((pix.status || "").toString().toLowerCase() !== "active") {
+      console.warn(
+        `[PIX-DIAG] ⚠️ PIX existe mas está com status "${pix.status}" (esperado "active"). ` +
+          "Conclua a ativação do PIX na conta de vendedor do Mercado Pago."
+      );
+      return;
+    }
+    console.log("[PIX-DIAG] ✅ PIX está ativo nesta conta — deve aparecer no checkout.");
+  } catch (err) {
+    console.warn("[PIX-DIAG] Falha ao consultar payment_methods:", err?.message || err);
+  }
+}
+
 
 async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, audience, tier, paymentMethod, apoiadorId }) {
   const accessToken = (process.env.MERCADO_PAGO_ACCESS_TOKEN || "").toString().trim();
@@ -356,6 +408,10 @@ async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tie
   if (!checkoutUrl) {
     throw new Error("Resposta do Mercado Pago invalida: init_point ausente.");
   }
+
+  // Diagnóstico do PIX (best-effort). Loga, no painel da Vercel, se a conta
+  // de vendedor realmente oferece PIX — causa raiz de "o PIX não aparece".
+  await logPixAvailability(accessToken);
 
   return {
     provider: "mercadopago",

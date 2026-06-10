@@ -44,6 +44,12 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
   const [areasText, setAreasText] = useState("");
   const [nichosText, setNichosText] = useState("");
   const [disponibilidade, setDisponibilidade] = useState("");
+  // Plano do especialista e valor da consulta. O campo de preço só é
+  // liberado para Premium — Essencial usa preço tabelado pela plataforma e
+  // Gratuito segue o preço fixo da consulta avulsa.
+  const [plano, setPlano] = useState("");
+  const [precoConsulta, setPrecoConsulta] = useState("");
+  const isPremium = String(plano || "").toLowerCase() === "premium";
 
   /* Carrega o doc atual do apoiador. */
   useEffect(() => {
@@ -73,6 +79,9 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
             : [];
           setNichosText(nichos.join(", "));
           setDisponibilidade(d.disponibilidade || "");
+          setPlano(d.plano || d.planType || d.tier || "");
+          const preco = Number(d.precoConsulta || d.preco || 0);
+          setPrecoConsulta(preco > 0 ? String(preco) : "");
         }
       } catch (err) {
         if (!cancelled) setError(err?.message || "Erro ao carregar perfil.");
@@ -162,6 +171,18 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
           disponibilidade: disponibilidade.trim(),
         };
 
+        // Preço de consulta — somente Premium define o próprio valor. O campo
+        // de entrada nem aparece para outros planos, mas validamos aqui também
+        // por segurança. Valor inválido/zerado é ignorado (não sobrescreve).
+        if (isPremium) {
+          const precoNum = Number(String(precoConsulta).replace(",", "."));
+          if (Number.isFinite(precoNum) && precoNum > 0) {
+            updates.precoConsulta = precoNum;
+            // Mantém o agregado usado na busca em sincronia com o valor base.
+            updates.averageConsultationPrice = precoNum;
+          }
+        }
+
         // Upload da foto (se houve seleção de novo arquivo).
         if (fotoFile) {
           let url = "";
@@ -221,6 +242,10 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
             nichos: updates.nichos,
             disponibilidade: updates.disponibilidade,
           };
+          if (typeof updates.precoConsulta === "number") {
+            merged.precoConsulta = updates.precoConsulta;
+            merged.averageConsultationPrice = updates.precoConsulta;
+          }
           if (updates.foto) {
             merged.foto = updates.foto;
             merged.photoURL = updates.photoURL || updates.foto;
@@ -242,7 +267,7 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
         setSaving(false);
       }
     },
-    [apoiadorId, descricao, areasText, nichosText, disponibilidade, fotoFile, compressImageToDataUrl]
+    [apoiadorId, descricao, areasText, nichosText, disponibilidade, fotoFile, compressImageToDataUrl, isPremium, precoConsulta]
   );
 
   if (!apoiadorId) {
@@ -417,6 +442,50 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
                 className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+
+            {/* Valor da consulta — exclusivo Premium */}
+            {isPremium ? (
+              <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-900/20 p-4">
+                <label
+                  htmlFor="preco-consulta"
+                  className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1"
+                >
+                  Valor da consulta (R$)
+                  <span className="ml-2 align-middle text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                    Premium
+                  </span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">R$</span>
+                  <input
+                    id="preco-consulta"
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    value={precoConsulta}
+                    onChange={(e) => setPrecoConsulta(e.target.value)}
+                    placeholder="Ex.: 150.00"
+                    className="w-40 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+                  Como especialista Premium, você define o valor cobrado por consulta.
+                  Ele aparece no seu perfil público e no card da busca de especialistas.
+                  A plataforma retém 12,5% para custos operacionais.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-4">
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  Valor da consulta
+                </p>
+                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                  Definir o próprio valor é exclusivo do plano <strong>Premium</strong>. No
+                  plano Essencial o preço é tabelado pela plataforma e no Gratuito a consulta
+                  avulsa tem valor fixo. Faça upgrade para definir seu valor.
+                </p>
+              </div>
+            )}
 
             {/* Feedback */}
             {message && (

@@ -40,6 +40,14 @@ function normalizeTipo(v) {
   return String(v || "").toLowerCase().trim().replace(/-/g, "_");
 }
 
+function formatBRL(value) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+  }).format(Number(value) || 0);
+}
+
 /* Dados mockados para garantir UX testável sem depender do Firestore. */
 const MOCK_SPECIALISTS = [
   {
@@ -299,9 +307,14 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
           </div>
         ) : (
           // Plano Premium: usa o valor definido pelo próprio profissional.
-          <p className="text-sm font-bold text-slate-800 dark:text-slate-100 text-right">
-            {avgPrice > 0 ? <>R$ {avgPrice}</> : "Sob consulta"}
-          </p>
+          <div className="text-right">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              Consulta
+            </p>
+            <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
+              {avgPrice > 0 ? formatBRL(avgPrice) : "Sob consulta"}
+            </p>
+          </div>
         )}
       </div>
 
