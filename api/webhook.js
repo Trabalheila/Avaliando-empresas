@@ -368,19 +368,45 @@ async function handleMercadoPagoWebhook(req, res) {
           : "worker";
       const feePct = tier === "premium" ? 0.125 : 0.10;
       const marketplaceFee = Number((amount * feePct).toFixed(2));
+      const modalidade = (meta.modalidade || "").toString() === "video" ? "video" : "chat";
+      const message = (meta.message || "").toString();
+      const originalAmount = Number(meta.originalAmount);
+      const discountApplied = Number(meta.discountAmount);
+      // Comissao exibida ao especialista (snapshot). Mantemos a mesma
+      // referencia de split aplicada na preferencia (feePct).
+      const platformCommission = marketplaceFee;
+      const amountDueToSpecialist = Number((amount - marketplaceFee).toFixed(2));
       const consultaDoc = {
         apoiadorId: apoiadorIdConsulta,
+        apoiadorNome: (meta.apoiadorNome || "").toString() || null,
         workerId: workerIdConsulta,
+        workerNome: (meta.workerNome || "").toString() || null,
         requesterAudience,
+        // Tipo/modalidade da consulta avulsa (compat. com painel do especialista).
+        tipo: "avulsa",
+        type: "avulsa",
+        modalidade,
+        message: message || null,
         amount,
+        originalAmount: Number.isFinite(originalAmount) ? originalAmount : amount,
+        discountApplied: Number.isFinite(discountApplied) ? discountApplied : 0,
+        platformCommission,
+        amountDueToSpecialist,
         marketplaceFee,
         tier,
         especialidade: (meta.especialidade || "").toString() || null,
         provider: "mercadopago",
+        gateway: "mercadopago",
         paymentId: payment.id || null,
+        gateway_payment_id: payment.id || null,
         payerEmail: payment?.payer?.email || null,
         status: "approved",
+        paymentStatus: "paid",
         readByApoiador: false,
+        // Sala de atendimento liberada apenas apos pagamento aprovado.
+        ...(modalidade === "video"
+          ? { sala_video_url: `${(process.env.APP_BASE_URL || "").replace(/\/+$/, "")}/sala-video/${apoiadorIdConsulta}_${workerIdConsulta}_${payment.id}` }
+          : { sala_chat_url: `${(process.env.APP_BASE_URL || "").replace(/\/+$/, "")}/chat/${apoiadorIdConsulta}_${workerIdConsulta}_${payment.id}` }),
         paidAt: FieldValue.serverTimestamp(),
         createdAt: FieldValue.serverTimestamp(),
       };

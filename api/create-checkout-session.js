@@ -243,7 +243,7 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
  * sem isso, o pagamento é processado normalmente e o split deve ser
  * reconciliado manualmente.
  */
-async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tier, amount, workerId, especialidade, requesterAudience }) {
+async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tier, amount, workerId, especialidade, requesterAudience, modalidade, message, workerNome, originalAmount, discountAmount }) {
   const accessToken = (process.env.MERCADO_PAGO_ACCESS_TOKEN || "").toString().trim();
   if (!accessToken) {
     throw new Error("MERCADO_PAGO_ACCESS_TOKEN nao configurado.");
@@ -256,6 +256,14 @@ async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tie
   if (!Number.isFinite(safeAmount) || safeAmount <= 0) {
     throw new Error("Valor da consulta inválido.");
   }
+
+  const safeModalidade = modalidade === "video" ? "video" : "chat";
+  // Mensagem do trabalhador (dúvida). Limitada para caber com folga no
+  // metadata da preferência do Mercado Pago, que é recuperado pelo webhook.
+  const safeMessage = (message || "").toString().slice(0, 1500);
+  const safeWorkerNome = (workerNome || "").toString().slice(0, 120);
+  const safeOriginalAmount = Number(originalAmount);
+  const safeDiscountAmount = Number(discountAmount);
 
   const feePct = tier === "premium" ? 0.125 : 0.1;
   const marketplaceFee = Number((safeAmount * feePct).toFixed(2));
@@ -287,18 +295,24 @@ async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tie
     marketplace_fee: marketplaceFee,
     external_reference: `consulta:${apoiadorId}:${workerId || "anon"}:${Date.now()}`,
     back_urls: {
-      success: `${appOrigin}/apoiadores/perfil/${encodeURIComponent(apoiadorId)}?consulta=success`,
-      failure: `${appOrigin}/apoiadores/perfil/${encodeURIComponent(apoiadorId)}?consulta=failure`,
-      pending: `${appOrigin}/apoiadores/perfil/${encodeURIComponent(apoiadorId)}?consulta=pending`,
+      success: `${appOrigin}/consulta/confirmacao?status=success`,
+      failure: `${appOrigin}/consulta/confirmacao?status=failure`,
+      pending: `${appOrigin}/consulta/confirmacao?status=pending`,
     },
     auto_return: "approved",
     notification_url: `${serverBase}/api/webhook?${notificationParams.toString()}`,
     metadata: {
       kind: "consultation",
       apoiadorId,
+      apoiadorNome: apoiadorNome || null,
       tier,
       workerId: workerId || null,
+      workerNome: safeWorkerNome || null,
       especialidade: especialidade || null,
+      modalidade: safeModalidade,
+      message: safeMessage || null,
+      originalAmount: Number.isFinite(safeOriginalAmount) ? safeOriginalAmount : safeAmount,
+      discountAmount: Number.isFinite(safeDiscountAmount) ? safeDiscountAmount : 0,
       requesterAudience: requesterAudience === "employer" ? "employer" : "worker",
       feePct,
       marketplaceFee,
@@ -362,6 +376,11 @@ export default async function handler(req, res) {
         workerId: (req.body?.workerId || "").toString().trim(),
         especialidade: (req.body?.especialidade || "").toString().trim(),
         requesterAudience: (req.body?.requesterAudience || "worker").toString().trim(),
+        modalidade: (req.body?.modalidade || "chat").toString().trim(),
+        message: (req.body?.message || req.body?.userDoubt || "").toString(),
+        workerNome: (req.body?.workerNome || "").toString().trim(),
+        originalAmount: Number(req.body?.originalAmount),
+        discountAmount: Number(req.body?.discountAmount),
       });
       return res.status(200).json(payload);
     } catch (err) {

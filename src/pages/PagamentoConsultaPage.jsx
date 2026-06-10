@@ -1,13 +1,8 @@
 ﻿import React, { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import AppHeader from "../components/AppHeader";
-import StripePaymentForm from "../components/StripePaymentForm";
-import { auth, db } from "../firebase";
-import { buildApiUrl } from "../utils/apiBase";
-import { registerConsultationTransaction } from "../services/consultaTransactions";
-
-const PLATFORM_COMMISSION_PCT = 0.2;
+import { auth } from "../firebase";
+import { requestConsultation } from "../services/billing";
 
 function formatBRL(amount) {
   const n = Number(amount) || 0;
@@ -36,11 +31,12 @@ export default function PagamentoConsultaPage({ theme, toggleTheme }) {
 
   const {
     professionalId,
-    professionalUid,
     professionalName,
     especialidadeId,
+    specialtyId,
     consultationPrice,
     originalAmount,
+    originalPrice,
     discountAmount,
     userDoubt,
     modalidade: modalidadeFromState,
@@ -48,19 +44,23 @@ export default function PagamentoConsultaPage({ theme, toggleTheme }) {
   } = location.state || {};
 
   const modalidade = modalidadeFromState === "video" ? "video" : "chat";
+  const especialidade = specialtyId || especialidadeId || "";
 
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [success] = useState(false);
   const [error, setError] = useState("");
 
   const finalAmount = useMemo(() => Number(consultationPrice || 0), [consultationPrice]);
   const normalizedOriginalAmount = useMemo(
-    () => Number(originalAmount || consultationPrice || 0),
-    [originalAmount, consultationPrice]
+    () => Number(originalAmount || originalPrice || consultationPrice || 0),
+    [originalAmount, originalPrice, consultationPrice]
   );
   const normalizedDiscount = useMemo(() => Number(discountAmount || 0), [discountAmount]);
 
-  async function persistConsultationAndTransaction(paymentMeta) {
+  /* Pagamento via Mercado Pago (Checkout Pro). Redireciona para o ambiente
+     seguro do Mercado Pago; a consulta so e registrada na colecao `consultas`
+     pelo webhook apos a aprovacao real do pagamento. */
+  async function handlePayWithMercadoPago() {
     setError("");
 
     const workerSnapshot = getWorkerSnapshot();
@@ -79,76 +79,27 @@ export default function PagamentoConsultaPage({ theme, toggleTheme }) {
       return;
     }
 
-    const platformCommission = finalAmount * PLATFORM_COMMISSION_PCT;
-    const amountDueToSpecialist = finalAmount - platformCommission;
-
     setSubmitting(true);
     try {
-      const payload = {
-        workerId,
-        workerNome: workerSnapshot.nome,
+      await requestConsultation({
         apoiadorId: professionalId,
-        apoiadorUid: professionalUid || "",
         apoiadorNome: professionalName,
-        especialidade: especialidadeId || "outro",
-        tipo: "avulsa",
-        type: "avulsa",
-        modalidade,
-        planoTipo: planoTipo || "",
-        message: String(userDoubt).trim().slice(0, 2000),
-        status: "pending",
-        readByApoiador: false,
+        tier: planoTipo === "premium" ? "premium" : "essential",
         amount: finalAmount,
+        workerId,
+        especialidade: especialidade || "outro",
+        audience: "worker",
+        modalidade,
+        message: String(userDoubt).trim(),
+        workerNome: workerSnapshot.nome,
         originalAmount: normalizedOriginalAmount,
-        discountApplied: normalizedDiscount,
-        platformCommission,
-        amountDueToSpecialist,
-        paymentStatus: "paid",
-        createdAt: serverTimestamp(),
-      };
-
-      const ref = await addDoc(collection(db, "consultas"), payload);
-
-      try {
-        await registerConsultationTransaction({
-          userId: workerId,
-          specialistId: professionalId,
-          consultationId: ref.id,
-          originalAmount: normalizedOriginalAmount,
-          discountApplied: normalizedDiscount,
-          finalAmountPaid: finalAmount,
-          platformCommission,
-          amountDueToSpecialist,
-          paymentMeta,
-        });
-      } catch (err) {
-        console.warn("PagamentoConsulta: falha ao registrar transacao", err);
-      }
-
-      try {
-        await fetch(buildApiUrl("/api/send-contact-request"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            requestId: ref.id,
-            kind: "consulta_avulsa",
-            fromUid: workerId,
-            fromCompanyName: workerSnapshot.nome,
-            toUid: professionalUid || professionalId,
-            toPseudonym: professionalName,
-            message: payload.message,
-            especialidade: payload.especialidade,
-          }),
-        });
-      } catch {
-        // Melhor esforco: a consulta principal ja foi registrada.
-      }
-
-      setSuccess(true);
+        discountAmount: normalizedDiscount,
+      });
+      // requestConsultation redireciona o navegador para o Mercado Pago.
+      // Mantemos `submitting` ativo durante o redirecionamento.
     } catch (err) {
       console.warn("PagamentoConsulta:", err);
-      setError(err?.message || "Nao foi possivel finalizar o pagamento.");
-    } finally {
+      setError(err?.message || "Nao foi possivel iniciar o pagamento.");
       setSubmitting(false);
     }
   }
@@ -252,17 +203,39 @@ export default function PagamentoConsultaPage({ theme, toggleTheme }) {
                 </p>
               </div>
 
-              <div className="mt-4">
-                <StripePaymentForm
-                  amount={finalAmount}
-                  currencyLabel={formatBRL(finalAmount)}
-                  onPaymentSuccess={persistConsultationAndTransaction}
-                  onCancel={() => navigate(-1)}
-                  disabled={submitting}
-                />
+              <div className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-blue-50/60 dark:bg-blue-950/20 p-3 text-xs text-slate-600 dark:text-slate-300">
+                <p className="flex items-center gap-2 font-semibold text-blue-700 dark:text-blue-300">
+                  <span aria-hidden="true">🔒</span> Pagamento seguro via Mercado Pago
+                </p>
+                <p className="mt-1">
+                  Você será redirecionado ao ambiente do Mercado Pago para concluir
+                  o pagamento (cartão, PIX ou boleto). Após a confirmação, sua
+                  solicitação é enviada automaticamente ao profissional.
+                </p>
               </div>
 
               {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
+
+              <div className="mt-4 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => navigate(-1)}
+                  disabled={submitting}
+                  className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
+                >
+                  Voltar
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePayWithMercadoPago}
+                  disabled={submitting}
+                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold"
+                >
+                  {submitting
+                    ? "Redirecionando…"
+                    : `Pagar ${formatBRL(finalAmount)} com Mercado Pago`}
+                </button>
+              </div>
             </>
           )}
         </section>

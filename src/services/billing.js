@@ -80,7 +80,7 @@ export async function handleCheckout({ cnpj, companySlug, companyName, audience,
  * Inicia uma consulta avulsa intermediada pela plataforma com split de pagamento.
  * Reaproveita o mesmo endpoint `/api/create-checkout-session` usando audience="consultation".
  */
-export async function requestConsultation({ apoiadorId, apoiadorNome, tier, amount, workerId, especialidade, audience } = {}) {
+export async function requestConsultation({ apoiadorId, apoiadorNome, tier, amount, workerId, especialidade, audience, modalidade, message, workerNome, originalAmount, discountAmount } = {}) {
   if (!apoiadorId) throw new Error("Especialista não identificado.");
   const safeAmount = Number(amount);
   if (!Number.isFinite(safeAmount) || safeAmount <= 0) {
@@ -101,6 +101,11 @@ export async function requestConsultation({ apoiadorId, apoiadorNome, tier, amou
       amount: safeAmount,
       workerId: workerId || "",
       especialidade: especialidade || "",
+      modalidade: modalidade === "video" ? "video" : "chat",
+      message: (message || "").toString(),
+      workerNome: workerNome || "",
+      originalAmount: Number.isFinite(Number(originalAmount)) ? Number(originalAmount) : safeAmount,
+      discountAmount: Number.isFinite(Number(discountAmount)) ? Number(discountAmount) : 0,
     }),
   });
 

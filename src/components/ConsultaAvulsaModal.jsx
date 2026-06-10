@@ -11,17 +11,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
 import {
-  addDoc,
   collection,
   getDocs,
   query,
-  serverTimestamp,
   where,
 } from "firebase/firestore";
 import { filterOutTestApoiadores } from "../utils/testAccounts";
-import { buildApiUrl } from "../utils/apiBase";
-import StripePaymentForm from "./StripePaymentForm";
-import { registerConsultationTransaction } from "../services/consultaTransactions";
+import { requestConsultation } from "../services/billing";
 import {
   getFreePlanConsultationPrice,
   FREE_PLAN_RESPONSE_SLA_MINUTES,
@@ -119,7 +115,7 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   // "select" → escolha de especialidade/profissional/mensagem
-  // "payment" → coleta de dados do cartão (StripePaymentForm)
+  // "payment" → resumo + redirecionamento ao Mercado Pago (Checkout Pro)
   const [step, setStep] = useState("select");
 
   /* Reset ao abrir/fechar. */
@@ -222,13 +218,12 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
     [isPremiumWorker, originalAmount]
   );
   const finalAmount = Math.max(0, originalAmount - discountAmount);
-  // Comissão fixa de 20% sobre o valor pago, conforme requisitos.
-  const PLATFORM_COMMISSION_PCT = 0.2;
-  const platformCommission = finalAmount * PLATFORM_COMMISSION_PCT;
-  const amountDueToSpecialist = finalAmount - platformCommission;
 
-  /* ── Submissão (após pagamento confirmado) ── */
-  async function persistConsultationAndTransaction(paymentMeta) {
+  /* ── Pagamento via Mercado Pago (Checkout Pro) ──
+     Redireciona para o ambiente seguro do Mercado Pago. A consulta só é
+     registrada na coleção `consultas` pelo webhook após a aprovação real
+     do pagamento — nunca pelo cliente. */
+  async function handlePayWithMercadoPago() {
     setError("");
     const workerId = auth.currentUser?.uid || worker?.uid || worker?.id || "";
     if (!workerId) {
@@ -245,80 +240,25 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
     }
     setSubmitting(true);
     try {
-      const payload = {
-        // Identificadores principais (compatíveis com ApoiadorRequisicoes).
-        workerId,
-        workerNome: worker?.pseudonimo || worker?.nome || "Trabalhador",
+      await requestConsultation({
         apoiadorId: selected.id,
-        apoiadorUid: selected.uid || "",
         apoiadorNome: selected.nome,
-        especialidade: selected.tipo,
-        // Tipo da consulta — "avulsa" (sem follow-up nem acompanhamento).
-        tipo: "avulsa",
-        type: "avulsa",
-        modalidade,
-        // SLA de resposta assumido pelo profissional ao aceitar (Plano
-        // Gratuito): responder em até N minutos. A contagem real começa
-        // no aceite (gravado em `acceptedAt`/`responseDeadlineAt` pelo
-        // especialista em ApoiadorRequisicoes).
-        responseSlaMinutes: FREE_PLAN_RESPONSE_SLA_MINUTES,
-        message: String(message).trim().slice(0, 2000),
-        status: "pending",
-        readByApoiador: false,
-        // Snapshot financeiro — facilita a leitura no dashboard do especialista.
+        tier: selected.plan === "premium" ? "premium" : "essential",
         amount: finalAmount,
+        workerId,
+        especialidade: selected.tipo,
+        audience: "worker",
+        modalidade,
+        message: String(message).trim(),
+        workerNome: worker?.pseudonimo || worker?.nome || "Trabalhador",
         originalAmount,
-        discountApplied: discountAmount,
-        platformCommission,
-        amountDueToSpecialist,
-        paymentStatus: "paid",
-        createdAt: serverTimestamp(),
-      };
-      const ref = await addDoc(collection(db, "consultas"), payload);
-
-      /* Registra a transação no backend (placeholder). Não bloqueia o
-         fluxo caso o registro auxiliar falhe — a consulta já foi gravada. */
-      try {
-        await registerConsultationTransaction({
-          userId: workerId,
-          specialistId: selected.id,
-          consultationId: ref.id,
-          originalAmount,
-          discountApplied: discountAmount,
-          finalAmountPaid: finalAmount,
-          platformCommission,
-          amountDueToSpecialist,
-          paymentMeta,
-        });
-      } catch (err) {
-        console.warn("ConsultaAvulsa: falha ao registrar transação", err);
-      }
-
-      /* Best-effort: notificação por e-mail ao especialista. */
-      try {
-        await fetch(buildApiUrl("/api/send-contact-request"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            requestId: ref.id,
-            kind: "consulta_avulsa",
-            fromUid: workerId,
-            fromCompanyName: payload.workerNome,
-            toUid: selected.uid || selected.id,
-            toPseudonym: selected.nome,
-            message: payload.message,
-            especialidade: selected.tipo,
-          }),
-        });
-      } catch {
-        /* silencioso — a solicitação já foi gravada no Firestore. */
-      }
-
-      setSuccess(true);
+        discountAmount,
+      });
+      // requestConsultation redireciona o navegador para o Mercado Pago.
+      // Mantemos `submitting` ativo durante o redirecionamento.
     } catch (err) {
       console.warn("ConsultaAvulsa:", err);
-      setError(err?.message || "Não foi possível enviar a solicitação.");
-    } finally {
+      setError(err?.message || "Não foi possível iniciar o pagamento.");
       setSubmitting(false);
     }
   }
@@ -438,16 +378,15 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
               )}
             </div>
 
-            <div className="mt-4">
-              <StripePaymentForm
-                amount={finalAmount}
-                currencyLabel={formatBRL(finalAmount)}
-                onPaymentSuccess={(paymentMeta) =>
-                  persistConsultationAndTransaction(paymentMeta)
-                }
-                onCancel={() => setStep("select")}
-                disabled={submitting}
-              />
+            <div className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-blue-50/60 dark:bg-blue-950/20 p-3 text-xs text-slate-600 dark:text-slate-300">
+              <p className="flex items-center gap-2 font-semibold text-blue-700 dark:text-blue-300">
+                <span aria-hidden="true">🔒</span> Pagamento seguro via Mercado Pago
+              </p>
+              <p className="mt-1">
+                Você será redirecionado ao ambiente do Mercado Pago para concluir
+                o pagamento (cartão, PIX ou boleto). O valor só é liberado ao
+                profissional após a conclusão do atendimento.
+              </p>
             </div>
 
             {error && (
@@ -455,6 +394,27 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
                 {error}
               </p>
             )}
+
+            <div className="mt-4 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setStep("select")}
+                disabled={submitting}
+                className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
+              >
+                Voltar
+              </button>
+              <button
+                type="button"
+                onClick={handlePayWithMercadoPago}
+                disabled={submitting}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold"
+              >
+                {submitting
+                  ? "Redirecionando…"
+                  : `Pagar ${formatBRL(finalAmount)} com Mercado Pago`}
+              </button>
+            </div>
           </>
         ) : (
           <>

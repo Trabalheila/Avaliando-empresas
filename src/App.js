@@ -56,6 +56,7 @@ import ProfissionalApoioCadastro from './pages/ProfissionalApoioCadastro';
 import ProfissionalApoioPerfil from './pages/ProfissionalApoioPerfil';
 import ConsultaAvulsaPage from './pages/ConsultaAvulsaPage';
 import PagamentoConsultaPage from './pages/PagamentoConsultaPage';
+import ConsultaConfirmacaoPage from './pages/ConsultaConfirmacaoPage';
 import migrateApoiadoresToUsers from './scripts/migrateApoiadoresToUsers';
 
 // Função para aplicar o tema (dark/light)
@@ -253,6 +254,7 @@ function App() {
       <Route path="/trabalhador/beneficios" element={<RequireAuth><WorkerBenefitsPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/consulta-avulsa" element={<RequireAuth><ConsultaAvulsaPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/pagamento-consulta" element={<RequireAuth><PagamentoConsultaPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/consulta/confirmacao" element={<RequireAuth><ConsultaConfirmacaoPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/chat/:conversationId" element={<RequireAuth><PlatformChat theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/apoiador/requisicoes" element={<RequireAuth><ApoiadorRequisicoes theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/empresa/cadastro" element={<CompanyRegister />} />
