@@ -311,7 +311,7 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
         setSubmitting(false);
       }
     },
-    [pseudonym, email, password, finalizeProfile, markFunnelStarted]
+    [pseudonym, email, password, confirmPassword, finalizeProfile, markFunnelStarted]
   );
 
   // ─── Finaliza pseudônimo após login social ───
