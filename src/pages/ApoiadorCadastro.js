@@ -17,6 +17,7 @@ const TIPOS = [
   { value: "advogado", label: "Advogado" },
   { value: "medico", label: "Médico" },
   { value: "psicologo", label: "Psicólogo" },
+  { value: "assistente_social", label: "Assistente Social" },
   { value: "consultor_rh", label: "Consultor de RH" },
   { value: "recrutador", label: "Recrutador" },
   { value: "contador", label: "Contador" },
@@ -54,12 +55,13 @@ const SEGMENTOS_PRESTADOR = [
 ];
 
 /* ── Profissões regulamentadas exigem número + estado/região do conselho ── */
-const REGULATED_PROFESSIONS = new Set(["advogado", "medico", "psicologo", "engenheiro_seguranca", "fisioterapeuta_ocupacional", "contador"]);
+const REGULATED_PROFESSIONS = new Set(["advogado", "medico", "psicologo", "assistente_social", "engenheiro_seguranca", "fisioterapeuta_ocupacional", "contador"]);
 
 const CREDENTIAL_LABELS = {
   advogado:                  { number: "Número da OAB",  state: "Estado da OAB (UF)",     placeholder: "Ex: SP" },
   medico:                    { number: "Número do CRM",  state: "Estado do CRM (UF)",     placeholder: "Ex: SP" },
   psicologo:                 { number: "Número do CRP",  state: "Região do CRP",          placeholder: "Ex: 06/SP" },
+  assistente_social:         { number: "Número do CRESS", state: "Região do CRESS",        placeholder: "Ex: 9/SP" },
   contador:                  { number: "Número do CRC",  state: "Estado do CRC (UF)",     placeholder: "Ex: SP" },
   engenheiro_seguranca:      { number: "Número do CREA", state: "Estado do CREA (UF)",    placeholder: "Ex: SP" },
   fisioterapeuta_ocupacional:{ number: "Número do CREFITO", state: "Região do CREFITO",  placeholder: "Ex: 3/SP" },

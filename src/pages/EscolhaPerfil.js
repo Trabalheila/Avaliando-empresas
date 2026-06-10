@@ -68,10 +68,6 @@ function EscolhaPerfil({ theme, toggleTheme }) {
     return () => { cancelled = true; };
   }, [navigate, viewingPlans]);
 
-  const scrollTo = (ref) => {
-    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
   const handlePremiumUnlock = async (audience = "worker", tier = "essential") => {
     // [DEBUG] Confirma que o clique chegou na funcao (problema de binding -> nao aparece)
     console.log("[handlePremiumUnlock] CLICADO", { audience, tier, ts: new Date().toISOString() });
@@ -225,7 +221,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
           {/* Card Trabalhador */}
           <button
             type="button"
-            onClick={() => scrollTo(workerRef)}
+            onClick={() => navigate("/trabalhador/beneficios")}
             className="group relative rounded-3xl border-2 border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-800 overflow-hidden shadow-lg hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 cursor-pointer flex flex-col"
           >
             <div className="w-full overflow-hidden" style={{ height: 280 }}>
@@ -254,7 +250,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
           {/* Card Apoiador */}
           <button
             type="button"
-            onClick={() => scrollTo(supporterRef)}
+            onClick={() => navigate("/especialista/beneficios")}
             className="group relative rounded-3xl border-2 border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-800 overflow-hidden shadow-lg hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 cursor-pointer flex flex-col"
           >
             <div className="w-full overflow-hidden" style={{ height: 280 }}>

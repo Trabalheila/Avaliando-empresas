@@ -91,6 +91,27 @@ const PREMIUM_BENEFITS = [
   { included: true, label: "Suporte prioritário" },
 ];
 
+// Valor médio de mercado por função (consulta/hora), com base em referências
+// gerais do mercado brasileiro. Serve de orientação — cada especialista define
+// livremente o próprio preço no perfil.
+const MARKET_AVERAGES = [
+  { profession: "Advogado(a) trabalhista", range: "R$ 150 – R$ 400 / consulta" },
+  { profession: "Médico(a) do trabalho", range: "R$ 200 – R$ 500 / consulta" },
+  { profession: "Psicólogo(a) organizacional", range: "R$ 120 – R$ 250 / sessão" },
+  { profession: "Assistente Social", range: "R$ 100 – R$ 220 / atendimento" },
+  { profession: "Consultor(a) de RH", range: "R$ 150 – R$ 350 / hora" },
+  { profession: "Contador(a)", range: "R$ 120 – R$ 300 / consulta" },
+  { profession: "Engenheiro(a) de Segurança do Trabalho", range: "R$ 180 – R$ 400 / hora" },
+  { profession: "Fisioterapeuta Ocupacional", range: "R$ 120 – R$ 250 / sessão" },
+];
+
+// Percentual de comissão retido pela plataforma sobre consultas intermediadas
+// e pagas pelo checkout (split). Espelha a lógica de `create-checkout-session`.
+const COMMISSION_BY_TIER = [
+  { tier: "Gratuito / Essencial", pct: "10%" },
+  { tier: "Premium", pct: "12,5%" },
+];
+
 function PlanCard({
   title,
   badge,
@@ -265,8 +286,11 @@ export default function SpecialistBenefitsPage({ theme, toggleTheme }) {
             Escolha o Plano Ideal para Sua Carreira Profissional
           </h1>
           <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
-            Você recebe 100% do valor que cobra dos seus clientes. A Trabalhei
-            Lá cobra apenas uma mensalidade fixa pelo uso da plataforma.
+            Você define quanto cobra por cada consulta. Para usar a plataforma
+            você paga uma mensalidade fixa do seu plano e, nas consultas
+            intermediadas e pagas aqui dentro, incide um percentual de comissão
+            conforme o seu plano. O valor líquido cai direto na sua conta
+            Mercado Pago.
           </p>
           <div className="mt-3">
             <button
@@ -322,17 +346,84 @@ export default function SpecialistBenefitsPage({ theme, toggleTheme }) {
           </p>
         )}
 
-        <section className="mt-8 bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5 sm:p-6">
+        <section className="mt-8 bg-amber-50 dark:bg-amber-900/20 rounded-2xl shadow border border-amber-200 dark:border-amber-800 p-5 sm:p-6">
+          <h2 className="text-base sm:text-lg font-bold text-amber-800 dark:text-amber-200 flex items-center gap-2">
+            <span aria-hidden="true">💳</span> Como você recebe pelos atendimentos
+          </h2>
+          <ul className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-200">
+            <li>
+              <strong>É obrigatório ter uma conta no Mercado Pago.</strong> Para
+              receber suas consultas, crie (ou use) uma conta Mercado Pago e
+              informe o <strong>e-mail dela no seu perfil</strong> em{" "}
+              <Link to="/apoiador/perfil" className="text-blue-700 dark:text-blue-300 underline">
+                Gerenciar Perfil
+              </Link>
+              . Sem esse dado não conseguimos repassar seus valores.
+            </li>
+            <li>
+              <strong>Split automático:</strong> quando o cliente paga uma
+              consulta pela plataforma, o valor é dividido automaticamente — a
+              comissão fica com a Trabalhei Lá e o <strong>valor líquido é
+              depositado direto na sua conta Mercado Pago</strong>.
+            </li>
+            <li>
+              <strong>Percentuais debitados conforme o seu plano:</strong> sobre
+              cada consulta intermediada incide um percentual de comissão
+              definido pelo plano que você configurou:
+            </li>
+          </ul>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-slate-500 dark:text-slate-400">
+                <tr>
+                  <th className="py-1.5 pr-4 font-semibold">Plano</th>
+                  <th className="py-1.5 font-semibold">Comissão da plataforma</th>
+                </tr>
+              </thead>
+              <tbody>
+                {COMMISSION_BY_TIER.map((c) => (
+                  <tr key={c.tier} className="border-t border-amber-200/60 dark:border-amber-800/60">
+                    <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-200">{c.tier}</td>
+                    <td className="py-1.5 font-bold text-amber-700 dark:text-amber-300">{c.pct}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
+            A mensalidade do plano é cobrada à parte e dá acesso aos recursos da
+            plataforma. A comissão acima aplica-se apenas às consultas pagas pelo
+            checkout interno.
+          </p>
+        </section>
+
+        <section className="mt-6 bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5 sm:p-6">
           <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100">
-            Valor médio cobrado por profissional
+            Valor médio de mercado por função
           </h2>
           <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
-            Na plataforma Trabalhei Lá, o valor médio cobrado por consulta varia
-            entre <strong>R$ 100 e R$ 300</strong>, dependendo da especialidade e
-            experiência do profissional. Você define seu próprio preço e recebe
-            <strong> 100%</strong> desse valor — a plataforma só cobra a
-            mensalidade do seu plano.
+            Use a tabela abaixo como referência do que cada função costuma cobrar
+            no mercado de trabalho. Você define livremente o seu preço no perfil —
+            estes valores são apenas uma orientação.
           </p>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-slate-500 dark:text-slate-400">
+                <tr>
+                  <th className="py-1.5 pr-4 font-semibold">Função</th>
+                  <th className="py-1.5 font-semibold">Faixa média de mercado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {MARKET_AVERAGES.map((m) => (
+                  <tr key={m.profession} className="border-t border-slate-100 dark:border-slate-800">
+                    <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-200">{m.profession}</td>
+                    <td className="py-1.5 font-semibold text-emerald-700 dark:text-emerald-300">{m.range}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section className="mt-6 bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5 sm:p-6">

@@ -48,6 +48,13 @@ const PROFESSION_CREDENTIALS = [
     stateFields: ["crpRegion", "crpState"],
   },
   {
+    keys: ["Assistente Social", "assistente_social"],
+    label: "CRESS",
+    sectionTitle: "Credenciais — Assistente Social",
+    numberFields: ["cressNumber", "cress"],
+    stateFields: ["cressRegion", "cressState"],
+  },
+  {
     keys: ["Contador", "contador"],
     label: "CRC",
     sectionTitle: "Credenciais — Contador",
