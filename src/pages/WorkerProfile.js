@@ -231,9 +231,21 @@ export default function WorkerProfile({ theme, toggleTheme }) {
     const totalCompanies = new Set(reviews.map((r) => r.companySlug).filter(Boolean)).size;
     const ratings = reviews.map((r) => Number(r.rating)).filter((v) => v >= 1 && v <= 5);
     const avgRating = ratings.length ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : "—";
+    // Reputação = soma das reações positivas (👍 Útil, 👏 Concordo, 😮 Surpreso)
+    // recebidas em todas as avaliações deste usuário. Espelha o critério de
+    // `getPositiveReactions` usado nas páginas de empresa.
+    const positiveReactions = reviews.reduce((sum, r) => {
+      const reac = r?.reactions || {};
+      return (
+        sum +
+        (Number(reac.thumbsUp) || 0) +
+        (Number(reac.clap) || 0) +
+        (Number(reac.surprised) || Number(reac.laugh) || 0)
+      );
+    }, 0);
     // Tempo médio baseado no intervalo entre a primeira e última avaliação do usuário por empresa
     // Como não temos dados de permanência, usamos a contagem de avaliações como proxy
-    return { totalCompanies, avgRating, totalReviews: reviews.length };
+    return { totalCompanies, avgRating, totalReviews: reviews.length, positiveReactions };
   }, [reviews]);
 
   // ─── Copiar link ───
@@ -410,6 +422,13 @@ export default function WorkerProfile({ theme, toggleTheme }) {
                   {cred.icon}
                   <span>Índice de Credibilidade: {cred.label}</span>
                 </div>
+                {/* Reputação = reações positivas recebidas nas avaliações */}
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-semibold bg-rose-50 dark:bg-rose-900/30 border-rose-200 dark:border-rose-700 text-rose-700 dark:text-rose-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" />
+                  </svg>
+                  <span>Reputação: {summary.positiveReactions} reaç{summary.positiveReactions === 1 ? "ão" : "ões"} positiva{summary.positiveReactions === 1 ? "" : "s"}</span>
+                </div>
                 <AvailabilityIndicator visible={showAvailabilityIndicator} />
               </div>
             </div>
@@ -578,7 +597,7 @@ export default function WorkerProfile({ theme, toggleTheme }) {
             Resumo
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="rounded-2xl border border-blue-100 dark:border-slate-700 bg-blue-50 dark:bg-slate-800 p-4 text-center">
               <p className="text-3xl font-extrabold text-blue-700 dark:text-blue-300">{summary.totalCompanies}</p>
               <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Empresas avaliadas</p>
@@ -590,6 +609,10 @@ export default function WorkerProfile({ theme, toggleTheme }) {
             <div className="rounded-2xl border border-blue-100 dark:border-slate-700 bg-blue-50 dark:bg-slate-800 p-4 text-center">
               <p className="text-3xl font-extrabold text-blue-700 dark:text-blue-300">{summary.totalReviews}</p>
               <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Avaliações realizadas</p>
+            </div>
+            <div className="rounded-2xl border border-rose-100 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 p-4 text-center">
+              <p className="text-3xl font-extrabold text-rose-600 dark:text-rose-300">{summary.positiveReactions}</p>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Reações positivas</p>
             </div>
           </div>
         </section>
