@@ -294,6 +294,17 @@ async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tie
     ],
     marketplace_fee: marketplaceFee,
     external_reference: `consulta:${apoiadorId}:${workerId || "anon"}:${Date.now()}`,
+    // Métodos de pagamento — garante que o PIX (payment_type "bank_transfer")
+    // e demais meios fiquem disponíveis no Checkout Pro. Nada é excluído.
+    // `installments: 1` limita parcelamento no cartão sem afetar o PIX, que é
+    // sempre à vista. Observação: o PIX só aparece se estiver habilitado na
+    // conta de vendedor do Mercado Pago (chave PIX cadastrada).
+    payment_methods: {
+      excluded_payment_types: [],
+      excluded_payment_methods: [],
+      installments: 1,
+      default_installments: 1,
+    },
     back_urls: {
       success: `${appOrigin}/consulta/confirmacao?status=success`,
       failure: `${appOrigin}/consulta/confirmacao?status=failure`,

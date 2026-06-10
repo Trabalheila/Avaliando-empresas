@@ -341,17 +341,35 @@ async function handleMercadoPagoWebhook(req, res) {
     }
 
     const payment = await fetchMercadoPagoPayment(paymentId);
-    if ((payment?.status || "").toString().toLowerCase() !== "approved") {
-      return res.status(200).json({ received: true, ignored: true, reason: "payment_not_approved" });
-    }
+    const paymentStatus = (payment?.status || "").toString().toLowerCase();
 
     /* ──────────────────────────────────────────────────────────
        Consultas intermediadas (split): kind=consultation
        external_reference: consulta:<apoiadorId>:<workerId>:<timestamp>
+
+       Tratado ANTES do guard genérico de "approved" porque o PIX é
+       assíncrono: a primeira notificação chega como `pending` (QR Code
+       gerado) e só depois como `approved` (após o pagador concluir o PIX).
+       A consulta é registrada exclusivamente na APROVAÇÃO — nunca antes —
+       de modo que o especialista jamais veja uma solicitação não paga.
        ────────────────────────────────────────────────────────── */
     const qKind = (req.query?.kind || "").toString().toLowerCase();
     const externalRef = (payment?.external_reference || "").toString();
     if (qKind === "consultation" || externalRef.startsWith("consulta:")) {
+      // PIX/boleto pendente (ou em processamento): apenas confirma o
+      // recebimento do webhook. Não cria a consulta e aguarda a próxima
+      // notificação (`payment.updated`) com status `approved`.
+      if (paymentStatus !== "approved") {
+        const pendingLike = ["pending", "in_process", "in_mediation", "authorized"].includes(paymentStatus);
+        return res.status(200).json({
+          received: true,
+          ignored: true,
+          kind: "consultation",
+          status: paymentStatus || "unknown",
+          reason: pendingLike ? "consultation_awaiting_payment" : "consultation_not_approved",
+        });
+      }
+
       const parts = externalRef.split(":");
       const apoiadorIdConsulta = (parts[1] || "").trim();
       const workerIdConsulta = (parts[2] || "").trim();
@@ -372,6 +390,9 @@ async function handleMercadoPagoWebhook(req, res) {
       const message = (meta.message || "").toString();
       const originalAmount = Number(meta.originalAmount);
       const discountApplied = Number(meta.discountAmount);
+      // Meio de pagamento usado (ex.: "pix", "visa", "bolbradesco") — útil
+      // para auditoria/relatório no painel do especialista.
+      const paymentMethod = mapMercadoPagoMethod(payment?.payment_method_id || "");
       // Comissao exibida ao especialista (snapshot). Mantemos a mesma
       // referencia de split aplicada na preferencia (feePct).
       const platformCommission = marketplaceFee;
@@ -399,6 +420,8 @@ async function handleMercadoPagoWebhook(req, res) {
         gateway: "mercadopago",
         paymentId: payment.id || null,
         gateway_payment_id: payment.id || null,
+        paymentMethod,
+        paymentMethodId: payment?.payment_method_id || null,
         payerEmail: payment?.payer?.email || null,
         status: "approved",
         paymentStatus: "paid",
@@ -413,6 +436,12 @@ async function handleMercadoPagoWebhook(req, res) {
       const consultaId = `${apoiadorIdConsulta}_${workerIdConsulta}_${payment.id}`;
       await db.collection("consultas").doc(consultaId).set(consultaDoc, { merge: true });
       return res.status(200).json({ received: true, updated: true, kind: "consultation" });
+    }
+
+    // Demais pagamentos (assinatura avulsa de empresa/apoiador) exigem
+    // aprovação. PIX pendente para esses fluxos também é ignorado aqui.
+    if (paymentStatus !== "approved") {
+      return res.status(200).json({ received: true, ignored: true, reason: "payment_not_approved" });
     }
 
     const metadata = payment?.metadata || {};
