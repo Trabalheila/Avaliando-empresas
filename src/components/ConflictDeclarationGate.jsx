@@ -140,9 +140,9 @@ export default function ConflictDeclarationGate({ companyName, children = null }
           role="dialog"
           aria-modal="true"
           aria-labelledby="conflict-declaration-title"
-          className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center bg-slate-900/70 backdrop-blur-sm p-0 sm:p-4"
         >
-          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-6">
+          <div className="w-full max-w-lg rounded-t-2xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-6 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain">
             {status === "loading" ? (
               <p className="text-sm text-slate-600 dark:text-slate-300 text-center py-6">
                 Verificando declaração de conformidade…

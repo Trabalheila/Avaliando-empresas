@@ -246,14 +246,14 @@ export default function PlanosApoiador() {
         {/* ===== Modal de confirmação do plano Essencial ===== */}
         {confirmEssencial && (
           <div
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4"
+            className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:px-4"
             role="dialog"
             aria-modal="true"
             aria-labelledby="confirm-essencial-title"
             onClick={() => setConfirmEssencial(null)}
           >
             <div
-              className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-md w-full p-6"
+              className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-md w-full p-6 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain"
               onClick={(e) => e.stopPropagation()}
             >
               <h3

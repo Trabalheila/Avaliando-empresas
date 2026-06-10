@@ -1815,8 +1815,8 @@ function AdminPanel({ theme, toggleTheme }) {
 
       {/* ═══ Modal de confirmação ═══ */}
       {modal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setModal(null)}>
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 max-w-sm w-full border border-slate-200 dark:border-slate-700" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4" onClick={() => setModal(null)}>
+          <div className="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-xl p-6 max-w-sm w-full border border-slate-200 dark:border-slate-700 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-2">Confirmar exclusão</h3>
             <p className="text-sm text-slate-600 dark:text-slate-300 mb-1">{modal.label}</p>
             <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-5">Tem certeza? Essa ação não pode ser desfeita.</p>
@@ -1845,11 +1845,11 @@ function AdminPanel({ theme, toggleTheme }) {
       {/* ═══ Modal de edição de trecho restrito ═══ */}
       {restrictedEditing && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4"
           onClick={() => setRestrictedEditing(null)}
         >
           <div
-            className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 max-w-lg w-full border border-slate-200 dark:border-slate-700 space-y-4"
+            className="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-xl p-6 max-w-lg w-full border border-slate-200 dark:border-slate-700 space-y-4 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">

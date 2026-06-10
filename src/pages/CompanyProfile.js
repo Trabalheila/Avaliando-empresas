@@ -1309,11 +1309,11 @@ export default function CompanyProfile() {
       {/* Modal de Transparência Financeira (perfil público) */}
       {transparencyModalOpen && company?.financialTransparency?.enabled && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
           onClick={() => setTransparencyModalOpen(false)}
         >
           <div
-            className="w-full max-w-[520px] bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8"
+            className="w-full max-w-[520px] bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-6 sm:p-8 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3">
@@ -1410,8 +1410,8 @@ export default function CompanyProfile() {
 
       {/* Modal de edição */}
       {editOpen && editForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-[520px] bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
+          <div className="w-full max-w-[520px] bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-6 sm:p-8 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Editar informações da empresa</h3>
               <button

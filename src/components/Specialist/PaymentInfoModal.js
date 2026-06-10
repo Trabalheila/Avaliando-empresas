@@ -70,12 +70,12 @@ export default function PaymentInfoModal({ open, onClose, audience = "specialist
       role="dialog"
       aria-modal="true"
       aria-labelledby="payinfo-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
       onClick={onClose}
     >
       <div
         className={
-          "w-full bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-blue-100 dark:border-slate-700 p-6 max-h-[90vh] overflow-y-auto " +
+          "w-full bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-xl border border-blue-100 dark:border-slate-700 p-6 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain " +
           (isBoth ? "max-w-2xl" : "max-w-lg")
         }
         onClick={(e) => e.stopPropagation()}

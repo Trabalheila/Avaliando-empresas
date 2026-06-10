@@ -684,8 +684,8 @@ export default function AdminProfessionsManager({ theme, toggleTheme }) {
 
       {/* Modal de confirmação de exclusão */}
       {confirmDeleteOf && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 max-w-md w-full p-6">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:px-4">
+          <div className="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 max-w-md w-full p-6 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain">
             <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-2">
               Excluir profissão
             </h2>

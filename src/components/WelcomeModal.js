@@ -85,12 +85,12 @@ export default function WelcomeModal({ open, apoiadorId, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-6 overflow-y-auto"
+      className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:px-4 sm:py-6 overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-labelledby="welcome-modal-title"
     >
-      <div className="relative w-full max-w-2xl bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-blue-100 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-blue-100 dark:border-slate-700 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain">
         <div className="px-6 pt-6 pb-4 border-b border-blue-100 dark:border-slate-700 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-900 dark:to-slate-800 rounded-t-2xl">
           <div className="text-4xl mb-2">🎉</div>
           <h2

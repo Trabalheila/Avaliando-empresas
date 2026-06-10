@@ -496,8 +496,8 @@ function BusinessDashboard({ theme, toggleTheme }) {
 
       {/* ═══ Modal de contato ═══ */}
       {contactModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setContactModal(null)}>
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 max-w-sm w-full border border-blue-100 dark:border-slate-700" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4" onClick={() => setContactModal(null)}>
+          <div className="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-xl p-6 max-w-sm w-full border border-blue-100 dark:border-slate-700 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-blue-800 dark:text-blue-200 mb-3">Contato — {contactModal.nome}</h3>
             {contactModal.email && (
               <p className="text-sm text-slate-700 dark:text-slate-200 mb-2">

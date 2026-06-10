@@ -50,8 +50,8 @@ function getAdminUid() {
 function ConfirmModal({ open, title, message, confirmLabel, onConfirm, onCancel, busy }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 max-w-md w-full p-5">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
+      <div className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 max-w-md w-full p-5 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain">
         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">{title}</h3>
         <p className="text-sm text-slate-600 dark:text-slate-300 mb-5 whitespace-pre-line">{message}</p>
         <div className="flex justify-end gap-2">

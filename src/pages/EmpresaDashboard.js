@@ -2239,9 +2239,9 @@ export default function EmpresaDashboard() {
             role="dialog"
             aria-modal="true"
             aria-label="Solicitar apoio"
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60"
           >
-            <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6">
+            <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain">
               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Solicitar apoio</h3>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Conte brevemente em que sua empresa precisa de apoio. Nossa equipe entrará em contato pelo e-mail
@@ -2656,11 +2656,11 @@ export default function EmpresaDashboard() {
       {/* Modal de Upgrade — funcionalidades bloqueadas por plano */}
       {upgradeModal.open && (
         <div
-          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
           onClick={closeUpgradeModal}
         >
           <div
-            className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8"
+            className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-6 sm:p-8 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3">

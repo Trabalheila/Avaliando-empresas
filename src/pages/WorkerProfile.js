@@ -599,11 +599,11 @@ export default function WorkerProfile({ theme, toggleTheme }) {
       {/* Modal de edição da própria avaliação */}
       {editing && isOwner && (
         <div
-          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
           onClick={closeEditReview}
         >
           <div
-            className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-6"
+            className="w-full max-w-lg max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3 mb-4">

@@ -68,11 +68,11 @@ export default function EssencialFreePopup({
       role="dialog"
       aria-modal="true"
       aria-labelledby="essencial-free-popup-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-slate-900/60 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:px-4 bg-slate-900/60 backdrop-blur-sm"
       onClick={close}
     >
       <div
-        className={`relative w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-6 text-center ring-4 ${styles.ring}`}
+        className={`relative w-full max-w-md rounded-t-2xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-6 text-center ring-4 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain ${styles.ring}`}
         onClick={(e) => e.stopPropagation()}
       >
         <button

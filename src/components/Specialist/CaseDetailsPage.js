@@ -173,11 +173,11 @@ function VideoEssencialCard({ caseId, navigate }) {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:px-4"
           onClick={() => setShowConfirm(false)}
         >
           <div
-            className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-md w-full p-6"
+            className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-xl max-w-md w-full p-6 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-lg font-extrabold text-slate-800 dark:text-slate-100">
@@ -216,11 +216,11 @@ function VideoEssencialCard({ caseId, navigate }) {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:px-4"
           onClick={() => setShowLimit(false)}
         >
           <div
-            className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-md w-full p-6"
+            className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-xl max-w-md w-full p-6 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-lg font-extrabold text-slate-800 dark:text-slate-100">
