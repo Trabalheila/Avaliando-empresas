@@ -41,17 +41,17 @@ export default function ConsultaAvulsaIntroModal({ open, onClose, onContinue }) 
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center px-4 py-6 bg-slate-900/60 backdrop-blur-sm"
+      className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:px-4 sm:py-6 bg-slate-900/60 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="consulta-avulsa-intro-title"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-blue-100 dark:border-slate-700 overflow-hidden"
+        className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-xl border border-blue-100 dark:border-slate-700 overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90dvh]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-6 sm:px-8 pt-6 pb-2 flex items-start justify-between gap-4">
+        <div className="px-6 sm:px-8 pt-6 pb-2 flex items-start justify-between gap-4 shrink-0">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
               <FaInfoCircle aria-hidden="true" /> Como funciona
@@ -73,7 +73,7 @@ export default function ConsultaAvulsaIntroModal({ open, onClose, onContinue }) 
           </button>
         </div>
 
-        <div className="px-6 sm:px-8 py-6">
+        <div className="px-6 sm:px-8 py-6 overflow-y-auto overscroll-contain">
           <ol className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {STEPS.map((step, i) => {
               const Icon = step.icon;
@@ -105,7 +105,7 @@ export default function ConsultaAvulsaIntroModal({ open, onClose, onContinue }) 
           </p>
         </div>
 
-        <div className="px-6 sm:px-8 py-4 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row gap-3 sm:justify-end">
+        <div className="px-6 sm:px-8 py-4 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row gap-3 sm:justify-end shrink-0">
           <button
             type="button"
             onClick={onClose}

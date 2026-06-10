@@ -280,13 +280,13 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
       role="dialog"
       aria-modal="true"
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-lg w-full p-6 border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-xl max-w-lg w-full p-5 sm:p-6 border border-slate-200 dark:border-slate-700 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain"
         onClick={(e) => e.stopPropagation()}
       >
         {success ? (
@@ -321,7 +321,7 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
                 </div>
               )}
             </div>
-            <div className="mt-4 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+            <div className="mt-4 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end sticky bottom-0 -mx-5 sm:-mx-6 px-5 sm:px-6 -mb-5 sm:-mb-6 pb-5 sm:pb-6 pt-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
               <button
                 type="button"
                 onClick={onClose}
@@ -395,7 +395,7 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
               </p>
             )}
 
-            <div className="mt-4 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+            <div className="mt-4 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end sticky bottom-0 -mx-5 sm:-mx-6 px-5 sm:px-6 -mb-5 sm:-mb-6 pb-5 sm:pb-6 pt-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setStep("select")}
@@ -617,7 +617,7 @@ export default function ConsultaAvulsaModal({ open, onClose, worker }) {
               </p>
             )}
 
-            <div className="mt-5 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+            <div className="mt-5 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end sticky bottom-0 -mx-5 sm:-mx-6 px-5 sm:px-6 -mb-5 sm:-mb-6 pb-5 sm:pb-6 pt-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
               <button
                 type="button"
                 onClick={onClose}

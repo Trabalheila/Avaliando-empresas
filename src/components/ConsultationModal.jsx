@@ -231,10 +231,15 @@ export default function ConsultationModal({ open, onClose, apoiador = null, audi
 function Backdrop({ children, onClose }) {
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
       onClick={onClose}
     >
-      <div onClick={(e) => e.stopPropagation()}>{children}</div>
+      <div
+        className="w-full sm:w-auto max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
     </div>
   );
 }
