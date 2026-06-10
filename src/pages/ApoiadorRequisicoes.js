@@ -267,16 +267,49 @@ export default function ApoiadorRequisicoes({ theme, toggleTheme }) {
           <SpecialistDemandInsights apoiador={apoiador} navigate={navigate} />
         )}
 
-        {/* Aviso de preço (Apoiador Premium sem precoConsulta) */}
-        {precisaDefinirPreco && (
-          <div className="mb-6 p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-            <p className="text-sm font-bold text-amber-800 dark:text-amber-200">
-              Defina seu preço de consulta para aparecer nas buscas.
-            </p>
-            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
-              Especialistas Premium definem o próprio valor. Sem esse campo preenchido,
-              seu perfil não exibe botão "Solicitar consulta" para potenciais clientes.
-            </p>
+        {/* Meu valor de consulta (Apoiador Premium) — sempre visível para
+            que o especialista possa ver e editar o valor que cobra. Quando
+            ainda não há preço definido, o card assume o estilo de alerta. */}
+        {isPremium && apoiador && (
+          <div
+            className={
+              "mb-6 p-4 rounded-2xl border " +
+              (precisaDefinirPreco
+                ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
+                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700")
+            }
+          >
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <p
+                  className={
+                    "text-sm font-bold " +
+                    (precisaDefinirPreco
+                      ? "text-amber-800 dark:text-amber-200"
+                      : "text-slate-800 dark:text-slate-100")
+                  }
+                >
+                  {precisaDefinirPreco
+                    ? "Defina seu preço de consulta para aparecer nas buscas."
+                    : "Meu valor de consulta"}
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                  {precisaDefinirPreco
+                    ? 'Especialistas Premium definem o próprio valor. Sem esse campo preenchido, seu perfil não exibe botão "Solicitar consulta" para potenciais clientes.'
+                    : "Como especialista Premium, você define o valor cobrado por consulta. Os clientes podem pagar via cartão ou PIX."}
+                </p>
+              </div>
+              {!precisaDefinirPreco && (
+                <div className="text-right shrink-0">
+                  <p className="text-[11px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">
+                    Valor atual
+                  </p>
+                  <p className="text-xl font-extrabold text-emerald-700 dark:text-emerald-300">
+                    {BRL(precoConsulta)}
+                  </p>
+                </div>
+              )}
+            </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">R$</span>
               <input
@@ -291,9 +324,18 @@ export default function ApoiadorRequisicoes({ theme, toggleTheme }) {
                 type="button"
                 onClick={handleSavePreco}
                 disabled={savingPreco}
-                className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold disabled:opacity-50"
+                className={
+                  "px-4 py-2 rounded-lg text-white text-sm font-bold disabled:opacity-50 " +
+                  (precisaDefinirPreco
+                    ? "bg-amber-600 hover:bg-amber-700"
+                    : "bg-blue-600 hover:bg-blue-700")
+                }
               >
-                {savingPreco ? "Salvando…" : "Salvar preço"}
+                {savingPreco
+                  ? "Salvando…"
+                  : precisaDefinirPreco
+                  ? "Salvar preço"
+                  : "Atualizar valor"}
               </button>
               {precoMsg && (
                 <span className="text-xs text-slate-600 dark:text-slate-300">{precoMsg}</span>
