@@ -18,10 +18,11 @@ const COPY = {
   specialist: {
     title: "Como funciona o pagamento para Especialistas",
     paragraphs: [
-      "Na Trabalhei Lá, especialistas pagam apenas uma assinatura mensal fixa para usar a plataforma (planos Essencial e Premium).",
-      "Em troca, você recebe 100% do valor que cobra de seus clientes. A Trabalhei Lá não retém percentual sobre suas consultas.",
+      "Você define o preço de cada consulta. Como referência, o valor médio cobrado hoje na plataforma fica entre R$ 100 e R$ 300, variando por especialidade e experiência.",
+      "Sobre cada consulta paga, a Trabalhei Lá retém uma comissão da plataforma: 10% no plano Essencial e 12,5% no plano Premium. O restante é o seu valor líquido.",
+      "Para receber, é obrigatório ter uma conta no Mercado Pago. No seu perfil de especialista, informe o e-mail vinculado à sua conta Mercado Pago — é para ele que o repasse é direcionado.",
+      "O pagamento usa split automático: quando o cliente paga a consulta, o Mercado Pago separa a comissão da plataforma e deposita o valor líquido diretamente na sua conta Mercado Pago.",
       "A emissão de nota fiscal/recibo para o cliente final é de sua responsabilidade.",
-      "Você define o preço da sua consulta. Como referência, o valor médio cobrado por consulta hoje na plataforma fica entre R$ 100 e R$ 300, variando por especialidade e experiência.",
     ],
     termsHref: "/termos",
     learnMore: { href: "/especialista/beneficios", label: "Saiba mais sobre os planos do Especialista" },
@@ -99,7 +100,7 @@ export default function PaymentInfoModal({ open, onClose, audience = "specialist
             <SideBlock
               heading="Para Especialistas"
               paragraphs={[
-                "Você paga uma assinatura mensal ao Trabalhei Lá (Essencial ou Premium) e recebe 100% do valor que cobra dos seus clientes. A plataforma não retém percentual sobre as consultas.",
+                "Você define o preço da consulta e recebe o valor líquido após a comissão da plataforma (10% no Essencial, 12,5% no Premium). É necessário ter conta no Mercado Pago: o split automático deposita a sua parte diretamente nela.",
               ]}
               learnMore={COPY.specialist.learnMore}
             />
