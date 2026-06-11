@@ -600,13 +600,13 @@ function TrabalheiLaMobile({
 
   // Wrappers para login social: garantem perfil padrão antes do OAuth.
   const handleGoogleClick = React.useCallback(() => {
-    ensureSelectedProfileType();
+    setSelectedProfileType("worker");
     if (typeof onGoogleLogin === "function") onGoogleLogin();
   }, [onGoogleLogin]);
 
   const handleLinkedInSuccessWrapped = React.useCallback(
     (payload) => {
-      ensureSelectedProfileType();
+      setSelectedProfileType("worker");
       if (typeof onLoginSuccess === "function") onLoginSuccess(payload);
     },
     [onLoginSuccess]
@@ -1152,12 +1152,12 @@ function TrabalheiLaMobile({
                 <LoginLinkedInButton
                   clientId={linkedInClientId}
                   redirectUri={linkedInRedirectUri}
-                  onLoginSuccess={onLoginSuccess}
+                  onLoginSuccess={handleLinkedInSuccessWrapped}
                   onLoginFailure={(err) => setError(err?.message || String(err))}
                 />
                 <button
                   type="button"
-                  onClick={onGoogleLogin}
+                  onClick={handleGoogleClick}
                   className="w-full inline-flex items-center justify-center gap-2 bg-white dark:bg-slate-900 border border-blue-200 dark:border-slate-700 text-blue-800 dark:text-blue-200 font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors text-sm"
                 >
                   <FaGoogle className="text-base" /> Entrar com Google
