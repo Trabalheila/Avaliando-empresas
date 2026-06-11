@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { db, storage, auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -103,6 +103,7 @@ function getPlanColor(profile) {
 
 export default function MinhaConta({ theme, toggleTheme }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [profile, setProfile] = useState(null);
   const [reviews, setReviews] = useState([]);
   // `authResolved` = onAuthStateChanged ja respondeu pelo menos uma vez.
@@ -116,6 +117,9 @@ export default function MinhaConta({ theme, toggleTheme }) {
   const [consultaIntroOpen, setConsultaIntroOpen] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [experienceModalOpen, setExperienceModalOpen] = useState(false);
+  const [experienceImportHint, setExperienceImportHint] = useState("");
+  const [experienceInitialTab, setExperienceInitialTab] = useState("linkedin");
+  const [experienceImportIntent, setExperienceImportIntent] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [avatarError, setAvatarError] = useState("");
@@ -290,6 +294,46 @@ export default function MinhaConta({ theme, toggleTheme }) {
       unsub();
     };
   }, []);
+
+  // Ao voltar do callback do LinkedIn para /minha-conta, mantém o usuário no
+  // contexto correto e abre o modal de experiências automaticamente.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search || "");
+    const openModal = (params.get("openModal") || "").toLowerCase();
+    const importSource = (params.get("import") || "").toLowerCase();
+    const status = (params.get("status") || "").toLowerCase();
+    const message = params.get("message") || "";
+
+    const shouldHandleLinkedInImport =
+      openModal === "experience" && importSource === "linkedin";
+
+    if (shouldHandleLinkedInImport) {
+      setExperienceInitialTab("linkedin");
+      setExperienceImportIntent(status === "success");
+      if (status === "error") {
+        setExperienceImportHint(
+          message || "Falha ao conectar com LinkedIn. Tente novamente."
+        );
+      } else {
+        setExperienceImportHint(
+          message || "Conexão com LinkedIn concluída. Importando experiências..."
+        );
+      }
+      setExperienceModalOpen(true);
+    }
+
+    if (shouldHandleLinkedInImport) {
+      params.delete("openModal");
+      params.delete("import");
+      params.delete("status");
+      params.delete("message");
+      const next =
+        window.location.pathname +
+        (params.toString() ? `?${params.toString()}` : "") +
+        window.location.hash;
+      window.history.replaceState({}, "", next);
+    }
+  }, [location.search]);
 
   // Resumo
   const summary = useMemo(() => {
@@ -756,8 +800,14 @@ export default function MinhaConta({ theme, toggleTheme }) {
 
         <ExperienceManagerModal
           open={experienceModalOpen}
-          onClose={() => setExperienceModalOpen(false)}
+          onClose={() => {
+            setExperienceModalOpen(false);
+            setExperienceImportIntent(false);
+          }}
           profile={safeProfile}
+          initialHint={experienceImportHint}
+          initialTab={experienceInitialTab}
+          shouldAutoImportLinkedIn={experienceImportIntent}
           onSaved={(next) => setProfile(next)}
         />
 

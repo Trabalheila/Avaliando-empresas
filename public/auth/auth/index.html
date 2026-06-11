@@ -9,6 +9,10 @@
     <script>
       (function () {
         const RESULT_KEY = "linkedin_oauth_result";
+        const RETURN_TO_KEY = "linkedin_oauth_return_to";
+        const OPEN_MODAL_KEY = "linkedin_oauth_open_modal";
+        const ACTION_KEY = "linkedin_oauth_action";
+        const STATE_KEY = "linkedin_oauth_state";
         const params = new URLSearchParams(window.location.search);
         const code = params.get("code");
         const state = params.get("state");
@@ -17,6 +21,46 @@
 
         const APP_ORIGIN = window.location.origin;
         const APP_URL = APP_ORIGIN;
+
+        const safeMessage = (value) =>
+          String(value || "Falha ao importar experiências do LinkedIn.")
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 220);
+
+        const consumeContext = () => {
+          let returnTo = "/";
+          let openModal = "experience";
+          let action = "import_linkedin";
+          let storedState = "";
+          try {
+            const storedReturnTo = sessionStorage.getItem(RETURN_TO_KEY) || "";
+            if (storedReturnTo && storedReturnTo.startsWith("/")) {
+              returnTo = storedReturnTo;
+            }
+            openModal = sessionStorage.getItem(OPEN_MODAL_KEY) || "experience";
+            action = sessionStorage.getItem(ACTION_KEY) || "import_linkedin";
+            storedState = sessionStorage.getItem(STATE_KEY) || "";
+            sessionStorage.removeItem(RETURN_TO_KEY);
+            sessionStorage.removeItem(OPEN_MODAL_KEY);
+            sessionStorage.removeItem(ACTION_KEY);
+            sessionStorage.removeItem(STATE_KEY);
+          } catch {
+            // ignore sessionStorage failures
+          }
+          return { returnTo, openModal, action, storedState };
+        };
+
+        const redirectBack = ({ returnTo, openModal, status, message }) => {
+          const url = new URL(returnTo || "/", APP_URL);
+          url.searchParams.set("openModal", openModal || "experience");
+          url.searchParams.set("import", "linkedin");
+          url.searchParams.set("status", status || "error");
+          if (message) {
+            url.searchParams.set("message", safeMessage(message));
+          }
+          window.location.replace(url.toString());
+        };
 
         const persistResult = (payload) => {
           try {
@@ -37,56 +81,134 @@
           window.opener !== window &&
           typeof window.opener.postMessage === "function";
 
-        if (code) {
+        const finishWithError = ({ context, message }) => {
           const payload = {
-            type: "linkedin_oauth",
-            code,
-            state,
+            type: "linkedin_oauth_error",
+            message: safeMessage(message),
           };
-
           persistResult(payload);
-
+          console.error("[LinkedIn OAuth callback] Erro", {
+            message: payload.message,
+            returnTo: context?.returnTo,
+          });
           if (hasOpener) {
             try {
               window.opener.postMessage(payload, APP_ORIGIN);
               window.close();
               return;
-            } catch (err) {
-              console.warn("Falha ao notificar opener do LinkedIn:", err);
+            } catch {
+              // fallback to redirect
             }
           }
+          redirectBack({
+            returnTo: context?.returnTo || "/",
+            openModal: context?.openModal || "experience",
+            status: "error",
+            message: payload.message,
+          });
+        };
 
-          const qs = new URLSearchParams({ linkedin_code: code });
-          if (state) qs.set("state", state);
-          window.location.replace(`${APP_URL}/?${qs.toString()}`);
+        const context = consumeContext();
+        console.info("[LinkedIn OAuth callback] Iniciado", {
+          hasCode: Boolean(code),
+          hasError: Boolean(error),
+          returnTo: context.returnTo,
+          action: context.action,
+        });
+
+        if (context.action !== "import_linkedin") {
+          finishWithError({ context, message: "Ação OAuth inválida. Tente novamente." });
           return;
         }
 
         if (error) {
-          const payload = {
-            type: "linkedin_oauth_error",
-            message: errorDescription || error,
-          };
-
-          persistResult(payload);
-
-          if (hasOpener) {
-            try {
-              window.opener.postMessage(payload, APP_ORIGIN);
-              window.close();
-              return;
-            } catch (err) {
-              console.warn("Falha ao notificar erro ao opener do LinkedIn:", err);
-            }
-          }
-
-          const qs = new URLSearchParams({
-            linkedin_error: error,
-            linkedin_error_description: errorDescription || "",
+          finishWithError({
+            context,
+            message: errorDescription || error || "Login no LinkedIn cancelado.",
           });
-          window.location.replace(`${APP_URL}/?${qs.toString()}`);
           return;
         }
+
+        if (!code) {
+          finishWithError({ context, message: "Callback do LinkedIn sem código de autorização." });
+          return;
+        }
+
+        if (context.storedState && state && context.storedState !== state) {
+          finishWithError({
+            context,
+            message: "Falha de segurança no login LinkedIn. Tente novamente.",
+          });
+          return;
+        }
+
+        const exchangeTokenAndRedirect = async () => {
+          try {
+            const redirectUri = `${APP_URL}/auth/auth/`;
+            const response = await fetch(`${APP_URL}/api/linkedin-auth`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ code, redirectUri }),
+            });
+
+            const raw = await response.text();
+            let profile = {};
+            try {
+              profile = raw ? JSON.parse(raw) : {};
+            } catch {
+              profile = { error: raw || `Erro HTTP ${response.status}` };
+            }
+
+            if (!response.ok || profile?.error) {
+              finishWithError({
+                context,
+                message:
+                  profile?.error ||
+                  profile?.error_description ||
+                  "Nao foi possivel buscar dados do LinkedIn.",
+              });
+              return;
+            }
+
+            const payload = {
+              type: "linkedin_oauth",
+              code,
+              state,
+              profile,
+            };
+            persistResult(payload);
+            console.info("[LinkedIn OAuth callback] Importação preparada", {
+              returnTo: context.returnTo,
+              experiences: Array.isArray(profile?.linkedinExperiences)
+                ? profile.linkedinExperiences.length
+                : 0,
+            });
+
+            if (hasOpener) {
+              try {
+                window.opener.postMessage(payload, APP_ORIGIN);
+                window.close();
+                return;
+              } catch {
+                // fallback to redirect
+              }
+            }
+
+            redirectBack({
+              returnTo: context.returnTo,
+              openModal: context.openModal,
+              status: "success",
+            });
+          } catch (err) {
+            finishWithError({
+              context,
+              message: err?.message || "Falha ao processar callback do LinkedIn.",
+            });
+          }
+        };
+
+        exchangeTokenAndRedirect();
+        return;
 
         window.location.replace(APP_URL);
       })();

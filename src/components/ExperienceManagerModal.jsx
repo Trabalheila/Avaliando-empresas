@@ -18,6 +18,8 @@ import { getLinkedInRedirectUri } from "../utils/linkedinAuth";
 import { buildApiUrl } from "../utils/apiBase";
 import { normalizeCompanyName } from "../utils/companyMatching";
 
+const LINKEDIN_OAUTH_RESULT_KEY = "linkedin_oauth_result";
+
 function normalizeKey(company, role) {
   return `${(company || "").trim().toLowerCase()}__${(role || "")
     .trim()
@@ -80,6 +82,9 @@ export default function ExperienceManagerModal({
   open,
   onClose,
   profile,
+  initialHint = "",
+  initialTab = "linkedin",
+  shouldAutoImportLinkedIn = false,
   onSaved,
 }) {
   const [tab, setTab] = useState("linkedin");
@@ -93,6 +98,7 @@ export default function ExperienceManagerModal({
   const [cvBusy, setCvBusy] = useState(false);
   const [cvParsed, setCvParsed] = useState([]); // [{empresa, funcao, data_inicio, data_fim, _selected}]
   const cvInputRef = useRef(null);
+  const autoImportHandledRef = useRef(false);
 
   // Lista de experiências disponíveis no perfil que vieram do LinkedIn
   const linkedInAvailable = useMemo(() => {
@@ -110,8 +116,9 @@ export default function ExperienceManagerModal({
   // Resetar estado quando abre/fecha
   useEffect(() => {
     if (open) {
+      setTab(initialTab === "manual" || initialTab === "cv" ? initialTab : "linkedin");
       setError("");
-      setInfo("");
+      setInfo(initialHint || "");
       setManualCompany("");
       setManualRole("");
       // Pré-selecionar todas as experiências LinkedIn disponíveis.
@@ -120,8 +127,9 @@ export default function ExperienceManagerModal({
         next[normalizeKey(item.company, item.role)] = true;
       });
       setSelected(next);
+      autoImportHandledRef.current = false;
     }
-  }, [open, linkedInAvailable]);
+  }, [open, linkedInAvailable, initialHint, initialTab]);
 
   const handleImportLinkedIn = useCallback(async () => {
     setError("");
@@ -279,6 +287,73 @@ export default function ExperienceManagerModal({
     setLinkedInBusy(false);
     setError(err?.message || "Falha ao conectar com LinkedIn.");
   }, []);
+
+  useEffect(() => {
+    if (!open || autoImportHandledRef.current || !shouldAutoImportLinkedIn) return;
+    let parsed = null;
+    try {
+      const rawStored = localStorage.getItem(LINKEDIN_OAUTH_RESULT_KEY);
+      if (!rawStored) return;
+      const stored = JSON.parse(rawStored);
+      parsed = stored?.payload || stored;
+    } catch {
+      return;
+    }
+
+    if (!parsed?.type) return;
+    autoImportHandledRef.current = true;
+    console.info("[LinkedIn Import] Consumindo resultado OAuth no modal", {
+      type: parsed.type,
+    });
+
+    const consume = async () => {
+      try {
+        localStorage.removeItem(LINKEDIN_OAUTH_RESULT_KEY);
+      } catch {
+        // ignore storage failures
+      }
+
+      if (parsed.type === "linkedin_oauth_error") {
+        handleLinkedInFailure(new Error(parsed.message || "Falha ao autenticar com LinkedIn"));
+        return;
+      }
+
+      if (parsed.type !== "linkedin_oauth") return;
+
+      const storedState = (() => {
+        try {
+          return sessionStorage.getItem("linkedin_oauth_state");
+        } catch {
+          return "";
+        }
+      })();
+      const returnedState = String(parsed.state || "");
+
+      if (storedState && returnedState && storedState !== returnedState) {
+        handleLinkedInFailure(new Error("State inválido (possível CSRF)."));
+        return;
+      }
+
+      if (!parsed.code) {
+        handleLinkedInFailure(new Error("Callback do LinkedIn sem 'code'."));
+        return;
+      }
+
+      try {
+        sessionStorage.removeItem("linkedin_oauth_state");
+      } catch {
+        // ignore storage failures
+      }
+
+      await handleLinkedInLogin({
+        code: parsed.code,
+        state: returnedState || storedState || "",
+        profile: parsed.profile || null,
+      });
+    };
+
+    consume();
+  }, [open, shouldAutoImportLinkedIn, handleLinkedInLogin, handleLinkedInFailure]);
 
   // ---- Importar do CV (PDF/DOCX) via /api/parse-cv ----
   const handleCvFile = useCallback(async (event) => {

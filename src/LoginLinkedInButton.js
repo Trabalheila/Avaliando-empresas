@@ -2,6 +2,10 @@ import React from "react";
 
 const DEFAULT_SCOPE = "openid profile email";
 const LINKEDIN_OAUTH_RESULT_KEY = "linkedin_oauth_result";
+const LINKEDIN_OAUTH_RETURN_TO_KEY = "linkedin_oauth_return_to";
+const LINKEDIN_OAUTH_OPEN_MODAL_KEY = "linkedin_oauth_open_modal";
+const LINKEDIN_OAUTH_ACTION_KEY = "linkedin_oauth_action";
+const LINKEDIN_OAUTH_STATE_KEY = "linkedin_oauth_state";
 
 function readLinkedInOAuthResult() {
   try {
@@ -60,6 +64,9 @@ const LoginLinkedInButton = ({
       clientIdProp || process.env.REACT_APP_LINKEDIN_CLIENT_ID || "";
     const redirectUri =
       redirectUriProp || process.env.REACT_APP_LINKEDIN_REDIRECT_URI || "";
+    const resolvedScope =
+      (process.env.REACT_APP_LINKEDIN_SCOPE || scope || DEFAULT_SCOPE).trim() ||
+      DEFAULT_SCOPE;
 
     if (!clientId || String(clientId).trim().length < 5) {
       onLoginFailure?.(new Error("clientId do LinkedIn ausente/inválido"));
@@ -72,7 +79,17 @@ const LoginLinkedInButton = ({
 
     const state = Math.random().toString(36).slice(2);
     try {
-      sessionStorage.setItem("linkedin_oauth_state", state);
+      sessionStorage.setItem(LINKEDIN_OAUTH_STATE_KEY, state);
+      const currentPath =
+        `${window.location.pathname || "/"}${window.location.search || ""}` || "/";
+      sessionStorage.setItem(LINKEDIN_OAUTH_RETURN_TO_KEY, currentPath);
+      sessionStorage.setItem(LINKEDIN_OAUTH_OPEN_MODAL_KEY, "experience");
+      sessionStorage.setItem(LINKEDIN_OAUTH_ACTION_KEY, "import_linkedin");
+      console.info("[LinkedIn OAuth] Contexto salvo", {
+        returnTo: currentPath,
+        openModal: "experience",
+        action: "import_linkedin",
+      });
     } catch {
       // sem drama: se storage falhar, seguimos
     }
@@ -83,7 +100,7 @@ const LoginLinkedInButton = ({
       response_type: "code",
       client_id: clientId, // obrigatório no LinkedIn <sources>[1]</sources>
       redirect_uri: redirectUri,
-      scope,
+      scope: resolvedScope,
       state,
     });
 
@@ -136,7 +153,7 @@ const LoginLinkedInButton = ({
 
       const storedState = (() => {
         try {
-          return sessionStorage.getItem("linkedin_oauth_state");
+          return sessionStorage.getItem(LINKEDIN_OAUTH_STATE_KEY);
         } catch {
           return null;
         }
