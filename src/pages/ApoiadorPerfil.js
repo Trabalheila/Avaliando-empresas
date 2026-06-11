@@ -356,7 +356,9 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
               <div className="flex items-baseline justify-between flex-wrap gap-2">
                 <div>
                   <p className="text-xs uppercase font-bold tracking-wider text-blue-700 dark:text-blue-300">
-                    Consulta {isPremium ? "(preço do profissional)" : "(preço tabelado pela plataforma)"}
+                    {isPremium && isAdvogado
+                      ? "Liberação de contato seguro"
+                      : `Consulta ${isPremium ? "(preço do profissional)" : "(preço tabelado pela plataforma)"}`}
                   </p>
                   <p className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">
                     {BRL(consultationPrice)}
@@ -367,12 +369,13 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
                   onClick={() => setConsultationModalOpen(true)}
                   className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
                 >
-                  Solicitar consulta
+                  {isPremium && isAdvogado ? "Pagar e liberar contato" : "Solicitar consulta"}
                 </button>
               </div>
               <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                Pagamento seguro via Mercado Pago. A plataforma retém{" "}
-                {isPremium ? "12,5%" : "10%"} para custos operacionais.
+                {isPremium && isAdvogado
+                  ? "Pagamento seguro via Mercado Pago. Após confirmação, os dados de contato do advogado são enviados por e-mail e também ficam disponíveis em Minha Conta."
+                  : `Pagamento seguro via Mercado Pago. A plataforma retém ${isPremium ? "12,5%" : "10%"} para custos operacionais.`}
               </p>
             </div>
           )}
@@ -395,22 +398,11 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
             </div>
           )}
 
-          {/* Contato */}
-          <div className="flex flex-wrap gap-3 mt-5">
-            {apoiador.email && (
-              <a href={`mailto:${apoiador.email}`}
-                onClick={() => updateDoc(doc(db, "apoiadores", id), { cliquesContato: increment(1) }).catch(() => {})}
-                className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition">
-                Enviar e-mail
-              </a>
-            )}
-            {(apoiador.whatsapp || apoiador.telefone) && (
-              <a href={`https://wa.me/55${(apoiador.whatsapp || apoiador.telefone).replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
-                onClick={() => updateDoc(doc(db, "apoiadores", id), { cliquesContato: increment(1) }).catch(() => {})}
-                className="px-4 py-2 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition">
-                WhatsApp
-              </a>
-            )}
+          <div className="mt-5 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              Por segurança, os dados de contato direto deste especialista não são exibidos publicamente.
+              Use o fluxo de pagamento da plataforma para liberar o contato com confirmação registrada.
+            </p>
           </div>
 
           {/* Documentos (Premium) */}

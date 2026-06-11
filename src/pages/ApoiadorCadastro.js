@@ -4,7 +4,6 @@ import { db, auth } from "../firebase";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { signInAnonymously } from "firebase/auth";
 import AppHeader from "../components/AppHeader";
-import YouTubeEmbed from "../components/YouTubeEmbed";
 import EssencialFreePopup from "../components/EssencialFreePopup";
 import { isAdmin } from "../utils/rbac";
 import { buildDeclarationText } from "../components/ConflictDeclarationGate";
@@ -448,14 +447,27 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
       <AppHeader theme={theme} toggleTheme={toggleTheme} hideAvatar />
 
       <form onSubmit={handleSubmit} className="w-full max-w-4xl px-4 py-8">
-        {/* Vídeo explicativo do cadastro do especialista */}
-        <YouTubeEmbed videoId="1qP8sJuj8Jc" title="Cadastro Especialista" />
-
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-blue-100 dark:border-slate-700 p-6 md:p-8">
           <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white mb-1">Cadastro de Especialista</h1>
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
             Consultores de RH, advogados trabalhistas e prestadores de serviços corporativos podem se cadastrar como especialistas da plataforma.
           </p>
+
+          <div className="mb-6 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4">
+            <p className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-2">
+              Dados necessários para aprovação do perfil
+            </p>
+            <ul className="list-disc pl-5 space-y-1 text-xs text-slate-700 dark:text-slate-200">
+              <li>Tipo de especialista, nome, e-mail e telefone.</li>
+              <li>Ramo de especialização e descrição profissional.</li>
+              <li>Registro no conselho (quando a profissão for regulamentada).</li>
+              <li>Comprovantes e documentos da atuação profissional.</li>
+              <li>Diploma para obter o selo público de perfil verificado com diploma.</li>
+            </ul>
+            <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2">
+              O selo de diploma aprovado pode ser exibido no seu perfil público para aumentar a confiança dos clientes.
+            </p>
+          </div>
 
           <div className="mb-4">
             <button

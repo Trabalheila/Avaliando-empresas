@@ -190,7 +190,11 @@ function TrabalheiLaDesktop({
   const headerRef = React.useRef(null);
   const [headerSpacerHeight, setHeaderSpacerHeight] = React.useState(0);
   const [showPaymentInfo, setShowPaymentInfo] = React.useState(false);
-  const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
+  const hasCompletedProfile = Boolean(
+    (userPseudonym || userProfile?.pseudonimo || userProfile?.name || "")
+      .toString()
+      .trim()
+  );
 
   // Garante que ao carregar a Home o perfil padrão ("worker") esteja
   // persistido em sessionStorage. Assim, mesmo que o usuário clique
@@ -964,7 +968,7 @@ function TrabalheiLaDesktop({
           <p className="text-sm text-slate-600 dark:text-slate-300 text-center mb-4">
             Em 2 minutos, veja como avaliar empresas de forma anônima e verificada.
           </p>
-          <YouTubeEmbed videoId="JZkL0YJSQnw" title="Apresentação Trabalhei Lá" />
+          <YouTubeEmbed videoId="BXzgY1Q4hQw" title="Apresentação Trabalhei Lá" />
         </section>
 
             {/* FORMULÁRIO */}

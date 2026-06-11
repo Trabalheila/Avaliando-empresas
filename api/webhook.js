@@ -1,4 +1,5 @@
 import { tryEmitNfseForMercadoPagoPayment } from "./_nfse.js";
+import { Resend } from "resend";
 
 function normalizeCompanySlug(value) {
   return (value || "")
@@ -185,6 +186,52 @@ function getMercadoPagoNotificationType(req) {
 function mapMercadoPagoMethod(paymentMethodId) {
   if ((paymentMethodId || "").toString().toLowerCase() === "pix") return "pix";
   return "card";
+}
+
+function normalizePhone(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("55")) return `+${digits}`;
+  return `+55${digits}`;
+}
+
+async function notifyReleasedContactByEmail({ workerEmail, workerName, apoiadorName, contact, amount }) {
+  const resendKey = (process.env.RESEND_API_KEY || "").toString().trim();
+  const fromAddress = (process.env.EMAIL_FROM_ADDRESS || "").toString().trim();
+  if (!resendKey || !fromAddress || !workerEmail) return { emailed: false, reason: "email_disabled" };
+
+  const resend = new Resend(resendKey);
+  const subject = "Contato do advogado liberado - Trabalhei La";
+  const html = `
+    <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#0f172a;">
+      <h2 style="color:#1d4ed8;">Pagamento confirmado</h2>
+      <p>Ola${workerName ? `, <strong>${workerName}</strong>` : ""}!</p>
+      <p>Seu pagamento de <strong>R$ ${Number(amount || 0).toFixed(2).replace(".", ",")}</strong> foi aprovado.</p>
+      <p>Os dados do advogado foram liberados com sucesso:</p>
+      <ul>
+        <li><strong>Profissional:</strong> ${apoiadorName || "Advogado"}</li>
+        <li><strong>E-mail:</strong> ${contact.email || "Nao informado"}</li>
+        <li><strong>WhatsApp:</strong> ${contact.whatsapp || "Nao informado"}</li>
+      </ul>
+      <p>Esses dados tambem estao disponiveis na sua area <strong>Minha Conta</strong>.</p>
+    </div>
+  `;
+
+  const { error } = await resend.emails.send({
+    from: fromAddress,
+    to: workerEmail,
+    subject,
+    html,
+    text:
+      `Pagamento confirmado. Contato liberado: ${apoiadorName || "Advogado"}. ` +
+      `E-mail: ${contact.email || "Nao informado"}. WhatsApp: ${contact.whatsapp || "Nao informado"}.`,
+  });
+
+  if (error) {
+    console.error("[webhook] erro ao enviar e-mail de liberacao de contato:", error);
+    return { emailed: false, reason: "send_failed" };
+  }
+  return { emailed: true };
 }
 
 async function fetchMercadoPagoPayment(paymentId) {
@@ -435,6 +482,76 @@ async function handleMercadoPagoWebhook(req, res) {
       };
       const consultaId = `${apoiadorIdConsulta}_${workerIdConsulta}_${payment.id}`;
       await db.collection("consultas").doc(consultaId).set(consultaDoc, { merge: true });
+
+      // Para advogado Premium, libera contato apos confirmacao real do pagamento,
+      // persiste no historico do usuario e envia por e-mail.
+      try {
+        const [apoiadorSnap, workerSnap] = await Promise.all([
+          db.collection("apoiadores").doc(apoiadorIdConsulta).get(),
+          db.collection("users").doc(workerIdConsulta).get(),
+        ]);
+
+        const apoiadorData = apoiadorSnap.exists ? apoiadorSnap.data() || {} : {};
+        const workerData = workerSnap.exists ? workerSnap.data() || {} : {};
+        const isPremiumApoiador = String(apoiadorData.plano || "").toLowerCase() === "premium";
+        const isAdvogado = String(apoiadorData.tipo || meta.especialidade || "")
+          .toLowerCase()
+          .includes("advog");
+
+        if (isPremiumApoiador && isAdvogado) {
+          const releasedContact = {
+            professionalName: apoiadorData.nome || meta.apoiadorNome || null,
+            professionalType: apoiadorData.tipo || "advogado",
+            email: (apoiadorData.email || "").toString().trim() || null,
+            whatsapp:
+              normalizePhone(apoiadorData.whatsapp || apoiadorData.telefone || "") || null,
+            adExitum: apoiadorData.adExitum === true,
+          };
+
+          const releasePayload = {
+            consultationId: consultaId,
+            workerId: workerIdConsulta,
+            apoiadorId: apoiadorIdConsulta,
+            amount,
+            releasedContact,
+            releasedAt: FieldValue.serverTimestamp(),
+            paymentId: payment.id || null,
+          };
+
+          await Promise.all([
+            db.collection("consultas").doc(consultaId).set(
+              {
+                contactReleased: true,
+                releasedContact,
+                contactReleasedAt: FieldValue.serverTimestamp(),
+              },
+              { merge: true }
+            ),
+            db
+              .collection("users")
+              .doc(workerIdConsulta)
+              .collection("releasedContacts")
+              .doc(consultaId)
+              .set(releasePayload, { merge: true }),
+          ]);
+
+          const workerEmail = (workerData.email || payment?.payer?.email || "")
+            .toString()
+            .trim()
+            .toLowerCase();
+          const workerName = (workerData.pseudonimo || workerData.name || "").toString().trim();
+          await notifyReleasedContactByEmail({
+            workerEmail,
+            workerName,
+            apoiadorName: releasedContact.professionalName,
+            contact: releasedContact,
+            amount,
+          });
+        }
+      } catch (releaseErr) {
+        console.warn("[webhook] falha ao liberar contato do advogado (ignorada):", releaseErr?.message || releaseErr);
+      }
+
       return res.status(200).json({ received: true, updated: true, kind: "consultation" });
     }
 

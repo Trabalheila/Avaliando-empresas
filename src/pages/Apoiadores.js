@@ -30,13 +30,13 @@ function Apoiadores({ theme, toggleTheme }) {
           Nossa plataforma atua como um ponto de conexão eficiente, unindo quem oferece serviços a quem precisa deles.
         </p>
         <p className="text-sm text-slate-500 dark:text-slate-400 max-w-2xl mx-auto mt-3">
-          Não há qualquer intermediação financeira ou negociação por parte do Trabalhei Lá.
-          O pagamento é feito diretamente entre o cliente e o profissional, sem taxas adicionais da plataforma.
+          As consultas intermediadas pela plataforma usam pagamento seguro via Mercado Pago,
+          com confirmação registrada e trilha de atendimento para cliente e especialista.
         </p>
 
         {/* Vídeo explicativo para especialistas */}
         <div className="max-w-2xl mx-auto mt-8">
-          <YouTubeEmbed videoId="EHZviakowZY" title="Cadastro Especialista" />
+          <YouTubeEmbed videoId="i1drPIxnlgM" title="Cadastro Especialista" />
         </div>
 
         {/* CTA principal: cadastro do perfil */}

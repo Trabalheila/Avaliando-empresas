@@ -27,17 +27,16 @@
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
-   Desktop (>= 1024px): reduz o widget para 75% do tamanho original para
-   evitar que o avatar e o balão de fala dominem a viewport e compitam
-   com o conteúdo principal. Mobile/tablet permanecem no tamanho cheio.
-   410 × 0.75 = 308 ; 33vw × 0.75 = 25vw
+   Desktop (>= 1024px): reduz o widget para 50% do tamanho original,
+   conforme solicitado para ocupar menos espaço no conteúdo principal.
+   410 × 0.50 = 205 ; 33vw × 0.50 = 16.5vw
    ──────────────────────────────────────────────────────────────────────── */
 @media (min-width: 1024px) {
   .chatbotToggle {
-    width: 308px;
-    height: 308px;
-    max-width: 25vw;
-    max-height: 25vw;
+    width: 205px;
+    height: 205px;
+    max-width: 16.5vw;
+    max-height: 16.5vw;
   }
 }
 
@@ -99,14 +98,14 @@
   overflow: hidden;
 }
 
-/* Desktop 75%: janela proporcional ao avatar reduzido.
-   420 × 0.75 ≈ 315 ; 560 × 0.75 = 420 ; 340 × 0.75 = 255 */
+/* Desktop 50%: janela proporcional ao avatar reduzido.
+   420 × 0.50 = 210 ; 560 × 0.50 = 280 ; 340 × 0.50 = 170 */
 @media (min-width: 1024px) {
   .chatbotWindow {
-    bottom: 255px;
-    width: 315px;
-    height: 420px;
-    max-height: calc(100vh - 255px - 16px);
+    bottom: 170px;
+    width: 210px;
+    height: 280px;
+    max-height: calc(100vh - 170px - 16px);
   }
 }
 
@@ -115,17 +114,17 @@
    para garantir que o cabeçalho com o botão "X" sempre apareça. */
 @media (max-height: 820px) {
   .chatbotWindow {
-    bottom: 270px;
-    height: 480px;
-    max-height: calc(100vh - 270px - 16px);
+    bottom: 150px;
+    height: 240px;
+    max-height: calc(100vh - 150px - 16px);
   }
 }
 
 @media (max-height: 680px) {
   .chatbotWindow {
-    bottom: 210px;
-    height: 400px;
-    max-height: calc(100vh - 210px - 12px);
+    bottom: 120px;
+    height: 200px;
+    max-height: calc(100vh - 120px - 12px);
   }
 }
 

@@ -9,6 +9,7 @@ import {
   collection,
   query,
   where,
+  orderBy,
   getDocs,
   limit,
 } from "firebase/firestore";
@@ -729,6 +730,9 @@ export default function MinhaConta({ theme, toggleTheme }) {
         {/* ══════ Histórico de Consultas ══════ */}
         <ConsultationHistorySection profile={safeProfile} navigate={navigate} />
 
+        {/* ══════ Contatos Liberados ══════ */}
+        <ReleasedContactsSection profile={safeProfile} />
+
         {/* ══════ Minhas Experiências Profissionais ══════ */}
         <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
           <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
@@ -1063,6 +1067,7 @@ function NextVideoCallSection({ profile, navigate }) {
    (impressão do navegador → Salvar como PDF).
    ════════════════════════════════════════════════ */
 const CONSULTA_STATUS_LABELS = {
+  approved: { label: "Pagamento aprovado", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200" },
   pending: { label: "Aguardando confirmação", cls: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200" },
   accepted: { label: "Confirmada", cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200" },
   in_progress: { label: "Em andamento", cls: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-200" },
@@ -1139,6 +1144,7 @@ function ConsultationHistorySection({ profile }) {
               label: c.status || "—",
               cls: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
             };
+            const releasedContact = c.releasedContact || null;
             const when =
               c.scheduledFor?.toDate?.().toLocaleString("pt-BR") ||
               c.createdAt?.toDate?.().toLocaleString("pt-BR") ||
@@ -1176,12 +1182,26 @@ function ConsultationHistorySection({ profile }) {
                 </div>
 
                 {isOpen && (
-                  <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 grid sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
-                    <p><span className="font-semibold">Status:</span> {status.label}</p>
-                    <p><span className="font-semibold">Formato:</span> {c.modalidade === "video" || c.formato === "video" ? "Videochamada" : c.modalidade === "chat" || c.formato === "chat" ? "Chat" : (c.formato || "—")}</p>
-                    <p><span className="font-semibold">Valor:</span> {Number(c.valor ?? c.amount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
-                    <p><span className="font-semibold">Profissional:</span> {c.apoiadorNome || c.especialistaNome || "—"}</p>
-                  </div>
+                  <>
+                    <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 grid sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
+                      <p><span className="font-semibold">Status:</span> {status.label}</p>
+                      <p><span className="font-semibold">Formato:</span> {c.modalidade === "video" || c.formato === "video" ? "Videochamada" : c.modalidade === "chat" || c.formato === "chat" ? "Chat" : (c.formato || "—")}</p>
+                      <p><span className="font-semibold">Valor:</span> {Number(c.valor ?? c.amount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
+                      <p><span className="font-semibold">Profissional:</span> {c.apoiadorNome || c.especialistaNome || "—"}</p>
+                    </div>
+
+                    {releasedContact && (
+                      <div className="mt-3 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-3 text-xs text-emerald-900 dark:text-emerald-200">
+                        <p className="font-bold mb-1">Contato liberado após pagamento</p>
+                        <p><span className="font-semibold">Profissional:</span> {releasedContact.professionalName || "—"}</p>
+                        <p><span className="font-semibold">E-mail:</span> {releasedContact.email || "—"}</p>
+                        <p><span className="font-semibold">WhatsApp:</span> {releasedContact.whatsapp || "—"}</p>
+                        {releasedContact.adExitum === true && (
+                          <p><span className="font-semibold">Modelo de honorários:</span> Aceita ad exitum</p>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
 
                 <div className="mt-3">
@@ -1193,6 +1213,85 @@ function ConsultationHistorySection({ profile }) {
                     🧾 Ver nota fiscal ou recibo (PDF)
                   </button>
                 </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function ReleasedContactsSection({ profile }) {
+  const workerId = profile?.id || profile?.profileId || "";
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!workerId) return undefined;
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      try {
+        const q1 = query(
+          collection(db, "users", workerId, "releasedContacts"),
+          orderBy("releasedAt", "desc"),
+          limit(50)
+        );
+        const snap = await getDocs(q1);
+        if (!cancelled) {
+          setItems(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        }
+      } catch {
+        if (!cancelled) setItems([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [workerId]);
+
+  return (
+    <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
+      <h2 className="text-lg font-bold text-blue-800 dark:text-blue-200 mb-4 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 8a2 2 0 00-2-2H5a2 2 0 00-2 2m18 0v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8m18 0l-9 5-9-5" />
+        </svg>
+        Contatos Liberados
+      </h2>
+
+      {loading ? (
+        <p className="text-sm text-slate-500 dark:text-slate-400 animate-pulse">Carregando contatos…</p>
+      ) : items.length === 0 ? (
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Você ainda não possui contatos liberados por pagamento confirmado.
+        </p>
+      ) : (
+        <ul className="space-y-3">
+          {items.map((item) => {
+            const releasedAt = item.releasedAt?.toDate?.().toLocaleString("pt-BR") || "";
+            const c = item.releasedContact || {};
+            return (
+              <li
+                key={item.id}
+                className="p-4 rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20"
+              >
+                <p className="text-sm font-bold text-emerald-900 dark:text-emerald-100">
+                  {c.professionalName || "Profissional"}
+                </p>
+                <div className="mt-1 text-xs text-emerald-900 dark:text-emerald-200 grid sm:grid-cols-2 gap-x-4 gap-y-1">
+                  <p><span className="font-semibold">E-mail:</span> {c.email || "—"}</p>
+                  <p><span className="font-semibold">WhatsApp:</span> {c.whatsapp || "—"}</p>
+                  <p><span className="font-semibold">Valor pago:</span> {Number(item.amount || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
+                  <p><span className="font-semibold">Liberado em:</span> {releasedAt || "—"}</p>
+                </div>
+                {c.adExitum === true && (
+                  <p className="mt-2 text-xs font-semibold text-purple-800 dark:text-purple-300">
+                    ⚖️ Este advogado aceita ad exitum.
+                  </p>
+                )}
               </li>
             );
           })}

@@ -565,7 +565,11 @@ function TrabalheiLaMobile({
   const sourcePieData = buildPieData(selectedCompanyData?.sourceStats, sourceConfig);
   const contractPieData = buildPieData(selectedCompanyData?.contractStats, contractConfig);
   const workModelPieData = buildPieData(selectedCompanyData?.workModelStats, workModelConfig);
-  const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
+  const hasCompletedProfile = Boolean(
+    (userPseudonym || userProfile?.pseudonimo || userProfile?.name || "")
+      .toString()
+      .trim()
+  );
   const headerRef = React.useRef(null);
   const [headerSpacerHeight, setHeaderSpacerHeight] = React.useState(0);
   // Offset dinâmico para a barra de progresso sticky — alinha com a altura
@@ -1133,7 +1137,7 @@ function TrabalheiLaMobile({
           <p className="text-xs text-slate-600 dark:text-slate-300 text-center mb-3">
             Em 2 minutos, veja como avaliar empresas de forma anônima e verificada.
           </p>
-          <YouTubeEmbed videoId="JZkL0YJSQnw" title="Apresentação Trabalhei Lá" />
+          <YouTubeEmbed videoId="BXzgY1Q4hQw" title="Apresentação Trabalhei Lá" />
         </section>
 
         {/* FORMULÁRIO */}
