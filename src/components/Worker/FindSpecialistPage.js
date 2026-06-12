@@ -213,6 +213,35 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
     specialist.averageConsultationPrice || specialist.precoConsulta || 0
   );
 
+  // Conta de demonstração: não pode receber pagamentos reais — botões ficam
+  // desabilitados.
+  const isTestAccount = specialist.isTestAccount === true;
+  // Disponibilidade exibida no card (controlada manualmente no Firestore).
+  const isAvailable = specialist.available === true;
+
+  // Valor da consulta pontual: no plano Essencial é o preço FIXO da plataforma
+  // (chat); no Premium é o valor definido pelo profissional. Quando há preço, o
+  // clique deve ir direto ao fluxo de pagamento (igual ao "Agendar consulta");
+  // somente quando o preço é "Sob consulta" (0) abrimos o modal de contato.
+  const pontualAmount =
+    planType === "Essencial" ? FREE_PLAN_CONSULTATION_PRICE.chat : avgPrice;
+  const hasPontualPrice = pontualAmount > 0;
+
+  const goToPayment = (amount) => {
+    navigate("/pagamento-consulta", {
+      state: {
+        professionalId: specialist.id,
+        professionalName: specialist.nome,
+        specialtyId: normalizeTipo(specialist.tipo) || "outro",
+        consultationPrice: amount,
+        originalAmount: amount,
+        modalidade: "chat",
+        planoTipo: planType === "Premium" ? "premium" : "essential",
+        fromScheduling: true,
+      },
+    });
+  };
+
   let scheduleHint = "";
   if (planType === "Essencial") {
     // Essencial: a consulta pontual tem preço fixo da plataforma — esse valor
@@ -269,6 +298,20 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
           <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mt-0.5">
             {tipoLabel}
           </p>
+          {isAvailable && (
+            <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              Disponível agora
+            </p>
+          )}
+          {isTestAccount && (
+            <p className="mt-1 inline-flex items-center text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+              Conta de demonstração
+            </p>
+          )}
           {planType === "Essencial" && (
             <p className="mt-1 inline-flex items-center text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
               ✉️ Consulta pontual: R$ {FREE_PLAN_CONSULTATION_PRICE.chat} chat · R$ {FREE_PLAN_CONSULTATION_PRICE.video} vídeo
@@ -326,7 +369,17 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
         >
           Ver perfil
         </Link>
-        {workerIsPremium ? (
+        {isTestAccount ? (
+          <button
+            type="button"
+            disabled
+            aria-disabled="true"
+            title="Conta de demonstração — consultas indisponíveis"
+            className="text-center px-3 py-2 rounded-lg bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-sm font-bold cursor-not-allowed"
+          >
+            Indisponível para consulta
+          </button>
+        ) : workerIsPremium ? (
           <Link
             to={`/chat/spec_${encodeURIComponent(specialist.id)}?peer=${encodeURIComponent(
               specialist.nome || "Especialista"
@@ -341,42 +394,53 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
         ) : (
           <button
             type="button"
-            onClick={() => onPontualClick?.(specialist)}
+            onClick={() => {
+              // Com preço definido (Essencial fixo ou Premium do profissional),
+              // a consulta pontual vai DIRETO ao fluxo de pagamento — mesmo
+              // comportamento no desktop e no mobile. Sem preço ("Sob
+              // consulta"), abrimos o modal de contato/pergunta.
+              if (hasPontualPrice) {
+                goToPayment(pontualAmount);
+              } else {
+                onPontualClick?.(specialist);
+              }
+            }}
             className="text-center px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
-            title="Pergunta única, sem histórico nem follow-up"
+            title={
+              hasPontualPrice
+                ? "Consulta pontual — pagamento da consulta"
+                : "Pergunta única, sem histórico nem follow-up"
+            }
           >
             ✉️ Consulta pontual
           </button>
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={() => {
-          // Valor da consulta: Premium usa o preço definido pelo próprio
-          // especialista; Essencial usa o preço fixo de chat da plataforma.
-          const scheduleAmount =
-            avgPrice > 0 ? avgPrice : FREE_PLAN_CONSULTATION_PRICE.chat;
-          navigate("/pagamento-consulta", {
-            state: {
-              professionalId: specialist.id,
-              professionalName: specialist.nome,
-              specialtyId: normalizeTipo(specialist.tipo) || "outro",
-              consultationPrice: scheduleAmount,
-              originalAmount: scheduleAmount,
-              modalidade: "chat",
-              planoTipo: planType === "Premium" ? "premium" : "essential",
-              fromScheduling: true,
-            },
-          });
-        }}
-        className="mt-2 w-full px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold"
-      >
-        📅 Agendar consulta
-      </button>
-      <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 text-center">
-        {scheduleHint}
-      </p>
+      {isTestAccount ? (
+        <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 text-center">
+          Conta de demonstração — não disponível para consultas pagas.
+        </p>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              // Valor da consulta: Premium usa o preço definido pelo próprio
+              // especialista; Essencial usa o preço fixo de chat da plataforma.
+              const scheduleAmount =
+                avgPrice > 0 ? avgPrice : FREE_PLAN_CONSULTATION_PRICE.chat;
+              goToPayment(scheduleAmount);
+            }}
+            className="mt-2 w-full px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold"
+          >
+            📅 Agendar consulta
+          </button>
+          <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 text-center">
+            {scheduleHint}
+          </p>
+        </>
+      )}
     </article>
   );
 }
@@ -456,6 +520,11 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
               data.averageConsultationPrice || data.precoConsulta || 0
             ),
             isTest: data.isTest === true,
+            // Conta de demonstração: permanece visível na listagem, mas com os
+            // botões de consulta desabilitados (não pode receber pagamento).
+            isTestAccount: data.isTestAccount === true,
+            // Indicador "Disponível agora" — controlado manualmente no Firestore.
+            available: data.available === true,
             email: data.email || "",
             whatsapp: data.whatsapp || data.telefone || "",
           };
