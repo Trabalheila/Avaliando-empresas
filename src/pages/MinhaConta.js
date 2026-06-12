@@ -685,6 +685,9 @@ export default function MinhaConta({ theme, toggleTheme }) {
         {/* ══════ Histórico de Consultas ══════ */}
         <ConsultationHistorySection profile={safeProfile} navigate={navigate} />
 
+        {/* ══════ Contatos Liberados ══════ */}
+        <ReleasedContactsSection profile={safeProfile} />
+
         {/* ══════ Minhas Experiências Profissionais ══════ */}
         <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
           <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
@@ -873,6 +876,113 @@ export default function MinhaConta({ theme, toggleTheme }) {
 
       </div>
     </div>
+  );
+}
+
+/* ════════════════════════════════════════════════
+   ReleasedContactsSection
+   ────────────────────────────────────────────────
+   Lista os contatos de especialistas liberados ao trabalhador
+   após o pagamento aprovado de uma consulta. Lê a subcoleção
+   users/{uid}/releasedContacts (gravada pelo webhook do
+   Mercado Pago). Exibe e-mail e WhatsApp do especialista.
+   ════════════════════════════════════════════════ */
+function ReleasedContactsSection({ profile }) {
+  const uid = auth.currentUser?.uid || profile?.uid || profile?.id || "";
+  const [contacts, setContacts] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!uid) return undefined;
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      try {
+        const snap = await getDocs(
+          collection(db, "users", uid, "releasedContacts")
+        );
+        if (!cancelled) {
+          const list = snap.docs
+            .map((d) => ({ id: d.id, ...d.data() }))
+            .sort(
+              (a, b) =>
+                (b?.releasedAt?.toMillis?.() || 0) -
+                (a?.releasedAt?.toMillis?.() || 0)
+            );
+          setContacts(list);
+        }
+      } catch {
+        // best-effort
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [uid]);
+
+  return (
+    <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
+      <h2 className="text-lg font-bold text-blue-800 dark:text-blue-200 mb-4 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+        Contatos Liberados
+      </h2>
+
+      {loading ? (
+        <p className="text-sm text-slate-500 dark:text-slate-400 animate-pulse">
+          Carregando contatos…
+        </p>
+      ) : contacts.length === 0 ? (
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Nenhum contato liberado ainda. Ao contratar uma consulta, os dados de
+          contato do especialista aparecem aqui após a confirmação do pagamento.
+        </p>
+      ) : (
+        <ul className="space-y-3">
+          {contacts.map((c) => {
+            const waDigits = String(c.especialistaWhatsapp || "").replace(/\D/g, "");
+            return (
+              <li
+                key={c.id}
+                className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60"
+              >
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                  {c.apoiadorNome || "Especialista"}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {c.especialistaEmail && (
+                    <a
+                      href={`mailto:${c.especialistaEmail}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 text-xs font-bold hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                    >
+                      📧 {c.especialistaEmail}
+                    </a>
+                  )}
+                  {c.especialistaWhatsapp && (
+                    <a
+                      href={`https://wa.me/${waDigits}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
+                    >
+                      📱 {c.especialistaWhatsapp}
+                    </a>
+                  )}
+                  {!c.especialistaEmail && !c.especialistaWhatsapp && (
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      Contato não informado pelo especialista.
+                    </span>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 

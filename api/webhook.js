@@ -42,6 +42,112 @@ function getMercadoPagoAccessToken() {
   return token;
 }
 
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * Libera o contato do especialista para o trabalhador após o pagamento
+ * aprovado de uma consulta.
+ *
+ * Efeitos (best-effort, nunca lança — apenas loga falhas):
+ *   1. Grava users/{workerId}/releasedContacts/{consultaId} com e-mail e
+ *      WhatsApp do especialista (para a seção "Contatos Liberados" de Minha
+ *      Conta).
+ *   2. Envia um e-mail ao trabalhador com esses dados de contato.
+ *
+ * NÃO expõe contatos em nenhum response HTTP — os dados ficam apenas no
+ * documento do próprio usuário (lido sob regra de dono) e no e-mail.
+ */
+async function releaseSpecialistContact({ db, FieldValue, apoiadorId, workerId, consultaId }) {
+  try {
+    if (!apoiadorId || !workerId || !consultaId) return;
+
+    const apoiadorSnap = await db.collection("apoiadores").doc(apoiadorId).get();
+    const apoiador = apoiadorSnap.exists ? apoiadorSnap.data() || {} : {};
+    const especialistaEmail = String(apoiador.email || "").trim();
+    const especialistaWhatsapp = String(
+      apoiador.whatsapp || apoiador.telefone || ""
+    ).trim();
+    const apoiadorNome = String(apoiador.nome || apoiador.displayName || "Especialista").trim();
+    const especialidade = String(apoiador.tipo || apoiador.profissao || "").trim();
+
+    // 1. Persiste o contato liberado no documento do trabalhador.
+    await db
+      .collection("users")
+      .doc(workerId)
+      .collection("releasedContacts")
+      .doc(consultaId)
+      .set(
+        {
+          apoiadorId,
+          apoiadorNome,
+          especialidade: especialidade || null,
+          especialistaEmail: especialistaEmail || null,
+          especialistaWhatsapp: especialistaWhatsapp || null,
+          consultaId,
+          releasedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+    // 2. Envia o e-mail com os dados de contato ao trabalhador.
+    const resendKey = (process.env.RESEND_API_KEY || "").toString().trim();
+    const fromAddress = (process.env.EMAIL_FROM_ADDRESS || "").toString().trim();
+    if (!resendKey || !fromAddress) {
+      console.warn("[webhook] RESEND_API_KEY/EMAIL_FROM_ADDRESS ausente; e-mail de contato não enviado.");
+      return;
+    }
+
+    const workerSnap = await db.collection("users").doc(workerId).get();
+    const workerEmail = workerSnap.exists
+      ? String(workerSnap.data()?.email || "").trim().toLowerCase()
+      : "";
+    if (!workerEmail) {
+      console.warn("[webhook] e-mail do trabalhador não encontrado; contato salvo, e-mail não enviado.");
+      return;
+    }
+
+    const { Resend } = await import("resend");
+    const resend = new Resend(resendKey);
+    const waDigits = especialistaWhatsapp.replace(/\D/g, "");
+    const contactRows = [
+      especialistaEmail
+        ? `<p style="margin:4px 0;">📧 <strong>E-mail:</strong> <a href="mailto:${escapeHtml(especialistaEmail)}">${escapeHtml(especialistaEmail)}</a></p>`
+        : "",
+      especialistaWhatsapp
+        ? `<p style="margin:4px 0;">📱 <strong>WhatsApp:</strong> <a href="https://wa.me/${waDigits}">${escapeHtml(especialistaWhatsapp)}</a></p>`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("");
+
+    await resend.emails.send({
+      from: fromAddress,
+      to: workerEmail,
+      subject: `Contato liberado: ${apoiadorNome}`,
+      html: `
+        <div style="font-family:Arial,Helvetica,sans-serif;color:#1e293b;max-width:560px;margin:0 auto;">
+          <h2 style="color:#1d4ed8;">Pagamento confirmado ✅</h2>
+          <p>Sua consulta com <strong>${escapeHtml(apoiadorNome)}</strong> foi confirmada.
+          Seguem os dados de contato do especialista:</p>
+          <div style="background:#f1f5f9;border-radius:12px;padding:16px;margin:16px 0;">
+            ${contactRows || "<p>Os dados de contato serão disponibilizados em breve.</p>"}
+          </div>
+          <p style="font-size:13px;color:#64748b;">Você também pode acessar estes dados a qualquer momento na seção <strong>Contatos Liberados</strong> em Minha Conta.</p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.warn("[webhook] releaseSpecialistContact falhou:", err?.message || err);
+  }
+}
+
 let adminResourcesPromise;
 async function getAdminResources() {
   if (!adminResourcesPromise) {
@@ -435,6 +541,18 @@ async function handleMercadoPagoWebhook(req, res) {
       };
       const consultaId = `${apoiadorIdConsulta}_${workerIdConsulta}_${payment.id}`;
       await db.collection("consultas").doc(consultaId).set(consultaDoc, { merge: true });
+
+      // Libera o contato do especialista para o trabalhador (salva em
+      // users/{workerId}/releasedContacts e envia e-mail). Best-effort: nunca
+      // bloqueia a confirmação do webhook.
+      await releaseSpecialistContact({
+        db,
+        FieldValue,
+        apoiadorId: apoiadorIdConsulta,
+        workerId: workerIdConsulta,
+        consultaId,
+      });
+
       return res.status(200).json({ received: true, updated: true, kind: "consultation" });
     }
 

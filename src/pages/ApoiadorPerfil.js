@@ -228,7 +228,7 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
   const isOwner = Boolean(currentUid && ownerUid && currentUid === ownerUid);
   // "Ad Exitum" é um regime de honorários advocatícios — só faz sentido
   // para advogados. Esconde os selos para qualquer outro tipo.
-  const isAdvogado = String(apoiador.tipo || "").toLowerCase() === "advogado";
+  const isAdvogado = String(apoiador.tipo || "").toLowerCase().includes("advogado");
   const showAdExitum = apoiador.adExitum === true && isAdvogado;
 
   return (
@@ -289,10 +289,10 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
                 )}
                 {showAdExitum && (
                   <span
-                    className="px-2.5 py-0.5 text-[11px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-full"
+                    className="px-2.5 py-0.5 text-[11px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-full"
                     title="Este especialista aceita o modelo Ad Exitum — você só paga se ganhar a causa."
                   >
-                    ⚖️ Aceita Ad Exitum
+                    ✔ Aceita Ad Exitum
                   </span>
                 )}
                 {eligibleForPremiumUpgrade && isAdvogado && (
@@ -324,6 +324,19 @@ function ApoiadorPerfil({ theme, toggleTheme }) {
               )}
             </div>
           </div>
+
+          {/* Explicação do modelo Ad Exitum — visível para todos os usuários
+              logados, sem restrição de plano. */}
+          {showAdExitum && (
+            <div className="mt-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+              <p className="text-sm font-bold text-emerald-800 dark:text-emerald-200 flex items-center gap-2">
+                <span aria-hidden="true">✔</span> Aceita Ad Exitum
+              </p>
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                Ad Exitum: o advogado só recebe honorários se o caso for ganho. Você paga apenas pelo resultado.
+              </p>
+            </div>
+          )}
 
           {apoiador.descricao && (
             <p className="text-sm text-slate-700 dark:text-slate-200 mt-4 leading-relaxed">{apoiador.descricao}</p>

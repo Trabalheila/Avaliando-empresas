@@ -679,6 +679,68 @@ function getSpecialistConfig(tipo) {
 }
 
 /* ──────────────────────────────────────────────────────────────
+ * Histórico de casos — terminologia por especialidade.
+ *
+ * A estrutura de dados no Firestore não muda (clientAlias, caseType,
+ * finishedAt, result). Aqui apenas adaptamos o TÍTULO e os RÓTULOS das
+ * colunas exibidas conforme a área de atuação do profissional.
+ * ────────────────────────────────────────────────────────────── */
+const CASE_HISTORY_CONFIGS = {
+  advogado: {
+    title: "Histórico de casos",
+    clientLabel: "Cliente",
+    typeLabel: "Tipo de caso",
+    outcomeLabel: "Resultado",
+  },
+  medico: {
+    title: "Histórico de atendimentos",
+    clientLabel: "Empresa",
+    typeLabel: "Tipo de serviço",
+    outcomeLabel: "Status",
+  },
+  psicologo: {
+    title: "Histórico de sessões",
+    clientLabel: "Cliente",
+    typeLabel: "Tipo de sessão",
+    outcomeLabel: "Status",
+  },
+  engenheiro_seguranca: {
+    title: "Histórico de auditorias",
+    clientLabel: "Empresa",
+    typeLabel: "Tipo de auditoria",
+    outcomeLabel: "Resultado",
+  },
+  fisioterapeuta_ocupacional: {
+    title: "Histórico de atendimentos",
+    clientLabel: "Empresa",
+    typeLabel: "Tipo de atendimento",
+    outcomeLabel: "Status",
+  },
+  contador: {
+    title: "Histórico de serviços",
+    clientLabel: "Cliente",
+    typeLabel: "Tipo de serviço",
+    outcomeLabel: "Status",
+  },
+};
+
+const DEFAULT_CASE_HISTORY_CONFIG = {
+  title: "Histórico de atendimentos",
+  clientLabel: "Cliente",
+  typeLabel: "Tipo de serviço",
+  outcomeLabel: "Status",
+};
+
+function getCaseHistoryConfig(tipo) {
+  const key = (tipo || "")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/-/g, "_");
+  return CASE_HISTORY_CONFIGS[key] || DEFAULT_CASE_HISTORY_CONFIG;
+}
+
+/* ──────────────────────────────────────────────────────────────
  * Placeholders de busca no Firestore.
  *
  * Estas funções devolvem dados mockados enquanto as coleções
@@ -805,6 +867,11 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
     "outro";
   const specialistConfig = useMemo(
     () => getSpecialistConfig(specialistTipo),
+    [specialistTipo]
+  );
+  // Terminologia do card "Histórico de casos" adaptada à especialidade.
+  const caseHistoryConfig = useMemo(
+    () => getCaseHistoryConfig(specialistTipo),
     [specialistTipo]
   );
 
@@ -1466,7 +1533,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                       id="history-title"
                       className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
                     >
-                      <span aria-hidden="true">🗂️</span> Histórico de casos
+                      <span aria-hidden="true">🗂️</span> {caseHistoryConfig.title}
                     </h2>
                   </header>
                   {caseHistory.length === 0 ? (
@@ -1500,10 +1567,10 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                       <table className="w-full text-sm">
                         <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300">
                           <tr>
-                            <Th>Cliente</Th>
-                            <Th>Tipo de caso</Th>
+                            <Th>{caseHistoryConfig.clientLabel}</Th>
+                            <Th>{caseHistoryConfig.typeLabel}</Th>
                             <Th>Finalizado em</Th>
-                            <Th>Resultado</Th>
+                            <Th>{caseHistoryConfig.outcomeLabel}</Th>
                           </tr>
                         </thead>
                         <tbody>

@@ -50,6 +50,11 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
   const [plano, setPlano] = useState("");
   const [precoConsulta, setPrecoConsulta] = useState("");
   const isPremium = String(plano || "").toLowerCase() === "premium";
+  // Tipo do especialista e modelo de honorários "Ad Exitum" — opção exclusiva
+  // de advogados (só recebe se ganhar a causa do cliente).
+  const [tipo, setTipo] = useState("");
+  const [adExitum, setAdExitum] = useState(false);
+  const isAdvogado = String(tipo || "").toLowerCase().includes("advogado");
   // E-mail da conta Mercado Pago do especialista. Usado pelo backend para
   // direcionar a parte do profissional no split de pagamentos das consultas.
   const [mpEmail, setMpEmail] = useState("");
@@ -83,6 +88,8 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
           setNichosText(nichos.join(", "));
           setDisponibilidade(d.disponibilidade || "");
           setPlano(d.plano || d.planType || d.tier || "");
+          setTipo(d.tipo || d.profissao || "");
+          setAdExitum(d.adExitum === true);
           setMpEmail(d.mercadoPagoEmail || d.mpEmail || "");
           const preco = Number(d.precoConsulta || d.preco || 0);
           setPrecoConsulta(preco > 0 ? String(preco) : "");
@@ -175,6 +182,13 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
           disponibilidade: disponibilidade.trim(),
         };
 
+        // "Ad Exitum" só faz sentido para advogados — só persistimos a flag
+        // quando o especialista é advogado, evitando gravar o campo para
+        // outros tipos de profissional.
+        if (isAdvogado) {
+          updates.adExitum = Boolean(adExitum);
+        }
+
         // E-mail do Mercado Pago — valida o formato antes de salvar. Permite
         // limpar o campo (string vazia) ou informar um e-mail válido.
         const mpEmailTrim = mpEmail.trim().toLowerCase();
@@ -262,6 +276,9 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
             disponibilidade: updates.disponibilidade,
             mercadoPagoEmail: updates.mercadoPagoEmail,
           };
+          if (typeof updates.adExitum === "boolean") {
+            merged.adExitum = updates.adExitum;
+          }
           if (typeof updates.precoConsulta === "number") {
             merged.precoConsulta = updates.precoConsulta;
             merged.averageConsultationPrice = updates.precoConsulta;
@@ -287,7 +304,7 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
         setSaving(false);
       }
     },
-    [apoiadorId, descricao, areasText, nichosText, disponibilidade, fotoFile, compressImageToDataUrl, isPremium, precoConsulta, mpEmail]
+    [apoiadorId, descricao, areasText, nichosText, disponibilidade, fotoFile, compressImageToDataUrl, isPremium, precoConsulta, mpEmail, isAdvogado, adExitum]
   );
 
   if (!apoiadorId) {
@@ -462,6 +479,30 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
                 className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+
+            {/* Modelo de honorários: Ad Exitum — exclusivo de advogados */}
+            {isAdvogado && (
+              <div className="rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/60 dark:bg-purple-900/20 p-4">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={adExitum}
+                    onChange={(e) => setAdExitum(e.target.checked)}
+                    className="mt-0.5 shrink-0 accent-purple-600 h-4 w-4"
+                  />
+                  <span>
+                    <span className="block text-sm font-bold text-purple-800 dark:text-purple-200">
+                      Aceito atender casos Ad Exitum
+                    </span>
+                    <span className="block text-xs text-slate-600 dark:text-slate-300 leading-relaxed mt-1">
+                      Ad Exitum significa que você só recebe honorários se o caso for ganho.
+                      Especialistas que aceitam esse modelo ganham um selo destacado no perfil
+                      e aparecem em buscas filtradas por essa modalidade.
+                    </span>
+                  </span>
+                </label>
+              </div>
+            )}
 
             {/* Dados de pagamento (Mercado Pago) — destino do repasse no split */}
             <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-900/20 p-4">

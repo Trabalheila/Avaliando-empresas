@@ -197,6 +197,7 @@ function StarRow({ rating }) {
 }
 
 function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
+  const navigate = useNavigate();
   const tipoLabel =
     SPECIALTY_OPTIONS.find((o) => o.value === normalizeTipo(specialist.tipo))?.label ||
     "Especialista";
@@ -349,46 +350,26 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
         )}
       </div>
 
-      {planType === "Premium" && (specialist.email || specialist.whatsapp) ? (
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          {specialist.email ? (
-            <a
-              href={`mailto:${specialist.email}`}
-              className="text-center px-3 py-2 rounded-lg border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-xs font-bold hover:bg-amber-50 dark:hover:bg-amber-900/30"
-              title="Contato direto por e-mail (exclusivo Premium)"
-            >
-              📧 E-mail
-            </a>
-          ) : (
-            <span />
-          )}
-          {specialist.whatsapp ? (
-            <a
-              href={`https://wa.me/${String(specialist.whatsapp).replace(/\D/g, "")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-center px-3 py-2 rounded-lg border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200 text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
-              title="Contato direto por WhatsApp (exclusivo Premium)"
-            >
-              📱 WhatsApp
-            </a>
-          ) : (
-            <span />
-          )}
-        </div>
-      ) : (
-        <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 text-center">
-          Contato direto (e-mail/WhatsApp) disponível apenas para especialistas Premium.
-        </p>
-      )}
-
       <button
         type="button"
-        onClick={() =>
-          alert(
-            `Agendamento de consulta com ${specialist.nome}.\n${scheduleHint}\n\n(Funcionalidade completa em breve.)`
-          )
-        }
+        onClick={() => {
+          // Valor da consulta: Premium usa o preço definido pelo próprio
+          // especialista; Essencial usa o preço fixo de chat da plataforma.
+          const scheduleAmount =
+            avgPrice > 0 ? avgPrice : FREE_PLAN_CONSULTATION_PRICE.chat;
+          navigate("/pagamento-consulta", {
+            state: {
+              professionalId: specialist.id,
+              professionalName: specialist.nome,
+              specialtyId: normalizeTipo(specialist.tipo) || "outro",
+              consultationPrice: scheduleAmount,
+              originalAmount: scheduleAmount,
+              modalidade: "chat",
+              planoTipo: planType === "Premium" ? "premium" : "essential",
+              fromScheduling: true,
+            },
+          });
+        }}
         className="mt-2 w-full px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold"
       >
         📅 Agendar consulta
