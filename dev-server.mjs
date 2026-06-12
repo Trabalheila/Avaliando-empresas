@@ -40,6 +40,35 @@ app.use(
 );
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+// Rewrites locais para manter paridade com vercel.json durante o desenvolvimento.
+app.all("/api/parse-cv", async (req, res, next) => {
+  try {
+    const chatGeminiFileUrl = pathToFileURL(path.join(__dirname, "api", "chat-gemini.js")).href;
+    const mod = await import(chatGeminiFileUrl);
+    const handler = mod.default || mod.handler;
+    if (typeof handler !== "function") {
+      throw new Error("api/chat-gemini.js não exporta um handler default");
+    }
+
+    const originalQuery = req.query || {};
+    const rewrittenReq = Object.create(req);
+    Object.defineProperty(rewrittenReq, "query", {
+      value: { ...originalQuery, op: "parse-cv" },
+      writable: true,
+      configurable: true,
+      enumerable: true,
+    });
+    await handler(rewrittenReq, res);
+  } catch (err) {
+    if (res.headersSent) return;
+    console.error("[dev-server] erro no rewrite /api/parse-cv -> /api/chat-gemini?op=parse-cv:", err);
+    res.status(500).json({
+      message: "Erro interno do servidor (dev).",
+      error: err?.message || String(err),
+    });
+  }
+});
+
 // 2) Auto-monta cada arquivo de api/*.js como rota /api/<nome>.
 const apiDir = path.join(__dirname, "api");
 const files = fs

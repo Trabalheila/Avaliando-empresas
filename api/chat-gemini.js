@@ -54,6 +54,20 @@ Ignore seções de educação, cursos, idiomas, habilidades, projetos pessoais,
 voluntariado sem empresa nomeada. Não invente datas — omita o campo se
 não houver indicação clara. Não duplique experiências.`;
 
+const parseCvIsQuotaExceeded = (err) => {
+  const msg = (err?.message || String(err)).toString();
+  return err?.status === 429 || /\b429\b|quota|rate.?limit/i.test(msg);
+};
+const parseCvIsOverloaded = (err) => {
+  const msg = (err?.message || String(err)).toString();
+  return err?.status === 503 || /\b503\b|overloaded|unavailable|high demand/i.test(msg);
+};
+const parseCvIsModelMissing = (err) => {
+  const msg = (err?.message || String(err)).toString();
+  return err?.status === 404 || /\b404\b|not.?found/i.test(msg);
+};
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function handleParseCv(req, res, body, apiKey) {
   const { filename, mimeType, base64 } = body || {};
   if (!base64 || typeof base64 !== "string") {
@@ -86,23 +100,25 @@ async function handleParseCv(req, res, body, apiKey) {
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const modelName =
+    const primaryModel =
       process.env.GEMINI_CV_MODEL ||
       process.env.GEMINI_MODEL ||
       "gemini-2.0-flash";
-    const model = genAI.getGenerativeModel({
-      model: modelName,
-      systemInstruction: PARSE_CV_SYSTEM,
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: PARSE_CV_SCHEMA,
-        temperature: 0.1,
-      },
-    });
+    const fallbackModels = (
+      process.env.GEMINI_CV_FALLBACK_MODELS ||
+      "gemini-2.5-flash-lite,gemini-2.5-flash,gemini-flash-latest"
+    )
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const modelCandidates = [
+      primaryModel,
+      ...fallbackModels.filter((model) => model !== primaryModel),
+    ];
 
-    let result;
+    let contentParts;
     if (isPdf) {
-      result = await model.generateContent([
+      contentParts = [
         { text: "Extraia o histórico profissional deste currículo." },
         {
           inlineData: {
@@ -110,7 +126,7 @@ async function handleParseCv(req, res, body, apiKey) {
             data: buffer.toString("base64"),
           },
         },
-      ]);
+      ];
     } else {
       const mammothMod = await import("mammoth");
       const mammoth = mammothMod.default || mammothMod;
@@ -121,14 +137,57 @@ async function handleParseCv(req, res, body, apiKey) {
           .status(422)
           .json({ error: "Não consegui ler o conteúdo do DOCX." });
       }
-      result = await model.generateContent([
+      contentParts = [
         {
           text: `Extraia o histórico profissional do texto abaixo.\n\n---\n${text.slice(
             0,
             60000
           )}\n---`,
         },
-      ]);
+      ];
+    }
+
+    let result = null;
+    let modelUsed = null;
+    let lastError = null;
+    for (const modelName of modelCandidates) {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction: PARSE_CV_SYSTEM,
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: PARSE_CV_SCHEMA,
+          temperature: 0.1,
+        },
+      });
+
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          result = await model.generateContent(contentParts);
+          modelUsed = modelName;
+          break;
+        } catch (err) {
+          lastError = err;
+          if (parseCvIsOverloaded(err) && attempt === 0) {
+            await sleep(800);
+            continue;
+          }
+          if (
+            parseCvIsQuotaExceeded(err) ||
+            parseCvIsOverloaded(err) ||
+            parseCvIsModelMissing(err)
+          ) {
+            break;
+          }
+          throw err;
+        }
+      }
+
+      if (result) break;
+    }
+
+    if (!result) {
+      throw lastError || new Error("Falha desconhecida ao processar currículo.");
     }
 
     const raw = result?.response?.text?.() || "";
@@ -150,9 +209,40 @@ async function handleParseCv(req, res, body, apiKey) {
         data_fim: e?.data_fim ? String(e.data_fim).trim() : "",
       }))
       .filter((e) => e.empresa && e.funcao);
-    return res.status(200).json({ experiencias: cleaned });
+    return res.status(200).json({ experiencias: cleaned, modelUsed });
   } catch (err) {
-    console.error("Falha em parse-cv:", err);
+    console.error("Falha em parse-cv:", {
+      filename,
+      mimeType,
+      sizeBytes: buffer?.length || 0,
+      status: err?.status,
+      message: err?.message || String(err),
+    });
+
+    if (parseCvIsQuotaExceeded(err)) {
+      return res.status(429).json({
+        error:
+          "Cota da IA para extração de currículo excedida no momento. Tente novamente em instantes.",
+        detail: "quota_exceeded",
+      });
+    }
+
+    if (parseCvIsOverloaded(err)) {
+      return res.status(503).json({
+        error:
+          "A IA está sobrecarregada no momento. Tente novamente em alguns segundos.",
+        detail: "model_overloaded",
+      });
+    }
+
+    if (parseCvIsModelMissing(err)) {
+      return res.status(502).json({
+        error:
+          "Modelo de IA indisponível para extração agora. Tente novamente mais tarde.",
+        detail: "model_not_found",
+      });
+    }
+
     return res
       .status(500)
       .json({ error: "Não foi possível processar o currículo." });
