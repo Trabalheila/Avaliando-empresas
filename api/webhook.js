@@ -35,9 +35,9 @@ function parseCompanyFromReference(reference) {
 }
 
 function getMercadoPagoAccessToken() {
-  const token = (process.env.MERCADO_PAGO_ACCESS_TOKEN || "").toString().trim();
+  const token = (process.env.MERCADOPAGO_ACCESS_TOKEN || "").toString().trim();
   if (!token) {
-    throw new Error("MERCADO_PAGO_ACCESS_TOKEN nao configurado.");
+    throw new Error("MERCADOPAGO_ACCESS_TOKEN nao configurado.");
   }
   return token;
 }

@@ -59,7 +59,7 @@ async function logPixAvailability(accessToken) {
     if (!resp.ok || !Array.isArray(methods)) {
       console.warn(
         `[PIX-DIAG] Não foi possível listar payment_methods (HTTP ${resp.status}). ` +
-          `Verifique se o MERCADO_PAGO_ACCESS_TOKEN é válido.`
+          `Verifique se o MERCADOPAGO_ACCESS_TOKEN é válido.`
       );
       return;
     }
@@ -87,9 +87,9 @@ async function logPixAvailability(accessToken) {
 
 
 async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, audience, tier, paymentMethod, apoiadorId }) {
-  const accessToken = (process.env.MERCADO_PAGO_ACCESS_TOKEN || "").toString().trim();
+  const accessToken = (process.env.MERCADOPAGO_ACCESS_TOKEN || "").toString().trim();
   if (!accessToken) {
-    throw new Error("MERCADO_PAGO_ACCESS_TOKEN nao configurado.");
+    throw new Error("MERCADOPAGO_ACCESS_TOKEN nao configurado.");
   }
 
   const appOrigin = getAppOrigin(req);
@@ -313,14 +313,14 @@ async function getApoiadorMpEmail(apoiadorId) {
  * Cria uma `preference` (one-shot) no Mercado Pago para uma consulta
  * avulsa entre trabalhador Premium e Apoiador. Usa `marketplace_fee`
  * para o split (10% essential / 12.5% premium) — funcional quando o
- * MERCADO_PAGO_ACCESS_TOKEN é de uma conta com marketplace habilitado;
+ * MERCADOPAGO_ACCESS_TOKEN é de uma conta com marketplace habilitado;
  * sem isso, o pagamento é processado normalmente e o split deve ser
  * reconciliado manualmente.
  */
 async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tier, amount, workerId, especialidade, requesterAudience, modalidade, message, workerNome, originalAmount, discountAmount }) {
-  const accessToken = (process.env.MERCADO_PAGO_ACCESS_TOKEN || "").toString().trim();
+  const accessToken = (process.env.MERCADOPAGO_ACCESS_TOKEN || "").toString().trim();
   if (!accessToken) {
-    throw new Error("MERCADO_PAGO_ACCESS_TOKEN nao configurado.");
+    throw new Error("MERCADOPAGO_ACCESS_TOKEN nao configurado.");
   }
   if (!apoiadorId) {
     throw new Error("apoiadorId é obrigatório para a consulta.");
@@ -396,13 +396,13 @@ async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tie
     external_reference: `consulta:${apoiadorId}:${workerId || "anon"}:${Date.now()}`,
     // Métodos de pagamento — garante que o PIX (payment_type "bank_transfer")
     // e demais meios fiquem disponíveis no Checkout Pro. Nada é excluído.
-    // `installments: 1` limita parcelamento no cartão sem afetar o PIX, que é
-    // sempre à vista. Observação: o PIX só aparece se estiver habilitado na
+    // `installments: 12` permite parcelar no cartão em até 12x; o PIX
+    // permanece à vista. Observação: o PIX só aparece se estiver habilitado na
     // conta de vendedor do Mercado Pago (chave PIX cadastrada).
     payment_methods: {
       excluded_payment_types: [],
       excluded_payment_methods: [],
-      installments: 1,
+      installments: 12,
       default_installments: 1,
     },
     back_urls: {
