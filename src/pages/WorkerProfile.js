@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import {
   doc,
   getDoc,
@@ -153,6 +154,7 @@ export default function WorkerProfile({ theme, toggleTheme }) {
 
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
+  const [loadError, setLoadError] = useState("");
   const [reviews, setReviews] = useState([]);
   const [editing, setEditing] = useState(null); // review sendo editada
   const [editDraft, setEditDraft] = useState({ comment: "", criteria: {} });
@@ -169,6 +171,7 @@ export default function WorkerProfile({ theme, toggleTheme }) {
 
     async function load() {
       setLoading(true);
+      setLoadError("");
       try {
         // 1. Buscar perfil do usuário
         const userRef = doc(db, "users", profileId);
@@ -217,13 +220,35 @@ export default function WorkerProfile({ theme, toggleTheme }) {
         }
       } catch (err) {
         console.warn("Erro ao carregar perfil:", err);
+        // A leitura de `users/{id}` exige autenticação (regras do Firestore).
+        // Diferenciamos "não autenticado" de erro genérico para dar um
+        // feedback adequado em vez de mostrar "perfil não encontrado".
+        if (!cancelled) {
+          setProfile(null);
+          setLoadError(
+            err?.code === "permission-denied"
+              ? "unauthorized"
+              : "error"
+          );
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
 
-    load();
-    return () => { cancelled = true; };
+    // Aguardamos o Firebase Auth resolver (restauração da sessão persistida no
+    // IndexedDB) ANTES de buscar o perfil. Sem isso há uma condição de corrida:
+    // a leitura de `users/{id}` dispara antes de `auth.currentUser` existir e
+    // falha por permission-denied, exibindo "perfil não encontrado" mesmo para
+    // sessões válidas. O onAuthStateChanged garante o primeiro estado definitivo.
+    const unsub = onAuthStateChanged(auth, () => {
+      if (!cancelled) load();
+    });
+
+    return () => {
+      cancelled = true;
+      try { unsub(); } catch { /* ignore */ }
+    };
   }, [profileId]);
 
   // ─── Resumo calculado ───
@@ -352,21 +377,44 @@ export default function WorkerProfile({ theme, toggleTheme }) {
     );
   }
 
-  // ─── Não encontrado ───
+  // ─── Não encontrado / erro de acesso ───
   if (!profile) {
+    const isUnauthorized = loadError === "unauthorized";
+    const isError = loadError === "error";
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
         <AppHeader theme={theme} toggleTheme={toggleTheme} />
-        <div className="flex-1 flex flex-col items-center justify-center gap-4">
-          <span className="text-6xl">🔍</span>
-          <p className="text-slate-600 dark:text-slate-300 text-lg font-semibold">Perfil não encontrado.</p>
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className="px-5 py-2 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
-          >
-            Voltar ao início
-          </button>
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4 text-center">
+          <span className="text-6xl">{isUnauthorized ? "🔒" : isError ? "⚠️" : "🔍"}</span>
+          <p className="text-slate-600 dark:text-slate-300 text-lg font-semibold">
+            {isUnauthorized
+              ? "Você precisa estar logado para ver este perfil."
+              : isError
+              ? "Não foi possível carregar o perfil. Tente novamente."
+              : "Perfil não encontrado."}
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {isUnauthorized && (
+              <button
+                type="button"
+                onClick={() =>
+                  navigate("/login", {
+                    state: { from: `/perfil/${profileId}` },
+                  })
+                }
+                className="px-5 py-2 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
+              >
+                Entrar
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="px-5 py-2 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+            >
+              Voltar ao início
+            </button>
+          </div>
         </div>
       </div>
     );

@@ -223,6 +223,14 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == userId;
       allow update: if request.auth != null && request.auth.uid == userId;
       allow delete: if request.auth != null && request.auth.uid == userId;
+
+      // Contatos de especialistas liberados após pagamento aprovado de
+      // consulta. Gravados apenas pelo backend (Admin SDK, que ignora estas
+      // regras); o cliente apenas lê os próprios contatos liberados.
+      match /releasedContacts/{contactId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+      }
     }
 
     // Apoiadores (coleção unificada).

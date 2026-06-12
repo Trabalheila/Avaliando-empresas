@@ -13,6 +13,20 @@ function formatBRL(amount) {
   });
 }
 
+// Rótulos amigáveis por tipo de especialidade (alinhado ao diretório de
+// especialistas). Usado apenas para exibição na página de pagamento.
+const SPECIALTY_LABELS = {
+  advogado: "Advogado(a) trabalhista",
+  consultor_rh: "Consultor(a) de RH",
+  recrutador: "Recrutador(a)",
+  psicologo: "Psicólogo(a) organizacional",
+  medico: "Médico(a) do trabalho",
+  contador: "Contador(a)",
+  engenheiro_seguranca: "Engenheiro(a) de segurança",
+  fisioterapeuta_ocupacional: "Fisioterapeuta ocupacional",
+  outro: "Especialista",
+};
+
 function getWorkerSnapshot() {
   try {
     const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
@@ -41,10 +55,20 @@ export default function PagamentoConsultaPage({ theme, toggleTheme }) {
     userDoubt,
     modalidade: modalidadeFromState,
     planoTipo,
+    fromScheduling,
   } = location.state || {};
 
   const modalidade = modalidadeFromState === "video" ? "video" : "chat";
   const especialidade = specialtyId || especialidadeId || "";
+  const especialidadeLabel =
+    SPECIALTY_LABELS[String(especialidade).toLowerCase()] || "";
+  // Mensagem enviada ao especialista. No fluxo de agendamento (a partir do
+  // card do diretório) não há "dúvida" digitada; usamos uma mensagem padrão.
+  const consultationMessage =
+    (userDoubt && String(userDoubt).trim()) ||
+    (fromScheduling
+      ? `Solicitação de consulta agendada com ${professionalName || "o especialista"}.`
+      : "");
 
   const [submitting, setSubmitting] = useState(false);
   const [success] = useState(false);
@@ -74,7 +98,7 @@ export default function PagamentoConsultaPage({ theme, toggleTheme }) {
       setError("Dados da consulta nao encontrados.");
       return;
     }
-    if (!userDoubt || !String(userDoubt).trim()) {
+    if (!consultationMessage || !String(consultationMessage).trim()) {
       setError("Descricao da duvida nao encontrada.");
       return;
     }
@@ -90,7 +114,7 @@ export default function PagamentoConsultaPage({ theme, toggleTheme }) {
         especialidade: especialidade || "outro",
         audience: "worker",
         modalidade,
-        message: String(userDoubt).trim(),
+        message: String(consultationMessage).trim(),
         workerNome: workerSnapshot.nome,
         originalAmount: normalizedOriginalAmount,
         discountAmount: normalizedDiscount,
@@ -175,7 +199,23 @@ export default function PagamentoConsultaPage({ theme, toggleTheme }) {
               </h2>
               <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
                 Profissional: <strong>{professionalName}</strong>
+                {especialidadeLabel && (
+                  <span className="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {especialidadeLabel}
+                  </span>
+                )}
               </p>
+
+              {fromScheduling && (
+                <div className="mt-3 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-900/20 p-3 text-xs text-slate-600 dark:text-slate-300">
+                  <p>
+                    Você está contratando uma consulta com{" "}
+                    <strong>{professionalName}</strong>. Ao confirmar o pagamento,
+                    receberá os dados de contato do especialista por e-mail e em{" "}
+                    <strong>Minha Conta</strong>.
+                  </p>
+                </div>
+              )}
 
               <div className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-3 text-sm">
                 <div className="flex justify-between items-baseline">
