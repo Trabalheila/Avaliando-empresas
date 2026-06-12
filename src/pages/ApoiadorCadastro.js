@@ -4,7 +4,6 @@ import { db, auth } from "../firebase";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { signInAnonymously } from "firebase/auth";
 import AppHeader from "../components/AppHeader";
-import YouTubeEmbed from "../components/YouTubeEmbed";
 import EssencialFreePopup from "../components/EssencialFreePopup";
 import { isAdmin } from "../utils/rbac";
 import { buildDeclarationText } from "../components/ConflictDeclarationGate";
@@ -448,9 +447,6 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
       <AppHeader theme={theme} toggleTheme={toggleTheme} hideAvatar />
 
       <form onSubmit={handleSubmit} className="w-full max-w-4xl px-4 py-8">
-        {/* Vídeo explicativo do cadastro do especialista */}
-        <YouTubeEmbed videoId="1qP8sJuj8Jc" title="Cadastro Especialista" />
-
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-blue-100 dark:border-slate-700 p-6 md:p-8">
           <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white mb-1">Cadastro de Especialista</h1>
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
@@ -886,6 +882,46 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
               </button>
             </>
           )}
+        </div>
+
+        {/* ── Requisitos do cadastro ── */}
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-5 rounded-2xl bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 shadow-sm">
+            <h2 className="text-base font-extrabold text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+              <span className="text-rose-500">*</span> Requisitos obrigatórios
+            </h2>
+            <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+              <li className="flex items-start gap-2"><span className="text-rose-500 mt-0.5">•</span> Tipo de especialista (profissão)</li>
+              <li className="flex items-start gap-2"><span className="text-rose-500 mt-0.5">•</span> Nome completo / Razão social</li>
+              <li className="flex items-start gap-2"><span className="text-rose-500 mt-0.5">•</span> E-mail</li>
+              <li className="flex items-start gap-2"><span className="text-rose-500 mt-0.5">•</span> Telefone</li>
+              <li className="flex items-start gap-2"><span className="text-rose-500 mt-0.5">•</span> Ramo de Especialização</li>
+              <li className="flex items-start gap-2"><span className="text-rose-500 mt-0.5">•</span> Número e estado/região do conselho de classe (OAB, CRM, CRP etc.) — para profissões regulamentadas</li>
+              <li className="flex items-start gap-2"><span className="text-rose-500 mt-0.5">•</span> Aceite de todos os termos obrigatórios</li>
+              <li className="flex items-start gap-2"><span className="text-rose-500 mt-0.5">•</span> Aceite da Declaração de Ausência de Conflito de Interesses</li>
+            </ul>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 shadow-sm">
+            <h2 className="text-base font-extrabold text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+              <span className="text-slate-400 text-sm font-normal">(opcional)</span> Requisitos opcionais
+            </h2>
+            <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+              <li className="flex items-start gap-2"><span className="text-slate-400 mt-0.5">•</span> WhatsApp</li>
+              <li className="flex items-start gap-2"><span className="text-slate-400 mt-0.5">•</span> CNPJ</li>
+              <li className="flex items-start gap-2"><span className="text-slate-400 mt-0.5">•</span> Site institucional</li>
+              <li className="flex items-start gap-2"><span className="text-slate-400 mt-0.5">•</span> Segmentos de atuação</li>
+              <li className="flex items-start gap-2"><span className="text-slate-400 mt-0.5">•</span> Nichos de atuação (até 3)</li>
+              <li className="flex items-start gap-2"><span className="text-slate-400 mt-0.5">•</span> Foto ou logotipo</li>
+              <li className="flex items-start gap-2"><span className="text-slate-400 mt-0.5">•</span> Descrição do perfil</li>
+              <li className="flex items-start gap-2"><span className="text-slate-400 mt-0.5">•</span> Documentos comprobatórios</li>
+              <li className="flex items-start gap-2"><span className="text-slate-400 mt-0.5">•</span> Portfólio (casos ou projetos)</li>
+              <li className="flex items-start gap-2"><span className="text-slate-400 mt-0.5">•</span> Link de Portfólio / LinkedIn e certificações (profissões não regulamentadas)</li>
+              <li className="flex items-start gap-2"><span className="text-slate-400 mt-0.5">•</span> Diploma (gera o selo "Profissional Verificado com Diploma")</li>
+              <li className="flex items-start gap-2"><span className="text-slate-400 mt-0.5">•</span> Contextos de atendimento (trabalhadores e/ou empresas)</li>
+              <li className="flex items-start gap-2"><span className="text-slate-400 mt-0.5">•</span> Modelo Ad Exitum (apenas advogados)</li>
+            </ul>
+          </div>
         </div>
       </form>
       <PaymentInfoModal
