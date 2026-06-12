@@ -875,6 +875,17 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
     [specialistTipo]
   );
 
+  // O card "Histórico de casos" é específico de profissionais do Direito.
+  // Só é renderizado quando a especialidade/role contém "advogado" ou
+  // "jurídico". Para os demais (médico, recrutador, psicólogo, coach, etc.)
+  // o card não aparece de forma alguma — nem vazio, nem só com título.
+  const isLawyer = useMemo(() => {
+    const haystack = `${specialistTipo || ""} ${apoiadorDoc?.specialty || ""} ${
+      apoiadorDoc?.role || ""
+    } ${profile?.specialty || ""} ${profile?.role || ""}`.toLowerCase();
+    return /advogad|jur[ií]dic/.test(haystack);
+  }, [specialistTipo, apoiadorDoc, profile]);
+
   // Busca o documento do apoiador para descobrir tipo e ramo de
   // especialização. Falha silenciosa: o dashboard cai no preset "outro".
   useEffect(() => {
@@ -1522,6 +1533,9 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
               );
 
             case "caseHistory":
+              // Card exclusivo de advogados/jurídico. Para qualquer outra
+              // especialidade, não renderiza nada (nem título, nem tabela).
+              if (!isLawyer) return null;
               return (
                 <section
                   key="caseHistory"
