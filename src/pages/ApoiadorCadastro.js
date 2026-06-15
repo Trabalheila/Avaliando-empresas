@@ -411,39 +411,6 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
     }
   }, [createdApoiadorId]);
 
-  /* ═══ Tela de sucesso ═══ */
-  if (success) {
-    return (
-      <>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center justify-center px-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-blue-100 dark:border-slate-700 p-8 max-w-md w-full text-center">
-            <div className="text-4xl mb-4">✅</div>
-            <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200 mb-2">Cadastro enviado!</h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-              Seu cadastro será analisado em até <strong>5 dias úteis</strong>. Após aprovação, seu perfil aparecerá na listagem de especialistas.
-            </p>
-            <button
-              type="button"
-              disabled={showWelcomeModal}
-              onClick={() => navigate("/apoiadores/lista")}
-              className="px-6 py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
-            >
-              Ver Especialistas
-            </button>
-          </div>
-        </div>
-        {showWelcomeModal && (
-          <WelcomeModal
-            open={showWelcomeModal}
-            apoiadorId={createdApoiadorId}
-            onClose={handleWelcomeClose}
-          />
-        )}
-      </>
-    );
-  }
-
-  /* ═══ Formulário ═══ */
   const linkedInClientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID;
   const linkedInRedirectUri = getLinkedInRedirectUri();
 
@@ -492,6 +459,39 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
     }
   }, [navigate]);
 
+  /* ═══ Tela de sucesso ═══ */
+  if (success) {
+    return (
+      <>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center justify-center px-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-blue-100 dark:border-slate-700 p-8 max-w-md w-full text-center">
+            <div className="text-4xl mb-4">✅</div>
+            <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200 mb-2">Cadastro enviado!</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+              Seu cadastro será analisado em até <strong>5 dias úteis</strong>. Após aprovação, seu perfil aparecerá na listagem de especialistas.
+            </p>
+            <button
+              type="button"
+              disabled={showWelcomeModal}
+              onClick={() => navigate("/apoiadores/lista")}
+              className="px-6 py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
+            >
+              Ver Especialistas
+            </button>
+          </div>
+        </div>
+        {showWelcomeModal && (
+          <WelcomeModal
+            open={showWelcomeModal}
+            apoiadorId={createdApoiadorId}
+            onClose={handleWelcomeClose}
+          />
+        )}
+      </>
+    );
+  }
+
+  /* ═══ Formulário ═══ */
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center">
       <EssencialFreePopup
