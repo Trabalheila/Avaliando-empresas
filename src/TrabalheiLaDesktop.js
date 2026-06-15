@@ -667,13 +667,6 @@ function TrabalheiLaDesktop({
             chosenType === "apoiador" ||
             chosenType === "especialista" ||
             Boolean(userProfile?.apoiadorId);
-          const isWorkerProfile =
-            hasCompletedProfile ||
-            userType === "trabalhador" ||
-            role === "trabalhador" ||
-            chosenType === "worker" ||
-            chosenType === "trabalhador";
-          const hasDefinedProfileType = isEmployerProfile || isSpecialistProfile || isWorkerProfile;
           const greetingName =
             (userPseudonym || userProfile?.name || "").toString().trim() || "amigo(a)";
           let isAdminFlag = false;
@@ -709,7 +702,7 @@ function TrabalheiLaDesktop({
               <h2 className="text-2xl md:text-3xl font-extrabold text-white text-center mb-2 tracking-tight drop-shadow leading-snug">
                 Avalie suas experiências profissionais de forma 100% anônima e segura.
               </h2>
-              {(!isAuthenticated || !hasDefinedProfileType) && (
+              {!isAuthenticated && (
                 <p className="text-sm md:text-base text-blue-100/90 text-center mb-4 max-w-2xl mx-auto leading-relaxed font-semibold">
                   Qual é o seu perfil para começar?
                 </p>
@@ -741,36 +734,9 @@ function TrabalheiLaDesktop({
                 </>
               )}
 
-              {/* CENÁRIO 2 — autenticado sem tipo de perfil */}
-              {isAuthenticated && !hasDefinedProfileType && (
-                <>
-                  <p className="text-sm md:text-base text-blue-100 text-center mb-4">
-                    Bem-vindo(a)! Escolha seu perfil para começar:
-                  </p>
-                  <div className="flex flex-col sm:flex-row items-stretch justify-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => handleChooseProfile("worker")}
-                      className="flex-1 sm:max-w-xs flex flex-col items-center justify-center text-center py-2.5 px-4 rounded-lg bg-lime-400 text-emerald-950 text-sm md:text-base font-bold shadow transition-all duration-200 hover:bg-lime-500 hover:scale-[1.03] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-lime-300"
-                    >
-                      <span>Sou Trabalhador</span>
-                      <span className="block text-[11px] md:text-xs font-medium text-emerald-900/80 mt-0.5">(avalia anonimamente)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleChooseProfile("specialist")}
-                      className="flex-1 sm:max-w-xs flex flex-col items-center justify-center text-center py-2.5 px-4 rounded-lg bg-white text-blue-800 text-sm md:text-base font-bold shadow transition-all duration-200 hover:bg-blue-50 hover:scale-[1.03] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
-                    >
-                      <span>Sou Especialista</span>
-                      <span className="block text-[11px] md:text-xs font-medium text-blue-700/80 mt-0.5">(advogados, psicólogos, consultores e outros)</span>
-                    </button>
-                  </div>
-                </>
-              )}
-
               {/* Trust strip — sinaliza Anônimo/Verificado/Confiável de forma discreta
-                  apenas nas telas de aquisição (visitante ou logado sem perfil). */}
-              {(!isAuthenticated || !hasDefinedProfileType) && (
+                  apenas para visitantes (não logados). */}
+              {!isAuthenticated && (
                 <div className="mt-5 pt-4 border-t border-white/15 flex flex-wrap items-center justify-center gap-2">
                   <span
                     title="Sua identidade é mantida em sigilo: avaliações são publicadas sob pseudônimo."
@@ -793,8 +759,8 @@ function TrabalheiLaDesktop({
                 </div>
               )}
 
-              {/* CENÁRIO 3 — autenticado com tipo de perfil definido */}
-              {isAuthenticated && hasDefinedProfileType && (
+              {/* CENÁRIO 3 — autenticado: home da conta (Buscar ajuda / Minha conta / Sair) */}
+              {isAuthenticated && (
                 <>
                   <p className="text-sm md:text-base text-blue-100 text-center mb-4">
                     Bem-vindo(a), <span className="font-extrabold text-white">{greetingName}</span>!
