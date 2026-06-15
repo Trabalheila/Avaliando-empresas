@@ -32,16 +32,21 @@ import {
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 import AppHeader from "../components/AppHeader";
+import LoginLinkedInButton from "../LoginLinkedInButton";
+import { FaGoogle } from "react-icons/fa";
 
 import { auth, db } from "../firebase";
 import {
   finalizeSocialLogin,
+  loginWithGoogleAndFinalize,
   signUpWithEmailPassword,
 } from "../services/socialAuth";
 import {
   getSelectedProfileType,
+  setSelectedProfileType,
   clearSelectedProfileType,
 } from "../services/profileType";
+import { getLinkedInRedirectUri } from "../utils/linkedinAuth";
 import {
   passwordChecklist,
   passwordStrengthError,
@@ -82,6 +87,9 @@ function readStoredProfile() {
 export default function ChoosePseudonym({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const linkedInClientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID;
+  const linkedInRedirectUri = getLinkedInRedirectUri();
 
   // Detecta se viemos do fluxo de Lazy Registration (avaliação pendente).
   const isAfterReview = useMemo(() => {
@@ -354,6 +362,52 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
     [pseudonym, socialContext, finalizeProfile]
   );
 
+  // ─── Login social (Google) na própria página do Trabalhador ───
+  // Reaproveita o serviço `loginWithGoogleAndFinalize`: usuários
+  // recorrentes são finalizados na hora; usuários novos caem na view
+  // de coleta de pseudônimo (mesma usada no retorno do OAuth).
+  const handleGoogleClick = useCallback(async () => {
+    setError("");
+    setSelectedProfileType("worker");
+    setSubmitting(true);
+    try {
+      await markFunnelStarted();
+      const res = await loginWithGoogleAndFinalize({});
+      if (res?.requiresPseudonym) {
+        const s = res.session || {};
+        setSocialContext({
+          provider: "google",
+          uid: s.uid,
+          email: s.email || "",
+          displayName: s.displayName || "",
+          picture: s.picture || "",
+          extra: {
+            picture: s.picture || "",
+            avatar: s.picture || "",
+            nomeReal: s.displayName || "",
+            fullName: s.displayName || "",
+          },
+        });
+        setPseudonym((prev) => prev || pseudonymFromName(s.displayName || ""));
+        setEmail((prev) => prev || s.email || "");
+        setSocialAwaitingPseudonym(true);
+      } else {
+        clearSelectedProfileType();
+        const drained = res?.pending;
+        const destination =
+          drained?.drained && drained?.company
+            ? `/empresa?name=${encodeURIComponent(drained.company)}`
+            : "/";
+        navigate(destination);
+      }
+    } catch (err) {
+      console.error("[choosePseudonym] Google login falhou:", err);
+      setError("Não foi possível entrar com o Google agora. Tente novamente.");
+    } finally {
+      setSubmitting(false);
+    }
+  }, [navigate, markFunnelStarted]);
+
   // ─────────────────────────────────────────────────────────────────
   // Render
   // ─────────────────────────────────────────────────────────────────
@@ -384,6 +438,7 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
               apenas na Landing — esta página é exclusivamente para o
               cadastro manual por e-mail/senha. */}
           {!socialAwaitingPseudonym && (
+            <>
             <form
               onSubmit={handleManualSubmit}
               className="mt-6 space-y-4"
@@ -511,6 +566,36 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
                 </button>
               </p>
             </form>
+
+            {/* Login social — Google primeiro (acesso rápido e anônimo). */}
+            <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-700">
+              <p className="text-center text-sm font-bold text-slate-700 dark:text-slate-200">
+                Entrar para salvar suas avaliações
+              </p>
+              <p className="mt-1 text-center text-xs text-slate-500 dark:text-slate-400">
+                Conecte-se para continuar — leva menos de 10 segundos.
+              </p>
+              <div className="mt-4 flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={handleGoogleClick}
+                  disabled={submitting}
+                  className="w-full inline-flex items-center justify-center gap-2 h-11 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100 font-bold shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-60"
+                >
+                  <FaGoogle className="text-base" /> Continuar com Google
+                </button>
+                <div onClickCapture={() => setSelectedProfileType("worker")}>
+                  <LoginLinkedInButton
+                    clientId={linkedInClientId}
+                    redirectUri={linkedInRedirectUri}
+                    onLoginSuccess={() => {}}
+                    onLoginFailure={(err) => setError(err?.message || String(err))}
+                    disabled={submitting}
+                  />
+                </div>
+              </div>
+            </div>
+            </>
           )}
 
           {/* ───────────── View 2: pseudônimo após login social ───────────── */}

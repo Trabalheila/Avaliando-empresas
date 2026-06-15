@@ -594,20 +594,6 @@ function TrabalheiLaMobile({
     [navigate]
   );
 
-  // Wrappers para login social: garantem perfil padrão antes do OAuth.
-  const handleGoogleClick = React.useCallback(() => {
-    ensureSelectedProfileType();
-    if (typeof onGoogleLogin === "function") onGoogleLogin();
-  }, [onGoogleLogin]);
-
-  const handleLinkedInSuccessWrapped = React.useCallback(
-    (payload) => {
-      ensureSelectedProfileType();
-      if (typeof onLoginSuccess === "function") onLoginSuccess(payload);
-    },
-    [onLoginSuccess]
-  );
-
   const getTopSliceLabel = (pieData) => {
     const topItem = pieData.items.reduce((best, current) => (current.percent > best.percent ? current : best), pieData.items[0]);
     if (!topItem || topItem.percent <= 0) {
@@ -944,37 +930,6 @@ function TrabalheiLaMobile({
                       <span>Sou Especialista</span>
                       <span className="block text-[10px] font-medium text-blue-700/80 mt-0.5">(advogados, psicólogos, consultores e outros)</span>
                     </button>
-                  </div>
-                  {/* Login social secundário — promovido a "Cadastre-se em 10s"
-                      para reduzir abandono. Mantém função de login (mesma
-                      ação do botão vale para usuários novos e existentes). */}
-                  <div className="pt-3 border-t border-white/15">
-                    <p className="text-[11px] uppercase tracking-wider text-amber-200 text-center mb-1 font-extrabold">
-                      ⚡ Cadastre-se em 10 segundos
-                    </p>
-                    <p className="text-[11px] text-blue-100/90 text-center mb-2">
-                      Sem formulários. Sem senha. Sua identidade fica oculta.
-                    </p>
-                    <div className="flex flex-col gap-2">
-                      <button
-                        type="button"
-                        onClick={handleGoogleClick}
-                        disabled={isLoading}
-                        className="w-full inline-flex items-center justify-center gap-2 bg-white hover:bg-blue-50 text-slate-800 font-bold py-2.5 px-3 rounded-xl shadow-md hover:shadow-lg transition-all text-sm disabled:opacity-60"
-                      >
-                        <FaGoogle className="text-base" /> Continuar com Google
-                      </button>
-                      <LoginLinkedInButton
-                        clientId={linkedInClientId}
-                        redirectUri={linkedInRedirectUri}
-                        onLoginSuccess={handleLinkedInSuccessWrapped}
-                        onLoginFailure={(err) => setError(err?.message || String(err))}
-                        disabled={isLoading}
-                      />
-                    </div>
-                    <p className="text-[10px] text-blue-100/70 text-center mt-2 leading-snug">
-                      Por padrão, você inicia como <strong className="text-white">Trabalhador</strong> (anônimo). É possível alterar o perfil depois.
-                    </p>
                   </div>
                 </>
               )}
