@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { db, auth } from "../firebase";
+import { db, auth, storage } from "../firebase";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { signInAnonymously } from "firebase/auth";
 import AppHeader from "../components/AppHeader";
 import LoginLinkedInButton from "../LoginLinkedInButton";
@@ -101,6 +102,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
   const [descricao, setDescricao] = useState("");
   const [arquivos, setArquivos] = useState([]);
   const [foto, setFoto] = useState(null);
+  const [fotoFile, setFotoFile] = useState(null);
   const [termosAceitos, setTermosAceitos] = useState(TERMOS.map(() => false));
   const [conflictDeclarationAccepted, setConflictDeclarationAccepted] = useState(false);
   const [nichos, setNichos] = useState([]);
@@ -196,15 +198,54 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
     setArquivos((prev) => prev.filter((_, i) => i !== idx));
   }, []);
 
-  const handleFoto = useCallback((e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    if (f.size > MAX_FILE_SIZE) return;
-    const reader = new FileReader();
-    reader.onload = () => setFoto(reader.result);
-    reader.readAsDataURL(f);
-    e.target.value = "";
+  /** Comprime/redimensiona imagem para um preview leve (~512px, JPEG).
+      Mantém o preview rápido e serve de fallback pequeno (< 1MB) caso o
+      upload no Storage falhe. */
+  const compressImageToDataUrl = useCallback(async (file, maxDim = 512, quality = 0.8) => {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result || ""));
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = dataUrl;
+    });
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, w, h);
+    return canvas.toDataURL("image/jpeg", quality);
   }, []);
+
+  const handleFoto = useCallback(async (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    if (f.size > MAX_FILE_SIZE) {
+      setError("A foto excede 5 MB.");
+      return;
+    }
+    setError("");
+    // Guarda o arquivo original para upload no Storage e gera um preview
+    // leve (compactado) imediatamente — rápido e sem travar a UI.
+    setFotoFile(f);
+    try {
+      const preview = await compressImageToDataUrl(f, 512, 0.8);
+      setFoto(preview);
+    } catch {
+      const reader = new FileReader();
+      reader.onload = () => setFoto(reader.result);
+      reader.readAsDataURL(f);
+    }
+  }, [compressImageToDataUrl]);
 
   const handleCredentialProof = useCallback((e) => {
     const f = e.target.files?.[0];
@@ -275,6 +316,28 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
     try {
       if (!auth.currentUser) await signInAnonymously(auth);
 
+      const id = `apoiador_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
+
+      // Foto: sobe para o Firebase Storage e guarda apenas a URL (string
+      // pequena). Evita estourar o limite de 1MB do documento Firestore
+      // — causa de o cadastro "não salvar" antes — e é muito mais rápido.
+      // Fallback: dataURL compactado (já < 1MB) se o Storage falhar.
+      let fotoUrl = null;
+      if (fotoFile) {
+        try {
+          const safeName = (fotoFile.name || "foto").replace(/[^\w.-]+/g, "_");
+          const path = `apoiadorPhotos/${id}/${Date.now()}-${safeName}`;
+          const sRef = storageRef(storage, path);
+          await uploadBytes(sRef, fotoFile, {
+            contentType: fotoFile.type || "image/*",
+          });
+          fotoUrl = await getDownloadURL(sRef);
+        } catch (storageErr) {
+          console.warn("[apoiadorCadastro] falha no Storage; usando dataURL compactado", storageErr);
+          fotoUrl = foto || null;
+        }
+      }
+
       const docsData = [];
       for (const f of arquivos) {
         const reader = new FileReader();
@@ -286,7 +349,6 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
         docsData.push({ nome: f.name, tamanho: f.size, tipo: f.type, url: base64 });
       }
 
-      const id = `apoiador_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
       const baseData = {
         tipo,
         nome: nome.trim(),
@@ -294,7 +356,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
         telefone: telefone.trim(),
         whatsapp: (whatsapp.trim() || telefone.trim()),
         descricao: descricao.trim().slice(0, MAX_DESC),
-        foto: foto || null,
+        foto: fotoUrl || null,
         documentos: docsData,
         status: "pendente",
         plano: "gratuito",
@@ -392,7 +454,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
       setError("Ocorreu um erro ao enviar o cadastro. Tente novamente.");
     }
     setSubmitting(false);
-  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, arquivos, allTermosAceitos, conflictDeclarationAccepted, cnpj, segmentos, site, portfolio, nichos, adExitum, servesWorker, servesEmployer, ramoEspecializacao, credentialNumber, credentialStateOrRegion, credentialPortfolioUrl, credentialCertifications, credentialProof]);
+  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, fotoFile, arquivos, allTermosAceitos, conflictDeclarationAccepted, cnpj, segmentos, site, portfolio, nichos, adExitum, servesWorker, servesEmployer, ramoEspecializacao, credentialNumber, credentialStateOrRegion, credentialPortfolioUrl, credentialCertifications, credentialProof]);
 
   /* Fecha o WelcomeModal e marca welcomeModalShown=true no Firestore.
      O proprio WelcomeModal ja persiste o flag; aqui apenas garantimos
@@ -509,38 +571,6 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
             Consultores de RH, advogados trabalhistas e prestadores de serviços corporativos podem se cadastrar como especialistas da plataforma.
           </p>
 
-          {/* Login social — LinkedIn primeiro (reforça a credibilidade profissional). */}
-          <div className="mb-6 rounded-2xl border border-blue-100 dark:border-slate-700 bg-blue-50/60 dark:bg-slate-900/40 p-4">
-            <p className="text-center text-sm font-bold text-slate-700 dark:text-slate-200">
-              Conecte seu perfil profissional
-            </p>
-            <div className="mt-3 flex flex-col sm:flex-row items-stretch gap-2">
-              <div
-                className="flex-1"
-                onClickCapture={(e) => {
-                  e.preventDefault();
-                  setSelectedProfileType("specialist");
-                }}
-              >
-                <LoginLinkedInButton
-                  clientId={linkedInClientId}
-                  redirectUri={linkedInRedirectUri}
-                  onLoginSuccess={() => {}}
-                  onLoginFailure={(err) => setError(err?.message || String(err))}
-                  disabled={submitting}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={handleGoogleClick}
-                disabled={submitting}
-                className="flex-1 inline-flex items-center justify-center gap-2 h-[42px] rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100 font-semibold shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-60"
-              >
-                <FaGoogle className="text-base" /> Continuar com Google
-              </button>
-            </div>
-          </div>
-
           <div className="mb-4">
             <button
               type="button"
@@ -586,6 +616,40 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
 
           {tipo && (
             <>
+              {/* Login social — LinkedIn primeiro (reforça a credibilidade profissional).
+                  Aparece somente depois que a profissão foi selecionada, para que o
+                  perfil já nasça com a especialidade definida. */}
+              <div className="mb-6 rounded-2xl border border-blue-100 dark:border-slate-700 bg-blue-50/60 dark:bg-slate-900/40 p-4">
+                <p className="text-center text-sm font-bold text-slate-700 dark:text-slate-200">
+                  Conecte seu perfil profissional
+                </p>
+                <div className="mt-3 flex flex-col sm:flex-row items-stretch gap-2">
+                  <div
+                    className="flex-1"
+                    onClickCapture={(e) => {
+                      e.preventDefault();
+                      setSelectedProfileType("specialist");
+                    }}
+                  >
+                    <LoginLinkedInButton
+                      clientId={linkedInClientId}
+                      redirectUri={linkedInRedirectUri}
+                      onLoginSuccess={() => {}}
+                      onLoginFailure={(err) => setError(err?.message || String(err))}
+                      disabled={submitting}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleGoogleClick}
+                    disabled={submitting}
+                    className="flex-1 inline-flex items-center justify-center gap-2 h-[42px] rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100 font-semibold shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-60"
+                  >
+                    <FaGoogle className="text-base" /> Continuar com Google
+                  </button>
+                </div>
+              </div>
+
               {/* ── Campos comuns (2 colunas no desktop) ── */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
