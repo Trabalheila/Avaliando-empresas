@@ -503,7 +503,7 @@ export default function CompanyProfile() {
       // com base64. Em caso de falha (regras/CORS), caimos para dataURL.
       let logoUrl = "";
       try {
-        const safeName = (file.name || "logo").replace(/[^\w.\-]+/g, "_");
+        const safeName = (file.name || "logo").replace(/[^\w.-]+/g, "_");
         const path = `companyLogos/${targetId}/${Date.now()}-${safeName}`;
         const sRef = storageRef(storage, path);
         await uploadBytes(sRef, file, { contentType: file.type || "image/*" });
@@ -552,7 +552,7 @@ export default function CompanyProfile() {
       const targetId = company?.id || user.uid;
       let logoUrl = "";
       try {
-        const safeName = (pendingLogoFile.name || "logo").replace(/[^\w.\-]+/g, "_");
+        const safeName = (pendingLogoFile.name || "logo").replace(/[^\w.-]+/g, "_");
         const path = `companyLogos/${targetId}/${Date.now()}-${safeName}`;
         const sRef = storageRef(storage, path);
         await uploadBytes(sRef, pendingLogoFile, {

@@ -1101,6 +1101,9 @@ function CompanyDetails({ theme, toggleTheme }) {
     })();
 
     return () => { cancelled = true; };
+    // getStableUserId é definido mais abaixo no componente (TDZ); incluí-lo
+    // no array quebraria a inicialização. É estável (useCallback) e seguro omitir.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getReactionsKey, getCompanySlug]);
 
   React.useEffect(() => {

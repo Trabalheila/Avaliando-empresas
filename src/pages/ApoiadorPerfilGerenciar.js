@@ -220,7 +220,7 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
         if (fotoFile) {
           let url = "";
           try {
-            const safeName = (fotoFile.name || "foto").replace(/[^\w.\-]+/g, "_");
+            const safeName = (fotoFile.name || "foto").replace(/[^\w.-]+/g, "_");
             // Usa o uid de Auth quando disponível (regras default do Storage
             // costumam permitir gravação apenas em pastas {uid}/...). Se não,
             // cai para o apoiadorId.

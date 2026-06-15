@@ -1773,7 +1773,7 @@ function Home({ theme, toggleTheme }) {
     setResponsibilityAccepted(false);
     setPendingEvaluationData(buildEvaluationData());
     setShowResponsibilityModal(true);
-  }, [isAuthenticated, company, userProfile, entrySource, contractType, workModel, discriminacao, commentDiscriminacao, buildEvaluationData, selectionProcessOnly, spClarity, spCommunication, spResponseTime, spDiscriminationFelt, spDiscriminationComment, spEvidenceFiles, selectedCompanyData]);
+  }, [company, userProfile, entrySource, contractType, workModel, discriminacao, commentDiscriminacao, buildEvaluationData, selectionProcessOnly, spClarity, spCommunication, spResponseTime, spDiscriminationFelt, spDiscriminationComment, spEvidenceFiles, selectedCompanyData]);
 
   const handleSubmit = useCallback((e) => {
     e.preventDefault();
@@ -1836,7 +1836,7 @@ function Home({ theme, toggleTheme }) {
         const companySlugForPath = slugifyCompany(pendingEvaluationData?.company || "empresa");
         for (const file of pendingFiles) {
           try {
-            const safeName = (file?.name || "arquivo").replace(/[^\w.\-]+/g, "_");
+            const safeName = (file?.name || "arquivo").replace(/[^\w.-]+/g, "_");
             const path = `evaluationEvidence/${companySlugForPath}/${ownerSlug}/${Date.now()}-${safeName}`;
             const sRef = storageRef(storage, path);
             await uploadBytes(sRef, file, { contentType: file.type || "application/octet-stream" });

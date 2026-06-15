@@ -562,7 +562,7 @@ function CompanyItemComments({ theme, toggleTheme }) {
     return () => {
       alive = false;
     };
-  }, [entries]);
+  }, [entries, companyName]);
 
   React.useEffect(() => {
     const key = getCommentsStorageKey();

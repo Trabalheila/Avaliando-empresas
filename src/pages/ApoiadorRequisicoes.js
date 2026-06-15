@@ -587,7 +587,7 @@ function VideoCallButton({ consulta, apoiadorId, isPremium, navigate }) {
   return (
     <>
       <a
-        href={essencialLimitReached ? undefined : url}
+        href={url}
         onClick={handleClick}
         target="_blank"
         rel="noopener noreferrer"
