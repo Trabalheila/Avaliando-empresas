@@ -36,7 +36,7 @@ function Apoiadores({ theme, toggleTheme }) {
 
         {/* Vídeo explicativo para especialistas */}
         <div className="max-w-2xl mx-auto mt-8">
-          <YouTubeEmbed videoId="i1drPIxnlgM" title="Cadastro Especialista" />
+          <YouTubeEmbed videoId="2T9OtBqybT0" title="Cadastro Especialista" />
         </div>
 
         {/* CTA principal: cadastro do perfil */}
