@@ -115,6 +115,12 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
 
+  // Tela de conclusão exibida após salvar o pseudônimo com sucesso.
+  // `homeDestination` guarda o destino original (home ou empresa pendente)
+  // para o botão "Fazer isso depois".
+  const [completed, setCompleted] = useState(false);
+  const [homeDestination, setHomeDestination] = useState("/");
+
   // View 2: pseudônimo após login social (Google/LinkedIn) feito na Landing.
   const [socialAwaitingPseudonym, setSocialAwaitingPseudonym] = useState(false);
   const [socialContext, setSocialContext] = useState(null);
@@ -238,9 +244,12 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
       const destination = drained?.drained && drained?.company
         ? `/empresa?name=${encodeURIComponent(drained.company)}`
         : "/";
-      navigate(destination);
+      // Em vez de redirecionar direto, exibe a tela de conclusão. O destino
+      // original fica guardado para o botão "Fazer isso depois".
+      setHomeDestination(destination);
+      setCompleted(true);
     },
-    [navigate]
+    []
   );
 
   // ─── Cadastro manual (e-mail + senha) ───
@@ -424,6 +433,49 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
         )}
 
         <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-blue-100 dark:border-slate-700 p-6 sm:p-8">
+          {/* ───────────── Tela de conclusão (pós-cadastro) ───────────── */}
+          {completed ? (
+            <div className="text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40">
+                <svg
+                  className="h-9 w-9 text-emerald-600 dark:text-emerald-400"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  aria-hidden="true"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h1 className="mt-4 text-2xl font-extrabold text-slate-800 dark:text-slate-100">
+                Perfil criado com sucesso!
+              </h1>
+              <p className="mt-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Perfis com experiências verificadas ganham o{" "}
+                <strong>selo de autenticidade</strong> — e suas avaliações passam
+                a ter mais credibilidade para quem as lê.
+              </p>
+
+              <div className="mt-6 flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={() => navigate("/minha-conta#experiencias")}
+                  className="w-full h-12 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-extrabold text-base transition"
+                >
+                  Completar meu perfil
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate(homeDestination)}
+                  className="w-full h-12 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-bold text-base hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                >
+                  Fazer isso depois
+                </button>
+              </div>
+            </div>
+          ) : (
+          <>
           <h1 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100 text-center">
             {socialAwaitingPseudonym ? "Escolha seu pseudônimo" : "Crie seu perfil"}
           </h1>
@@ -637,6 +689,8 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
                 {submitting ? "Salvando..." : "Concluir cadastro"}
               </button>
             </form>
+          )}
+          </>
           )}
         </div>
       </main>

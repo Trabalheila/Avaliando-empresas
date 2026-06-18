@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate, Navigate, useLocation } from "react-router-dom";
 import { db, storage, auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -103,6 +103,7 @@ function getPlanColor(profile) {
 
 export default function MinhaConta({ theme, toggleTheme }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [profile, setProfile] = useState(null);
   const [reviews, setReviews] = useState([]);
   // `authResolved` = onAuthStateChanged ja respondeu pelo menos uma vez.
@@ -290,6 +291,15 @@ export default function MinhaConta({ theme, toggleTheme }) {
       unsub();
     };
   }, []);
+
+  // Ao chegar com o hash #experiencias (ex.: vindo da tela de conclusão de
+  // cadastro), rola suavemente até a seção de experiências profissionais.
+  useEffect(() => {
+    if (loading) return;
+    if (location.hash !== "#experiencias") return;
+    const el = document.getElementById("experiencias");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [loading, location.hash]);
 
   // Resumo
   const summary = useMemo(() => {
@@ -689,7 +699,7 @@ export default function MinhaConta({ theme, toggleTheme }) {
         <ReleasedContactsSection profile={safeProfile} />
 
         {/* ══════ Minhas Experiências Profissionais ══════ */}
-        <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
+        <section id="experiencias" className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
           <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
             <h2 className="text-lg font-bold text-blue-800 dark:text-blue-200 flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
