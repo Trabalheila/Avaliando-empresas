@@ -766,6 +766,9 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
                   Documentos comprobatórios (máx. {MAX_FILES}, 5MB cada)
                 </label>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                  Exemplos: certificados de cursos, comprovante de registro em conselho de classe, publicações ou outros documentos que comprovem sua experiência. Diferente do diploma, esses documentos aparecem no seu perfil público.
+                </p>
                 <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" multiple onChange={handleFiles}
                   className="text-sm text-slate-600 dark:text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-blue-900/30 dark:file:text-blue-300" />
                 {arquivos.length > 0 && (

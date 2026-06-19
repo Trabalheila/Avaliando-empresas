@@ -191,7 +191,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
             aria-label="Alternar tema"
           >
             {theme === "dark" ? "🌙" : "☀️"}
-            <span className="appHeaderThemeLabel hidden sm:inline">Tema</span>
+            <span className="appHeaderThemeLabel hidden sm:inline">{theme === "dark" ? "Tema Escuro" : "Tema Claro"}</span>
           </button>
           <style>{`
             @media (max-width: 480px) {

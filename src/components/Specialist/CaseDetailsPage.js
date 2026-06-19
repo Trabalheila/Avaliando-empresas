@@ -379,11 +379,11 @@ function ReceiptUploadCard({ caseId, data, apoiadorId, specialistName }) {
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-emerald-100 dark:border-slate-700 p-5">
       <h2 className="text-base md:text-lg font-bold text-emerald-800 dark:text-emerald-200 flex items-center gap-2">
-        <span aria-hidden="true">🧾</span> Enviar recibo ao trabalhador
+        <span aria-hidden="true">🧾</span> Enviar comprovante de atendimento
       </h2>
       <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-        Anexe o recibo do atendimento. Ao confirmar, ele será enviado por
-        e-mail diretamente ao trabalhador deste caso.
+        Anexe o comprovante de atendimento realizado. A nota fiscal da consulta
+        é emitida pelo Trabalhei Lá diretamente ao trabalhador.
       </p>
 
       <div className="mt-4 space-y-3">
