@@ -10,6 +10,7 @@ import CompanyItemComments from './pages/CompanyItemComments';
 import Purpose from './pages/Purpose';
 import DeleteData from './pages/DeleteData';
 import TermsOfUse from './pages/TermsOfUse';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import EscolhaPerfil from './pages/EscolhaPerfil';
 import BusinessDashboard from './pages/BusinessDashboard';
 import AdminPanel from './pages/AdminPanel';
@@ -241,6 +242,7 @@ function App() {
       <Route path="/empresa/comentarios-item" element={<CompanyItemComments theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/purpose" element={<Purpose theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/termos-de-uso" element={<TermsOfUse theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/politica-de-privacidade" element={<PrivacyPolicy theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/escolha-perfil" element={<EscolhaPerfil theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/excluir-dados" element={<RequireAuth><DeleteData theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/perfil/:profileId" element={<WorkerProfile theme={theme} toggleTheme={toggleTheme} />} />
