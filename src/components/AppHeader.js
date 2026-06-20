@@ -172,13 +172,13 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
           <button
             type="button"
             onClick={() => navigate("/")}
-            className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-wide text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
+            className="hidden sm:block text-lg sm:text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-wide text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
             style={{ fontFamily: "'Inter', sans-serif", whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden", textShadow: "2px 2px 4px rgba(0,0,0,0.3)" }}
           >
             TRABALHEI LÁ
           </button>
           {title && (
-            <span className="text-sm sm:text-base md:text-lg font-bold text-slate-500 dark:text-slate-400 mt-0.5">{title}</span>
+            <span className="text-center w-full text-sm sm:text-base md:text-lg font-bold text-slate-500 dark:text-slate-400 mt-0.5">{title}</span>
           )}
         </div>
 
