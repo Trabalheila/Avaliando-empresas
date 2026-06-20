@@ -178,7 +178,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
             TRABALHEI LÁ
           </button>
           {title && (
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">{title}</span>
+            <span className="text-[22px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">{title}</span>
           )}
         </div>
 
