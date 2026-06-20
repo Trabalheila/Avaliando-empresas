@@ -297,7 +297,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto mb-8 items-stretch">
             <div className="rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50/40 dark:bg-blue-950/20 p-6 flex flex-col">
               <h4 className="text-lg font-extrabold text-blue-700 dark:text-blue-300">Plano Essencial</h4>
-              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-blue-700 dark:text-blue-300">Grátis</p>
+              <p className="mt-1 text-2xl font-extrabold text-blue-700 dark:text-blue-300">R$ 0</p>
               <p className="mt-3 text-sm text-slate-700 dark:text-slate-200 flex-1">
                 Encontre o especialista ideal, inicie um chat limitado e tenha acesso a um{" "}
                 <strong>desconto exclusivo na primeira consulta</strong> com especialistas Essenciais.
@@ -306,7 +306,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
             </div>
             <div className="rounded-2xl border-2 border-amber-400 dark:border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 p-6 flex flex-col">
               <h4 className="text-lg font-extrabold text-amber-700 dark:text-amber-300">Plano Premium</h4>
-              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Assinatura</p>
+              <p className="mt-1 text-2xl font-extrabold text-amber-700 dark:text-amber-300">R$ 29,90/mês</p>
               <p className="mt-3 text-sm text-slate-700 dark:text-slate-200 flex-1">
                 Para quem busca acompanhamento contínuo. Tenha{" "}
                 <strong>consultas gratuitas ou créditos</strong> para usar com qualquer especialista,

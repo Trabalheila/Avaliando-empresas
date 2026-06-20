@@ -152,7 +152,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
     <nav className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-blue-100 dark:border-slate-700 shadow-sm" style={{ height: 'auto' }}>
       <div className="max-w-6xl mx-auto flex items-center justify-between px-4 py-2 sm:py-0 sm:h-16" style={{ position: "relative" }}>
         {/* ── Zona esquerda: Voltar ── */}
-        <div className="flex items-center gap-3 min-w-0" style={{ flex: "1 1 0%" }}>
+        <div className="flex items-center gap-3 min-w-0" style={{ flex: "1 1 0%", position: "relative", zIndex: 10 }}>
           {showBack && (
             <button
               type="button"
@@ -168,7 +168,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
         </div>
 
         {/* ── Zona central: Logo + título ── */}
-        <div className="flex flex-col items-center shrink-0" style={{ position: "absolute", left: "50%", transform: "translateX(-50%)" }}>
+        <div className="flex flex-col items-center shrink-0" style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", zIndex: 1 }}>
           <button
             type="button"
             onClick={() => navigate("/")}
@@ -183,7 +183,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
         </div>
 
         {/* ── Zona direita: Tema + Avatar ── */}
-        <div className="flex items-center justify-end gap-3" style={{ flex: "1 1 0%" }}>
+        <div className="flex items-center justify-end gap-3" style={{ flex: "1 1 0%", position: "relative", zIndex: 10 }}>
           <button
             type="button"
             onClick={toggleTheme}
