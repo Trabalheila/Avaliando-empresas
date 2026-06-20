@@ -150,9 +150,10 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
 
   return (
     <nav className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-blue-100 dark:border-slate-700 shadow-sm" style={{ height: 'auto' }}>
-      <div className="max-w-6xl mx-auto sm:h-16" style={{ display: "flex", flexDirection: "row", alignItems: "center", width: "100%" }}>
+      {/* Container principal do header */}
+      <div className="max-w-6xl mx-auto sm:h-16" style={{ display: "flex", flexDirection: "row", alignItems: "center", width: "100%", justifyContent: "space-between" }}>
         {/* ── Coluna esquerda: Voltar ── */}
-        <div className="min-w-0" style={{ width: "160px", display: "flex", justifyContent: "flex-start", alignItems: "center", gap: 12, paddingLeft: 16 }}>
+        <div style={{ display: "flex", justifyContent: "flex-start", alignItems: "center", paddingLeft: 16, flexShrink: 0, flexGrow: 0, minWidth: "120px" }}>
           {showBack && (
             <button
               type="button"
@@ -175,26 +176,25 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            minWidth: 0,
-            overflow: "hidden",
+            minWidth: 0, // Permite que o item encolha
+            overflow: "hidden", // Esconde o que transborda
           }}
         >
           <button
             type="button"
-    onClick={() => navigate("/")}
-    className="font-extrabold tracking-wide text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
-    style={{ fontFamily: "'Inter', sans-serif", fontSize: "1rem", whiteSpace: "nowrap" }}
+            onClick={() => navigate("/")}
+            className="font-extrabold tracking-wide text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
+            style={{ fontFamily: "'Inter', sans-serif", fontSize: "1.1rem", whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" }}
           >
             TRABALHEI LÁ
-           </button>
-            {title && (
+          </button>
+          {title && (
             <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-0.5" style={{ maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</span>
-             )}
-</div>
+          )}
+        </div>
 
         {/* ── Coluna direita: Tema + Avatar ── */}
-        {/* ── Coluna direita: Tema + Avatar ── */}
-<div style={{ width: "180px", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, paddingRight: 16 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, paddingRight: 16, flexShrink: 0, flexGrow: 0, minWidth: "280px" }}>
           <button
             type="button"
             onClick={toggleTheme}
