@@ -152,7 +152,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
     <nav className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-blue-100 dark:border-slate-700 shadow-sm" style={{ height: 'auto' }}>
       <div className="max-w-6xl mx-auto px-4 py-2 sm:py-0 sm:h-16" style={{ display: "flex", flexDirection: "row", alignItems: "center", width: "100%", justifyContent: "space-between" }}>
         {/* ── Zona esquerda: Voltar ── */}
-        <div className="flex items-center gap-3" style={{ flex: "0 0 auto", paddingLeft: 16 }}>
+        <div className="flex items-center gap-3" style={{ flex: "0 1 auto" /* paddingLeft: 16 removido */ }}>
           {showBack && (
             <button
               type="button"
@@ -183,7 +183,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
         </div>
 
         {/* ── Zona direita: Tema + Avatar ── */}
-        <div className="flex items-center" style={{ flex: "0 0 auto", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, paddingRight: 16 }}>
+        <div className="flex items-center" style={{ flex: "0 1 auto", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 /* paddingRight: 16 removido */ }}>
           <button
             type="button"
             onClick={toggleTheme}
@@ -212,7 +212,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
               </svg>
-              Entrar
+              <span className="hidden sm:inline">Entrar</span> {/* Alteração aqui: texto "Entrar" oculto no mobile */}
             </button>
           )}
 
