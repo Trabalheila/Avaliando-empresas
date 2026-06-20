@@ -153,7 +153,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
       {/* Container principal do header */}
       <div className="max-w-6xl mx-auto sm:h-16" style={{ display: "flex", flexDirection: "row", alignItems: "center", width: "100%", justifyContent: "space-between" }}>
         {/* ── Coluna esquerda: Voltar ── */}
-        <div style={{ display: "flex", justifyContent: "flex-start", alignItems: "center", paddingLeft: 16, flexShrink: 0, flexGrow: 0, minWidth: "120px" }}>
+        <div style={{ display: "flex", justifyContent: "flex-start", alignItems: "center", paddingLeft: 16, flexShrink: 0, flexGrow: 0, minWidth: "170px" }}>
           {showBack && (
             <button
               type="button"
