@@ -181,19 +181,20 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
         >
           <button
             type="button"
-            onClick={() => navigate("/")}
-            className="text-[1.1rem] sm:text-[1.25rem] md:text-[1.5rem] lg:text-[1.8rem] font-extrabold tracking-wide whitespace-nowrap text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
-            style={{ fontFamily: "'Inter', sans-serif", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+    onClick={() => navigate("/")}
+    className="font-extrabold tracking-wide text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
+    style={{ fontFamily: "'Inter', sans-serif", fontSize: "1rem", whiteSpace: "nowrap" }}
           >
             TRABALHEI LÁ
-          </button>
-          {title && (
+           </button>
+            {title && (
             <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-0.5" style={{ maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</span>
-          )}
-        </div>
+             )}
+</div>
 
         {/* ── Coluna direita: Tema + Avatar ── */}
-        <div className="flex" style={{ width: "160px", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, paddingRight: 16 }}>
+        {/* ── Coluna direita: Tema + Avatar ── */}
+<div style={{ width: "180px", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, paddingRight: 16 }}>
           <button
             type="button"
             onClick={toggleTheme}
