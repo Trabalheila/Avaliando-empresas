@@ -492,12 +492,100 @@ async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tie
   };
 }
 
+/**
+ * Cria uma assinatura recorrente (preapproval_plan) do Plano Premium do
+ * trabalhador (R$ 29/mês). A notification_url carrega audience=worker_premium
+ * e o workerId para que o webhook ative o plano em users/{workerId} após a
+ * autorização da assinatura no Mercado Pago.
+ */
+async function createWorkerPremiumSubscription({ req, workerId }) {
+  const accessToken = (process.env.MERCADOPAGO_ACCESS_TOKEN || "").toString().trim();
+  if (!accessToken) {
+    throw new Error("MERCADOPAGO_ACCESS_TOKEN nao configurado.");
+  }
+  if (!workerId) {
+    throw new Error("workerId é obrigatório para a assinatura Premium do trabalhador.");
+  }
+
+  const appOrigin = getAppOrigin(req);
+  const serverBase = getServerBaseUrl(req);
+
+  const notificationParams = new URLSearchParams({
+    provider: "mercadopago",
+    audience: "worker_premium",
+    workerId,
+  });
+
+  const payload = {
+    reason: "Plano Premium Trabalhador - Trabalhei La",
+    auto_recurring: {
+      frequency: 1,
+      frequency_type: "months",
+      transaction_amount: 29.0,
+      currency_id: "BRL",
+    },
+    back_url: `${appOrigin}/?billing=success`,
+    external_reference: `worker_premium:${workerId}`,
+    notification_url: `${serverBase}/api/webhook?${notificationParams.toString()}`,
+  };
+
+  const response = await fetch("https://api.mercadopago.com/preapproval_plan", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const responseText = await response.text();
+  let json;
+  try {
+    json = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    json = {};
+  }
+
+  if (!response.ok) {
+    const causeDesc = Array.isArray(json?.cause) && json.cause[0]?.description ? ` (${json.cause[0].description})` : "";
+    const message = (json?.message ? json.message : "Falha ao criar assinatura Premium no Mercado Pago.") + causeDesc;
+    throw new Error(message);
+  }
+
+  const checkoutUrl = json?.init_point;
+  if (!checkoutUrl) {
+    throw new Error("Resposta do Mercado Pago invalida: init_point ausente.");
+  }
+
+  return {
+    provider: "mercadopago",
+    redirectMode: "url",
+    checkoutUrl,
+    planId: json?.id || null,
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   const { cnpj, companySlug, companyName, audience, tier, paymentMethod, apoiadorId } = req.body || {};
+
+  // Assinatura Premium do trabalhador (R$ 29/mês recorrente). Cria um
+  // preapproval_plan no Mercado Pago e propaga audience=worker_premium +
+  // workerId na notification_url para o webhook ativar users/{workerId}.
+  if (String(audience).toLowerCase() === "worker_premium") {
+    try {
+      const payload = await createWorkerPremiumSubscription({
+        req,
+        workerId: (req.body?.workerId || "").toString().trim(),
+      });
+      return res.status(200).json(payload);
+    } catch (err) {
+      return res.status(500).json({ error: err?.message || "Falha ao iniciar assinatura Premium do trabalhador." });
+    }
+  }
 
   // Consulta avulsa (one-shot) com split: usa um fluxo diferente da assinatura
   // recorrente. Mantém o mesmo endpoint para reaproveitar a estrutura existente.

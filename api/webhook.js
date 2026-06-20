@@ -355,6 +355,7 @@ async function handleMercadoPagoWebhook(req, res) {
     const qCnpj = toDigits(req.query?.cnpj || "");
     const qCompanySlug = normalizeCompanySlug(req.query?.companySlug || "");
     const qAudience = normalizeAudience((req.query?.audience || "").toString());
+    const qAudienceRaw = (req.query?.audience || "").toString().trim().toLowerCase();
     const qApoiadorId = (req.query?.apoiadorId || "").toString().trim();
 
     if (isSubscription) {
@@ -368,6 +369,42 @@ async function handleMercadoPagoWebhook(req, res) {
 
       if (preapprovalStatus !== "authorized") {
         return res.status(200).json({ received: true, ignored: true, reason: "subscription_not_authorized" });
+      }
+
+      // Assinatura Premium do trabalhador: ativa o plano em users/{workerId}.
+      if (qAudienceRaw === "worker_premium") {
+        const externalRefWorker = (preapproval?.external_reference || "").toString();
+        const refWorkerId = externalRefWorker.startsWith("worker_premium:")
+          ? (externalRefWorker.split(":")[1] || "").trim()
+          : "";
+        const workerId = (req.query?.workerId || "").toString().trim() || refWorkerId;
+        if (!workerId) {
+          return res.status(200).json({ received: true, ignored: true, reason: "missing_worker_id" });
+        }
+
+        const { db, FieldValue, Timestamp } = await getAdminResources();
+        const premiumExpiraEm = Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
+
+        await db.collection("users").doc(workerId).set(
+          {
+            plano: "premium",
+            premiumAtivadoEm: FieldValue.serverTimestamp(),
+            premiumExpiraEm,
+            billing: {
+              provider: "mercadopago",
+              preapprovalId: preapproval.id || null,
+              planId: preapproval.preapproval_plan_id || null,
+              status: preapproval.status || null,
+              payerEmail: preapproval?.payer_email || null,
+              audience: "worker_premium",
+              billingMode: "subscription_recurring",
+              updatedAt: FieldValue.serverTimestamp(),
+            },
+          },
+          { merge: true }
+        );
+
+        return res.status(200).json({ received: true, updated: true, audience: "worker_premium" });
       }
 
       const fromReference = parseCompanyFromReference(preapproval?.external_reference || "");

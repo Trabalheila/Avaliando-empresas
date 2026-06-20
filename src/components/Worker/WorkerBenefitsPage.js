@@ -7,7 +7,8 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppHeader from "../AppHeader";
 import PaymentInfoModal from "../Specialist/PaymentInfoModal";
-import { getMpPlanUrl } from "../../utils/mpSubscription";
+import { auth } from "../../firebase";
+import { buildApiUrl } from "../../utils/apiBase";
 
 const ESSENCIAL_BENEFITS = [
   "Busca e filtro de especialistas",
@@ -97,16 +98,44 @@ function PlanCard({ title, badge, price, priceHint, benefits, financial, ctaLabe
 export default function WorkerBenefitsPage({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const [payOpen, setPayOpen] = useState(false);
+  const [premiumLoading, setPremiumLoading] = useState(false);
 
-  const handleAssinarPremium = () => {
-    const url = getMpPlanUrl("worker", "premium");
-    if (url) {
-      window.location.assign(url);
+  const handleAssinarPremium = async () => {
+    if (premiumLoading) return;
+
+    const workerId =
+      auth.currentUser?.uid ||
+      (() => {
+        try {
+          const p = JSON.parse(localStorage.getItem("userProfile") || "{}");
+          return p?.uid || p?.id || p?.profileId || "";
+        } catch {
+          return "";
+        }
+      })();
+
+    if (!workerId) {
+      alert("Faça login para assinar o Plano Premium.");
+      navigate("/login");
       return;
     }
-    alert(
-      "Assinatura Premium em breve! Em breve você poderá assinar diretamente por aqui. Por enquanto, fale com nosso time pelo suporte."
-    );
+
+    setPremiumLoading(true);
+    try {
+      const response = await fetch(buildApiUrl("/api/create-checkout-session"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ audience: "worker_premium", workerId }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.checkoutUrl) {
+        throw new Error(payload?.error || "Não foi possível iniciar a assinatura Premium.");
+      }
+      window.location.assign(payload.checkoutUrl);
+    } catch (err) {
+      alert(err?.message || "Não foi possível iniciar a assinatura Premium. Tente novamente.");
+      setPremiumLoading(false);
+    }
   };
 
   const handleEssencial = () => {
@@ -158,7 +187,7 @@ export default function WorkerBenefitsPage({ theme, toggleTheme }) {
             priceHint="Suporte contínuo e especializado"
             benefits={PREMIUM_BENEFITS}
             financial="Inclui 2 consultas gratuitas por mês com especialistas Premium (ou crédito equivalente)."
-            ctaLabel="Assinar Plano Premium"
+            ctaLabel={premiumLoading ? "Redirecionando..." : "Assinar Plano Premium"}
             onCta={handleAssinarPremium}
             highlight
           />
