@@ -241,12 +241,33 @@ export default function MinhaConta({ theme, toggleTheme }) {
 
         if (!cancelled) setProfile(userData);
 
-        // Buscar avaliações
+        // Buscar avaliações. A leitura primária é por `authorProfileId`
+        // (campo canônico gravado no momento da avaliação). Como em alguns
+        // cenários o `authorProfileId` pode ter sido salvo vazio (perfil sem
+        // profileId canônico no momento da avaliação) enquanto o doc carrega
+        // o `uid` do Firebase Auth (sempre gravado por `saveReview`),
+        // executamos também uma busca por `uid` e mesclamos os resultados,
+        // deduplicando pelo id do documento. Sem isso, avaliações válidas
+        // ficavam invisíveis no "Histórico de Avaliações".
         const reviewsRef = collection(db, "reviews");
-        const q = query(reviewsRef, where("authorProfileId", "==", resolvedId), limit(200));
-        const reviewSnap = await getDocs(q);
-        const userReviews = reviewSnap.docs
-          .map((d) => ({ id: d.id, ...d.data() }))
+        const reviewQueries = [
+          query(reviewsRef, where("authorProfileId", "==", resolvedId), limit(200)),
+        ];
+        if (uid && uid !== resolvedId) {
+          reviewQueries.push(query(reviewsRef, where("uid", "==", uid), limit(200)));
+        }
+        const reviewSnaps = await Promise.all(
+          reviewQueries.map((rq) => getDocs(rq).catch(() => ({ docs: [] })))
+        );
+        const reviewsById = new Map();
+        for (const snap of reviewSnaps) {
+          for (const d of snap.docs) {
+            if (!reviewsById.has(d.id)) {
+              reviewsById.set(d.id, { id: d.id, ...d.data() });
+            }
+          }
+        }
+        const userReviews = Array.from(reviewsById.values())
           .sort((a, b) => toMillis(b?.createdAt) - toMillis(a?.createdAt));
         if (!cancelled) setReviews(userReviews);
       } catch (err) {
