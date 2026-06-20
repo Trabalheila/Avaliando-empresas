@@ -636,9 +636,9 @@ function TrabalheiLaMobile({
               color: theme === 'dark' ? '#90caf9' : '#1a237e',
               flex: 1,
               textAlign: 'center',
-              flexShrink: 0,
-              width: '100%',
-              overflow: 'visible',
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
             TRABALHEI LÁ

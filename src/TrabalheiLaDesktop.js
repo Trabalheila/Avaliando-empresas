@@ -507,6 +507,10 @@ function TrabalheiLaDesktop({
                 letterSpacing: '0.04em',
                 lineHeight: 1.05,
                 margin: 0,
+                maxWidth: 'calc(100% - 320px)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
               }}
             >
               TRABALHEI LÁ

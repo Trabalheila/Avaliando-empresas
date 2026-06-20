@@ -152,7 +152,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
     <nav className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-blue-100 dark:border-slate-700 shadow-sm" style={{ height: 'auto' }}>
       <div className="max-w-6xl mx-auto flex items-center justify-between px-4 py-2 sm:py-0 sm:h-16" style={{ position: "relative" }}>
         {/* ── Zona esquerda: Voltar ── */}
-        <div className="flex items-center gap-3 min-w-0" style={{ flex: "1 1 0%", position: "relative", zIndex: 10 }}>
+        <div className="flex items-center gap-3 min-w-0" style={{ flex: "1 1 0%", minWidth: "120px", position: "relative", zIndex: 10 }}>
           {showBack && (
             <button
               type="button"
@@ -168,22 +168,32 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
         </div>
 
         {/* ── Zona central: Logo + título ── */}
-        <div className="flex flex-col items-center shrink-0" style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", zIndex: 1 }}>
+        <div
+          className="flex flex-col items-center shrink-0"
+          style={{
+            position: "absolute",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1,
+            maxWidth: "40%",
+            overflow: "hidden",
+          }}
+        >
           <button
             type="button"
             onClick={() => navigate("/")}
             className="text-[1.1rem] sm:text-[1.25rem] md:text-[1.5rem] lg:text-[1.8rem] font-extrabold tracking-wide whitespace-nowrap text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
-            style={{ fontFamily: "'Inter', sans-serif" }}
+            style={{ fontFamily: "'Inter', sans-serif", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
           >
             TRABALHEI LÁ
           </button>
           {title && (
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">{title}</span>
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-0.5" style={{ maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</span>
           )}
         </div>
 
         {/* ── Zona direita: Tema + Avatar ── */}
-        <div className="flex items-center justify-end gap-3" style={{ flex: "1 1 0%", position: "relative", zIndex: 10 }}>
+        <div className="flex items-center justify-end gap-3" style={{ flex: "1 1 0%", minWidth: "120px", position: "relative", zIndex: 10 }}>
           <button
             type="button"
             onClick={toggleTheme}
