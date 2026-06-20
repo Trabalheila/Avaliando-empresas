@@ -183,7 +183,7 @@ export default function WorkerBenefitsPage({ theme, toggleTheme }) {
           <PlanCard
             title="Plano Premium"
             badge="Recomendado"
-            price="R$ 29/mês"
+            price="R$ 29,90/mês"
             priceHint="Suporte contínuo e especializado"
             benefits={PREMIUM_BENEFITS}
             financial="Inclui 2 consultas gratuitas por mês com especialistas Premium (ou crédito equivalente)."

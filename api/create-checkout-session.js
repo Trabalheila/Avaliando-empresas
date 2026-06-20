@@ -110,7 +110,7 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
         envPlanId: "MP_PLAN_WORKER_ESSENTIAL",
       },
       premium: {
-        amount: 79.90,
+        amount: 29.90,
         reason: "Plano Premium Trabalhador - Trabalhei La",
         envPlanId: "MP_PLAN_WORKER_PREMIUM",
       },
@@ -494,7 +494,7 @@ async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tie
 
 /**
  * Cria uma assinatura recorrente (preapproval_plan) do Plano Premium do
- * trabalhador (R$ 29/mês). A notification_url carrega audience=worker_premium
+ * trabalhador (R$ 29,90/mês). A notification_url carrega audience=worker_premium
  * e o workerId para que o webhook ative o plano em users/{workerId} após a
  * autorização da assinatura no Mercado Pago.
  */
@@ -521,7 +521,7 @@ async function createWorkerPremiumSubscription({ req, workerId }) {
     auto_recurring: {
       frequency: 1,
       frequency_type: "months",
-      transaction_amount: 29.0,
+      transaction_amount: 29.90,
       currency_id: "BRL",
     },
     back_url: `${appOrigin}/?billing=success`,
@@ -572,7 +572,7 @@ export default async function handler(req, res) {
 
   const { cnpj, companySlug, companyName, audience, tier, paymentMethod, apoiadorId } = req.body || {};
 
-  // Assinatura Premium do trabalhador (R$ 29/mês recorrente). Cria um
+  // Assinatura Premium do trabalhador (R$ 29,90/mês recorrente). Cria um
   // preapproval_plan no Mercado Pago e propaga audience=worker_premium +
   // workerId na notification_url para o webhook ativar users/{workerId}.
   if (String(audience).toLowerCase() === "worker_premium") {
