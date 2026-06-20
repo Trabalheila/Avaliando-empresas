@@ -512,6 +512,9 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
               >
                 E-mail da conta Mercado Pago
               </label>
+              <p className="mb-2 text-xs font-bold text-red-600 dark:text-red-400">
+                ⚠️ Sem este e-mail você não receberá o valor das suas consultas.
+              </p>
               <input
                 id="mp-email"
                 type="email"
@@ -550,7 +553,7 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
                     step="0.01"
                     value={precoConsulta}
                     onChange={(e) => setPrecoConsulta(e.target.value)}
-                    placeholder="Ex.: 150.00"
+                    placeholder="Ex.: 80.00"
                     className="w-40 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
