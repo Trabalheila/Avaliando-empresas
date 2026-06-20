@@ -150,9 +150,9 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
 
   return (
     <nav className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-blue-100 dark:border-slate-700 shadow-sm" style={{ height: 'auto' }}>
-      <div className="max-w-6xl mx-auto flex items-center justify-between px-4 py-2 sm:py-0 sm:h-16" style={{ position: "relative" }}>
-        {/* ── Zona esquerda: Voltar ── */}
-        <div className="flex items-center gap-3 min-w-0" style={{ flex: "1 1 0%", minWidth: "140px", position: "relative", zIndex: 10 }}>
+      <div className="max-w-6xl mx-auto sm:h-16" style={{ display: "flex", flexDirection: "row", alignItems: "center", width: "100%" }}>
+        {/* ── Coluna esquerda: Voltar ── */}
+        <div className="min-w-0" style={{ width: "160px", display: "flex", justifyContent: "flex-start", alignItems: "center", gap: 12, paddingLeft: 16 }}>
           {showBack && (
             <button
               type="button"
@@ -167,15 +167,15 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
           )}
         </div>
 
-        {/* ── Zona central: Logo + título ── */}
+        {/* ── Coluna central: Logo + título ── */}
         <div
-          className="flex flex-col items-center shrink-0"
+          className="flex flex-col items-center"
           style={{
-            position: "absolute",
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 1,
-            maxWidth: "40%",
+            flex: 1,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minWidth: 0,
             overflow: "hidden",
           }}
         >
@@ -192,8 +192,8 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
           )}
         </div>
 
-        {/* ── Zona direita: Tema + Avatar ── */}
-        <div className="flex items-center justify-end gap-3" style={{ flex: "1 1 0%", minWidth: "140px", position: "relative", zIndex: 10 }}>
+        {/* ── Coluna direita: Tema + Avatar ── */}
+        <div className="flex" style={{ width: "160px", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, paddingRight: 16 }}>
           <button
             type="button"
             onClick={toggleTheme}
