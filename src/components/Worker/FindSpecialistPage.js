@@ -14,7 +14,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { db } from "../../firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import AppHeader from "../AppHeader";
 import { filterOutTestApoiadores } from "../../utils/testAccounts";
 import { isPremiumWorker } from "../../utils/rbac";
@@ -486,14 +486,16 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
-        const snap = await getDocs(
-          query(collection(db, "apoiadores"), where("status", "==", "ativo"))
-        );
-        if (cancelled) return;
+    setLoading(true);
+    const q = query(
+      collection(db, "apoiadores"),
+      where("status", "==", "ativo")
+    );
+    // onSnapshot mantem a listagem (e o circulo verde "Disponível agora")
+    // sincronizada em tempo real com o Firestore, sem recarregar a página.
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => {
         const list = snap.docs.map((d) => {
           const data = d.data() || {};
           return {
@@ -530,14 +532,15 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
           };
         });
         setRemote(filterOutTestApoiadores(list));
-      } catch (err) {
+        setLoading(false);
+      },
+      (err) => {
         console.warn("Falha ao carregar apoiadores:", err);
-      } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       }
-    })();
+    );
     return () => {
-      cancelled = true;
+      unsubscribe();
     };
   }, []);
 
