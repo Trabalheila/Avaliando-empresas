@@ -150,14 +150,14 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
 
   return (
     <nav className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-blue-100 dark:border-slate-700 shadow-sm" style={{ height: 'auto' }}>
-      <div className="max-w-6xl mx-auto flex items-center justify-between px-4 py-2 sm:py-0 sm:h-16" style={{ position: "relative" }}>
+      <div className="max-w-6xl mx-auto px-4 py-2 sm:py-0 sm:h-16" style={{ display: "flex", flexDirection: "row", alignItems: "center", width: "100%", justifyContent: "space-between" }}>
         {/* ── Zona esquerda: Voltar ── */}
-        <div className="flex items-center gap-3 min-w-0" style={{ flex: "1 1 0%" }}>
+        <div className="flex items-center gap-3" style={{ flex: "0 0 auto", paddingLeft: 16 }}>
           {showBack && (
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
+              className="inline-flex items-center gap-1.5 text-base font-semibold text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -168,22 +168,22 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
         </div>
 
         {/* ── Zona central: Logo + título ── */}
-        <div className="flex flex-col items-center shrink-0" style={{ position: "absolute", left: "50%", transform: "translateX(-50%)" }}>
+        <div className="flex flex-col items-center" style={{ flex: "1 1 auto", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", minWidth: 0, overflow: "hidden" }}>
           <button
             type="button"
             onClick={() => navigate("/")}
-            className="text-[1.1rem] sm:text-[1.25rem] md:text-[1.5rem] lg:text-[1.8rem] font-extrabold tracking-wide whitespace-nowrap text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
-            style={{ fontFamily: "'Inter', sans-serif" }}
+            className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-wide text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
+            style={{ fontFamily: "'Inter', sans-serif", whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden", textShadow: "2px 2px 4px rgba(0,0,0,0.3)" }}
           >
             TRABALHEI LÁ
           </button>
           {title && (
-            <span className="text-[22px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">{title}</span>
+            <span className="text-sm sm:text-base md:text-lg font-bold text-slate-500 dark:text-slate-400 mt-0.5">{title}</span>
           )}
         </div>
 
         {/* ── Zona direita: Tema + Avatar ── */}
-        <div className="flex items-center justify-end gap-3" style={{ flex: "1 1 0%" }}>
+        <div className="flex items-center" style={{ flex: "0 0 auto", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, paddingRight: 16 }}>
           <button
             type="button"
             onClick={toggleTheme}
