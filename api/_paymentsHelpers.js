@@ -22,6 +22,8 @@
 //   created_at           Timestamp
 //   updated_at           Timestamp
 
+import crypto from "crypto";
+
 export const PLATFORM_COMMISSION_PCT = 0.1; // 10% comissao da plataforma
 
 export function computeSplit(valorTotal) {
@@ -104,15 +106,57 @@ export function resolveConsultaPrice(especialista, modalidade) {
 // Adapte conforme o gateway escolhido.
 export function verifyWebhookSignature(req, gateway = "mercadopago") {
   if (gateway === "mercadopago") {
-    const secret = (process.env.MERCADO_PAGO_WEBHOOK_SECRET || "").trim();
+    const secret = (
+      process.env.MERCADOPAGO_WEBHOOK_SECRET ||
+      process.env.MERCADO_PAGO_WEBHOOK_SECRET ||
+      ""
+    ).trim();
     // Em desenvolvimento, permite sem secret para facilitar testes locais.
     if (!secret) return process.env.NODE_ENV !== "production";
 
     const signature = (req.headers["x-signature"] || "").toString();
     if (!signature) return false;
-    // TODO: implementar validacao HMAC SHA-256 conforme docs MP:
-    // https://www.mercadopago.com.br/developers/pt/docs/your-integrations/notifications/webhooks
-    return true;
+
+    // Header `x-signature` do MP tem o formato "ts=TIMESTAMP,v1=HASH".
+    let ts = "";
+    let v1 = "";
+    for (const part of signature.split(",")) {
+      const idx = part.indexOf("=");
+      if (idx === -1) continue;
+      const key = part.slice(0, idx).trim();
+      const value = part.slice(idx + 1).trim();
+      if (key === "ts") ts = value;
+      else if (key === "v1") v1 = value;
+    }
+    if (!ts || !v1) return false;
+
+    const requestId = (req.headers["x-request-id"] || "").toString();
+    // id do recurso notificado (data.id). Conforme docs do MP, quando
+    // alfanumerico deve entrar no manifesto em minusculas.
+    const dataId = (req.query?.["data.id"] || req.query?.id || "")
+      .toString()
+      .toLowerCase();
+
+    // Manifesto oficial do MP: "id:<data.id>;request-id:<x-request-id>;ts:<ts>;".
+    // Campos ausentes sao omitidos (o MP nao os inclui quando vazios).
+    let manifest = "";
+    if (dataId) manifest += `id:${dataId};`;
+    if (requestId) manifest += `request-id:${requestId};`;
+    manifest += `ts:${ts};`;
+
+    const computed = crypto
+      .createHmac("sha256", secret)
+      .update(manifest)
+      .digest("hex");
+
+    // Comparacao em tempo constante para evitar timing attacks.
+    try {
+      const a = Buffer.from(computed, "hex");
+      const b = Buffer.from(v1, "hex");
+      return a.length === b.length && crypto.timingSafeEqual(a, b);
+    } catch {
+      return false;
+    }
   }
   if (gateway === "asaas") {
     const expected = (process.env.ASAAS_WEBHOOK_TOKEN || "").trim();
