@@ -153,7 +153,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
       {/* Container principal do header */}
       <div className="max-w-6xl mx-auto sm:h-16" style={{ display: "flex", flexDirection: "row", alignItems: "center", width: "100%", justifyContent: "space-between" }}>
         {/* ── Coluna esquerda: Voltar ── */}
-        <div style={{ display: "flex", justifyContent: "flex-start", alignItems: "center", paddingLeft: 16, flexShrink: 0, flexGrow: 0, minWidth: "120px" }}>
+        <div style={{ display: "flex", justifyContent: "flex-start", alignItems: "center", paddingLeft: 16, flex: "0 0 auto" }}>
           {showBack && (
                         <button
               type="button"
@@ -173,8 +173,9 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
         <div
           className="flex flex-col items-center"
           style={{
-            flex: 1,
+            flex: "1 1 auto",
             display: "flex",
+            flexDirection: "column",
             justifyContent: "center",
             alignItems: "center",
             minWidth: 0, // Permite que o item encolha
@@ -185,7 +186,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
             type="button"
             onClick={() => navigate("/")}
             className="font-extrabold tracking-wide text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
-            style={{ fontFamily: "'Inter', sans-serif", fontSize: "2.0rem", whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" }}
+            style={{ fontFamily: "'Inter', sans-serif", fontSize: "2.0rem", whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden", textShadow: "2px 2px 4px rgba(0,0,0,0.3)" }}
           >
             TRABALHEI LÁ
           </button>
@@ -195,7 +196,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
         </div>
 
         {/* ── Coluna direita: Tema + Avatar ── */}
-        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, paddingRight: 16, flexShrink: 0, flexGrow: 0, minWidth: "280px" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, paddingRight: 16, flex: "0 0 auto" }}>
           <button
             type="button"
             onClick={toggleTheme}

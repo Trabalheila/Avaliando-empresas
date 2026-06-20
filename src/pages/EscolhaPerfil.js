@@ -213,7 +213,7 @@ function EscolhaPerfil({ theme, toggleTheme }) {
         <h1 className="text-3xl md:text-4xl font-extrabold text-center text-slate-900 dark:text-white mb-2">
           Escolha seu perfil
         </h1>
-        <p className="text-center text-slate-600 dark:text-slate-400 mb-10 text-lg">
+        <p className="text-center text-slate-600 dark:text-slate-400 mb-10 text-2xl">
           Descubra os benefícios exclusivos para cada perfil.
         </p>
 
