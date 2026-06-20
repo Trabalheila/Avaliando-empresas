@@ -150,16 +150,14 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
 
   return (
     <nav className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-blue-100 dark:border-slate-700 shadow-sm" style={{ height: 'auto' }}>
-      {/* Container principal do header */}
-      <div className="max-w-6xl mx-auto sm:h-16" style={{ display: "flex", flexDirection: "row", alignItems: "center", width: "100%", justifyContent: "space-between" }}>
-        {/* ── Coluna esquerda: Voltar ── */}
-        <div style={{ display: "flex", justifyContent: "flex-start", alignItems: "center", paddingLeft: 16, flex: "0 0 auto" }}>
+      <div className="max-w-6xl mx-auto flex items-center justify-between px-4 py-2 sm:py-0 sm:h-16" style={{ position: "relative" }}>
+        {/* ── Zona esquerda: Voltar ── */}
+        <div className="flex items-center gap-3 min-w-0" style={{ flex: "1 1 0%" }}>
           {showBack && (
-                        <button
+            <button
               type="button"
               onClick={() => navigate(-1)}
-              className="inline-flex items-center gap-1.5 text-base font-semibold text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
-              // ^^^^^^^^ Altere de text-sm para text-base
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -169,34 +167,23 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
           )}
         </div>
 
-        {/* ── Coluna central: Logo + título ── */}
-        <div
-          className="flex flex-col items-center"
-          style={{
-            flex: "1 1 auto",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-            minWidth: 0, // Permite que o item encolha
-            overflow: "hidden", // Esconde o que transborda
-          }}
-        >
+        {/* ── Zona central: Logo + título ── */}
+        <div className="flex flex-col items-center shrink-0" style={{ position: "absolute", left: "50%", transform: "translateX(-50%)" }}>
           <button
             type="button"
             onClick={() => navigate("/")}
-            className="font-extrabold tracking-wide text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
-            style={{ fontFamily: "'Inter', sans-serif", fontSize: "2.0rem", whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden", textShadow: "2px 2px 4px rgba(0,0,0,0.3)" }}
+            className="text-[1.1rem] sm:text-[1.25rem] md:text-[1.5rem] lg:text-[1.8rem] font-extrabold tracking-wide whitespace-nowrap text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
+            style={{ fontFamily: "'Inter', sans-serif" }}
           >
             TRABALHEI LÁ
           </button>
           {title && (
-            <span className="text-[22px] font-bold text-slate-500 dark:text-slate-400 mt-0.5" style={{ maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</span>
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">{title}</span>
           )}
         </div>
 
-        {/* ── Coluna direita: Tema + Avatar ── */}
-        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, paddingRight: 16, flex: "0 0 auto" }}>
+        {/* ── Zona direita: Tema + Avatar ── */}
+        <div className="flex items-center justify-end gap-3" style={{ flex: "1 1 0%" }}>
           <button
             type="button"
             onClick={toggleTheme}
