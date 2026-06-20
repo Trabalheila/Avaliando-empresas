@@ -153,12 +153,13 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
       {/* Container principal do header */}
       <div className="max-w-6xl mx-auto sm:h-16" style={{ display: "flex", flexDirection: "row", alignItems: "center", width: "100%", justifyContent: "space-between" }}>
         {/* ── Coluna esquerda: Voltar ── */}
-        <div style={{ display: "flex", justifyContent: "flex-start", alignItems: "center", paddingLeft: 16, flexShrink: 0, flexGrow: 0, minWidth: "170px" }}>
+        <div style={{ display: "flex", justifyContent: "flex-start", alignItems: "center", paddingLeft: 16, flexShrink: 0, flexGrow: 0, minWidth: "120px" }}>
           {showBack && (
-            <button
+                        <button
               type="button"
               onClick={() => navigate(-1)}
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
+              className="inline-flex items-center gap-1.5 text-base font-semibold text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
+              // ^^^^^^^^ Altere de text-sm para text-base
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
