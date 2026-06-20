@@ -249,12 +249,30 @@ export default function MinhaConta({ theme, toggleTheme }) {
         // executamos também uma busca por `uid` e mesclamos os resultados,
         // deduplicando pelo id do documento. Sem isso, avaliações válidas
         // ficavam invisíveis no "Histórico de Avaliações".
+        //
+        // Caso adicional crítico: a avaliação pode ter sido gravada enquanto
+        // o usuário estava autenticado ANONIMAMENTE (saveReview faz
+        // signInAnonymously quando não há sessão). Nesse caso o `uid` salvo
+        // no doc é o uid anônimo — diferente do uid real após o login — e o
+        // `authorProfileId` ficou vazio. O único elo confiável é o
+        // `pseudonym` (identidade pública). Por isso buscamos também por
+        // `pseudonym == <pseudônimo do perfil>` e mesclamos.
+        const profilePseudonym = (
+          userData?.pseudonimo ||
+          userData?.pseudonym ||
+          stored?.pseudonimo ||
+          stored?.pseudonym ||
+          ""
+        ).toString().trim();
         const reviewsRef = collection(db, "reviews");
         const reviewQueries = [
           query(reviewsRef, where("authorProfileId", "==", resolvedId), limit(200)),
         ];
         if (uid && uid !== resolvedId) {
           reviewQueries.push(query(reviewsRef, where("uid", "==", uid), limit(200)));
+        }
+        if (profilePseudonym) {
+          reviewQueries.push(query(reviewsRef, where("pseudonym", "==", profilePseudonym), limit(200)));
         }
         const reviewSnaps = await Promise.all(
           reviewQueries.map((rq) => getDocs(rq).catch(() => ({ docs: [] })))
