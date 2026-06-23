@@ -19,6 +19,10 @@ import {
   linkWithCredential,
   GoogleAuthProvider,
   EmailAuthProvider,
+  FacebookAuthProvider,
+  TwitterAuthProvider,
+  GithubAuthProvider,
+  OAuthProvider,
 } from "firebase/auth";
 import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import { auth, db, googleProvider } from "../firebase";
@@ -30,6 +34,19 @@ import AppHeader from "../components/AppHeader";
 
 const REDIRECT_AFTER_LOGIN_KEY = "trabalheiLa_redirectAfterLogin";
 const COMPANY_CONFIRMED_FLAG_KEY = "trabalheiLa_companyConfirmedFlag";
+
+// Mapa de provedores sociais suportados para account linking. Cada entrada
+// expõe um rótulo amigável e uma factory que cria a instância do AuthProvider
+// usada na reautenticação via popup. Provedores OAuth genéricos (ex.: Apple,
+// Microsoft) usam OAuthProvider com o providerId correspondente.
+const SOCIAL_PROVIDERS = {
+  "google.com": { label: "Google", makeProvider: () => new GoogleAuthProvider() },
+  "facebook.com": { label: "Facebook", makeProvider: () => new FacebookAuthProvider() },
+  "twitter.com": { label: "Twitter", makeProvider: () => new TwitterAuthProvider() },
+  "github.com": { label: "GitHub", makeProvider: () => new GithubAuthProvider() },
+  "apple.com": { label: "Apple", makeProvider: () => new OAuthProvider("apple.com") },
+  "microsoft.com": { label: "Microsoft", makeProvider: () => new OAuthProvider("microsoft.com") },
+};
 
 // Rotas padrão por tipo de perfil.
 const PROFILE_ROUTES = {
@@ -342,12 +359,39 @@ export default function Login({ theme, toggleTheme }) {
           if (conflictEmail) {
             methods = await fetchSignInMethodsForEmail(auth, conflictEmail);
           }
-          setEmail(conflictEmail);
-          setLinkState({ email: conflictEmail, pendingCredential, methods });
-          setLinkError("");
-          setLinkMessage(
-            "Já existe uma conta com este e-mail. Deseja vincular seu login do Google a ela?"
+          // Determina o provedor original: se houver e-mail/senha, pedimos a
+          // senha; caso contrário, identificamos o provedor social existente
+          // para reautenticar via popup.
+          const usesPassword = methods.includes(EmailAuthProvider.PROVIDER_ID);
+          const socialProviderId = methods.find(
+            (m) => m !== EmailAuthProvider.PROVIDER_ID && SOCIAL_PROVIDERS[m]
           );
+          const socialLabel = socialProviderId
+            ? SOCIAL_PROVIDERS[socialProviderId].label
+            : "";
+          setEmail(conflictEmail);
+          setLinkState({
+            email: conflictEmail,
+            pendingCredential,
+            methods,
+            usesPassword,
+            socialProviderId: socialProviderId || "",
+            socialLabel,
+          });
+          setLinkError("");
+          if (usesPassword) {
+            setLinkMessage(
+              "Já existe uma conta com este e-mail. Deseja vincular seu login do Google a ela?"
+            );
+          } else if (socialProviderId) {
+            setLinkMessage(
+              `Já existe uma conta com este e-mail criada com ${socialLabel}. Deseja vincular seu login do Google a ela?`
+            );
+          } else {
+            setLinkMessage(
+              "Já existe uma conta com este e-mail. Deseja vincular seu login do Google a ela?"
+            );
+          }
         } catch (linkErr) {
           console.error("Falha ao preparar vinculação de contas:", linkErr);
           setError("Não foi possível vincular as contas. Tente novamente.");
@@ -419,6 +463,51 @@ export default function Login({ theme, toggleTheme }) {
     setLinkPassword("");
     setLinkError("");
     setLinkMessage("");
+  }
+
+  // Reautentica com o provedor SOCIAL original (Facebook, Twitter, GitHub, …)
+  // via popup e, em seguida, vincula a credencial do Google (pendingCredential)
+  // à conta existente. Não usa senha — a identidade é confirmada pelo próprio
+  // provedor social.
+  async function handleConfirmSocialLink() {
+    if (!linkState?.pendingCredential || !linkState?.socialProviderId) {
+      setLinkError("Não foi possível vincular as contas. Tente novamente.");
+      return;
+    }
+    const cfg = SOCIAL_PROVIDERS[linkState.socialProviderId];
+    if (!cfg) {
+      setLinkError("Provedor original não suportado para vinculação automática.");
+      return;
+    }
+    setLinking(true);
+    setLinkError("");
+    setLinkMessage("");
+    try {
+      // 1) Confirma a identidade fazendo login com o provedor social original.
+      const provider = cfg.makeProvider();
+      const result = await signInWithPopup(auth, provider);
+      if (!result?.user) throw new Error("Falha ao reautenticar com o provedor original.");
+      // 2) Vincula a credencial do Google (pendente) à conta existente.
+      await linkWithCredential(result.user, linkState.pendingCredential);
+      setLinkMessage("Contas vinculadas com sucesso!");
+      // 3) Finaliza o login normalmente.
+      await finishLogin(result.user, "google");
+      setLinkState(null);
+    } catch (err) {
+      console.error("Erro ao vincular contas (social):", err);
+      const code = String(err?.code || "");
+      if (code.includes("auth/popup-closed-by-user")) {
+        setLinkError(`Login com ${cfg.label} cancelado. Tente novamente.`);
+      } else if (code.includes("auth/popup-blocked")) {
+        setLinkError("Popup bloqueado. Permita popups e tente novamente.");
+      } else if (code.includes("auth/credential-already-in-use")) {
+        setLinkError("Esta conta do Google já está vinculada a outro usuário.");
+      } else {
+        setLinkError("Não foi possível vincular as contas. Tente novamente.");
+      }
+    } finally {
+      setLinking(false);
+    }
   }
 
   // Callback do botão LinkedIn. O componente robusto entrega ou
@@ -734,56 +823,115 @@ export default function Login({ theme, toggleTheme }) {
             </h2>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 text-center">
               Já existe uma conta com o e-mail{" "}
-              <strong className="break-all">{linkState.email}</strong>. Deseja
-              vincular seu login do Google a ela?
+              <strong className="break-all">{linkState.email}</strong>
+              {linkState.usesPassword
+                ? ". Deseja vincular seu login do Google a ela?"
+                : linkState.socialLabel
+                ? `, criada com ${linkState.socialLabel}. Deseja vincular seu login do Google a ela?`
+                : ". Deseja vincular seu login do Google a ela?"}
             </p>
-            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 text-center">
-              Por favor, faça login com sua senha original para confirmar a vinculação.
-            </p>
 
-            <form onSubmit={handleConfirmAccountLink} className="mt-5 flex flex-col gap-3">
-              <input
-                type="email"
-                value={linkState.email}
-                readOnly
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 p-3 text-sm text-slate-600 dark:text-slate-300"
-              />
-              <input
-                type="password"
-                value={linkPassword}
-                onChange={(e) => setLinkPassword(e.target.value)}
-                placeholder="Sua senha"
-                autoComplete="current-password"
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-
-              {linkMessage && (
-                <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-                  {linkMessage}
+            {linkState.usesPassword ? (
+              <>
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 text-center">
+                  Por favor, faça login com sua senha original para confirmar a vinculação.
                 </p>
-              )}
-              {linkError && (
-                <p className="text-sm font-semibold text-red-600 dark:text-red-400">
-                  {linkError}
-                </p>
-              )}
+                <form onSubmit={handleConfirmAccountLink} className="mt-5 flex flex-col gap-3">
+                  <input
+                    type="email"
+                    value={linkState.email}
+                    readOnly
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 p-3 text-sm text-slate-600 dark:text-slate-300"
+                  />
+                  <input
+                    type="password"
+                    value={linkPassword}
+                    onChange={(e) => setLinkPassword(e.target.value)}
+                    placeholder="Sua senha"
+                    autoComplete="current-password"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
 
-              <button
-                type="submit"
-                disabled={linking}
-                className="w-full py-2.5 px-4 rounded-lg font-bold shadow bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition"
-              >
-                {linking ? "Vinculando…" : "Vincular contas"}
-              </button>
-              <button
-                type="button"
-                onClick={cancelAccountLink}
-                disabled={linking}
-                className="w-full text-xs text-slate-500 dark:text-slate-400 hover:underline disabled:opacity-50"
-              >
-                Cancelar
-              </button>
-            </form>
+                  {linkMessage && (
+                    <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                      {linkMessage}
+                    </p>
+                  )}
+                  {linkError && (
+                    <p className="text-sm font-semibold text-red-600 dark:text-red-400">
+                      {linkError}
+                    </p>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={linking}
+                    className="w-full py-2.5 px-4 rounded-lg font-bold shadow bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition"
+                  >
+                    {linking ? "Vinculando…" : "Vincular contas"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelAccountLink}
+                    disabled={linking}
+                    className="w-full text-xs text-slate-500 dark:text-slate-400 hover:underline disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                </form>
+              </>
+            ) : linkState.socialProviderId ? (
+              <div className="mt-5 flex flex-col gap-3">
+                <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+                  Por favor, faça login com sua conta {linkState.socialLabel} para
+                  confirmar a vinculação.
+                </p>
+
+                {linkMessage && (
+                  <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                    {linkMessage}
+                  </p>
+                )}
+                {linkError && (
+                  <p className="text-sm font-semibold text-red-600 dark:text-red-400">
+                    {linkError}
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleConfirmSocialLink}
+                  disabled={linking}
+                  className="w-full py-2.5 px-4 rounded-lg font-bold shadow bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition"
+                >
+                  {linking
+                    ? "Vinculando…"
+                    : `Entrar com ${linkState.socialLabel} e vincular`}
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelAccountLink}
+                  disabled={linking}
+                  className="w-full text-xs text-slate-500 dark:text-slate-400 hover:underline disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <div className="mt-5 flex flex-col gap-3">
+                <p className="text-sm font-semibold text-red-600 dark:text-red-400 text-center">
+                  Não foi possível identificar o provedor original desta conta.
+                  Tente fazer login pelo método usado no cadastro.
+                </p>
+                <button
+                  type="button"
+                  onClick={cancelAccountLink}
+                  className="w-full text-xs text-slate-500 dark:text-slate-400 hover:underline"
+                >
+                  Fechar
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
