@@ -513,7 +513,7 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
                 E-mail da conta Mercado Pago
               </label>
               <p className="mb-2 text-xs font-bold text-red-600 dark:text-red-400">
-                ⚠️ Sem este e-mail você não receberá o valor das suas consultas.
+                ⚠️ Sem este e-mail você não receberá nenhum pagamento.
               </p>
               <input
                 id="mp-email"
@@ -527,8 +527,8 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
               />
               <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
                 Informe o e-mail vinculado à sua conta Mercado Pago. É para ele que
-                enviaremos a sua parte de cada consulta paga (split de pagamentos).
-                Sem este dado, não conseguimos repassar o valor das suas consultas.
+                enviaremos a sua parte de cada pagamento (split de pagamentos).
+                Sem este dado, não conseguimos repassar seus devidos valores.
               </p>
             </div>
 
