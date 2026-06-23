@@ -241,21 +241,6 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
   // "Agendar Ad Exitum".
   const isAdExitumComPontual = isAdExitum && hasPontualPrice;
 
-  const goToPayment = (amount) => {
-    navigate("/pagamento-consulta", {
-      state: {
-        professionalId: specialist.id,
-        professionalName: specialist.nome,
-        specialtyId: normalizeTipo(specialist.tipo) || "outro",
-        consultationPrice: amount,
-        originalAmount: amount,
-        modalidade: "chat",
-        planoTipo: planType === "Premium" ? "premium" : "essential",
-        fromScheduling: true,
-      },
-    });
-  };
-
   // Agendamento Ad Exitum: não passa pelo fluxo de pagamento — encaminha para
   // a rota dedicada de agendamento sem custo inicial.
   const goToAdExitum = () => {
@@ -264,6 +249,21 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
         professionalId: specialist.id,
         professionalName: specialist.nome,
         specialtyId: normalizeTipo(specialist.tipo) || "outro",
+      },
+    });
+  };
+
+  // Consulta comum: NÃO vai direto ao pagamento — encaminha para a página de
+  // seleção do tipo de consulta (chat, vídeo e, p/ Premium, Consulta Premium),
+  // onde o trabalhador escolhe a modalidade antes do pagamento.
+  const goToConsultaSelection = () => {
+    navigate(`/selecionar-consulta/${specialist.id}`, {
+      state: {
+        professionalId: specialist.id,
+        professionalName: specialist.nome,
+        specialtyId: normalizeTipo(specialist.tipo) || "outro",
+        planType,
+        premiumPrice: avgPrice,
       },
     });
   };
@@ -443,10 +443,11 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
             type="button"
             onClick={() => {
               // Advogado com Ad Exitum + consulta comum: este botão é a CONSULTA
-              // COMUM, que vai direto ao fluxo de pagamento com o preço definido
-              // (o agendamento Ad Exitum fica no botão inferior, sem redundância).
+              // COMUM, que abre a seleção de tipo de consulta (chat/vídeo/
+              // Premium) antes do pagamento (o agendamento Ad Exitum fica no
+              // botão inferior, sem redundância).
               if (isAdExitumComPontual) {
-                goToPayment(pontualAmount);
+                goToConsultaSelection();
                 return;
               }
               // Ad Exitum puro: sem custo inicial — segue o fluxo de agendamento
@@ -455,12 +456,10 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
                 goToAdExitum();
                 return;
               }
-              // Com preço definido (Essencial fixo ou Premium do profissional),
-              // a consulta pontual vai DIRETO ao fluxo de pagamento — mesmo
-              // comportamento no desktop e no mobile. Sem preço ("Sob
-              // consulta"), abrimos o modal de contato/pergunta.
+              // Consulta comum: abre a seleção de tipo de consulta. Sem preço
+              // ("Sob consulta"), abrimos o modal de contato/pergunta.
               if (hasPontualPrice) {
-                goToPayment(pontualAmount);
+                goToConsultaSelection();
               } else {
                 onPontualClick?.(specialist);
               }
@@ -499,20 +498,21 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
           <button
             type="button"
             onClick={() => {
-              // Ad Exitum: agendamento sem pagamento imediato.
+              // Ad Exitum (puro ou dual): o botão inferior é sempre o
+              // agendamento Ad Exitum — sem pagamento imediato.
               if (isAdExitum) {
                 goToAdExitum();
                 return;
               }
-              // Valor da consulta: Premium usa o preço definido pelo próprio
-              // especialista; Essencial usa o preço fixo de chat da plataforma.
-              const scheduleAmount =
-                avgPrice > 0 ? avgPrice : FREE_PLAN_CONSULTATION_PRICE.chat;
-              goToPayment(scheduleAmount);
+              // Consulta comum: abre a seleção de tipo de consulta (chat, vídeo
+              // e, para Premium, Consulta Premium) antes do pagamento.
+              goToConsultaSelection();
             }}
             className="mt-2 w-full px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold"
           >
-            {isAdExitum ? "📅 Agendar Ad Exitum (sem custo inicial)" : "📅 Agendar consulta"}
+            {isAdExitum
+              ? "📅 Agendar Ad Exitum (sem custo inicial)"
+              : "📅 Agendar consulta"}
           </button>
           <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 text-center">
             {isAdExitum
