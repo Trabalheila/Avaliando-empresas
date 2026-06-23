@@ -14,7 +14,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { db } from "../../firebase";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { collection, onSnapshot, query } from "firebase/firestore";
 import AppHeader from "../AppHeader";
 import { filterOutTestApoiadores } from "../../utils/testAccounts";
 import { isPremiumWorker } from "../../utils/rbac";
@@ -215,7 +215,10 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
   // Modelo "Ad Exitum": o especialista só recebe honorários se ganhar o caso —
   // não há cobrança inicial. Quando ativo, o card mostra "R$ 0,00 (Ad Exitum)"
   // e o agendamento segue um fluxo sem pagamento imediato.
-  const isAdExitum = specialist.adExitum === true;
+  // IMPORTANTE: Ad Exitum é exclusivo de ADVOGADOS — mesmo que a flag esteja
+  // true no banco para outra especialidade, não exibimos no card.
+  const isAdvogadoCard = normalizeTipo(specialist.tipo) === "advogado";
+  const isAdExitum = isAdvogadoCard && specialist.adExitum === true;
 
   // Conta de demonstração: não pode receber pagamentos reais — botões ficam
   // desabilitados.
@@ -532,10 +535,11 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
 
   useEffect(() => {
     setLoading(true);
-    const q = query(
-      collection(db, "apoiadores"),
-      where("status", "==", "ativo")
-    );
+    // Busca TODOS os especialistas cadastrados. Não filtramos por status na
+    // query para garantir que qualquer especialista (inclusive recém-cadastrado,
+    // sem foto ou sem avaliações) apareça por padrão. Apenas contas de teste e
+    // perfis explicitamente rejeitados/inativos são removidos no cliente.
+    const q = query(collection(db, "apoiadores"));
     // onSnapshot mantem a listagem (e o circulo verde "Disponível agora")
     // sincronizada em tempo real com o Firestore, sem recarregar a página.
     const unsubscribe = onSnapshot(
@@ -572,6 +576,9 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
             isTestAccount: data.isTestAccount === true,
             // Indicador "Disponível agora" — controlado manualmente no Firestore.
             available: data.available === true,
+            // Status do cadastro — usado apenas para esconder perfis
+            // explicitamente rejeitados/inativos (todos os demais aparecem).
+            status: String(data.status || "").toLowerCase(),
             // Modelo "Ad Exitum": especialista só recebe se ganhar o caso —
             // sem cobrança inicial. Usado no card para exibir "R$ 0,00
             // (Ad Exitum)" e encaminhar ao fluxo de agendamento sem pagamento.
@@ -580,7 +587,13 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
             whatsapp: data.whatsapp || data.telefone || "",
           };
         });
-        setRemote(filterOutTestApoiadores(list));
+        // Remove apenas contas de teste e perfis explicitamente
+        // rejeitados/inativos. Pendentes e ativos (e docs sem status) aparecem.
+        const HIDDEN_STATUSES = new Set(["rejeitado", "rejected", "inativo", "inactive", "removido"]);
+        const visible = filterOutTestApoiadores(list).filter(
+          (s) => !HIDDEN_STATUSES.has(s.status)
+        );
+        setRemote(visible);
         setLoading(false);
       },
       (err) => {

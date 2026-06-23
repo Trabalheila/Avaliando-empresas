@@ -358,7 +358,11 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
         descricao: descricao.trim().slice(0, MAX_DESC),
         foto: fotoUrl || null,
         documentos: docsData,
-        status: "pendente",
+        // Especialista já entra "ativo" para aparecer imediatamente no
+        // diretório público (a query da busca filtra por status === "ativo").
+        // A verificação de credenciais continua independente, via
+        // verificationStatus, e só controla a exibição do selo de verificado.
+        status: "ativo",
         plano: "gratuito",
         rating: 0,
         totalAvaliacoes: 0,

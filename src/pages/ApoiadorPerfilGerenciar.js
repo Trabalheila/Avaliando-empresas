@@ -58,7 +58,9 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
   // "Ad Exitum aceito" funciona como um desbloqueio total: o especialista
   // passa a enxergar todas as funcionalidades normalmente exclusivas do
   // Premium. A condição de exibição dessas seções é `premiumUnlocked`.
-  const adExitumAccepted = adExitum === true;
+  // IMPORTANTE: Ad Exitum é exclusivo de ADVOGADOS — mesmo que a flag esteja
+  // marcada no banco para outra especialidade, o modo não é ativado.
+  const adExitumAccepted = isAdvogado && adExitum === true;
   const premiumUnlocked = isPremium || adExitumAccepted;
   // E-mail da conta Mercado Pago do especialista. Usado pelo backend para
   // direcionar a parte do profissional no split de pagamentos das consultas.
@@ -575,7 +577,7 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
                     Premium
                   </span>
                 </label>
-                {adExitum ? (
+                {adExitumAccepted ? (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-3 py-1.5 text-sm font-bold text-emerald-700 dark:text-emerald-300">
                     R$ 0,00 — Pagamento Ad Exitum (sem custo inicial)
                   </span>
@@ -595,7 +597,7 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
                   </div>
                 )}
                 <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-                  {adExitum ? (
+                  {adExitumAccepted ? (
                     <>
                       Você marcou a opção <strong>Ad Exitum</strong>: não há cobrança
                       inicial pela consulta. Você só recebe seus honorários se o caso for
