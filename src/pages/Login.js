@@ -15,6 +15,10 @@ import {
   signInWithPopup,
   sendPasswordResetEmail,
   onAuthStateChanged,
+  fetchSignInMethodsForEmail,
+  linkWithCredential,
+  GoogleAuthProvider,
+  EmailAuthProvider,
 } from "firebase/auth";
 import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import { auth, db, googleProvider } from "../firebase";
@@ -155,6 +159,16 @@ export default function Login({ theme, toggleTheme }) {
   // Quando o mesmo e-mail tem mais de um perfil cadastrado, abrimos um modal
   // para o usuário escolher. profileChoice = { profiles: ["empresario", ...] }
   const [profileChoice, setProfileChoice] = useState(null);
+  // Vinculação de contas (account linking). Quando o login com Google falha
+  // com `auth/account-exists-with-different-credential`, guardamos a credencial
+  // pendente do Google + o e-mail em conflito para pedir a senha original e
+  // então vincular (linkWithCredential).
+  // linkState = { email, pendingCredential, methods: [...] }
+  const [linkState, setLinkState] = useState(null);
+  const [linkPassword, setLinkPassword] = useState("");
+  const [linkMessage, setLinkMessage] = useState("");
+  const [linkError, setLinkError] = useState("");
+  const [linking, setLinking] = useState(false);
 
   function getRedirectTarget() {
     try {
@@ -316,7 +330,29 @@ export default function Login({ theme, toggleTheme }) {
     } catch (err) {
       console.error("Erro no login com Google:", err);
       const code = String(err?.code || "");
-      if (code.includes("auth/popup-closed-by-user")) {
+      if (code.includes("auth/account-exists-with-different-credential")) {
+        // Conflito: já existe uma conta com este e-mail criada por outro
+        // provedor. Guardamos a credencial do Google e descobrimos quais
+        // métodos de login já existem para orientar a vinculação.
+        try {
+          const pendingCredential = GoogleAuthProvider.credentialFromError(err);
+          const conflictEmail =
+            err?.customData?.email || err?.email || "";
+          let methods = [];
+          if (conflictEmail) {
+            methods = await fetchSignInMethodsForEmail(auth, conflictEmail);
+          }
+          setEmail(conflictEmail);
+          setLinkState({ email: conflictEmail, pendingCredential, methods });
+          setLinkError("");
+          setLinkMessage(
+            "Já existe uma conta com este e-mail. Deseja vincular seu login do Google a ela?"
+          );
+        } catch (linkErr) {
+          console.error("Falha ao preparar vinculação de contas:", linkErr);
+          setError("Não foi possível vincular as contas. Tente novamente.");
+        }
+      } else if (code.includes("auth/popup-closed-by-user")) {
         setError("Login com Google cancelado.");
       } else if (code.includes("auth/popup-blocked")) {
         setError("Popup bloqueado. Permita popups e tente novamente.");
@@ -328,6 +364,61 @@ export default function Login({ theme, toggleTheme }) {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  // Confirma a identidade com o provedor original (e-mail/senha) e vincula a
+  // credencial do Google à conta existente via linkWithCredential.
+  async function handleConfirmAccountLink(e) {
+    e?.preventDefault?.();
+    if (!linkState?.pendingCredential) {
+      setLinkError("Não foi possível vincular as contas. Tente novamente.");
+      return;
+    }
+    const usesPassword = (linkState.methods || []).includes(
+      EmailAuthProvider.PROVIDER_ID
+    );
+    if (usesPassword && !linkPassword) {
+      setLinkError("Por favor, faça login com sua senha original para confirmar a vinculação.");
+      return;
+    }
+    setLinking(true);
+    setLinkError("");
+    setLinkMessage("");
+    try {
+      // 1) Confirma a identidade com o provedor original (senha).
+      const cred = await signInWithEmailAndPassword(
+        auth,
+        linkState.email,
+        linkPassword
+      );
+      // 2) Vincula a credencial do Google à conta existente.
+      await linkWithCredential(cred.user, linkState.pendingCredential);
+      setLinkMessage("Contas vinculadas com sucesso!");
+      setLinkPassword("");
+      // 3) Finaliza o login normalmente.
+      await finishLogin(cred.user, "google");
+      setLinkState(null);
+    } catch (err) {
+      console.error("Erro ao vincular contas:", err);
+      const code = String(err?.code || "");
+      if (
+        code.includes("auth/wrong-password") ||
+        code.includes("auth/invalid-credential")
+      ) {
+        setLinkError("Senha incorreta. Tente novamente.");
+      } else {
+        setLinkError("Não foi possível vincular as contas. Tente novamente.");
+      }
+    } finally {
+      setLinking(false);
+    }
+  }
+
+  function cancelAccountLink() {
+    setLinkState(null);
+    setLinkPassword("");
+    setLinkError("");
+    setLinkMessage("");
   }
 
   // Callback do botão LinkedIn. O componente robusto entrega ou
@@ -623,6 +714,76 @@ export default function Login({ theme, toggleTheme }) {
             >
               Cancelar
             </button>
+          </div>
+        </div>
+      )}
+
+      {linkState && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="account-link-title"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:px-4"
+        >
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain">
+            <h2
+              id="account-link-title"
+              className="text-xl font-extrabold text-slate-800 dark:text-slate-100 text-center"
+            >
+              Vincular contas
+            </h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 text-center">
+              Já existe uma conta com o e-mail{" "}
+              <strong className="break-all">{linkState.email}</strong>. Deseja
+              vincular seu login do Google a ela?
+            </p>
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 text-center">
+              Por favor, faça login com sua senha original para confirmar a vinculação.
+            </p>
+
+            <form onSubmit={handleConfirmAccountLink} className="mt-5 flex flex-col gap-3">
+              <input
+                type="email"
+                value={linkState.email}
+                readOnly
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 p-3 text-sm text-slate-600 dark:text-slate-300"
+              />
+              <input
+                type="password"
+                value={linkPassword}
+                onChange={(e) => setLinkPassword(e.target.value)}
+                placeholder="Sua senha"
+                autoComplete="current-password"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+
+              {linkMessage && (
+                <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                  {linkMessage}
+                </p>
+              )}
+              {linkError && (
+                <p className="text-sm font-semibold text-red-600 dark:text-red-400">
+                  {linkError}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={linking}
+                className="w-full py-2.5 px-4 rounded-lg font-bold shadow bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition"
+              >
+                {linking ? "Vinculando…" : "Vincular contas"}
+              </button>
+              <button
+                type="button"
+                onClick={cancelAccountLink}
+                disabled={linking}
+                className="w-full text-xs text-slate-500 dark:text-slate-400 hover:underline disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+            </form>
           </div>
         </div>
       )}

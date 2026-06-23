@@ -55,6 +55,11 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
   const [tipo, setTipo] = useState("");
   const [adExitum, setAdExitum] = useState(false);
   const isAdvogado = String(tipo || "").toLowerCase().includes("advogado");
+  // "Ad Exitum aceito" funciona como um desbloqueio total: o especialista
+  // passa a enxergar todas as funcionalidades normalmente exclusivas do
+  // Premium. A condição de exibição dessas seções é `premiumUnlocked`.
+  const adExitumAccepted = adExitum === true;
+  const premiumUnlocked = isPremium || adExitumAccepted;
   // E-mail da conta Mercado Pago do especialista. Usado pelo backend para
   // direcionar a parte do profissional no split de pagamentos das consultas.
   const [mpEmail, setMpEmail] = useState("");
@@ -352,8 +357,25 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
         ) : (
           <form
             onSubmit={handleSave}
-            className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-4 sm:p-6 space-y-5"
+            className={[
+              "rounded-2xl shadow border p-4 sm:p-6 space-y-5",
+              adExitumAccepted
+                ? "bg-purple-50/70 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800"
+                : "bg-white dark:bg-slate-900 border-blue-100 dark:border-slate-700",
+            ].join(" ")}
           >
+            {/* Banner de status do Modo Ad Exitum */}
+            {adExitumAccepted && (
+              <div className="rounded-xl border border-purple-300 dark:border-purple-700 bg-purple-100/80 dark:bg-purple-900/40 px-4 py-3">
+                <p className="text-sm font-extrabold uppercase tracking-wide text-purple-800 dark:text-purple-200">
+                  ⚖️ Modo Ad Exitum (desbloqueia todas as funções)
+                </p>
+                <p className="mt-0.5 text-[11px] text-purple-700 dark:text-purple-300">
+                  Com o Ad Exitum ativo, todas as funcionalidades Premium ficam liberadas no seu painel.
+                </p>
+              </div>
+            )}
+
             {/* Foto */}
             <section className="flex items-center gap-4 flex-wrap">
               {fotoPreview || foto ? (
@@ -541,8 +563,8 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
               </p>
             </div>
 
-            {/* Valor da consulta — exclusivo Premium */}
-            {isPremium ? (
+            {/* Valor da consulta — exclusivo Premium (ou desbloqueado por Ad Exitum) */}
+            {premiumUnlocked ? (
               <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-900/20 p-4">
                 <label
                   htmlFor="preco-consulta"
@@ -598,6 +620,41 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
                   plano Essencial o preço é tabelado pela plataforma e no Gratuito a consulta
                   avulsa tem valor fixo. Faça upgrade para definir seu valor.
                 </p>
+              </div>
+            )}
+
+            {/* Painel completo — seções desbloqueadas (Premium ou Ad Exitum) */}
+            {premiumUnlocked && (
+              <div className="rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-900/10 p-4 space-y-3">
+                <p className="text-sm font-extrabold text-purple-800 dark:text-purple-200">
+                  Painel completo do especialista
+                </p>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {[
+                    { titulo: "Minhas Mensagens", desc: "Converse com trabalhadores que solicitaram atendimento." },
+                    { titulo: "Meus Documentos", desc: "Envie e organize documentos dos seus casos." },
+                    { titulo: "Minhas Estatísticas Detalhadas", desc: "Acompanhe visualizações, conversões e avaliações." },
+                    { titulo: "Gerenciamento de Agenda", desc: "Defina horários e organize seus compromissos." },
+                    { titulo: "Configurações de Notificações", desc: "Escolha como e quando deseja ser avisado." },
+                  ].map((sec) => (
+                    <div
+                      key={sec.titulo}
+                      className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-800/50 p-3"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                          {sec.titulo}
+                        </p>
+                        <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                          Em breve
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                        {sec.desc}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
