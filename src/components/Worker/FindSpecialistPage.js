@@ -234,6 +234,13 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
     planType === "Essencial" ? FREE_PLAN_CONSULTATION_PRICE.chat : avgPrice;
   const hasPontualPrice = pontualAmount > 0;
 
+  // Advogado que oferece AMBOS os formatos: Ad Exitum (sem custo inicial) E
+  // consulta comum com preço definido. Exclusivo para advogados — nesse caso o
+  // card exibe os dois caminhos de agendamento, sem redundância: o botão do
+  // grid vira "Agendar Consulta Comum" e o botão inferior fica como o único
+  // "Agendar Ad Exitum".
+  const isAdExitumComPontual = isAdExitum && hasPontualPrice;
+
   const goToPayment = (amount) => {
     navigate("/pagamento-consulta", {
       state: {
@@ -374,7 +381,19 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
             <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
               Consulta
             </p>
-            {isAdExitum ? (
+            {isAdExitumComPontual ? (
+              <>
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
+                  {formatBRL(avgPrice)} <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">consulta</span>
+                </p>
+                <p
+                  className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 leading-tight cursor-help"
+                  title="Ad Exitum: O pagamento dos honorários do advogado só ocorre se o caso for ganho. Não há custo inicial para o trabalhador."
+                >
+                  ou Ad Exitum <span className="underline decoration-dotted">(sem custo inicial)</span>
+                </p>
+              </>
+            ) : isAdExitum ? (
               <p
                 className="text-sm font-bold text-emerald-600 dark:text-emerald-400 leading-tight cursor-help"
                 title="Ad Exitum: O pagamento dos honorários do advogado só ocorre se o caso for ganho. Não há custo inicial para o trabalhador."
@@ -423,7 +442,14 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
           <button
             type="button"
             onClick={() => {
-              // Ad Exitum: sem custo inicial — segue o fluxo de agendamento
+              // Advogado com Ad Exitum + consulta comum: este botão é a CONSULTA
+              // COMUM, que vai direto ao fluxo de pagamento com o preço definido
+              // (o agendamento Ad Exitum fica no botão inferior, sem redundância).
+              if (isAdExitumComPontual) {
+                goToPayment(pontualAmount);
+                return;
+              }
+              // Ad Exitum puro: sem custo inicial — segue o fluxo de agendamento
               // dedicado, sem pagamento imediato.
               if (isAdExitum) {
                 goToAdExitum();
@@ -441,19 +467,25 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
             }}
             className={[
               "text-center px-3 py-2 rounded-lg text-white text-sm font-bold",
-              isAdExitum
+              isAdExitum && !isAdExitumComPontual
                 ? "bg-emerald-600 hover:bg-emerald-700"
                 : "bg-blue-600 hover:bg-blue-700",
             ].join(" ")}
             title={
-              isAdExitum
+              isAdExitumComPontual
+                ? "Consulta comum — pagamento da consulta com o preço definido pelo especialista"
+                : isAdExitum
                 ? "Agendamento Ad Exitum — sem custo inicial"
                 : hasPontualPrice
                 ? "Consulta pontual — pagamento da consulta"
                 : "Pergunta única, sem histórico nem follow-up"
             }
           >
-            {isAdExitum ? "⚖️ Agendar Ad Exitum" : "✉️ Consulta pontual"}
+            {isAdExitumComPontual
+              ? "✉️ Agendar Consulta Comum"
+              : isAdExitum
+              ? "⚖️ Agendar Ad Exitum"
+              : "✉️ Consulta pontual"}
           </button>
         )}
       </div>
