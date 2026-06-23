@@ -212,6 +212,10 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
   const avgPrice = Number(
     specialist.averageConsultationPrice || specialist.precoConsulta || 0
   );
+  // Modelo "Ad Exitum": o especialista só recebe honorários se ganhar o caso —
+  // não há cobrança inicial. Quando ativo, o card mostra "R$ 0,00 (Ad Exitum)"
+  // e o agendamento segue um fluxo sem pagamento imediato.
+  const isAdExitum = specialist.adExitum === true;
 
   // Conta de demonstração: não pode receber pagamentos reais — botões ficam
   // desabilitados.
@@ -238,6 +242,18 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
         modalidade: "chat",
         planoTipo: planType === "Premium" ? "premium" : "essential",
         fromScheduling: true,
+      },
+    });
+  };
+
+  // Agendamento Ad Exitum: não passa pelo fluxo de pagamento — encaminha para
+  // a rota dedicada de agendamento sem custo inicial.
+  const goToAdExitum = () => {
+    navigate(`/agendar-ad-exitum/${specialist.id}`, {
+      state: {
+        professionalId: specialist.id,
+        professionalName: specialist.nome,
+        specialtyId: normalizeTipo(specialist.tipo) || "outro",
       },
     });
   };
@@ -355,9 +371,18 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
             <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
               Consulta
             </p>
-            <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
-              {avgPrice > 0 ? formatBRL(avgPrice) : "Sob consulta"}
-            </p>
+            {isAdExitum ? (
+              <p
+                className="text-sm font-bold text-emerald-600 dark:text-emerald-400 leading-tight cursor-help"
+                title="Ad Exitum: O pagamento dos honorários do advogado só ocorre se o caso for ganho. Não há custo inicial para o trabalhador."
+              >
+                R$ 0,00 <span className="text-[11px] font-semibold underline decoration-dotted">(Ad Exitum)</span>
+              </p>
+            ) : (
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
+                {avgPrice > 0 ? formatBRL(avgPrice) : "Sob consulta"}
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -395,6 +420,12 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
           <button
             type="button"
             onClick={() => {
+              // Ad Exitum: sem custo inicial — segue o fluxo de agendamento
+              // dedicado, sem pagamento imediato.
+              if (isAdExitum) {
+                goToAdExitum();
+                return;
+              }
               // Com preço definido (Essencial fixo ou Premium do profissional),
               // a consulta pontual vai DIRETO ao fluxo de pagamento — mesmo
               // comportamento no desktop e no mobile. Sem preço ("Sob
@@ -405,14 +436,21 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
                 onPontualClick?.(specialist);
               }
             }}
-            className="text-center px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
+            className={[
+              "text-center px-3 py-2 rounded-lg text-white text-sm font-bold",
+              isAdExitum
+                ? "bg-emerald-600 hover:bg-emerald-700"
+                : "bg-blue-600 hover:bg-blue-700",
+            ].join(" ")}
             title={
-              hasPontualPrice
+              isAdExitum
+                ? "Agendamento Ad Exitum — sem custo inicial"
+                : hasPontualPrice
                 ? "Consulta pontual — pagamento da consulta"
                 : "Pergunta única, sem histórico nem follow-up"
             }
           >
-            ✉️ Consulta pontual
+            {isAdExitum ? "⚖️ Agendar Ad Exitum" : "✉️ Consulta pontual"}
           </button>
         )}
       </div>
@@ -426,6 +464,11 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
           <button
             type="button"
             onClick={() => {
+              // Ad Exitum: agendamento sem pagamento imediato.
+              if (isAdExitum) {
+                goToAdExitum();
+                return;
+              }
               // Valor da consulta: Premium usa o preço definido pelo próprio
               // especialista; Essencial usa o preço fixo de chat da plataforma.
               const scheduleAmount =
@@ -434,10 +477,12 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
             }}
             className="mt-2 w-full px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold"
           >
-            📅 Agendar consulta
+            {isAdExitum ? "📅 Agendar Ad Exitum (sem custo inicial)" : "📅 Agendar consulta"}
           </button>
           <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 text-center">
-            {scheduleHint}
+            {isAdExitum
+              ? "Pagamento Ad Exitum: você só paga honorários se o caso for ganho."
+              : scheduleHint}
           </p>
         </>
       )}
@@ -527,6 +572,10 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
             isTestAccount: data.isTestAccount === true,
             // Indicador "Disponível agora" — controlado manualmente no Firestore.
             available: data.available === true,
+            // Modelo "Ad Exitum": especialista só recebe se ganhar o caso —
+            // sem cobrança inicial. Usado no card para exibir "R$ 0,00
+            // (Ad Exitum)" e encaminhar ao fluxo de agendamento sem pagamento.
+            adExitum: data.adExitum === true,
             email: data.email || "",
             whatsapp: data.whatsapp || data.telefone || "",
           };

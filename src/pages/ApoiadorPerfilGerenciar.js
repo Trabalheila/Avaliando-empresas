@@ -483,7 +483,10 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
             {/* Modelo de honorários: Ad Exitum — exclusivo de advogados */}
             {isAdvogado && (
               <div className="rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/60 dark:bg-purple-900/20 p-4">
-                <label className="flex items-start gap-2 cursor-pointer">
+                <label
+                  className="flex items-start gap-2 cursor-pointer"
+                  title="Ad Exitum: O pagamento dos honorários do advogado só ocorre se o caso for ganho. Não há custo inicial para o trabalhador."
+                >
                   <input
                     type="checkbox"
                     checked={adExitum}
@@ -491,8 +494,14 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
                     className="mt-0.5 shrink-0 accent-purple-600 h-4 w-4"
                   />
                   <span>
-                    <span className="block text-sm font-bold text-purple-800 dark:text-purple-200">
+                    <span className="flex items-center gap-1.5 text-sm font-bold text-purple-800 dark:text-purple-200">
                       Aceito atender casos Ad Exitum
+                      <span
+                        className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-purple-200 dark:bg-purple-800 text-[10px] font-bold text-purple-700 dark:text-purple-200 cursor-help"
+                        title="Ad Exitum: O pagamento dos honorários do advogado só ocorre se o caso for ganho. Não há custo inicial para o trabalhador."
+                      >
+                        ?
+                      </span>
                     </span>
                     <span className="block text-xs text-slate-600 dark:text-slate-300 leading-relaxed mt-1">
                       Ad Exitum significa que você só recebe honorários se o caso for ganho.
@@ -544,23 +553,39 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
                     Premium
                   </span>
                 </label>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">R$</span>
-                  <input
-                    id="preco-consulta"
-                    type="number"
-                    min="1"
-                    step="0.01"
-                    value={precoConsulta}
-                    onChange={(e) => setPrecoConsulta(e.target.value)}
-                    placeholder="Ex.: 80.00"
-                    className="w-40 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
+                {adExitum ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-3 py-1.5 text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                    R$ 0,00 — Pagamento Ad Exitum (sem custo inicial)
+                  </span>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">R$</span>
+                    <input
+                      id="preco-consulta"
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      value={precoConsulta}
+                      onChange={(e) => setPrecoConsulta(e.target.value)}
+                      placeholder="Ex.: 80.00"
+                      className="w-40 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                )}
                 <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-                  Como especialista Premium, você define o valor cobrado por consulta.
-                  Ele aparece no seu perfil público e no card da busca de especialistas.
-                  A plataforma retém 12,5% para custos operacionais.
+                  {adExitum ? (
+                    <>
+                      Você marcou a opção <strong>Ad Exitum</strong>: não há cobrança
+                      inicial pela consulta. Você só recebe seus honorários se o caso for
+                      ganho. Desmarque a opção acima para voltar a definir um valor.
+                    </>
+                  ) : (
+                    <>
+                      Como especialista Premium, você define o valor cobrado por consulta.
+                      Ele aparece no seu perfil público e no card da busca de especialistas.
+                      A plataforma retém 12,5% para custos operacionais.
+                    </>
+                  )}
                 </p>
               </div>
             ) : (
