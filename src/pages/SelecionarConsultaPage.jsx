@@ -39,15 +39,17 @@ export default function SelecionarConsultaPage({ theme, toggleTheme }) {
   const specialtyId = state.specialtyId || "outro";
   const isPremium = state.planType === "Premium";
 
-  // Preços das modalidades pontuais (chat/vídeo): valores fixos da plataforma,
-  // iguais para todos os especialistas. A "Consulta Premium" usa o preço que o
-  // profissional Premium configurou no perfil (`premiumPrice`).
-  const chatPrice = FREE_PLAN_CONSULTATION_PRICE.chat;
-  const videoPrice = FREE_PLAN_CONSULTATION_PRICE.video;
+  // Preços das modalidades (chat/vídeo):
+  //   • Premium: usa o "Valor da consulta (R$)" definido pelo profissional no
+  //     perfil (`premiumPrice`) — o mesmo valor para Chat e Videochamada.
+  //   • Não-Premium (Essencial): usa os preços FIXOS da plataforma.
   const premiumPrice = Number(state.premiumPrice || 0);
+  const chatPrice = isPremium ? premiumPrice : FREE_PLAN_CONSULTATION_PRICE.chat;
+  const videoPrice = isPremium ? premiumPrice : FREE_PLAN_CONSULTATION_PRICE.video;
+  const planoTipo = isPremium ? "premium" : "essential";
 
   // Encaminha para o fluxo de pagamento com o tipo e o valor escolhidos.
-  const goToPayment = ({ modalidade, amount, planoTipo }) => {
+  const goToPayment = ({ modalidade, amount }) => {
     navigate("/pagamento-consulta", {
       state: {
         professionalId,
@@ -68,48 +70,19 @@ export default function SelecionarConsultaPage({ theme, toggleTheme }) {
     description,
     price,
     onSchedule,
-    highlight = false,
     disabled = false,
   }) => (
-    <div
-      className={[
-        "rounded-2xl border p-5 flex flex-col shadow-sm",
-        highlight
-          ? "border-amber-300 dark:border-amber-500/60 bg-gradient-to-br from-amber-50 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/20"
-          : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900",
-      ].join(" ")}
-    >
+    <div className="rounded-2xl border p-5 flex flex-col shadow-sm border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
       <div className="flex items-center gap-2">
         <span className="text-2xl" aria-hidden="true">
           {icon}
         </span>
-        <h3
-          className={[
-            "font-bold",
-            highlight
-              ? "text-amber-800 dark:text-amber-200"
-              : "text-slate-800 dark:text-slate-100",
-          ].join(" ")}
-        >
-          {title}
-        </h3>
-        {highlight && (
-          <span className="ml-auto inline-flex items-center text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-400 text-amber-900">
-            ✨ Premium
-          </span>
-        )}
+        <h3 className="font-bold text-slate-800 dark:text-slate-100">{title}</h3>
       </div>
 
       <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{description}</p>
 
-      <p
-        className={[
-          "mt-3 text-2xl font-extrabold",
-          highlight
-            ? "text-amber-700 dark:text-amber-300"
-            : "text-slate-900 dark:text-slate-100",
-        ].join(" ")}
-      >
+      <p className="mt-3 text-2xl font-extrabold text-slate-900 dark:text-slate-100">
         {price > 0 ? formatBRL(price) : "Sob consulta"}
       </p>
 
@@ -121,12 +94,10 @@ export default function SelecionarConsultaPage({ theme, toggleTheme }) {
           "mt-4 w-full px-4 py-2.5 rounded-xl text-white text-sm font-bold transition",
           disabled
             ? "bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed"
-            : highlight
-            ? "bg-amber-500 hover:bg-amber-600"
             : "bg-blue-600 hover:bg-blue-700",
         ].join(" ")}
       >
-        {highlight ? "Agendar Consulta Premium" : "Agendar"}
+        Agendar
       </button>
     </div>
   );
@@ -153,18 +124,15 @@ export default function SelecionarConsultaPage({ theme, toggleTheme }) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <OptionCard
             icon="💬"
             title="Chat"
             description="Atendimento por texto, com troca de mensagens."
             price={chatPrice}
+            disabled={chatPrice <= 0}
             onSchedule={() =>
-              goToPayment({
-                modalidade: "chat",
-                amount: chatPrice,
-                planoTipo: "essential",
-              })
+              goToPayment({ modalidade: "chat", amount: chatPrice })
             }
           />
 
@@ -173,32 +141,11 @@ export default function SelecionarConsultaPage({ theme, toggleTheme }) {
             title="Videochamada"
             description="Atendimento por vídeo, em tempo real."
             price={videoPrice}
+            disabled={videoPrice <= 0}
             onSchedule={() =>
-              goToPayment({
-                modalidade: "video",
-                amount: videoPrice,
-                planoTipo: "essential",
-              })
+              goToPayment({ modalidade: "video", amount: videoPrice })
             }
           />
-
-          {isPremium && (
-            <OptionCard
-              icon="⭐"
-              title="Consulta Premium"
-              description="Atendimento premium com o valor definido pelo especialista."
-              price={premiumPrice}
-              highlight
-              disabled={premiumPrice <= 0}
-              onSchedule={() =>
-                goToPayment({
-                  modalidade: "chat",
-                  amount: premiumPrice,
-                  planoTipo: "premium",
-                })
-              }
-            />
-          )}
         </div>
       </main>
     </div>

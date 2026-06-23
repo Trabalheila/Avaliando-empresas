@@ -401,9 +401,23 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
                 R$ 0,00 <span className="text-[11px] font-semibold underline decoration-dotted">(Ad Exitum)</span>
               </p>
             ) : (
-              <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
-                {avgPrice > 0 ? formatBRL(avgPrice) : "Sob consulta"}
-              </p>
+              // Premium sem Ad Exitum: o valor configurado pelo profissional é
+              // o preço ÚNICO de consulta, válido tanto para chat quanto para
+              // videochamada.
+              avgPrice > 0 ? (
+                <>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
+                    {formatBRL(avgPrice)} <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">chat</span>
+                  </p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
+                    {formatBRL(avgPrice)} <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">vídeo</span>
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
+                  Sob consulta
+                </p>
+              )
             )}
           </div>
         )}
