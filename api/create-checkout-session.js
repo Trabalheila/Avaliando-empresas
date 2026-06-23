@@ -317,7 +317,7 @@ async function getApoiadorMpEmail(apoiadorId) {
  * sem isso, o pagamento é processado normalmente e o split deve ser
  * reconciliado manualmente.
  */
-async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tier, amount, workerId, especialidade, requesterAudience, modalidade, message, workerNome, originalAmount, discountAmount }) {
+async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tier, amount, workerId, especialidade, requesterAudience, modalidade, message, workerNome, originalAmount, discountAmount, consultationType }) {
   const accessToken = (process.env.MERCADOPAGO_ACCESS_TOKEN || "").toString().trim();
   if (!accessToken) {
     throw new Error("MERCADOPAGO_ACCESS_TOKEN nao configurado.");
@@ -332,6 +332,12 @@ async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tie
   }
 
   const safeModalidade = modalidade === "video" ? "video" : "chat";
+  // Tipo da consulta: "especializada" (atendimento premium diferenciado) ou
+  // vazio/"comum". Usado pelo webhook para notificar o especialista.
+  const safeConsultationType =
+    (consultationType || "").toString().toLowerCase() === "especializada"
+      ? "especializada"
+      : "comum";
   // Mensagem do trabalhador (dúvida). Limitada para caber com folga no
   // metadata da preferência do Mercado Pago, que é recuperado pelo webhook.
   const safeMessage = (message || "").toString().slice(0, 1500);
@@ -421,6 +427,7 @@ async function createConsultationPreference({ req, apoiadorId, apoiadorNome, tie
       workerNome: safeWorkerNome || null,
       especialidade: especialidade || null,
       modalidade: safeModalidade,
+      consultationType: safeConsultationType,
       message: safeMessage || null,
       originalAmount: Number.isFinite(safeOriginalAmount) ? safeOriginalAmount : safeAmount,
       discountAmount: Number.isFinite(safeDiscountAmount) ? safeDiscountAmount : 0,
@@ -605,6 +612,7 @@ export default async function handler(req, res) {
         workerNome: (req.body?.workerNome || "").toString().trim(),
         originalAmount: Number(req.body?.originalAmount),
         discountAmount: Number(req.body?.discountAmount),
+        consultationType: (req.body?.consultationType || "").toString().trim(),
       });
       return res.status(200).json(payload);
     } catch (err) {

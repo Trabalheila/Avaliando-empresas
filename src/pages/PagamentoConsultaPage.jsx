@@ -55,6 +55,7 @@ export default function PagamentoConsultaPage({ theme, toggleTheme }) {
     userDoubt,
     modalidade: modalidadeFromState,
     planoTipo,
+    consultationType,
     fromScheduling,
   } = location.state || {};
 
@@ -118,6 +119,7 @@ export default function PagamentoConsultaPage({ theme, toggleTheme }) {
         workerNome: workerSnapshot.nome,
         originalAmount: normalizedOriginalAmount,
         discountAmount: normalizedDiscount,
+        consultationType,
       });
       // requestConsultation redireciona o navegador para o Mercado Pago.
       // Mantemos `submitting` ativo durante o redirecionamento.

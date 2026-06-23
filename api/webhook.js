@@ -148,6 +148,78 @@ async function releaseSpecialistContact({ db, FieldValue, apoiadorId, workerId, 
   }
 }
 
+/**
+ * Notifica o especialista por e-mail quando uma "Consulta Especializada"
+ * (atendimento premium diferenciado) é paga. Envia os dados de acesso ao
+ * atendimento (link da sala) e o resumo do repasse (split): valor bruto, taxa
+ * da plataforma e valor líquido a receber na conta Mercado Pago.
+ *
+ * Best-effort: nunca lança — apenas loga falhas. Não bloqueia o webhook.
+ */
+async function notifySpecialistEspecializada({
+  db,
+  apoiadorId,
+  consultaId,
+  amount,
+  marketplaceFee,
+  amountDueToSpecialist,
+  salaUrl,
+  workerNome,
+}) {
+  try {
+    if (!apoiadorId || !consultaId) return;
+
+    const resendKey = (process.env.RESEND_API_KEY || "").toString().trim();
+    const fromAddress = (process.env.EMAIL_FROM_ADDRESS || "").toString().trim();
+    if (!resendKey || !fromAddress) {
+      console.warn("[webhook] RESEND/EMAIL_FROM ausente; e-mail ao especialista (especializada) não enviado.");
+      return;
+    }
+
+    const apoiadorSnap = await db.collection("apoiadores").doc(apoiadorId).get();
+    const apoiador = apoiadorSnap.exists ? apoiadorSnap.data() || {} : {};
+    const especialistaEmail = String(apoiador.email || "").trim().toLowerCase();
+    const apoiadorNome = String(apoiador.nome || apoiador.displayName || "Especialista").trim();
+    const mpEmail = String(apoiador.mercadoPagoEmail || apoiador.mpEmail || "").trim();
+    if (!especialistaEmail) {
+      console.warn("[webhook] especialista sem e-mail; notificação de Consulta Especializada não enviada.");
+      return;
+    }
+
+    const fmt = (v) =>
+      Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+    const { Resend } = await import("resend");
+    const resend = new Resend(resendKey);
+
+    await resend.emails.send({
+      from: fromAddress,
+      to: especialistaEmail,
+      subject: `Nova Consulta Especializada paga — ${fmt(amount)}`,
+      html: `
+        <div style="font-family:Arial,Helvetica,sans-serif;color:#1e293b;max-width:560px;margin:0 auto;">
+          <h2 style="color:#b45309;">Consulta Especializada confirmada 🌟</h2>
+          <p>Olá, <strong>${escapeHtml(apoiadorNome)}</strong>! Você recebeu uma nova
+          Consulta Especializada${workerNome ? ` de <strong>${escapeHtml(workerNome)}</strong>` : ""}.</p>
+          <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:12px;padding:16px;margin:16px 0;">
+            <p style="margin:4px 0;"><strong>Acesse o atendimento:</strong></p>
+            ${salaUrl ? `<p style="margin:4px 0;"><a href="${escapeHtml(salaUrl)}">${escapeHtml(salaUrl)}</a></p>` : "<p style=\"margin:4px 0;\">O link da sala estará disponível no seu painel.</p>"}
+          </div>
+          <div style="background:#f1f5f9;border-radius:12px;padding:16px;margin:16px 0;">
+            <p style="margin:4px 0;">💰 <strong>Valor pago:</strong> ${fmt(amount)}</p>
+            <p style="margin:4px 0;">🏷️ <strong>Taxa da plataforma:</strong> ${fmt(marketplaceFee)}</p>
+            <p style="margin:4px 0;">✅ <strong>Você recebe:</strong> ${fmt(amountDueToSpecialist)}</p>
+            ${mpEmail ? `<p style="margin:8px 0 4px;font-size:13px;color:#64748b;">Repasse para a conta Mercado Pago: <strong>${escapeHtml(mpEmail)}</strong></p>` : "<p style=\"margin:8px 0 4px;font-size:13px;color:#b91c1c;\">⚠️ Cadastre seu e-mail do Mercado Pago no perfil para receber o repasse.</p>"}
+          </div>
+          <p style="font-size:13px;color:#64748b;">Você também acompanha esta consulta no seu painel de especialista.</p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.warn("[webhook] notifySpecialistEspecializada falhou:", err?.message || err);
+  }
+}
+
 let adminResourcesPromise;
 async function getAdminResources() {
   if (!adminResourcesPromise) {
@@ -540,6 +612,16 @@ async function handleMercadoPagoWebhook(req, res) {
       // referencia de split aplicada na preferencia (feePct).
       const platformCommission = marketplaceFee;
       const amountDueToSpecialist = Number((amount - marketplaceFee).toFixed(2));
+      // Tipo da consulta: "especializada" (atendimento premium diferenciado)
+      // ou "comum". Define se o especialista recebe a notificação dedicada.
+      const consultationType =
+        (meta.consultationType || "").toString().toLowerCase() === "especializada"
+          ? "especializada"
+          : "comum";
+      const salaUrl =
+        modalidade === "video"
+          ? `${(process.env.APP_BASE_URL || "").replace(/\/+$/, "")}/sala-video/${apoiadorIdConsulta}_${workerIdConsulta}_${payment.id}`
+          : `${(process.env.APP_BASE_URL || "").replace(/\/+$/, "")}/chat/${apoiadorIdConsulta}_${workerIdConsulta}_${payment.id}`;
       const consultaDoc = {
         apoiadorId: apoiadorIdConsulta,
         apoiadorNome: (meta.apoiadorNome || "").toString() || null,
@@ -549,6 +631,7 @@ async function handleMercadoPagoWebhook(req, res) {
         // Tipo/modalidade da consulta avulsa (compat. com painel do especialista).
         tipo: "avulsa",
         type: "avulsa",
+        consultationType,
         modalidade,
         message: message || null,
         amount,
@@ -589,6 +672,21 @@ async function handleMercadoPagoWebhook(req, res) {
         workerId: workerIdConsulta,
         consultaId,
       });
+
+      // Consulta Especializada: notifica o especialista por e-mail com os dados
+      // de acesso e o resumo do repasse (split). Best-effort.
+      if (consultationType === "especializada") {
+        await notifySpecialistEspecializada({
+          db,
+          apoiadorId: apoiadorIdConsulta,
+          consultaId,
+          amount,
+          marketplaceFee,
+          amountDueToSpecialist,
+          salaUrl,
+          workerNome: (meta.workerNome || "").toString(),
+        });
+      }
 
       return res.status(200).json({ received: true, updated: true, kind: "consultation" });
     }
