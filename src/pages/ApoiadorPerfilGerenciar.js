@@ -49,6 +49,10 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
   // Gratuito segue o preço fixo da consulta avulsa.
   const [plano, setPlano] = useState("");
   const [precoConsulta, setPrecoConsulta] = useState("");
+  // Valor da "Consulta Especializada" — atendimento premium diferenciado,
+  // configurável apenas por especialistas Premium. Salvo em
+  // `precoConsultaEspecializada` no Firestore.
+  const [precoConsultaEspecializada, setPrecoConsultaEspecializada] = useState("");
   const isPremium = String(plano || "").toLowerCase() === "premium";
   // Tipo do especialista e modelo de honorários "Ad Exitum" — opção exclusiva
   // de advogados (só recebe se ganhar a causa do cliente).
@@ -100,6 +104,8 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
           setMpEmail(d.mercadoPagoEmail || d.mpEmail || "");
           const preco = Number(d.precoConsulta || d.preco || 0);
           setPrecoConsulta(preco > 0 ? String(preco) : "");
+          const precoEsp = Number(d.precoConsultaEspecializada || 0);
+          setPrecoConsultaEspecializada(precoEsp > 0 ? String(precoEsp) : "");
         }
       } catch (err) {
         if (!cancelled) setError(err?.message || "Erro ao carregar perfil.");
@@ -221,6 +227,16 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
             // Mantém o agregado usado na busca em sincronia com o valor base.
             updates.averageConsultationPrice = precoNum;
           }
+          // Consulta Especializada — valor opcional do atendimento premium
+          // diferenciado. Zero/inválido limpa o campo (volta a "não oferece").
+          const precoEspNum = Number(
+            String(precoConsultaEspecializada).replace(",", ".")
+          );
+          if (Number.isFinite(precoEspNum) && precoEspNum > 0) {
+            updates.precoConsultaEspecializada = precoEspNum;
+          } else {
+            updates.precoConsultaEspecializada = 0;
+          }
         }
 
         // Upload da foto (se houve seleção de novo arquivo).
@@ -311,7 +327,7 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
         setSaving(false);
       }
     },
-    [apoiadorId, descricao, areasText, nichosText, disponibilidade, fotoFile, compressImageToDataUrl, isPremium, precoConsulta, mpEmail, isAdvogado, adExitum]
+    [apoiadorId, descricao, areasText, nichosText, disponibilidade, fotoFile, compressImageToDataUrl, isPremium, precoConsulta, precoConsultaEspecializada, mpEmail, isAdvogado, adExitum]
   );
 
   if (!apoiadorId) {
@@ -621,6 +637,40 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
                   Definir o próprio valor é exclusivo do plano <strong>Premium</strong>. No
                   plano Essencial o preço é tabelado pela plataforma e no Gratuito a consulta
                   avulsa tem valor fixo. Faça upgrade para definir seu valor.
+                </p>
+              </div>
+            )}
+
+            {/* Valor da Consulta Especializada — atendimento premium diferenciado.
+                Exclusivo Premium; salvo em precoConsultaEspecializada. */}
+            {isPremium && (
+              <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-900/20 p-4">
+                <label
+                  htmlFor="preco-consulta-especializada"
+                  className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1"
+                >
+                  Valor da Consulta Especializada (R$)
+                  <span className="ml-2 align-middle text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                    Premium
+                  </span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">R$</span>
+                  <input
+                    id="preco-consulta-especializada"
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    value={precoConsultaEspecializada}
+                    onChange={(e) => setPrecoConsultaEspecializada(e.target.value)}
+                    placeholder="Ex.: 150.00"
+                    className="w-40 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+                  Atendimento premium diferenciado. Este valor aparece como uma opção
+                  separada (&quot;Consulta Especializada&quot;) na hora do trabalhador
+                  escolher o tipo de consulta. Deixe em branco se não oferecer.
                 </p>
               </div>
             )}

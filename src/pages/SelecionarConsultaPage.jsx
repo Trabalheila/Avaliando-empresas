@@ -48,6 +48,12 @@ export default function SelecionarConsultaPage({ theme, toggleTheme }) {
   const videoPrice = isPremium ? premiumPrice : FREE_PLAN_CONSULTATION_PRICE.video;
   const planoTipo = isPremium ? "premium" : "essential";
 
+  // "Consulta Especializada": atendimento premium diferenciado, com valor
+  // definido pelo especialista no perfil (`precoConsultaEspecializada`).
+  // Disponível apenas para profissionais Premium; para os demais o card
+  // aparece bloqueado, convidando o trabalhador a conhecer o plano Premium.
+  const especializadaPrice = Number(state.precoConsultaEspecializada || 0);
+
   // Encaminha para o fluxo de pagamento com o tipo e o valor escolhidos.
   const goToPayment = ({ modalidade, amount }) => {
     navigate("/pagamento-consulta", {
@@ -124,7 +130,7 @@ export default function SelecionarConsultaPage({ theme, toggleTheme }) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <OptionCard
             icon="💬"
             title="Chat"
@@ -146,6 +152,43 @@ export default function SelecionarConsultaPage({ theme, toggleTheme }) {
               goToPayment({ modalidade: "video", amount: videoPrice })
             }
           />
+
+          {/* Consulta Especializada — atendimento premium diferenciado. */}
+          {isPremium ? (
+            <OptionCard
+              icon="🌟"
+              title="Consulta Especializada"
+              description="Atendimento premium diferenciado com o especialista."
+              price={especializadaPrice}
+              disabled={especializadaPrice <= 0}
+              onSchedule={() =>
+                goToPayment({ modalidade: "chat", amount: especializadaPrice })
+              }
+            />
+          ) : (
+            <div className="rounded-2xl border p-5 flex flex-col shadow-sm border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-900/20">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl" aria-hidden="true">🔒</span>
+                <h3 className="font-bold text-amber-800 dark:text-amber-200">
+                  Consulta Especializada
+                </h3>
+              </div>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                Atendimento premium diferenciado, disponível para especialistas
+                do plano Premium.
+              </p>
+              <p className="mt-3 text-base font-bold text-amber-700 dark:text-amber-300">
+                Exclusivo Premium
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate("/escolha-perfil?planos=1")}
+                className="mt-4 w-full px-4 py-2.5 rounded-xl text-white text-sm font-bold transition bg-amber-500 hover:bg-amber-600"
+              >
+                Torne-se Premium e dê o seu valor
+              </button>
+            </div>
+          )}
         </div>
       </main>
     </div>

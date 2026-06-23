@@ -241,6 +241,10 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
   // "Agendar Ad Exitum".
   const isAdExitumComPontual = isAdExitum && hasPontualPrice;
 
+  // Advogado Premium que aceita Ad Exitum: oferece DUAS frentes de agendamento
+  // (Consulta Comum E Ad Exitum), mesmo que ainda não tenha definido o preço da
+  // consulta. Nesse caso o card exibe dois botões distintos — sem redundância.
+  const isAdExitumDual = isAdExitum && (planType === "Premium" || hasPontualPrice);
   // Agendamento Ad Exitum: não passa pelo fluxo de pagamento — encaminha para
   // a rota dedicada de agendamento sem custo inicial.
   const goToAdExitum = () => {
@@ -264,6 +268,7 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
         specialtyId: normalizeTipo(specialist.tipo) || "outro",
         planType,
         premiumPrice: avgPrice,
+        precoConsultaEspecializada: Number(specialist.precoConsultaEspecializada || 0),
       },
     });
   };
@@ -456,11 +461,11 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
           <button
             type="button"
             onClick={() => {
-              // Advogado com Ad Exitum + consulta comum: este botão é a CONSULTA
-              // COMUM, que abre a seleção de tipo de consulta (chat/vídeo/
-              // Premium) antes do pagamento (o agendamento Ad Exitum fica no
-              // botão inferior, sem redundância).
-              if (isAdExitumComPontual) {
+              // Advogado com Ad Exitum + consulta comum/Premium: este botão é a
+              // CONSULTA COMUM, que abre a seleção de tipo de consulta antes do
+              // pagamento (o agendamento Ad Exitum fica no botão inferior, sem
+              // redundância).
+              if (isAdExitumDual) {
                 goToConsultaSelection();
                 return;
               }
@@ -480,13 +485,13 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
             }}
             className={[
               "text-center px-3 py-2 rounded-lg text-white text-sm font-bold",
-              isAdExitum && !isAdExitumComPontual
+              isAdExitum && !isAdExitumDual
                 ? "bg-emerald-600 hover:bg-emerald-700"
                 : "bg-blue-600 hover:bg-blue-700",
             ].join(" ")}
             title={
-              isAdExitumComPontual
-                ? "Consulta comum — pagamento da consulta com o preço definido pelo especialista"
+              isAdExitumDual
+                ? "Consulta comum — escolha a modalidade e pague o valor definido pelo especialista"
                 : isAdExitum
                 ? "Agendamento Ad Exitum — sem custo inicial"
                 : hasPontualPrice
@@ -494,7 +499,7 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
                 : "Pergunta única, sem histórico nem follow-up"
             }
           >
-            {isAdExitumComPontual
+            {isAdExitumDual
               ? "✉️ Agendar Consulta Comum"
               : isAdExitum
               ? "⚖️ Agendar Ad Exitum"
@@ -507,19 +512,25 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
         <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 text-center">
           Conta de demonstração — não disponível para consultas pagas.
         </p>
+      ) : isAdExitum && !isAdExitumDual ? (
+        // Ad Exitum puro: o botão Ad Exitum já está no grid acima — aqui só a
+        // nota explicativa, sem repetir o botão (evita redundância).
+        <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 text-center">
+          Pagamento Ad Exitum: você só paga honorários se o caso for ganho.
+        </p>
       ) : (
         <>
           <button
             type="button"
             onClick={() => {
-              // Ad Exitum (puro ou dual): o botão inferior é sempre o
-              // agendamento Ad Exitum — sem pagamento imediato.
+              // Caso dual (advogado Premium + Ad Exitum): o botão inferior é
+              // sempre o agendamento Ad Exitum — sem pagamento imediato.
               if (isAdExitum) {
                 goToAdExitum();
                 return;
               }
               // Consulta comum: abre a seleção de tipo de consulta (chat, vídeo
-              // e, para Premium, Consulta Premium) antes do pagamento.
+              // e, para Premium, Consulta Especializada) antes do pagamento.
               goToConsultaSelection();
             }}
             className="mt-2 w-full px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold"
@@ -629,6 +640,9 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
             // sem cobrança inicial. Usado no card para exibir "R$ 0,00
             // (Ad Exitum)" e encaminhar ao fluxo de agendamento sem pagamento.
             adExitum: data.adExitum === true,
+            // Valor da "Consulta Especializada" (atendimento premium
+            // diferenciado) definido pelo profissional no perfil. 0 = não oferece.
+            precoConsultaEspecializada: Number(data.precoConsultaEspecializada || 0) || 0,
             email: data.email || "",
             whatsapp: data.whatsapp || data.telefone || "",
           };
