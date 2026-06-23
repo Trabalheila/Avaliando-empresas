@@ -212,6 +212,9 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
   const avgPrice = Number(
     specialist.averageConsultationPrice || specialist.precoConsulta || 0
   );
+  // Valor da "Consulta Especializada" (atendimento premium diferenciado). Para
+  // especialistas Premium, é o ÚNICO preço configurável e o que aparece no card.
+  const especializadaPrice = Number(specialist.precoConsultaEspecializada || 0);
   // Modelo "Ad Exitum": o especialista só recebe honorários se ganhar o caso —
   // não há cobrança inicial. Quando ativo, o card mostra "R$ 0,00 (Ad Exitum)"
   // e o agendamento segue um fluxo sem pagamento imediato.
@@ -257,9 +260,21 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
     });
   };
 
-  // Consulta comum: NÃO vai direto ao pagamento — encaminha para a página de
-  // seleção do tipo de consulta (chat, vídeo e, p/ Premium, Consulta Premium),
-  // onde o trabalhador escolhe a modalidade antes do pagamento.
+  // Consulta comum: o destino depende do plano do especialista.
+  //   • Premium: vai para a página de detalhes da Consulta Especializada.
+  //   • Não-Premium: vai para a seleção de tipo de consulta (chat/vídeo).
+  const goToEspecializadaDetalhes = () => {
+    navigate(`/consulta-especializada-detalhes/${specialist.id}`, {
+      state: {
+        professionalId: specialist.id,
+        professionalName: specialist.nome,
+        professionalPhoto: specialist.foto || "",
+        specialtyId: normalizeTipo(specialist.tipo) || "outro",
+        precoConsultaEspecializada: especializadaPrice,
+      },
+    });
+  };
+
   const goToConsultaSelection = () => {
     navigate(`/selecionar-consulta/${specialist.id}`, {
       state: {
@@ -267,10 +282,18 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
         professionalName: specialist.nome,
         specialtyId: normalizeTipo(specialist.tipo) || "outro",
         planType,
-        premiumPrice: avgPrice,
-        precoConsultaEspecializada: Number(specialist.precoConsultaEspecializada || 0),
+        precoConsultaEspecializada: especializadaPrice,
       },
     });
+  };
+
+  // Direciona o fluxo de "Consulta Comum" conforme o plano.
+  const goToConsultaComum = () => {
+    if (planType === "Premium") {
+      goToEspecializadaDetalhes();
+    } else {
+      goToConsultaSelection();
+    }
   };
 
   let scheduleHint = "";
@@ -406,18 +429,12 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
                 R$ 0,00 <span className="text-[11px] font-semibold underline decoration-dotted">(Ad Exitum)</span>
               </p>
             ) : (
-              // Premium sem Ad Exitum: o valor configurado pelo profissional é
-              // o preço ÚNICO de consulta, válido tanto para chat quanto para
-              // videochamada.
-              avgPrice > 0 ? (
-                <>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
-                    {formatBRL(avgPrice)} <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">chat</span>
-                  </p>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
-                    {formatBRL(avgPrice)} <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">vídeo</span>
-                  </p>
-                </>
+              // Premium sem Ad Exitum: o valor exibido é o da Consulta
+              // Especializada (único preço configurável do Premium).
+              especializadaPrice > 0 ? (
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
+                  {formatBRL(especializadaPrice)} <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">especializada</span>
+                </p>
               ) : (
                 <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
                   Sob consulta
@@ -466,7 +483,7 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
               // pagamento (o agendamento Ad Exitum fica no botão inferior, sem
               // redundância).
               if (isAdExitumDual) {
-                goToConsultaSelection();
+                goToConsultaComum();
                 return;
               }
               // Ad Exitum puro: sem custo inicial — segue o fluxo de agendamento
@@ -478,7 +495,7 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
               // Consulta comum: abre a seleção de tipo de consulta. Sem preço
               // ("Sob consulta"), abrimos o modal de contato/pergunta.
               if (hasPontualPrice) {
-                goToConsultaSelection();
+                goToConsultaComum();
               } else {
                 onPontualClick?.(specialist);
               }
@@ -531,7 +548,7 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
               }
               // Consulta comum: abre a seleção de tipo de consulta (chat, vídeo
               // e, para Premium, Consulta Especializada) antes do pagamento.
-              goToConsultaSelection();
+              goToConsultaComum();
             }}
             className="mt-2 w-full px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold"
           >
