@@ -1,8 +1,41 @@
-import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+// src/components/Worker/FindSpecialistPage.js
+//
+// Página de busca e filtro de Especialistas para o trabalhador.
+// Rota: /trabalhador/encontrar-especialista
+//
+// Aceita query string para pré-popular filtros:
+//   ?especialidade=advogado
+//   ?q=horas+extras
+//
+// Hoje usa dados mockados (MOCK_SPECIALISTS) e, se o Firestore retornar
+// apoiadores ativos, mescla os reais com os mocks — permitindo testar a
+// interface mesmo sem dados em produção.
+
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { db } from "../../firebase";
+import { collection, onSnapshot, query } from "firebase/firestore";
+import AppHeader from "../AppHeader";
+import { filterOutTestApoiadores } from "../../utils/testAccounts";
+import { isPremiumWorker } from "../../utils/rbac";
 import { FREE_PLAN_CONSULTATION_PRICE } from "../../data/consultationPricing";
 
-// Funções auxiliares (assumindo que estão definidas no escopo superior ou importadas)
+/* ────────────────────────────────────────────────────────────── */
+/* Especialidades suportadas (alinhadas ao SPECIALIST_CONFIGS).   */
+/* ────────────────────────────────────────────────────────────── */
+const SPECIALTY_OPTIONS = [
+  { value: "", label: "Todas as especialidades" },
+  { value: "advogado", label: "Advogado(a) trabalhista" },
+  { value: "consultor_rh", label: "Consultor(a) de RH" },
+  { value: "recrutador", label: "Recrutador(a)" },
+  { value: "psicologo", label: "Psicólogo(a) organizacional" },
+  { value: "medico", label: "Médico(a) do trabalho" },
+  { value: "contador", label: "Contador(a)" },
+  { value: "engenheiro_seguranca", label: "Engenheiro(a) de segurança" },
+  { value: "fisioterapeuta_ocupacional", label: "Fisioterapeuta ocupacional" },
+  { value: "outro", label: "Outros" },
+];
+
 function normalizeTipo(v) {
   return String(v || "").toLowerCase().trim().replace(/-/g, "_");
 }
@@ -15,18 +48,134 @@ function formatBRL(value) {
   }).format(Number(value) || 0);
 }
 
-// SPECIALTY_OPTIONS (assumindo que está definida no escopo superior ou importada)
-const SPECIALTY_OPTIONS = [
-  { value: "", label: "Todas as especialidades" },
-  { value: "advogado", label: "Advogado(a) trabalhista" },
-  { value: "consultor_rh", label: "Consultor(a) de RH" },
-  { value: "recrutador", label: "Recrutador(a)" },
-  { value: "psicologo", label: "Psicólogo(a) organizacional" },
-  { value: "medico", label: "Médico(a) do trabalho" },
-  { value: "contador", label: "Contador(a)" },
-  { value: "engenheiro_seguranca", label: "Engenheiro(a) de segurança" },
-  { value: "fisioterapeuta_ocupacional", label: "Fisioterapeuta ocupacional" },
-  { value: "outro", label: "Outros" },
+/* Dados mockados para garantir UX testável sem depender do Firestore. */
+const MOCK_SPECIALISTS = [
+  {
+    id: "mock_adv_001",
+    nome: "Dra. Ana Ribeiro",
+    tipo: "advogado",
+    foto: "",
+    bio: "Direito do trabalho com foco em rescisões e horas extras.",
+    precoConsulta: 180,
+    averageConsultationPrice: 180,
+    rating: 4.8,
+    totalAvaliacoes: 42,
+    isVerified: true,
+    planType: "Premium",
+    offersFirstConsultationDiscount: false,
+    email: "ana.ribeiro@example.com",
+    whatsapp: "5511999990001",
+  },
+  {
+    id: "mock_psi_001",
+    nome: "Lucas Mendes",
+    tipo: "psicologo",
+    foto: "",
+    bio: "Saúde mental no trabalho, burnout e clima organizacional.",
+    precoConsulta: 150,
+    averageConsultationPrice: 150,
+    rating: 4.6,
+    totalAvaliacoes: 31,
+    isVerified: true,
+    planType: "Premium",
+    offersFirstConsultationDiscount: false,
+    email: "lucas.mendes@example.com",
+    whatsapp: "5511999990002",
+  },
+  {
+    id: "mock_cont_001",
+    nome: "Carla Souza",
+    tipo: "contador",
+    foto: "",
+    bio: "Folha de pagamento, eSocial e IR para PJs.",
+    precoConsulta: 120,
+    averageConsultationPrice: 120,
+    rating: 4.4,
+    totalAvaliacoes: 18,
+    isVerified: false,
+    planType: "Essencial",
+    offersFirstConsultationDiscount: true,
+  },
+  {
+    id: "mock_med_001",
+    nome: "Dr. Paulo Vieira",
+    tipo: "medico",
+    foto: "",
+    bio: "Medicina do trabalho, ASO e exames periódicos.",
+    precoConsulta: 220,
+    averageConsultationPrice: 220,
+    rating: 4.9,
+    totalAvaliacoes: 57,
+    isVerified: true,
+    planType: "Premium",
+    offersFirstConsultationDiscount: false,
+    email: "paulo.vieira@example.com",
+    whatsapp: "5511999990003",
+  },
+  {
+    id: "mock_rh_001",
+    nome: "Mariana Alves",
+    tipo: "consultor_rh",
+    foto: "",
+    bio: "Gestão de pessoas, avaliações de desempenho e cargos & salários.",
+    precoConsulta: 200,
+    averageConsultationPrice: 200,
+    rating: 4.3,
+    totalAvaliacoes: 12,
+    isVerified: false,
+    planType: "Essencial",
+    offersFirstConsultationDiscount: true,
+  },
+  {
+    id: "mock_rec_001",
+    nome: "Rafael Costa",
+    tipo: "recrutador",
+    foto: "",
+    bio: "Recrutamento de tecnologia e operações.",
+    precoConsulta: 0,
+    averageConsultationPrice: 150,
+    rating: 4.1,
+    totalAvaliacoes: 9,
+    isVerified: false,
+    planType: "Essencial",
+    offersFirstConsultationDiscount: true,
+  },
+  {
+    id: "mock_eng_001",
+    nome: "Eng. Bruno Lima",
+    tipo: "engenheiro_seguranca",
+    foto: "",
+    bio: "PPRA, PCMSO e auditorias de segurança em obras.",
+    precoConsulta: 250,
+    averageConsultationPrice: 250,
+    rating: 4.7,
+    totalAvaliacoes: 22,
+    isVerified: true,
+    planType: "Premium",
+    offersFirstConsultationDiscount: false,
+    email: "bruno.lima@example.com",
+    whatsapp: "5511999990004",
+  },
+  {
+    id: "mock_fis_001",
+    nome: "Juliana Pereira",
+    tipo: "fisioterapeuta_ocupacional",
+    foto: "",
+    bio: "Ginástica laboral, ergonomia e reabilitação ocupacional.",
+    precoConsulta: 130,
+    averageConsultationPrice: 130,
+    rating: 4.5,
+    totalAvaliacoes: 15,
+    isVerified: true,
+    planType: "Essencial",
+    offersFirstConsultationDiscount: true,
+  },
+];
+
+const SORT_OPTIONS = [
+  { value: "rating", label: "Melhor avaliação" },
+  { value: "priceAsc", label: "Menor preço" },
+  { value: "priceDesc", label: "Maior preço" },
 ];
 
 function StarRow({ rating }) {
@@ -60,7 +209,6 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
       .map((p) => p[0]?.toUpperCase())
       .join("") || "?";
   const planType = specialist.planType === "Premium" ? "Premium" : "Essencial";
-  // avgPrice não será mais usado para Premium, mas mantido para compatibilidade se necessário em outros lugares
   const avgPrice = Number(
     specialist.averageConsultationPrice || specialist.precoConsulta || 0
   );
@@ -81,13 +229,20 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
   // Disponibilidade exibida no card (controlada manualmente no Firestore).
   const isAvailable = specialist.available === true;
 
-  // hasPontualPrice e isAdExitumComPontual não serão mais usados da mesma forma
-  // para Premium, pois o preço será o da Consulta Especializada.
-  // Mantidos para não quebrar outras lógicas, mas sua relevância diminui.
+  // Valor da consulta pontual: no plano Essencial é o preço FIXO da plataforma
+  // (chat); no Premium é o valor definido pelo profissional. Quando há preço, o
+  // clique deve ir direto ao fluxo de pagamento (igual ao "Agendar consulta");
+  // somente quando o preço é "Sob consulta" (0) abrimos o modal de contato.
   const pontualAmount =
     planType === "Essencial" ? FREE_PLAN_CONSULTATION_PRICE.chat : avgPrice;
   const hasPontualPrice = pontualAmount > 0;
-  const isAdExitumComPontual = isAdExitum && hasPontualPrice; // Esta flag pode precisar de revisão dependendo do fluxo final
+
+  // Advogado que oferece AMBOS os formatos: Ad Exitum (sem custo inicial) E
+  // consulta comum com preço definido. Exclusivo para advogados — nesse caso o
+  // card exibe os dois caminhos de agendamento, sem redundância: o botão do
+  // grid vira "Agendar Consulta Comum" e o botão inferior fica como o único
+  // "Agendar Ad Exitum".
+  const isAdExitumComPontual = isAdExitum && hasPontualPrice;
 
   // Advogado Premium que aceita Ad Exitum: oferece DUAS frentes de agendamento
   // (Consulta Comum E Ad Exitum), mesmo que ainda não tenha definido o preço da
@@ -127,13 +282,12 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
         professionalName: specialist.nome,
         specialtyId: normalizeTipo(specialist.tipo) || "outro",
         planType,
-        // Para não-Premium, precoConsultaEspecializada não é relevante aqui, mas pode ser passado
         precoConsultaEspecializada: especializadaPrice,
       },
     });
   };
 
-  // Direciona o fluxo de "Agendar Consulta Comum" conforme o plano.
+  // Direciona o fluxo de "Consulta Comum" conforme o plano.
   const goToConsultaComum = () => {
     if (planType === "Premium") {
       goToEspecializadaDetalhes();
@@ -234,54 +388,70 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
           </span>
           <span className="text-slate-400">({specialist.totalAvaliacoes || 0})</span>
         </div>
-        {/* INÍCIO DA ALTERAÇÃO DO BLOCO DE PREÇO */}
-        <div className="text-right">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-            {planType === "Premium" ? "Consulta" : "Consulta pontual"}
-          </p>
-          {planType === "Premium" ? (
-            // Lógica para Especialistas Premium
-            especializadaPrice > 0 ? (
-              <>
-                <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
-                  {formatBRL(especializadaPrice)} <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">especializada</span>
-                </p>
-                {isAdExitum && ( // Se também for Ad Exitum, mostra a opção abaixo do preço
-                  <p
-                    className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 leading-tight cursor-help"
-                    title="Ad Exitum: O pagamento dos honorários do advogado só ocorre se o caso for ganho. Não há custo inicial para o trabalhador."
-                  >
-                    ou Ad Exitum <span className="underline decoration-dotted">(sem custo inicial)</span>
-                  </p>
-                )}
-              </>
-            ) : isAdExitum ? (
-              // Premium, Ad Exitum, mas sem preço especializado definido
-              <p
-                className="text-sm font-bold text-emerald-600 dark:text-emerald-400 leading-tight cursor-help"
-                title="Ad Exitum: O pagamento dos honorários do advogado só ocorre se o caso for ganho. Não há custo inicial para o trabalhador."
-              >
-                R$ 0,00 <span className="text-[11px] font-semibold underline decoration-dotted">(Ad Exitum)</span>
-              </p>
-            ) : (
-              // Premium, sem Ad Exitum, sem preço especializado
-              <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
-                Sob consulta
-              </p>
-            )
-          ) : (
-            // Lógica para Especialistas Essenciais (não-Premium)
-            <>
-              <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
-                R$ {FREE_PLAN_CONSULTATION_PRICE.chat} <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">chat</span>
-              </p>
-              <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
-                R$ {FREE_PLAN_CONSULTATION_PRICE.video} <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">vídeo</span>
-              </p>
-            </>
-          )}
-        </div>
-        {/* FIM DA ALTERAÇÃO DO BLOCO DE PREÇO */}
+        {planType === "Essencial" ? (
+          // Plano Essencial: a consulta pontual tem preço FIXO da plataforma
+          // (independe do valor configurado pelo profissional) — chat R$ 45 /
+          // videochamada R$ 75. Exibimos ambas as modalidades no card.
+          <div className="text-right">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              Consulta pontual
+            </p>
+            <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
+              R$ {FREE_PLAN_CONSULTATION_PRICE.chat} <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">chat</span>
+            </p>
+            <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
+              R$ {FREE_PLAN_CONSULTATION_PRICE.video} <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">vídeo</span>
+            </p>
+          </div>
+        ) : (
+          // Plano Premium: usa o valor definido pelo próprio profissional.
+           <div className="text-right">
+     <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+       {planType === "Premium" ? "Consulta" : "Consulta pontual"}
+     </p>
+     {planType === "Premium" ? (
+       // Lógica para Especialistas Premium
+       especializadaPrice > 0 ? (
+         <>
+           <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
+             {formatBRL(especializadaPrice)} <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">especializada</span>
+           </p>
+           {isAdExitum && ( // Se também for Ad Exitum, mostra a opção abaixo do preço
+             <p
+               className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 leading-tight cursor-help"
+               title="Ad Exitum: O pagamento dos honorários do advogado só ocorre se o caso for ganho. Não há custo inicial para o trabalhador."
+             >
+               ou Ad Exitum <span className="underline decoration-dotted">(sem custo inicial)</span>
+             </p>
+           )}
+         </>
+       ) : isAdExitum ? (
+         // Premium, Ad Exitum, mas sem preço especializado definido
+         <p
+           className="text-sm font-bold text-emerald-600 dark:text-emerald-400 leading-tight cursor-help"
+           title="Ad Exitum: O pagamento dos honorários do advogado só ocorre se o caso for ganho. Não há custo inicial para o trabalhador."
+         >
+           R$ 0,00 <span className="text-[11px] font-semibold underline decoration-dotted">(Ad Exitum)</span>
+         </p>
+       ) : (
+         // Premium, sem Ad Exitum, sem preço especializado
+         <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
+           Sob consulta
+         </p>
+       )
+     ) : (
+       // Lógica para Especialistas Essenciais (não-Premium)
+       <>
+         <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
+           R$ {FREE_PLAN_CONSULTATION_PRICE.chat} <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">chat</span>
+         </p>
+         <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
+           R$ {FREE_PLAN_CONSULTATION_PRICE.video} <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">vídeo</span>
+         </p>
+       </>
+     )}
+   </div>
+        )}
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
@@ -321,8 +491,8 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
               // CONSULTA COMUM, que abre a seleção de tipo de consulta antes do
               // pagamento (o agendamento Ad Exitum fica no botão inferior, sem
               // redundância).
-              if (isAdExitumDual) { // isAdExitumDual é true para Premium + Ad Exitum
-                goToConsultaComum(); // Isso agora vai para goToEspecializadaDetalhes() para Premium
+              if (isAdExitumDual) {
+                goToConsultaComum();
                 return;
               }
               // Ad Exitum puro: sem custo inicial — segue o fluxo de agendamento
@@ -333,9 +503,7 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
               }
               // Consulta comum: abre a seleção de tipo de consulta. Sem preço
               // ("Sob consulta"), abrimos o modal de contato/pergunta.
-              // Para Premium, isso não deve acontecer mais aqui, pois goToConsultaComum já foi chamado.
-              // Para Essencial, continua indo para a seleção de chat/vídeo.
-              if (hasPontualPrice || planType === "Essencial") { // Adicionado planType === "Essencial" para clareza
+              if (hasPontualPrice) {
                 goToConsultaComum();
               } else {
                 onPontualClick?.(specialist);
@@ -349,16 +517,16 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
             ].join(" ")}
             title={
               isAdExitumDual
-                ? "Consulta especializada — veja detalhes e pague o valor definido pelo especialista" // Título atualizado
+                ? "Consulta comum — escolha a modalidade e pague o valor definido pelo especialista"
                 : isAdExitum
                 ? "Agendamento Ad Exitum — sem custo inicial"
-                : hasPontualPrice || planType === "Essencial" // Adicionado planType === "Essencial"
+                : hasPontualPrice
                 ? "Consulta pontual — pagamento da consulta"
                 : "Pergunta única, sem histórico nem follow-up"
             }
           >
             {isAdExitumDual
-              ? "✉️ Agendar Consulta Comum" // Mantém o texto do botão, mas o fluxo é para Especializada
+              ? "✉️ Agendar Consulta Comum"
               : isAdExitum
               ? "⚖️ Agendar Ad Exitum"
               : "✉️ Consulta pontual"}
@@ -389,8 +557,6 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
               }
               // Consulta comum: abre a seleção de tipo de consulta (chat, vídeo
               // e, para Premium, Consulta Especializada) antes do pagamento.
-              // Este bloco não deve ser mais acessado para Premium, pois o botão superior já direciona.
-              // Para Essencial, continua indo para a seleção de chat/vídeo.
               goToConsultaComum();
             }}
             className="mt-2 w-full px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold"
@@ -410,7 +576,617 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
   );
 }
 
-// O restante do FindSpecialistPage.js permanece inalterado.
 export default function FindSpecialistPage({ theme, toggleTheme }) {
-  // ... (código restante da página FindSpecialistPage)
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  // Filtros
+  const [searchText, setSearchText] = useState(searchParams.get("q") || "");
+  const [specialty, setSpecialty] = useState(
+    normalizeTipo(searchParams.get("especialidade") || "")
+  );
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [minRating, setMinRating] = useState(0);
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [planTypeFilter, setPlanTypeFilter] = useState(""); // "", "Essencial", "Premium"
+  const [sortBy, setSortBy] = useState("rating");
+
+  // Plano do trabalhador. Usa a util centralizada de RBAC (que considera
+  // is_premium_worker, role e fallback de apoiador). Aceita também as flags
+  // legadas (isWorkerPremium / isPremium / plano="premium").
+  const workerIsPremium = useMemo(() => {
+    try {
+      if (isPremiumWorker()) return true;
+      const p = JSON.parse(localStorage.getItem("userProfile") || "{}") || {};
+      return (
+        p.isWorkerPremium === true ||
+        p.isPremium === true ||
+        String(p.plano || "").toLowerCase() === "premium"
+      );
+    } catch {
+      return false;
+    }
+  }, []);
+
+  // Especialista selecionado para "consulta pontual" (fluxo gratuito).
+  const [pontualSpecialist, setPontualSpecialist] = useState(null);
+
+  // Dados
+  const [remote, setRemote] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    // Busca TODOS os especialistas cadastrados. Não filtramos por status na
+    // query para garantir que qualquer especialista (inclusive recém-cadastrado,
+    // sem foto ou sem avaliações) apareça por padrão. Apenas contas de teste e
+    // perfis explicitamente rejeitados/inativos são removidos no cliente.
+    const q = query(collection(db, "apoiadores"));
+    // onSnapshot mantem a listagem (e o circulo verde "Disponível agora")
+    // sincronizada em tempo real com o Firestore, sem recarregar a página.
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => {
+        const list = snap.docs.map((d) => {
+          const data = d.data() || {};
+          return {
+            id: d.id,
+            nome: data.nome || data.displayName || "Especialista",
+            tipo: normalizeTipo(data.tipo || data.profissao),
+            foto: data.foto || data.photoURL || data.avatar || "",
+            bio: data.bio || data.descricao || data.about || "",
+            precoConsulta:
+              Number(data.precoConsulta || data.preco || 0) || 0,
+            rating: Number(data.rating || 0) || 0,
+            totalAvaliacoes: Number(data.totalAvaliacoes || 0) || 0,
+            isVerified: Boolean(
+              data.isVerified || data.verified || data.verificado
+            ),
+            planType:
+              String(data.plano || data.planType || "").toLowerCase() === "premium"
+                ? "Premium"
+                : "Essencial",
+            offersFirstConsultationDiscount: Boolean(
+              data.offersFirstConsultationDiscount
+            ),
+            averageConsultationPrice: Number(
+              data.averageConsultationPrice || data.precoConsulta || 0
+            ),
+            isTest: data.isTest === true,
+            // Conta de demonstração: permanece visível na listagem, mas com os
+            // botões de consulta desabilitados (não pode receber pagamento).
+            isTestAccount: data.isTestAccount === true,
+            // Indicador "Disponível agora" — controlado manualmente no Firestore.
+            available: data.available === true,
+            // Status do cadastro — usado apenas para esconder perfis
+            // explicitamente rejeitados/inativos (todos os demais aparecem).
+            status: String(data.status || "").toLowerCase(),
+            // Modelo "Ad Exitum": especialista só recebe se ganhar o caso —
+            // sem cobrança inicial. Usado no card para exibir "R$ 0,00
+            // (Ad Exitum)" e encaminhar ao fluxo de agendamento sem pagamento.
+            adExitum: data.adExitum === true,
+            // Valor da "Consulta Especializada" (atendimento premium
+            // diferenciado) definido pelo profissional no perfil. 0 = não oferece.
+            precoConsultaEspecializada: Number(data.precoConsultaEspecializada || 0) || 0,
+            email: data.email || "",
+            whatsapp: data.whatsapp || data.telefone || "",
+          };
+        });
+        // Remove apenas contas de teste e perfis explicitamente
+        // rejeitados/inativos. Pendentes e ativos (e docs sem status) aparecem.
+        const HIDDEN_STATUSES = new Set(["rejeitado", "rejected", "inativo", "inactive", "removido"]);
+        const visible = filterOutTestApoiadores(list).filter(
+          (s) => !HIDDEN_STATUSES.has(s.status)
+        );
+        setRemote(visible);
+        setLoading(false);
+      },
+      (err) => {
+        console.warn("Falha ao carregar apoiadores:", err);
+        setLoading(false);
+      }
+    );
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  // Mescla mocks + reais. IDs únicos: real prevalece sobre mock de mesmo id.
+  const allSpecialists = useMemo(() => {
+    const map = new Map();
+    MOCK_SPECIALISTS.forEach((s) => map.set(s.id, s));
+    remote.forEach((s) => map.set(s.id, s));
+    return Array.from(map.values());
+  }, [remote]);
+
+  const filtered = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    let list = allSpecialists.filter((s) => {
+      if (specialty && normalizeTipo(s.tipo) !== specialty) return false;
+      if (verifiedOnly && !s.isVerified) return false;
+      if (planTypeFilter && (s.planType || "Essencial") !== planTypeFilter) return false;
+      if (minRating && (s.rating || 0) < Number(minRating)) return false;
+      const price = Number(s.precoConsulta || 0);
+      if (minPrice !== "" && price < Number(minPrice)) return false;
+      if (maxPrice !== "" && price > Number(maxPrice)) return false;
+      if (q) {
+        const hay = `${s.nome || ""} ${s.bio || ""} ${
+          SPECIALTY_OPTIONS.find((o) => o.value === normalizeTipo(s.tipo))?.label || ""
+        }`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+
+    list.sort((a, b) => {
+      if (sortBy === "priceAsc") {
+        return (a.precoConsulta || 0) - (b.precoConsulta || 0);
+      }
+      if (sortBy === "priceDesc") {
+        return (b.precoConsulta || 0) - (a.precoConsulta || 0);
+      }
+      // rating
+      return (b.rating || 0) - (a.rating || 0);
+    });
+
+    return list;
+  }, [allSpecialists, searchText, specialty, verifiedOnly, planTypeFilter, minRating, minPrice, maxPrice, sortBy]);
+
+  const handleClearFilters = () => {
+    setSearchText("");
+    setSpecialty("");
+    setMinPrice("");
+    setMaxPrice("");
+    setMinRating(0);
+    setVerifiedOnly(false);
+    setPlanTypeFilter("");
+    setSortBy("rating");
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
+      <AppHeader theme={theme} toggleTheme={toggleTheme} title="Encontre um especialista" />
+
+      <main className="flex-1 w-full max-w-6xl mx-auto px-3 sm:px-6 py-5 sm:py-8 space-y-5">
+        {/* Tour guiado para Especialistas do Plano Gratuito */}
+        {searchParams.get("tour") === "1" && (
+          <div className="rounded-2xl border-2 border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/40 p-4 sm:p-5">
+            <p className="text-[11px] uppercase tracking-widest font-bold text-blue-700 dark:text-blue-300">
+              Modo Tour · Você está visualizando como um cliente
+            </p>
+            <h2 className="mt-1 text-lg sm:text-xl font-extrabold text-slate-800 dark:text-slate-100">
+              É assim que os trabalhadores encontram especialistas
+            </h2>
+            <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
+              Use os filtros abaixo, explore os perfis e veja como um cliente
+              chegaria até você. Com um plano pago, você passa a aparecer
+              destacado e pode receber e responder solicitações.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => navigate("/especialista/beneficios")}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition"
+              >
+                Ver planos do Especialista
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/apoiador/requisicoes")}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 text-sm font-bold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition"
+              >
+                Voltar ao meu painel
+              </button>
+            </div>
+          </div>
+        )}
+
+        <header className="text-center">
+          <p className="text-[11px] sm:text-xs uppercase tracking-widest font-bold text-blue-700 dark:text-blue-300">
+            Diretório de especialistas
+          </p>
+          <h1 className="mt-1 text-2xl sm:text-3xl font-extrabold text-slate-800 dark:text-slate-100">
+            De quem você precisa de ajuda?
+          </h1>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
+            {workerIsPremium ? (
+              <>
+                Escolha a especialidade abaixo, selecione o profissional e
+                inicie uma <strong>consulta com acompanhamento</strong> contínuo.
+              </>
+            ) : (
+              <>
+                Selecione uma especialidade para ver os profissionais
+                disponíveis para uma <strong>consulta pontual</strong> (uma
+                pergunta, sem histórico).{" "}
+                <span className="text-blue-700 dark:text-blue-300 font-semibold">
+                  Para uma consulta com acompanhamento é necessário o plano
+                  Premium.
+                </span>
+              </>
+            )}
+          </p>
+        </header>
+
+        {!workerIsPremium && (
+          <div className="rounded-2xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-widest font-bold text-amber-700 dark:text-amber-300">
+                Plano Gratuito
+              </p>
+              <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">
+                Para consulta com acompanhamento e escolha de profissional,
+                assine o <strong>Plano Premium</strong> (R$ 29,90/mês).
+              </p>
+            </div>
+            <Link
+              to="/trabalhador/beneficios"
+              className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold transition"
+            >
+              ✨ Assinar Premium
+            </Link>
+          </div>
+        )}
+
+        {/* Painel de filtros */}
+        <section
+          aria-label="Filtros"
+          className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-4 sm:p-5 space-y-4"
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label htmlFor="fsp-q" className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                Busca
+              </label>
+              <input
+                id="fsp-q"
+                type="search"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="Nome, especialidade ou área de atuação"
+                className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="fsp-tipo" className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                Especialidade
+              </label>
+              <select
+                id="fsp-tipo"
+                value={specialty}
+                onChange={(e) => setSpecialty(e.target.value)}
+                className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100"
+              >
+                {SPECIALTY_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {workerIsPremium && (
+              <>
+            <div>
+              <label htmlFor="fsp-rating" className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                Avaliação mínima
+              </label>
+              <select
+                id="fsp-rating"
+                value={minRating}
+                onChange={(e) => setMinRating(Number(e.target.value))}
+                className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100"
+              >
+                <option value={0}>Qualquer avaliação</option>
+                <option value={3}>3+ estrelas</option>
+                <option value={4}>4+ estrelas</option>
+                <option value={4.5}>4,5+ estrelas</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="fsp-plan" className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                Tipo de especialista
+              </label>
+              <select
+                id="fsp-plan"
+                value={planTypeFilter}
+                onChange={(e) => setPlanTypeFilter(e.target.value)}
+                className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100"
+              >
+                <option value="">Todos</option>
+                <option value="Essencial">Essencial</option>
+                <option value="Premium">Premium</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="fsp-sort" className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                Ordenar por
+              </label>
+              <select
+                id="fsp-sort"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100"
+              >
+                {SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="fsp-min" className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                Preço mínimo (R$)
+              </label>
+              <input
+                id="fsp-min"
+                type="number"
+                min="0"
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+                placeholder="0"
+                className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="fsp-max" className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                Preço máximo (R$)
+              </label>
+              <input
+                id="fsp-max"
+                type="number"
+                min="0"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                placeholder="Sem limite"
+                className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100"
+              />
+            </div>
+
+            <div className="flex items-end">
+              <label className="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                <input
+                  type="checkbox"
+                  checked={verifiedOnly}
+                  onChange={(e) => setVerifiedOnly(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300"
+                />
+                Apenas verificados
+              </label>
+            </div>
+              </>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between gap-3 pt-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {loading ? "Carregando..." : `${filtered.length} resultado${filtered.length === 1 ? "" : "s"}`}
+            </p>
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="text-xs font-semibold text-blue-700 dark:text-blue-300 hover:underline"
+            >
+              Limpar filtros
+            </button>
+          </div>
+        </section>
+
+        {/* CTA destacado de Consulta Avulsa (trabalhador não-Premium) */}
+        {!workerIsPremium && (
+          <section className="rounded-2xl border-2 border-blue-300 dark:border-blue-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-widest font-bold text-blue-700 dark:text-blue-300">
+                Sem assinatura? Sem problema
+              </p>
+              <h2 className="mt-1 text-base sm:text-lg font-extrabold text-slate-800 dark:text-slate-100">
+                Faça uma <span className="text-blue-700 dark:text-blue-300">Consulta Avulsa</span> agora
+              </h2>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                Pague apenas pela pergunta que precisa — chat ou vídeo, sem mensalidade.
+              </p>
+            </div>
+            <Link
+              to="/consulta-avulsa"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-base font-extrabold shadow-lg shadow-blue-600/20 transition transform hover:-translate-y-0.5 whitespace-nowrap"
+            >
+              ✉️ Consulta Avulsa
+            </Link>
+          </section>
+        )}
+
+        {/* Resultados */}
+        {filtered.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-8 text-center">
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Nenhum especialista encontrado com os filtros atuais.
+            </p>
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="mt-3 inline-flex px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
+            >
+              Limpar filtros
+            </button>
+          </div>
+        ) : (
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map((s) => (
+              <SpecialistCard
+                key={s.id}
+                specialist={s}
+                workerIsPremium={workerIsPremium}
+                onPontualClick={setPontualSpecialist}
+              />
+            ))}
+          </section>
+        )}
+
+        <div className="text-center pt-2 flex flex-col items-center gap-2">
+          {!workerIsPremium && (
+            <>
+              <Link
+                to="/consulta-avulsa"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-base font-extrabold shadow-lg shadow-blue-600/20 transition transform hover:-translate-y-0.5"
+              >
+                ✉️ Iniciar consulta avulsa
+              </Link>
+              <Link
+                to="/trabalhador/beneficios"
+                className="text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline"
+              >
+                ✨ Conheça o Plano Premium do trabalhador
+              </Link>
+            </>
+          )}
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="text-sm font-semibold text-blue-700 dark:text-blue-300 hover:underline"
+          >
+            ← Voltar
+          </button>
+        </div>
+      </main>
+
+      {pontualSpecialist && (
+        <PontualConsultationModal
+          specialist={pontualSpecialist}
+          onClose={() => setPontualSpecialist(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────── */
+/* Modal de "Consulta Pontual" (fluxo gratuito).                  */
+/* Pergunta única, sem histórico, sem follow-up. Ao final, exibe  */
+/* CTA para o Plano Premium (acompanhamento).                     */
+/* ────────────────────────────────────────────────────────────── */
+function PontualConsultationModal({ specialist, onClose }) {
+  const navigate = useNavigate();
+  const [question, setQuestion] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const MAX = 600;
+
+  const send = () => {
+    const text = question.trim();
+    if (!text) return;
+    // Persistência simples local — o backend real de mensagem pontual
+    // pode ser plugado aqui (ex.: api/send-contact-request).
+    try {
+      const key = `pontualConsults:${specialist.id}`;
+      const list = JSON.parse(localStorage.getItem(key) || "[]");
+      list.push({ at: Date.now(), question: text });
+      localStorage.setItem(key, JSON.stringify(list));
+    } catch {
+      /* silencioso */
+    }
+    setSubmitted(true);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-xl max-w-lg w-full p-6 border border-slate-200 dark:border-slate-700 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {!submitted ? (
+          <>
+            <p className="text-[11px] uppercase tracking-widest font-bold text-blue-700 dark:text-blue-300">
+              Consulta Pontual · Plano Gratuito
+            </p>
+            <h2 className="mt-1 text-xl font-extrabold text-slate-800 dark:text-slate-100">
+              Pergunta única para {specialist.nome}
+            </h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              Você pode enviar <strong>uma pergunta</strong>. Não há histórico
+              nem follow-up. Para acompanhamento contínuo e escolha de
+              profissional, assine o Plano Premium.
+            </p>
+            <label htmlFor="pontual-q" className="sr-only">
+              Sua pergunta
+            </label>
+            <textarea
+              id="pontual-q"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value.slice(0, MAX))}
+              placeholder="Descreva sua dúvida em poucas linhas..."
+              rows={5}
+              className="mt-3 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100"
+            />
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 text-right">
+              {question.length}/{MAX}
+            </p>
+            <div className="mt-4 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={send}
+                disabled={!question.trim()}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold"
+              >
+                Enviar pergunta
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                Cancelar
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-100">
+              ✅ Pergunta enviada
+            </h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              Sua pergunta foi enviada a {specialist.nome}. Como você está no
+              plano Gratuito, esta é uma <strong>interação única</strong> —
+              não haverá histórico ou follow-up.
+            </p>
+            <div className="mt-4 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 p-3">
+              <p className="text-sm text-slate-700 dark:text-slate-200">
+                Para consulta com acompanhamento e escolha de profissional,
+                assine o <strong>Plano Premium</strong> (R$ 29,90/mês).
+              </p>
+            </div>
+            <div className="mt-4 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  navigate("/trabalhador/beneficios");
+                }}
+                className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold"
+              >
+                ✨ Assinar Premium
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                Fechar
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
