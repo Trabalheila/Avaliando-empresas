@@ -41,6 +41,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { buildApiUrl } from "../utils/apiBase";
+import { getSpecialistIdFromConversationId } from "../utils/chatId";
 
 /* ──────────────────────────────────────────────────────────────
  *  Disponibilidade do trabalhador
@@ -496,11 +497,12 @@ export async function getAdExitumRequestStatus(fromUid, toApoiadorId) {
  * Verifica se EXISTE um pedido Ad Exitum ACEITO para a conversa, considerando
  * tanto o lado do trabalhador (fromUid == uid) quanto o do especialista
  * (toApoiadorUid == uid). Usado pelo chat para liberar o upload de documentos
- * apenas após o aceite. `conversationId` segue o padrão `spec_<apoiadorId>`.
+ * apenas após o aceite. `conversationId` segue o padrão
+ * `spec_<apoiadorId>__u_<trabalhadorId>` (ou o legado `spec_<apoiadorId>`).
  */
 export async function isAdExitumAccepted({ conversationId, uid }) {
   if (!conversationId || !uid) return false;
-  const toApoiadorId = String(conversationId).replace(/^spec_/, "");
+  const toApoiadorId = getSpecialistIdFromConversationId(conversationId);
 
   // 1) Como trabalhador solicitante.
   try {

@@ -284,6 +284,14 @@ export default function Login({ theme, toggleTheme }) {
       navigate(explicitRedirect, { replace: true });
       return;
     }
+    // Login com Google: vai sempre para a página principal (`/`), e não para
+    // a página da conta. Um redirect explícito (acima) ainda tem prioridade,
+    // para o caso de o usuário ter vindo de uma página protegida.
+    if (providerLabel === "google") {
+      clearRedirect();
+      navigate("/", { replace: true });
+      return;
+    }
     // Sem redirect explícito: descobre quais perfis o e-mail tem.
     const profiles = await detectProfilesByEmail(user?.email, user?.uid);
     if (profiles.length >= 2) {

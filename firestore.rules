@@ -288,11 +288,47 @@ service cloud.firestore {
         && request.resource.data.fromUid == request.auth.uid
         && request.resource.data.toApoiadorId is string
         && request.resource.data.message is string;
-      allow update: if request.auth != null
-        && resource.data.toApoiadorUid == request.auth.uid
-        && request.resource.data.fromUid == resource.data.fromUid
-        && request.resource.data.toApoiadorId == resource.data.toApoiadorId;
       allow delete: if false;
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // Chat interno trabalhador × especialista.
+    //
+    // PRIVACIDADE: cada conversa é EXCLUSIVA do par (trabalhador,
+    // especialista). O documento da conversa guarda os UIDs dos
+    // participantes em `participants` (array). Somente esses UIDs podem
+    // ler/escrever a conversa e suas mensagens — assim um trabalhador
+    // nunca enxerga as mensagens de outro trabalhador com o mesmo
+    // especialista, e vice-versa.
+    //
+    // OBS.: hoje o chat é um MVP em localStorage; estas regras já deixam o
+    // modelo de privacidade pronto para quando as mensagens migrarem para
+    // o Firestore (estrutura /conversations/{id}/messages/{msgId}).
+    // ──────────────────────────────────────────────────────────────────
+    match /conversations/{conversationId} {
+      allow read: if request.auth != null
+        && request.auth.uid in resource.data.participants;
+      allow create: if request.auth != null
+        && request.resource.data.participants is list
+        && request.auth.uid in request.resource.data.participants;
+      // Os participantes não podem ser alterados após a criação.
+      allow update: if request.auth != null
+        && request.auth.uid in resource.data.participants
+        && request.resource.data.participants == resource.data.participants;
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if request.auth != null
+          && request.auth.uid in
+             get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+        // Só um participante pode enviar, e a mensagem deve declarar o
+        // próprio remetente (senderUid == auth.uid).
+        allow create: if request.auth != null
+          && request.auth.uid in
+             get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants
+          && request.resource.data.senderUid == request.auth.uid;
+        allow update, delete: if false;
+      }
     }
 
     // Funil de cadastro: registra quem entrou na página /pseudonym

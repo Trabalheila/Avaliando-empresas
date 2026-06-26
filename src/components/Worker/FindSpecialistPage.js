@@ -18,6 +18,7 @@ import { collection, onSnapshot, query } from "firebase/firestore";
 import AppHeader from "../AppHeader";
 import { filterOutTestApoiadores } from "../../utils/testAccounts";
 import { isPremiumWorker } from "../../utils/rbac";
+import { buildSpecialistConversationId } from "../../utils/chatId";
 import { FREE_PLAN_CONSULTATION_PRICE } from "../../data/consultationPricing";
 
 /* ────────────────────────────────────────────────────────────── */
@@ -196,7 +197,7 @@ function StarRow({ rating }) {
   );
 }
 
-function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
+function SpecialistCard({ specialist, workerIsPremium, workerId, onPontualClick }) {
   const navigate = useNavigate();
   const tipoLabel =
     SPECIALTY_OPTIONS.find((o) => o.value === normalizeTipo(specialist.tipo))?.label ||
@@ -484,7 +485,9 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
           </button>
         ) : workerIsPremium ? (
           <Link
-            to={`/chat/spec_${encodeURIComponent(specialist.id)}?peer=${encodeURIComponent(
+            to={`/chat/${encodeURIComponent(
+              buildSpecialistConversationId(workerId, specialist.id)
+            )}?peer=${encodeURIComponent(
               specialist.nome || "Especialista"
             )}&peerRole=especialista&specialistType=${encodeURIComponent(
               normalizeTipo(specialist.tipo) || "outro"
@@ -617,6 +620,17 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
       );
     } catch {
       return false;
+    }
+  }, []);
+
+  // UID do trabalhador logado — usado para isolar a conversa por par
+  // (trabalhador × especialista), garantindo chats privados e únicos.
+  const workerId = useMemo(() => {
+    try {
+      const p = JSON.parse(localStorage.getItem("userProfile") || "{}") || {};
+      return p.uid || p.id || "";
+    } catch {
+      return "";
     }
   }, []);
 
@@ -1039,6 +1053,7 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
                 key={s.id}
                 specialist={s}
                 workerIsPremium={workerIsPremium}
+                workerId={workerId}
                 onPontualClick={setPontualSpecialist}
               />
             ))}

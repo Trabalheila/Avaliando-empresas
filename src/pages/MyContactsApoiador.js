@@ -9,6 +9,7 @@ import {
   respondToApoiadorRequest,
 } from "../services/contactRequests";
 import { isTestApoiador } from "../utils/testAccounts";
+import { buildSpecialistConversationId } from "../utils/chatId";
 
 /* ──────────────────────────────────────────────────────────────
  * Configurações por tipo de especialista (área de atuação).
@@ -1230,7 +1231,11 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                           onClick={() =>
                             navigate(
                               `/chat/${encodeURIComponent(
-                                r.conversationId || `spec_${r.toApoiadorId}`
+                                r.conversationId ||
+                                  buildSpecialistConversationId(
+                                    r.fromUid,
+                                    r.toApoiadorId
+                                  )
                               )}?peer=${encodeURIComponent(
                                 r.fromCompanyName || "Trabalhador"
                               )}&peerRole=trabalhador&adExitum=1`

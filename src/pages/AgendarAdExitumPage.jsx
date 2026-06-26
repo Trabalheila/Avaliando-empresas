@@ -15,6 +15,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import { auth } from "../firebase";
 import { createAdExitumRequest } from "../services/contactRequests";
+import { buildSpecialistConversationId } from "../utils/chatId";
 
 export default function AgendarAdExitumPage({ theme, toggleTheme }) {
   const navigate = useNavigate();
@@ -28,7 +29,19 @@ export default function AgendarAdExitumPage({ theme, toggleTheme }) {
 
   const [sending, setSending] = useState(false);
 
-  const conversationId = professionalId ? `spec_${professionalId}` : "";
+  // UID do trabalhador logado — necessário para gerar um conversationId
+  // único e privado para o par (trabalhador × especialista).
+  let workerUid = "";
+  try {
+    const p = JSON.parse(localStorage.getItem("userProfile") || "{}") || {};
+    workerUid = auth.currentUser?.uid || p.uid || p.id || "";
+  } catch {
+    workerUid = auth.currentUser?.uid || "";
+  }
+
+  const conversationId = professionalId
+    ? buildSpecialistConversationId(workerUid, professionalId)
+    : "";
   const chatHref = professionalId
     ? `/chat/${encodeURIComponent(conversationId)}?peer=${encodeURIComponent(
         professionalName
