@@ -378,3 +378,173 @@ export async function respondToApoiadorRequest(
     readByApoiador: true,
   });
 }
+
+/* ──────────────────────────────────────────────────────────────
+ *  Pedidos de contato "Ad Exitum" (Trabalhador → Especialista)
+ *
+ *  Modelo exclusivo de advogados: o trabalhador pede para iniciar um
+ *  atendimento sem custo inicial. O especialista precisa ACEITAR antes de
+ *  qualquer troca de documentos. Reutilizamos a coleção
+ *  `contactRequestsApoiador` (já lida pelo dashboard do especialista),
+ *  marcando o pedido com `kind: "adExitum"`.
+ * ────────────────────────────────────────────────────────────── */
+
+export async function createAdExitumRequest({
+  fromUid,
+  fromName,
+  toApoiadorId,
+  toApoiadorName,
+  specialtyId,
+  conversationId,
+  message,
+}) {
+  if (!fromUid) throw new Error("fromUid obrigatório");
+  if (!toApoiadorId) throw new Error("toApoiadorId obrigatório");
+
+  // Descobre o uid (e e-mail) do especialista para que as regras do
+  // Firestore permitam a leitura/aceite pelo apoiador autenticado e para
+  // que a notificação por e-mail seja enviada ao endereço cadastrado.
+  let toApoiadorUid = "";
+  let toApoiadorEmail = "";
+  try {
+    const apoiadorSnap = await getDoc(doc(db, "apoiadores", String(toApoiadorId)));
+    if (apoiadorSnap.exists()) {
+      const d = apoiadorSnap.data() || {};
+      toApoiadorUid = String(d.uid || d.authUid || d.userId || "");
+      toApoiadorEmail = String(d.email || "");
+    }
+  } catch {
+    /* silencioso */
+  }
+
+  const payload = {
+    kind: "adExitum",
+    fromUid: String(fromUid),
+    fromCompanyName: String(fromName || "Trabalhador").slice(0, 200),
+    toApoiadorId: String(toApoiadorId),
+    toApoiadorUid,
+    toApoiadorName: String(toApoiadorName || "").slice(0, 200),
+    specialtyId: String(specialtyId || "advogado"),
+    conversationId: String(conversationId || ""),
+    message: String(
+      message ||
+        "Pedido de contato Ad Exitum: o trabalhador deseja iniciar um atendimento sem custo inicial. Você aceita entrar em contato para avaliar o caso?"
+    )
+      .trim()
+      .slice(0, 2000),
+    evidenceFiles: [],
+    status: "pending",
+    readByApoiador: false,
+    revealEmail: false,
+    reply: null,
+    createdAt: new Date().toISOString(),
+    createdAtServer: serverTimestamp(),
+    respondedAt: null,
+  };
+
+  const ref = await addDoc(collection(db, "contactRequestsApoiador"), payload);
+
+  /* Best-effort: notifica o especialista por e-mail (ignora erro de rede). */
+  try {
+    await fetch(buildApiUrl("/api/send-contact-request"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "adExitum",
+        requestId: ref.id,
+        toEmail: toApoiadorEmail,
+        ...payload,
+      }),
+    });
+  } catch {
+    /* silencioso – o pedido já foi salvo no Firestore */
+  }
+
+  return ref.id;
+}
+
+/**
+ * Retorna o status do pedido Ad Exitum mais recente entre um trabalhador
+ * (`fromUid`) e um especialista (`toApoiadorId`): "pending" | "accepted" |
+ * "declined" | "" (nenhum). Usado pelo chat para liberar o envio de
+ * documentos apenas após o aceite do especialista.
+ */
+export async function getAdExitumRequestStatus(fromUid, toApoiadorId) {
+  if (!fromUid || !toApoiadorId) return "";
+  try {
+    const q = query(
+      collection(db, "contactRequestsApoiador"),
+      where("fromUid", "==", fromUid),
+      limit(50)
+    );
+    const snap = await getDocs(q);
+    const matches = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter(
+        (r) => r.kind === "adExitum" && String(r.toApoiadorId) === String(toApoiadorId)
+      )
+      .sort((a, b) =>
+        String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
+      );
+    return matches[0]?.status || "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Verifica se EXISTE um pedido Ad Exitum ACEITO para a conversa, considerando
+ * tanto o lado do trabalhador (fromUid == uid) quanto o do especialista
+ * (toApoiadorUid == uid). Usado pelo chat para liberar o upload de documentos
+ * apenas após o aceite. `conversationId` segue o padrão `spec_<apoiadorId>`.
+ */
+export async function isAdExitumAccepted({ conversationId, uid }) {
+  if (!conversationId || !uid) return false;
+  const toApoiadorId = String(conversationId).replace(/^spec_/, "");
+
+  // 1) Como trabalhador solicitante.
+  try {
+    const q1 = query(
+      collection(db, "contactRequestsApoiador"),
+      where("fromUid", "==", uid),
+      limit(50)
+    );
+    const s1 = await getDocs(q1);
+    if (
+      s1.docs.some((d) => {
+        const r = d.data() || {};
+        return (
+          r.kind === "adExitum" &&
+          String(r.toApoiadorId) === toApoiadorId &&
+          r.status === "accepted"
+        );
+      })
+    ) {
+      return true;
+    }
+  } catch {
+    /* silencioso */
+  }
+
+  // 2) Como especialista destinatário.
+  try {
+    const q2 = query(
+      collection(db, "contactRequestsApoiador"),
+      where("toApoiadorUid", "==", uid),
+      limit(50)
+    );
+    const s2 = await getDocs(q2);
+    if (
+      s2.docs.some((d) => {
+        const r = d.data() || {};
+        return r.kind === "adExitum" && r.status === "accepted";
+      })
+    ) {
+      return true;
+    }
+  } catch {
+    /* silencioso */
+  }
+
+  return false;
+}

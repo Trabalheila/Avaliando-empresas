@@ -781,34 +781,25 @@ async function fetchCaseHistory(/* apoiadorId */) {
   ];
 }
 
-async function fetchSpecialistReviews(/* apoiadorId */) {
-  return {
-    average: 4.8,
-    total: 25,
-    items: [
-      {
-        id: "rev_1",
-        author: "Trabalhador #A82F",
-        rating: 5,
-        text: "Atendimento excelente, me explicou tudo com clareza.",
-        createdAt: "2026-05-12",
-      },
-      {
-        id: "rev_2",
-        author: "Empresa Acme S.A.",
-        rating: 5,
-        text: "Parecer técnico impecável e prazos cumpridos à risca.",
-        createdAt: "2026-04-28",
-      },
-      {
-        id: "rev_3",
-        author: "Trabalhador #71BC",
-        rating: 4,
-        text: "Boa comunicação, recomendo.",
-        createdAt: "2026-04-10",
-      },
-    ],
-  };
+async function fetchSpecialistReviews(apoiadorId) {
+  // Reputação real do especialista. Especialistas recém-cadastrados (sem
+  // nenhuma avaliação) retornam total 0 — nesse caso a UI exibe "5/5" como
+  // nota inicial, em vez de uma média fabricada (ex.: 4.8/5).
+  const EMPTY = { average: 0, total: 0, items: [] };
+  if (!apoiadorId) return EMPTY;
+  try {
+    const snap = await getDoc(doc(db, "apoiadores", apoiadorId));
+    if (!snap.exists()) return EMPTY;
+    const data = snap.data() || {};
+    const total = Number(data.totalAvaliacoes || 0) || 0;
+    // Só consideramos a média quando há avaliações reais.
+    const average = total > 0 ? Number(data.rating || data.satisfacaoMedia || 0) || 0 : 0;
+    const items = Array.isArray(data.reviews) ? data.reviews : [];
+    return { average, total, items };
+  } catch (err) {
+    console.warn("Falha ao carregar avaliações do especialista:", err);
+    return EMPTY;
+  }
 }
 
 const RESOURCE_LINKS_FALLBACK = [
@@ -996,6 +987,44 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
     [load]
   );
 
+  // Aceitar / recusar um pedido Ad Exitum (trabalhador → especialista).
+  // Ao aceitar, o atendimento passa a "Em andamento" e o chat libera a troca
+  // de documentos. Ao recusar, o pedido é arquivado e o trabalhador é
+  // notificado pela própria resposta registrada.
+  const handleAdExitumRespond = useCallback(
+    async (id, accept) => {
+      if (!accept && !window.confirm("Recusar este pedido Ad Exitum?")) return;
+      setBusy(true);
+      try {
+        await respondToApoiadorRequest(id, {
+          accept,
+          reply: accept
+            ? "Pedido aceito. Vamos conversar pelo chat da plataforma para avaliar o seu caso e trocar os documentos com segurança."
+            : "No momento não poderei assumir este caso Ad Exitum. Obrigado pelo contato.",
+        });
+        await load();
+      } catch (err) {
+        console.error(err);
+        alert("Não foi possível registrar a resposta. Tente novamente.");
+      } finally {
+        setBusy(false);
+      }
+    },
+    [load]
+  );
+
+  // Pedidos Ad Exitum (separados dos pedidos de empresas).
+  const adExitumRequests = useMemo(
+    () => items.filter((r) => r.kind === "adExitum"),
+    [items]
+  );
+  const pendingAdExitumCount = useMemo(
+    () =>
+      adExitumRequests.filter((r) => (r.status || "pending") === "pending")
+        .length,
+    [adExitumRequests]
+  );
+
   // Métricas derivadas para a seção Visão Geral.
   // Importante: hooks devem ser chamados antes de qualquer early return.
   const pendingCount = useMemo(
@@ -1038,13 +1067,13 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
         {/* Cabeçalho do dashboard */}
         <header className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 sm:p-5 border border-blue-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <p className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">
+            <p className="tl-eyebrow">
               Dashboard do Especialista · {specialistConfig.label}
             </p>
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-800 dark:text-slate-100 mt-1">
+            <h1 className="tl-page-title mt-1">
               Olá, {specialistName} 👋
             </h1>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1">
+            <p className="tl-subtitle mt-1">
               Acompanhe seus clientes, pedidos de contato e reputação em um único lugar.
             </p>
           </div>
@@ -1100,6 +1129,106 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
           );
         })()}
 
+        {/* Pedidos Ad Exitum (trabalhador → especialista) */}
+        {adExitumRequests.length > 0 && (
+          <section
+            aria-labelledby="adexitum-title"
+            className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-emerald-200 dark:border-emerald-800 p-5"
+          >
+            <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+              <h2
+                id="adexitum-title"
+                className="tl-section-title"
+              >
+                <span aria-hidden="true">⚖️</span> Pedidos Ad Exitum
+                {pendingAdExitumCount > 0 && (
+                  <span className="ml-2 inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full text-xs font-bold bg-emerald-600 text-white">
+                    {pendingAdExitumCount}
+                  </span>
+                )}
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Atendimentos sem custo inicial — honorários só em caso de êxito.
+              </p>
+            </div>
+
+            <ul className="space-y-3">
+              {adExitumRequests.map((r) => {
+                const status = r.status || "pending";
+                return (
+                  <li
+                    key={r.id}
+                    className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 bg-slate-50/60 dark:bg-slate-800/40"
+                  >
+                    <div className="flex items-start justify-between gap-2 flex-wrap">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-800 dark:text-slate-100">
+                          {r.fromCompanyName || "Trabalhador"}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                          {r.message}
+                        </p>
+                      </div>
+                      <StatusBadge
+                        status={
+                          status === "accepted"
+                            ? "Em andamento"
+                            : status === "declined"
+                            ? "Arquivado"
+                            : "Pendente"
+                        }
+                      />
+                    </div>
+
+                    {status === "pending" ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => handleAdExitumRespond(r.id, true)}
+                          className="px-3 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-60"
+                        >
+                          ✓ Aceitar contato
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => handleAdExitumRespond(r.id, false)}
+                          className="px-3 py-2 rounded-lg text-xs font-bold border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-60"
+                        >
+                          Recusar
+                        </button>
+                      </div>
+                    ) : status === "accepted" ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigate(
+                              `/chat/${encodeURIComponent(
+                                r.conversationId || `spec_${r.toApoiadorId}`
+                              )}?peer=${encodeURIComponent(
+                                r.fromCompanyName || "Trabalhador"
+                              )}&peerRole=trabalhador&adExitum=1`
+                            )
+                          }
+                          className="px-3 py-2 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          💬 Abrir chat e receber documentos
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                        Pedido arquivado.
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
         {/* Mensagens recentes (chats com trabalhadores) */}
         {(() => {
           let convs = [];
@@ -1140,7 +1269,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
               <header className="flex items-center justify-between gap-2 flex-wrap">
                 <h2
                   id="messages-title"
-                  className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
+                  className="tl-section-title"
                 >
                   <span aria-hidden="true">💬</span> Mensagens recentes
                 </h2>
@@ -1219,7 +1348,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                     />
                     <OverviewCard
                       label="Satisfação média"
-                      value={`${reviews.average?.toFixed(1) || "—"}/5`}
+                      value={reviews.total > 0 ? `${reviews.average.toFixed(1)}/5` : "5/5"}
                       accent="indigo"
                       emoji="⭐"
                     />
@@ -1237,7 +1366,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                   <header className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2">
                     <h2
                       id="active-cases-title"
-                      className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
+                      className="tl-section-title"
                     >
                       <span aria-hidden="true">📂</span> Meus clientes / casos ativos
                     </h2>
@@ -1373,7 +1502,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                   <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
                     <h2
                       id="requests-title"
-                      className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
+                      className="tl-section-title"
                     >
                       <span aria-hidden="true">📬</span> Pedidos de contato de empresas
                       {pendingCount > 0 && (
@@ -1545,7 +1674,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                   <header className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
                     <h2
                       id="history-title"
-                      className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
+                      className="tl-section-title"
                     >
                       <span aria-hidden="true">🗂️</span> {caseHistoryConfig.title}
                     </h2>
@@ -1626,17 +1755,19 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                 >
                   <h2
                     id="reputation-title"
-                    className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
+                    className="tl-section-title"
                   >
                     <span aria-hidden="true">⭐</span> Minha reputação
                   </h2>
                   <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
                     Avaliação média:{" "}
                     <span className="font-bold text-slate-800 dark:text-slate-100">
-                      {reviews.average?.toFixed(1) || "—"}/5
+                      {reviews.total > 0 ? `${reviews.average.toFixed(1)}/5` : "5/5"}
                     </span>{" "}
                     <span className="text-slate-500 dark:text-slate-400">
-                      ({reviews.total} avaliações)
+                      {reviews.total > 0
+                        ? `(${reviews.total} avaliações)`
+                        : "(novo · sem avaliações)"}
                     </span>
                   </p>
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1696,7 +1827,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <h2
                       id="opportunities-title"
-                      className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
+                      className="tl-section-title"
                     >
                       <span aria-hidden="true">🧲</span> Oportunidades de Clientes
                     </h2>
@@ -1797,7 +1928,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                 >
                   <h2
                     id="resources-title"
-                    className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
+                    className="tl-section-title"
                   >
                     <span aria-hidden="true">🧰</span> Recursos e ferramentas
                   </h2>

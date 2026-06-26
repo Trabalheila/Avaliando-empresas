@@ -449,7 +449,20 @@ const mockCaseDetails = {
       notes: "Próxima rodada de avaliação postural em julho.",
     },
   },
-  outro: {},
+  outro: {
+    out_001: {
+      client: "Trabalhador #U901",
+      caseType: "Consultoria",
+      status: "Em andamento",
+      nextAction: "Reunião inicial",
+      nextActionDate: "2026-06-05",
+      documents: [],
+      timeline: [
+        { date: "2026-06-01", event: "Solicitação de atendimento recebida" },
+      ],
+      notes: "Atendimento de consultoria em andamento. Aguardando reunião inicial com o trabalhador para alinhamento do escopo.",
+    },
+  },
 };
 
 /** Normaliza o tipo de especialista para casar com as chaves do mapa. */
@@ -467,7 +480,16 @@ function normalizeTipo(tipo) {
 export function getCaseDetails(tipo, caseId) {
   if (!caseId) return null;
   const key = normalizeTipo(tipo);
-  return mockCaseDetails[key]?.[caseId] || null;
+  const direct = mockCaseDetails[key]?.[caseId];
+  if (direct) return direct;
+  // Fallback: procura o caso em qualquer especialidade. Cobre perfis cujo
+  // `tipo` não casa exatamente com a chave do mapa (ex.: tipo desconhecido
+  // resolvido como "outro", ou divergência de normalização) — assim o botão
+  // "Ver detalhes" sempre carrega o caso correspondente ao caseId.
+  for (const group of Object.values(mockCaseDetails)) {
+    if (group && group[caseId]) return group[caseId];
+  }
+  return null;
 }
 
 export default mockCaseDetails;

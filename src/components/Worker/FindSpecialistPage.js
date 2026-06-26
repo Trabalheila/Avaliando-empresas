@@ -381,13 +381,24 @@ function SpecialistCard({ specialist, workerIsPremium, onPontualClick }) {
       )}
 
       <div className="mt-3 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300">
-          <StarRow rating={specialist.rating} />
-          <span className="font-semibold">
-            {Number(specialist.rating || 0).toFixed(1)}
-          </span>
-          <span className="text-slate-400">({specialist.totalAvaliacoes || 0})</span>
-        </div>
+        {/* Nota de satisfação: especialistas sem avaliações começam com nota
+            máxima (5/5) — nunca exibimos uma média "fabricada" (ex.: 4.8) para
+            quem ainda não recebeu nenhuma avaliação real. */}
+        {Number(specialist.totalAvaliacoes || 0) > 0 ? (
+          <div className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300">
+            <StarRow rating={specialist.rating} />
+            <span className="font-semibold">
+              {Number(specialist.rating || 0).toFixed(1)}/5
+            </span>
+            <span className="text-slate-400">({specialist.totalAvaliacoes})</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300">
+            <StarRow rating={5} />
+            <span className="font-semibold">5/5</span>
+            <span className="text-slate-400">(novo)</span>
+          </div>
+        )}
         {planType === "Essencial" ? (
           // Plano Essencial: a consulta pontual tem preço FIXO da plataforma
           // (independe do valor configurado pelo profissional) — chat R$ 45 /

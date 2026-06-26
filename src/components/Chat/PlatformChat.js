@@ -23,6 +23,12 @@ import {
   CONTACT_BLOCK_MESSAGE,
   ESSENCIAL_MESSAGE_LIMIT,
 } from "../../utils/chatContentGuard";
+import { auth, storage } from "../../firebase";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { isAdExitumAccepted } from "../../services/contactRequests";
+
+// Limite de tamanho para documentos no chat Ad Exitum (25 MB).
+const ADEXITUM_MAX_FILE_BYTES = 25 * 1024 * 1024;
 
 /** Lê o userProfile do localStorage (mesmo padrão usado no app). */
 function readProfile() {
@@ -131,6 +137,9 @@ export default function PlatformChat({ theme, toggleTheme }) {
   const peerName = searchParams.get("peer") || "Contato";
   const peerRole = (searchParams.get("peerRole") || "especialista").toLowerCase();
   const caseId = searchParams.get("caseId") || "";
+  // Conversa Ad Exitum: troca de documentos liberada (mesmo fora do Premium)
+  // SOMENTE após o especialista aceitar o pedido de contato.
+  const isAdExitum = searchParams.get("adExitum") === "1";
 
   const profile = useMemo(readProfile, []);
   const myId = profile?.apoiadorId || profile?.uid || profile?.id || "anon";
@@ -142,8 +151,29 @@ export default function PlatformChat({ theme, toggleTheme }) {
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
   const [warning, setWarning] = useState("");
+  const [adExitumAccepted, setAdExitumAccepted] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const listRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  // Descobre se o pedido Ad Exitum desta conversa já foi aceito.
+  useEffect(() => {
+    if (!isAdExitum || !conversationId) return;
+    let cancelled = false;
+    const uid = auth.currentUser?.uid || myId;
+    isAdExitumAccepted({ conversationId, uid })
+      .then((ok) => {
+        if (!cancelled) setAdExitumAccepted(ok);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdExitum, conversationId, myId]);
+
+  // Pode anexar documentos? Premium sempre pode; no Ad Exitum, qualquer plano
+  // pode — desde que o especialista tenha aceitado o contato.
+  const canAttach = isPremium || (isAdExitum && adExitumAccepted);
 
   useEffect(() => {
     if (!conversationId) return;
@@ -211,13 +241,70 @@ export default function PlatformChat({ theme, toggleTheme }) {
     setWarning("");
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!isPremium) {
-      setWarning(
-        "Compartilhamento de arquivos é exclusivo do Plano Premium. Faça upgrade para liberar."
-      );
+
+    // Regras de anexo:
+    //  • Premium: liberado (fluxo legado — arquivo vira dataURL no chat).
+    //  • Ad Exitum (qualquer plano): liberado SOMENTE após o aceite do
+    //    especialista, com limite de 25 MB e upload seguro no Firebase Storage.
+    if (!canAttach) {
+      if (isAdExitum && !adExitumAccepted) {
+        setWarning(
+          "A troca de documentos será liberada assim que o especialista aceitar o seu pedido Ad Exitum."
+        );
+      } else {
+        setWarning(
+          "Compartilhamento de arquivos é exclusivo do Plano Premium. Faça upgrade para liberar."
+        );
+      }
       e.target.value = "";
       return;
     }
+
+    // Fluxo Ad Exitum: upload seguro no Firebase Storage (suporta arquivos
+    // grandes, até 25 MB) — a troca de documentação acontece exclusivamente
+    // pela plataforma.
+    if (isAdExitum) {
+      if (file.size > ADEXITUM_MAX_FILE_BYTES) {
+        setWarning("O arquivo excede o limite de 25 MB.");
+        e.target.value = "";
+        return;
+      }
+      const input = e.target;
+      setUploading(true);
+      (async () => {
+        try {
+          const safeName = file.name.replace(/[^\w.\-]+/g, "_").slice(-160);
+          const path = `adExitumDocs/${encodeURIComponent(
+            conversationId
+          )}/${Date.now()}_${safeName}`;
+          const fileRef = storageRef(storage, path);
+          await uploadBytes(fileRef, file, { contentType: file.type || undefined });
+          const url = await getDownloadURL(fileRef);
+          const next = [
+            ...messages,
+            {
+              id: `m_${Date.now()}`,
+              from: myId,
+              fromName: myName,
+              attachment: { name: file.name, size: file.size, url, storagePath: path },
+              createdAt: new Date().toISOString(),
+            },
+          ];
+          persist(next);
+        } catch (err) {
+          console.warn("Falha no upload do documento:", err);
+          setWarning(
+            "Não foi possível enviar o arquivo. Verifique sua conexão e tente novamente."
+          );
+        } finally {
+          setUploading(false);
+          if (input) input.value = "";
+        }
+      })();
+      return;
+    }
+
+    // Fluxo Premium legado (dataURL local).
     const reader = new FileReader();
     reader.onload = () => {
       const next = [
@@ -287,6 +374,31 @@ export default function PlatformChat({ theme, toggleTheme }) {
           </div>
         )}
 
+        {isAdExitum && (
+          <div
+            className={[
+              "mb-3 rounded-xl border px-3 py-2 text-xs flex items-center gap-2 flex-wrap",
+              adExitumAccepted
+                ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700 text-emerald-900 dark:text-emerald-100"
+                : "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700 text-blue-900 dark:text-blue-100",
+            ].join(" ")}
+          >
+            <span aria-hidden="true">⚖️</span>
+            {adExitumAccepted ? (
+              <span>
+                Atendimento <strong>Ad Exitum</strong> ativo. Você já pode enviar
+                documentos (até 25 MB) com segurança — a troca acontece
+                exclusivamente pela plataforma.
+              </span>
+            ) : (
+              <span>
+                Pedido <strong>Ad Exitum</strong> enviado. A troca de documentos
+                será liberada assim que o especialista aceitar o contato.
+              </span>
+            )}
+          </div>
+        )}
+
         <div
           ref={listRef}
           className="flex-1 min-h-[300px] bg-white/60 dark:bg-slate-900/60 rounded-2xl border border-blue-100 dark:border-slate-700 p-3 overflow-y-auto space-y-2"
@@ -309,10 +421,17 @@ export default function PlatformChat({ theme, toggleTheme }) {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            title={isPremium ? "Anexar arquivo" : "Anexos disponíveis no Premium"}
-            className="shrink-0 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
+            disabled={!canAttach || uploading}
+            title={
+              canAttach
+                ? "Anexar documento (até 25 MB)"
+                : isAdExitum
+                ? "Liberado após o especialista aceitar o pedido"
+                : "Anexos disponíveis no Premium"
+            }
+            className="shrink-0 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            📎
+            {uploading ? "⏳" : "📎"}
           </button>
           <input
             ref={fileInputRef}

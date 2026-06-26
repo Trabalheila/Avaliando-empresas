@@ -50,6 +50,35 @@ button.rounded-3xl {
   border-radius: 10px;
 }
 
+/* ════════════════════════════════════════════════════════════════
+   Sistema de tipografia/espaçamento unificado (Trabalhei Lá)
+   ----------------------------------------------------------------
+   Classes utilitárias reutilizáveis para padronizar rótulos,
+   títulos, subtítulos e títulos de seção entre as páginas
+   (AppHeader, dashboards, cards, etc.). Reproduzem a escala já
+   adotada no projeto — aplicá-las garante consistência visual
+   sem alterar o estilo individual de cada página.
+   ════════════════════════════════════════════════════════════════ */
+@layer components {
+  /* Rótulo pequeno em caixa alta, exibido acima de um título. */
+  .tl-eyebrow {
+    @apply text-[11px] sm:text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300;
+  }
+  /* Título principal de página (hero). */
+  .tl-page-title {
+    @apply text-lg sm:text-xl md:text-2xl font-bold text-slate-800 dark:text-slate-100;
+  }
+  /* Subtítulo / texto de apoio sob um título. */
+  .tl-subtitle {
+    @apply text-xs sm:text-sm text-slate-600 dark:text-slate-300;
+  }
+  /* Título de seção (cards/blocos do dashboard). */
+  .tl-section-title {
+    @apply text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2;
+  }
+}
+
+
 /* Modo noturno (VS Code / terminal) */
 .dark body {
   background-color: #1e1e1e;

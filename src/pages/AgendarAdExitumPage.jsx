@@ -10,9 +10,11 @@
 // O contato com o profissional acontece pelo chat da plataforma — sem
 // fluxo de pagamento envolvido neste momento.
 
-import React from "react";
-import { useLocation, useNavigate, useParams, Link } from "react-router-dom";
+import React, { useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
+import { auth } from "../firebase";
+import { createAdExitumRequest } from "../services/contactRequests";
 
 export default function AgendarAdExitumPage({ theme, toggleTheme }) {
   const navigate = useNavigate();
@@ -24,13 +26,54 @@ export default function AgendarAdExitumPage({ theme, toggleTheme }) {
   const professionalName = state.professionalName || "Especialista";
   const specialtyId = state.specialtyId || "outro";
 
+  const [sending, setSending] = useState(false);
+
+  const conversationId = professionalId ? `spec_${professionalId}` : "";
   const chatHref = professionalId
-    ? `/chat/spec_${encodeURIComponent(professionalId)}?peer=${encodeURIComponent(
+    ? `/chat/${encodeURIComponent(conversationId)}?peer=${encodeURIComponent(
         professionalName
       )}&peerRole=especialista&specialistType=${encodeURIComponent(
         specialtyId
       )}&adExitum=1`
     : "";
+
+  // Inicia a conversa Ad Exitum: além de abrir o chat, dispara um pedido de
+  // contato para o especialista (notificação na plataforma + e-mail). O
+  // especialista precisa ACEITAR antes que a troca de documentos seja
+  // liberada no chat.
+  const handleStart = async () => {
+    if (!chatHref || sending) return;
+    setSending(true);
+    try {
+      let profile = {};
+      try {
+        profile = JSON.parse(localStorage.getItem("userProfile") || "{}") || {};
+      } catch {
+        profile = {};
+      }
+      const fromUid =
+        auth.currentUser?.uid || profile.uid || profile.id || "";
+      const fromName =
+        profile.nome || profile.displayName || profile.name || "Trabalhador";
+      if (fromUid) {
+        await createAdExitumRequest({
+          fromUid,
+          fromName,
+          toApoiadorId: professionalId,
+          toApoiadorName: professionalName,
+          specialtyId,
+          conversationId,
+        });
+      }
+    } catch (err) {
+      // Falha ao registrar o pedido não impede a abertura do chat — o pedido
+      // pode ser reenviado, e a troca de documentos só é liberada após aceite.
+      console.warn("Falha ao registrar pedido Ad Exitum:", err);
+    } finally {
+      setSending(false);
+      navigate(chatHref);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -63,14 +106,27 @@ export default function AgendarAdExitumPage({ theme, toggleTheme }) {
             </p>
           </div>
 
+          <div className="mt-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4">
+            <p className="text-[12px] text-blue-800 dark:text-blue-200">
+              <span aria-hidden="true">🔔</span> Ao iniciar a conversa, enviamos
+              um pedido ao especialista (na plataforma e por e-mail) perguntando
+              se ele aceita atender o seu caso Ad Exitum. A{" "}
+              <strong>troca de documentos</strong> pelo chat é liberada{" "}
+              <strong>somente após o aceite</strong> — e acontece{" "}
+              <strong>exclusivamente pela plataforma</strong>.
+            </p>
+          </div>
+
           <div className="mt-6 flex flex-col sm:flex-row gap-2">
             {chatHref ? (
-              <Link
-                to={chatHref}
-                className="text-center px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold"
+              <button
+                type="button"
+                onClick={handleStart}
+                disabled={sending}
+                className="text-center px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                💬 Iniciar conversa com o especialista
-              </Link>
+                {sending ? "Enviando pedido…" : "💬 Iniciar conversa com o especialista"}
+              </button>
             ) : null}
             <button
               type="button"
