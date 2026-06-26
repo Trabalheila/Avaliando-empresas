@@ -8,6 +8,7 @@ import {
   markApoiadorRequestRead,
   respondToApoiadorRequest,
 } from "../services/contactRequests";
+import { isTestApoiador } from "../utils/testAccounts";
 
 /* ──────────────────────────────────────────────────────────────
  * Configurações por tipo de especialista (área de atuação).
@@ -877,6 +878,26 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
     return /advogad|jur[ií]dic/.test(haystack);
   }, [specialistTipo, apoiadorDoc, profile]);
 
+  // ───────────────────────────────────────────────────────────────
+  // Exibição de dados mockados (clientes/casos de demonstração)
+  // ---------------------------------------------------------------
+  // Especialistas REAIS e autenticados em produção NÃO devem ver
+  // nenhum dado fictício (clientes falsos, processos inexistentes).
+  // Os mocks só aparecem quando:
+  //   (a) estamos em ambiente de desenvolvimento, OU
+  //   (b) a própria conta logada é uma conta de teste/demonstração
+  //       (flag `isTest`, id `apoiador_test_*` ou e-mail de teste).
+  // Para qualquer especialista real em produção, as listas mockadas
+  // ficam vazias até que existam queries reais ao Firestore.
+  const showMockData = useMemo(() => {
+    if (process.env.NODE_ENV === "development") return true;
+    return isTestApoiador({
+      id: apoiadorId,
+      isTest: apoiadorDoc?.isTest,
+      email: apoiadorDoc?.email || profile?.email,
+    });
+  }, [apoiadorId, apoiadorDoc, profile]);
+
   // Busca o documento do apoiador para descobrir tipo e ramo de
   // especialização. Falha silenciosa: o dashboard cai no preset "outro".
   useEffect(() => {
@@ -920,14 +941,17 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
     load();
   }, [load]);
 
-  // Carrega dados mockados das demais seções em paralelo.
+  // Carrega dados das demais seções em paralelo. Casos ativos e histórico
+  // ainda são mockados (placeholders) e por isso só são exibidos quando
+  // `showMockData` é verdadeiro (dev ou conta de teste). A reputação já lê
+  // dados reais do Firestore e é carregada sempre.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const [cases, history, rev] = await Promise.all([
-          fetchActiveCases(apoiadorId, specialistTipo),
-          fetchCaseHistory(apoiadorId),
+          showMockData ? fetchActiveCases(apoiadorId, specialistTipo) : Promise.resolve([]),
+          showMockData ? fetchCaseHistory(apoiadorId) : Promise.resolve([]),
           fetchSpecialistReviews(apoiadorId),
         ]);
         if (cancelled) return;
@@ -941,7 +965,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
     return () => {
       cancelled = true;
     };
-  }, [apoiadorId, specialistTipo]);
+  }, [apoiadorId, specialistTipo, showMockData]);
 
   const handleAccept = useCallback(
     async (id) => {
@@ -1807,7 +1831,11 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
               );
 
             case "clientOpportunities": {
-              const opportunities = specialistConfig.mockPotentialClients || [];
+              // Oportunidades são dados de demonstração — ocultas para
+              // especialistas reais em produção.
+              const opportunities = showMockData
+                ? specialistConfig.mockPotentialClients || []
+                : [];
               if (opportunities.length === 0) return null;
               const complaintTypes = Array.from(
                 new Set(opportunities.map((o) => o.complaintType).filter(Boolean))

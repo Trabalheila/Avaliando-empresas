@@ -704,9 +704,14 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
   }, []);
 
   // Mescla mocks + reais. IDs únicos: real prevalece sobre mock de mesmo id.
+  // Os especialistas mockados (MOCK_SPECIALISTS) servem apenas para testar a
+  // interface sem dados reais e NÃO devem aparecer para usuários reais em
+  // produção. Por isso só são incluídos em ambiente de desenvolvimento.
   const allSpecialists = useMemo(() => {
     const map = new Map();
-    MOCK_SPECIALISTS.forEach((s) => map.set(s.id, s));
+    if (process.env.NODE_ENV === "development") {
+      MOCK_SPECIALISTS.forEach((s) => map.set(s.id, s));
+    }
     remote.forEach((s) => map.set(s.id, s));
     return Array.from(map.values());
   }, [remote]);
