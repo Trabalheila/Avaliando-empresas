@@ -325,34 +325,52 @@ export async function createApoiadorContactRequest({
   return ref.id;
 }
 
-export async function listIncomingApoiadorRequests(toApoiadorId, max = 100) {
-  if (!toApoiadorId) return [];
-  try {
-    const q = query(
-      collection(db, "contactRequestsApoiador"),
-      where("toApoiadorId", "==", toApoiadorId),
-      orderBy("createdAt", "desc"),
-      limit(max)
-    );
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  } catch {
+export async function listIncomingApoiadorRequests(toApoiadorId, max = 100, authUid = "") {
+  // Consulta os pedidos endereçados ao especialista. Usamos DUAS chaves para
+  // robustez: `toApoiadorId` (id do documento apoiadores) e `toApoiadorUid`
+  // (UID do Firebase Auth). A regra do Firestore autoriza a leitura por
+  // `toApoiadorUid == auth.uid`; consultar também por esse campo evita o
+  // "0 pedidos" quando o id do documento e o UID diferem entre si.
+  const keys = [];
+  if (toApoiadorId) keys.push(["toApoiadorId", String(toApoiadorId)]);
+  if (authUid && authUid !== toApoiadorId) keys.push(["toApoiadorUid", String(authUid)]);
+  if (keys.length === 0) return [];
+
+  const runQuery = async (field, value) => {
     try {
-      const q2 = query(
+      const q = query(
         collection(db, "contactRequestsApoiador"),
-        where("toApoiadorId", "==", toApoiadorId),
+        where(field, "==", value),
+        orderBy("createdAt", "desc"),
         limit(max)
       );
-      const snap = await getDocs(q2);
-      return snap.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .sort((a, b) =>
-          String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
-        );
+      const snap = await getDocs(q);
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     } catch {
-      return [];
+      // Sem índice composto: consulta sem ordenação e ordena em memória.
+      try {
+        const q2 = query(
+          collection(db, "contactRequestsApoiador"),
+          where(field, "==", value),
+          limit(max)
+        );
+        const snap = await getDocs(q2);
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      } catch {
+        return [];
+      }
     }
-  }
+  };
+
+  const results = await Promise.all(keys.map(([f, v]) => runQuery(f, v)));
+  // Mescla e remove duplicatas (um pedido pode casar nas duas chaves).
+  const byId = new Map();
+  results.flat().forEach((r) => {
+    if (r && r.id && !byId.has(r.id)) byId.set(r.id, r);
+  });
+  return Array.from(byId.values()).sort((a, b) =>
+    String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
+  );
 }
 
 export async function markApoiadorRequestRead(requestId) {

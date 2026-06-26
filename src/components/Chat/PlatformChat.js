@@ -26,6 +26,11 @@ import {
 import { auth, storage } from "../../firebase";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { isAdExitumAccepted } from "../../services/contactRequests";
+import {
+  ensureConversation,
+  sendChatMessage,
+  subscribeToMessages,
+} from "../../services/chat";
 
 // Limite de tamanho para documentos no chat Ad Exitum (25 MB).
 const ADEXITUM_MAX_FILE_BYTES = 25 * 1024 * 1024;
@@ -142,8 +147,14 @@ export default function PlatformChat({ theme, toggleTheme }) {
   const isAdExitum = searchParams.get("adExitum") === "1";
 
   const profile = useMemo(readProfile, []);
-  const myId = profile?.apoiadorId || profile?.uid || profile?.id || "anon";
-  const myName = profile?.nome || profile?.displayName || "Você";
+  // UID do Firebase Auth — é ele que identifica o remetente nas regras do
+  // Firestore e no array `participants`. Quando há usuário autenticado, o
+  // chat passa a ser persistido no Firestore (visível para os dois lados);
+  // sem autenticação, mantém o fallback legado em localStorage.
+  const authUid = auth.currentUser?.uid || "";
+  const useFirestore = Boolean(authUid && conversationId);
+  const myId = authUid || profile?.apoiadorId || profile?.uid || profile?.id || "anon";
+  const myName = profile?.nome || profile?.displayName || profile?.name || "Você";
   const isPremium =
     profile?.isPremium === true ||
     String(profile?.plano || "").toLowerCase() === "premium";
@@ -175,10 +186,45 @@ export default function PlatformChat({ theme, toggleTheme }) {
   // pode — desde que o especialista tenha aceitado o contato.
   const canAttach = isPremium || (isAdExitum && adExitumAccepted);
 
+  // Carrega as mensagens. Com usuário autenticado, usa o Firestore em tempo
+  // real (mesma conversa visível para trabalhador e especialista). Sem
+  // autenticação, cai no fallback legado em localStorage.
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId) return undefined;
+
+    if (useFirestore) {
+      let unsub = () => {};
+      ensureConversation({
+        conversationId,
+        currentUid: authUid,
+        currentName: myName,
+        peerName,
+        peerRole,
+        kind: isAdExitum ? "adExitum" : "consulta",
+      })
+        .catch(() => {})
+        .finally(() => {
+          unsub = subscribeToMessages(conversationId, (msgs) => {
+            // Normaliza para o formato usado pelos balões.
+            setMessages(
+              msgs.map((m) => ({
+                id: m.id,
+                from: m.senderUid,
+                fromName: m.senderName,
+                text: m.text,
+                attachment: m.attachment,
+                createdAt: m.createdAt,
+              }))
+            );
+          });
+        });
+      return () => unsub();
+    }
+
+    // Fallback legado (sem autenticação): localStorage por conversa.
     setMessages(seedIfEmpty(conversationId, peerName));
-  }, [conversationId, peerName]);
+    return undefined;
+  }, [conversationId, peerName, peerRole, useFirestore, authUid, myName, isAdExitum]);
 
   useEffect(() => {
     if (listRef.current) {
@@ -221,6 +267,21 @@ export default function PlatformChat({ theme, toggleTheme }) {
         );
         return;
       }
+    }
+
+    if (useFirestore) {
+      // Persiste no Firestore; o listener em tempo real atualiza a lista.
+      sendChatMessage({
+        conversationId,
+        senderUid: authUid,
+        senderName: myName,
+        text,
+      }).catch((err) => {
+        console.warn("Falha ao enviar mensagem:", err);
+        setWarning("Não foi possível enviar a mensagem. Tente novamente.");
+      });
+      setDraft("");
+      return;
     }
 
     const next = [
@@ -280,17 +341,28 @@ export default function PlatformChat({ theme, toggleTheme }) {
           const fileRef = storageRef(storage, path);
           await uploadBytes(fileRef, file, { contentType: file.type || undefined });
           const url = await getDownloadURL(fileRef);
-          const next = [
-            ...messages,
-            {
-              id: `m_${Date.now()}`,
-              from: myId,
-              fromName: myName,
-              attachment: { name: file.name, size: file.size, url, storagePath: path },
-              createdAt: new Date().toISOString(),
-            },
-          ];
-          persist(next);
+          const attachment = { name: file.name, size: file.size, url, storagePath: path };
+          if (useFirestore) {
+            await sendChatMessage({
+              conversationId,
+              senderUid: authUid,
+              senderName: myName,
+              text: "",
+              attachment,
+            });
+          } else {
+            const next = [
+              ...messages,
+              {
+                id: `m_${Date.now()}`,
+                from: myId,
+                fromName: myName,
+                attachment,
+                createdAt: new Date().toISOString(),
+              },
+            ];
+            persist(next);
+          }
         } catch (err) {
           console.warn("Falha no upload do documento:", err);
           setWarning(
@@ -307,21 +379,35 @@ export default function PlatformChat({ theme, toggleTheme }) {
     // Fluxo Premium legado (dataURL local).
     const reader = new FileReader();
     reader.onload = () => {
-      const next = [
-        ...messages,
-        {
-          id: `m_${Date.now()}`,
-          from: myId,
-          fromName: myName,
-          attachment: {
-            name: file.name,
-            size: file.size,
-            url: String(reader.result || ""),
+      const attachment = {
+        name: file.name,
+        size: file.size,
+        url: String(reader.result || ""),
+      };
+      if (useFirestore) {
+        sendChatMessage({
+          conversationId,
+          senderUid: authUid,
+          senderName: myName,
+          text: "",
+          attachment,
+        }).catch((err) => {
+          console.warn("Falha ao enviar anexo:", err);
+          setWarning("Não foi possível enviar o arquivo. Tente novamente.");
+        });
+      } else {
+        const next = [
+          ...messages,
+          {
+            id: `m_${Date.now()}`,
+            from: myId,
+            fromName: myName,
+            attachment,
+            createdAt: new Date().toISOString(),
           },
-          createdAt: new Date().toISOString(),
-        },
-      ];
-      persist(next);
+        ];
+        persist(next);
+      }
     };
     reader.readAsDataURL(file);
     e.target.value = "";

@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import AppHeader from "../components/AppHeader";
 import {
   listIncomingApoiadorRequests,
   markApoiadorRequestRead,
   respondToApoiadorRequest,
 } from "../services/contactRequests";
+import { listConversationsForParticipant } from "../services/chat";
 import { isTestApoiador } from "../utils/testAccounts";
 import { buildSpecialistConversationId } from "../utils/chatId";
 
@@ -833,6 +834,11 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
   const [caseHistory, setCaseHistory] = useState([]);
   const [reviews, setReviews] = useState({ average: 0, total: 0, items: [] });
 
+  // Conversas recentes lidas do Firestore (chat real entre o especialista e
+  // os trabalhadores). Substitui a varredura antiga de localStorage, que só
+  // enxergava as mensagens do próprio navegador.
+  const [recentConversations, setRecentConversations] = useState([]);
+
   // Perfil do apoiador no Firestore — usado para descobrir o `tipo`
   // (área de atuação) e adaptar dinamicamente o dashboard.
   const [apoiadorDoc, setApoiadorDoc] = useState(null);
@@ -926,7 +932,8 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
     }
     setLoading(true);
     try {
-      const data = await listIncomingApoiadorRequests(apoiadorId, 100);
+      const authUid = auth.currentUser?.uid || profile?.uid || "";
+      const data = await listIncomingApoiadorRequests(apoiadorId, 100, authUid);
       setItems(data);
       await Promise.all(
         data
@@ -967,6 +974,31 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
       cancelled = true;
     };
   }, [apoiadorId, specialistTipo, showMockData]);
+
+  // Carrega as conversas recentes do Firestore (chat real). O especialista é
+  // identificado pelo UID do Firebase Auth, presente no array `participants`
+  // de cada conversa — garantindo que ele veja todas as conversas dele (uma
+  // por trabalhador) e somente as dele.
+  useEffect(() => {
+    let cancelled = false;
+    const uid = auth.currentUser?.uid || profile?.uid || profile?.id || "";
+    if (!uid) {
+      setRecentConversations([]);
+      return undefined;
+    }
+    (async () => {
+      try {
+        const convs = await listConversationsForParticipant(uid, 20);
+        if (!cancelled) setRecentConversations(convs);
+      } catch (err) {
+        console.warn("Falha ao carregar conversas recentes:", err);
+        if (!cancelled) setRecentConversations([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [apoiadorId, profile]);
 
   const handleAccept = useCallback(
     async (id) => {
@@ -1258,38 +1290,22 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
           </section>
         )}
 
-        {/* Mensagens recentes (chats com trabalhadores) */}
+        {/* Mensagens recentes (chats reais com trabalhadores, via Firestore) */}
         {(() => {
-          let convs = [];
-          try {
-            const keys = Object.keys(window.localStorage || {}).filter((k) =>
-              k.startsWith("chatMessages:")
-            );
-            convs = keys
-              .map((k) => {
-                const id = k.replace("chatMessages:", "");
-                let msgs = [];
-                try {
-                  msgs = JSON.parse(window.localStorage.getItem(k) || "[]") || [];
-                } catch {
-                  msgs = [];
-                }
-                const last = msgs[msgs.length - 1];
-                return {
-                  id,
-                  last,
-                  count: msgs.length,
-                };
-              })
-              .filter((c) => c.last)
-              .sort(
-                (a, b) =>
-                  new Date(b.last.createdAt || 0) - new Date(a.last.createdAt || 0)
-              )
-              .slice(0, 5);
-          } catch {
-            convs = [];
-          }
+          const myUid = auth.currentUser?.uid || profile?.uid || profile?.id || "";
+          const convs = recentConversations.map((c) => {
+            const names = c.peerNames || {};
+            // Nome do interlocutor: o participante diferente de mim.
+            const peerUid =
+              (Array.isArray(c.participants)
+                ? c.participants.find((p) => p && p !== myUid)
+                : "") || c.workerId || "";
+            const peerName =
+              names[peerUid] ||
+              (peerUid ? `Trabalhador ${String(peerUid).slice(0, 6)}` : "Trabalhador");
+            const last = c.lastMessage || null;
+            return { id: c.id, peerName, last };
+          });
           return (
             <section
               aria-labelledby="messages-title"
@@ -1319,16 +1335,16 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
-                          {c.id}
+                          {c.peerName}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                           {c.last?.text ||
-                            (c.last?.attachment ? `📎 ${c.last.attachment.name}` : "—")}
+                            (c.last?.attachmentName ? `📎 ${c.last.attachmentName}` : "—")}
                         </p>
                       </div>
                       <button
                         type="button"
-                        onClick={() => navigate(`/chat/${encodeURIComponent(c.id)}`)}
+                        onClick={() => navigate(`/chat/${encodeURIComponent(c.id)}?peer=${encodeURIComponent(c.peerName)}&peerRole=trabalhador`)}
                         className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"
                       >
                         Abrir
