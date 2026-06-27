@@ -443,7 +443,7 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
 
         {/* ═══ Visitas + Abandono (funil — separado dos cards de cadastros) ═══ */}
         <section>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-blue-300 dark:border-blue-700 shadow-sm overflow-hidden">
               <div className="h-1 bg-gradient-to-r from-sky-400 to-blue-600" />
               <div className="p-4">
@@ -489,6 +489,21 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
                 </p>
               </div>
             </div>
+
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-indigo-300 dark:border-indigo-700 shadow-sm overflow-hidden">
+              <div className="h-1 bg-gradient-to-r from-indigo-400 to-violet-600" />
+              <div className="p-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
+                  Premium Especialista
+                </p>
+                <p className="mt-1 text-2xl sm:text-3xl font-extrabold text-slate-800 dark:text-slate-100">
+                  {statsLoading ? "…" : (totals?.premiumByType?.apoiador ?? 0).toLocaleString("pt-BR")}
+                </p>
+                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                  Especialistas com plano Premium ativo.
+                </p>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -512,20 +527,21 @@ function AdminGrowthDashboard({ theme, toggleTheme }) {
               accent="emerald"
             />
             <MetricCard
-              label="Incompletos"
-              value={statsLoading ? "…" : (totals?.incomplete ?? totals?.pending) ?? 0}
+              label="Usuários Trabalhadores"
+              value={statsLoading ? "…" : totals?.byType?.trabalhador ?? 0}
+              hint="Total de usuários trabalhadores"
               accent="amber"
+            />
+            <MetricCard
+              label="Usuários Especialistas"
+              value={statsLoading ? "…" : totals?.byType?.apoiador ?? 0}
+              hint="Total de usuários especialistas"
+              accent="indigo"
             />
             <MetricCard
               label="Premium Trabalhador"
               value={statsLoading ? "…" : totals?.premiumByType?.trabalhador ?? 0}
               hint="Trabalhadores com plano Premium"
-              accent="indigo"
-            />
-            <MetricCard
-              label="Premium Empresa"
-              value={statsLoading ? "…" : totals?.premiumByType?.empresa ?? 0}
-              hint="Empresas com plano Premium"
               accent="indigo"
             />
             <MetricCard

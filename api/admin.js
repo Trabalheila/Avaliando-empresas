@@ -336,6 +336,7 @@ async function handleGrowthStats(req, res) {
       verificationProven: 0,
       plan: { gratuito: 0, premium: 0, premium_gratuito: 0 },
       premiumByType: { trabalhador: 0, empresa: 0, apoiador: 0 },
+      byType: { trabalhador: 0, empresa: 0, apoiador: 0 },
     };
     const byMonth = new Map(); // "YYYY-MM" → contagem
 
@@ -365,9 +366,12 @@ async function handleGrowthStats(req, res) {
         const plan = classifyPlanStatus(data);
         totals.plan[plan] = (totals.plan[plan] || 0) + 1;
 
+        // Contagem total por tipo de usuário (trabalhador / empresa / especialista).
+        const type = classifyUserType(data);
+        totals.byType[type] = (totals.byType[type] || 0) + 1;
+
         // Recorta o plano Premium (pago) por tipo de usuário.
         if (plan === "premium" || plan === "premium_gratuito") {
-          const type = classifyUserType(data);
           totals.premiumByType[type] = (totals.premiumByType[type] || 0) + 1;
         }
 

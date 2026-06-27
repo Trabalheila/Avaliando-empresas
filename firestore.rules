@@ -381,5 +381,34 @@ service cloud.firestore {
 
       allow delete: if false;
     }
+
+    // Comissões "Ad Exitum" devidas à plataforma.
+    //
+    // Registradas pelo especialista (advogado) ao informar o valor total do
+    // processo e o valor recebido pelo trabalhador. A comissão (10% sobre o
+    // valor recebido) fica como `status: "pending"` até a quitação.
+    //
+    // SEGURANÇA: somente o especialista autenticado associado ao processo
+    // pode criar o registro (specialistUid == auth.uid). Os valores precisam
+    // ser numéricos e positivos, e a comissão precisa bater com 10% do valor
+    // recebido (tolerância de 1 centavo para arredondamento). Registros são
+    // imutáveis pelo cliente — quitação/ajuste ficam a cargo do backend admin.
+    match /commissions/{commissionId} {
+      allow read: if request.auth != null
+        && resource.data.specialistUid == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.specialistUid == request.auth.uid
+        && request.resource.data.status == "pending"
+        && request.resource.data.totalProcessValue is number
+        && request.resource.data.totalProcessValue > 0
+        && request.resource.data.receivedValue is number
+        && request.resource.data.receivedValue > 0
+        && request.resource.data.commissionValue is number
+        && request.resource.data.commissionValue
+             >= request.resource.data.receivedValue * 0.1 - 0.01
+        && request.resource.data.commissionValue
+             <= request.resource.data.receivedValue * 0.1 + 0.01;
+      allow update, delete: if false;
+    }
   }
 }

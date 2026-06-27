@@ -13,8 +13,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../AppHeader";
 import { getCaseDetails } from "../../data/mockCaseDetails";
 import { SPECIALIST_CONFIGS } from "../../pages/MyContactsApoiador";
-import { db } from "../../firebase";
+import { db, auth } from "../../firebase";
 import { doc, getDoc } from "firebase/firestore";
+import {
+  COMMISSION_RATE,
+  computeCommission,
+  registerAdExitumCommission,
+} from "../../services/commissions";
 import {
   buildVideoCallLink,
   ESSENCIAL_VIDEO_MAX_MINUTES,
@@ -476,6 +481,239 @@ function ReceiptUploadCard({ caseId, data, apoiadorId, specialistName }) {
   );
 }
 
+/** Converte uma entrada de texto em número (aceita vírgula decimal pt-BR). */
+function parseAmount(input) {
+  if (input === null || input === undefined) return NaN;
+  const normalized = String(input).trim().replace(/\./g, "").replace(",", ".");
+  if (normalized === "") return NaN;
+  return Number(normalized);
+}
+
+function formatBRL(value) {
+  const v = Number(value);
+  if (!Number.isFinite(v)) return "R$ 0,00";
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+/** Card de pagamento de comissão "Ad Exitum".
+ *  Exclusivo de advogados: ao finalizar/entrar na fase de pagamento de um
+ *  processo Ad Exitum, o especialista informa o valor total do processo e o
+ *  valor recebido pelo trabalhador. A plataforma calcula a comissão de 10%
+ *  sobre o valor recebido e registra a intenção de pagamento no Firestore. */
+function CommissionPaymentCard({ caseId, data, apoiadorId }) {
+  const [totalValue, setTotalValue] = useState("");
+  const [receivedValue, setReceivedValue] = useState("");
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState(null); // { ok, msg }
+
+  const total = parseAmount(totalValue);
+  const received = parseAmount(receivedValue);
+  const totalValid = Number.isFinite(total) && total > 0;
+  const receivedValid = Number.isFinite(received) && received > 0;
+  const commission = receivedValid ? computeCommission(received) : 0;
+
+  const alreadyPaid = feedback?.ok === true;
+  const canPay = totalValid && receivedValid && !submitting && !alreadyPaid;
+
+  const workerId =
+    data?.workerUid || data?.workerId || data?.clientUid || "";
+  const processId = data?.processNumber || caseId || "";
+
+  const handleConfirm = async () => {
+    // Segurança: apenas o especialista autenticado associado ao processo pode
+    // registrar a comissão. O uid vai no documento e é validado pelas rules.
+    const specialistUid = auth.currentUser?.uid || "";
+    if (!specialistUid) {
+      setShowConfirm(false);
+      setFeedback({
+        ok: false,
+        msg: "Sessão expirada. Faça login novamente como especialista.",
+      });
+      return;
+    }
+    setSubmitting(true);
+    setFeedback(null);
+    try {
+      await registerAdExitumCommission({
+        workerId,
+        specialistId: apoiadorId,
+        specialistUid,
+        processId,
+        totalProcessValue: total,
+        receivedValue: received,
+        requestId: data?.requestId || data?.contactRequestId || "",
+      });
+      setShowConfirm(false);
+      setFeedback({
+        ok: true,
+        msg: `Comissão registrada com sucesso (${formatBRL(
+          commission
+        )}). Status: pendente de pagamento.`,
+      });
+    } catch (err) {
+      setShowConfirm(false);
+      setFeedback({
+        ok: false,
+        msg: err?.message || "Não foi possível registrar a comissão.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-amber-100 dark:border-slate-700 p-5">
+      <h2 className="text-base md:text-lg font-bold text-amber-800 dark:text-amber-200 flex items-center gap-2">
+        <span aria-hidden="true">💰</span> Pagamento de comissão (Ad Exitum)
+      </h2>
+      <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+        Informe o valor total do processo e o valor recebido pelo trabalhador.
+        A plataforma calcula automaticamente a comissão de{" "}
+        {Math.round(COMMISSION_RATE * 100)}% sobre o valor recebido.
+      </p>
+
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label
+            htmlFor={`commission-total-${caseId}`}
+            className="text-[11px] uppercase tracking-wide font-semibold text-slate-500 dark:text-slate-400"
+          >
+            Valor Total do Processo (R$)
+          </label>
+          <input
+            id={`commission-total-${caseId}`}
+            type="text"
+            inputMode="decimal"
+            required
+            value={totalValue}
+            onChange={(e) => {
+              setTotalValue(e.target.value.replace(/[^\d.,]/g, ""));
+              setFeedback(null);
+            }}
+            placeholder="0,00"
+            className="mt-1 block w-full text-sm px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor={`commission-received-${caseId}`}
+            className="text-[11px] uppercase tracking-wide font-semibold text-slate-500 dark:text-slate-400"
+          >
+            Valor Recebido pelo Trabalhador (R$)
+          </label>
+          <input
+            id={`commission-received-${caseId}`}
+            type="text"
+            inputMode="decimal"
+            required
+            value={receivedValue}
+            onChange={(e) => {
+              setReceivedValue(e.target.value.replace(/[^\d.,]/g, ""));
+              setFeedback(null);
+            }}
+            placeholder="0,00"
+            className="mt-1 block w-full text-sm px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+          />
+        </div>
+      </div>
+
+      <div className="mt-3">
+        <label className="text-[11px] uppercase tracking-wide font-semibold text-slate-500 dark:text-slate-400">
+          Comissão da Plataforma ({Math.round(COMMISSION_RATE * 100)}%)
+        </label>
+        <input
+          type="text"
+          readOnly
+          value={formatBRL(commission)}
+          className="mt-1 block w-full text-sm px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 text-slate-800 dark:text-slate-100 font-bold cursor-default"
+        />
+      </div>
+
+      {feedback && (
+        <p
+          className={
+            "mt-3 text-sm font-semibold " +
+            (feedback.ok
+              ? "text-emerald-700 dark:text-emerald-300"
+              : "text-red-600 dark:text-red-400")
+          }
+        >
+          {feedback.ok ? "✅ " : "⚠️ "}
+          {feedback.msg}
+        </p>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setShowConfirm(true)}
+        disabled={!canPay}
+        className={
+          "mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition " +
+          (canPay
+            ? "bg-amber-600 hover:bg-amber-700 text-white"
+            : "bg-slate-300 text-slate-500 cursor-not-allowed dark:bg-slate-700 dark:text-slate-400")
+        }
+      >
+        Pagar Comissão à Plataforma
+      </button>
+
+      {showConfirm && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:px-4"
+          onClick={() => !submitting && setShowConfirm(false)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-xl max-w-md w-full p-6 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-extrabold text-slate-800 dark:text-slate-100">
+              Confirmar pagamento de comissão
+            </h3>
+            <div className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-200">
+              <div className="flex items-center justify-between gap-3">
+                <span>Valor recebido pelo trabalhador</span>
+                <strong>{formatBRL(received)}</strong>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span>Comissão da Plataforma ({Math.round(COMMISSION_RATE * 100)}%)</span>
+                <strong className="text-amber-700 dark:text-amber-300">
+                  {formatBRL(commission)}
+                </strong>
+              </div>
+            </div>
+            <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+              Ao confirmar, registramos a intenção de pagamento da comissão. O
+              status ficará como <strong>pendente</strong> até a quitação.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowConfirm(false)}
+                disabled={submitting}
+                className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-bold disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirm}
+                disabled={submitting}
+                className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold disabled:opacity-60"
+              >
+                {submitting ? "Registrando…" : "Confirmar pagamento"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Normaliza o tipo (aceita "consultor-rh" e "consultor_rh"). */
 function normalizeTipo(tipo) {
   return (tipo || "").toString().trim().toLowerCase().replace(/-/g, "_");
@@ -918,6 +1156,13 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
                 <VideoEssencialCard caseId={caseId} navigate={navigate} />
               ))}
             <CaseBody tipo={tipo} data={data} />
+            {tipo === "advogado" && (
+              <CommissionPaymentCard
+                caseId={caseId}
+                data={data}
+                apoiadorId={apoiadorId}
+              />
+            )}
             <ReceiptUploadCard
               caseId={caseId}
               data={data}

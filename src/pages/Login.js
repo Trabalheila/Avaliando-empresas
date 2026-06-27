@@ -122,6 +122,12 @@ export default function Login({ theme, toggleTheme }) {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       if (!user || user.isAnonymous) return;
+      // Exceção específica: caio.cad@gmail.com vai sempre direto para `/`,
+      // com prioridade sobre qualquer outro redirecionamento.
+      if (String(user.email || "").toLowerCase() === "caio.cad@gmail.com") {
+        navigate("/", { replace: true });
+        return;
+      }
       let target = "";
       try {
         const fromSession = sessionStorage.getItem(REDIRECT_AFTER_LOGIN_KEY);
@@ -278,6 +284,19 @@ export default function Login({ theme, toggleTheme }) {
   async function finishLogin(user, providerLabel) {
     persistUserProfile(user, providerLabel);
     await enrichProfileFromFirestore(user);
+
+    // Exceção específica: o usuário caio.cad@gmail.com vai sempre direto para a
+    // página principal (`/`), com prioridade sobre qualquer outro redirect
+    // (redirectAfterLogin / location.state / perfil).
+    const currentEmail = String(
+      auth.currentUser?.email || user?.email || ""
+    ).toLowerCase();
+    if (currentEmail === "caio.cad@gmail.com") {
+      clearRedirect();
+      navigate("/", { replace: true });
+      return;
+    }
+
     const explicitRedirect = getRedirectTarget();
     if (explicitRedirect) {
       clearRedirect();
