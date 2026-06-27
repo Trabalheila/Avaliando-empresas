@@ -100,6 +100,16 @@ export async function ensureConversation({
   );
   if (!participants.includes(currentUid)) participants.push(currentUid);
 
+  console.log("[chat] ensureConversation()", {
+    conversationId,
+    currentUid,
+    peerRole,
+    specialistDocId,
+    workerUid,
+    specialistUid,
+    participants,
+  });
+
   const peerNames = {};
   if (currentUid) peerNames[currentUid] = currentName || "";
   // Nome do interlocutor associado ao UID conhecido do outro lado.
@@ -109,10 +119,12 @@ export async function ensureConversation({
   const ref = doc(db, "conversations", conversationId);
   try {
     const snap = await getDoc(ref);
+    console.log("[chat] ensureConversation: doc existe?", snap.exists());
 
     if (!snap.exists()) {
       // Documento novo: cria com o array `participants` (UIDs do Auth). A
       // regra de create exige que o usuário atual esteja em participants.
+      console.log("[chat] ensureConversation: criando conversa", participants);
       await setDoc(ref, {
         participants,
         workerId: workerUid || null,
@@ -138,13 +150,15 @@ export async function ensureConversation({
     // devolvemos os participantes existentes.
     if (!existingParticipants.includes(currentUid)) {
       console.warn(
-        "Conversa existente não inclui o usuário atual (possível id legado); nenhuma escrita realizada."
+        "[chat] Conversa existente não inclui o usuário atual (possível id legado); nenhuma escrita realizada.",
+        { conversationId, currentUid, existingParticipants }
       );
       return existingParticipants;
     }
 
     // Atualiza apenas metadados, mantendo `participants` INALTERADO — a regra
     // de update exige request.resource.data.participants == resource.data.participants.
+    console.log("[chat] ensureConversation: atualizando metadados");
     await updateDoc(ref, {
       peerNames: { ...(existing.peerNames || {}), ...peerNames },
       kind: existing.kind || kind,
@@ -152,7 +166,12 @@ export async function ensureConversation({
     });
     return existingParticipants;
   } catch (err) {
-    console.warn("Falha ao garantir a conversa no Firestore:", err);
+    console.error("Falha ao garantir a conversa no Firestore:", {
+      code: err?.code,
+      message: err?.message,
+      conversationId,
+      error: err,
+    });
   }
   return participants;
 }

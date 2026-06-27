@@ -24,6 +24,7 @@ import {
   ESSENCIAL_MESSAGE_LIMIT,
 } from "../../utils/chatContentGuard";
 import { auth, storage } from "../../firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { isAdExitumAccepted } from "../../services/contactRequests";
 import {
@@ -31,6 +32,10 @@ import {
   sendChatMessage,
   subscribeToMessages,
 } from "../../services/chat";
+import {
+  buildSpecialistConversationId,
+  getSpecialistIdFromConversationId,
+} from "../../utils/chatId";
 
 // Limite de tamanho para documentos no chat Ad Exitum (25 MB).
 const ADEXITUM_MAX_FILE_BYTES = 25 * 1024 * 1024;
@@ -148,11 +153,35 @@ export default function PlatformChat({ theme, toggleTheme }) {
 
   const profile = useMemo(readProfile, []);
   // UID do Firebase Auth — é ele que identifica o remetente nas regras do
-  // Firestore e no array `participants`. Quando há usuário autenticado, o
-  // chat passa a ser persistido no Firestore (visível para os dois lados);
-  // sem autenticação, mantém o fallback legado em localStorage.
-  const authUid = auth.currentUser?.uid || "";
-  const useFirestore = Boolean(authUid && conversationId);
+  // Firestore e no array `participants`. O Firebase restaura a sessão de
+  // forma ASSÍNCRONA, então `auth.currentUser` pode estar null no primeiro
+  // render; por isso observamos onAuthStateChanged em estado.
+  const [authUid, setAuthUid] = useState(auth.currentUser?.uid || "");
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => setAuthUid(u?.uid || ""));
+    return () => unsub();
+  }, []);
+
+  // ID efetivo da conversa. Quando o usuário atual é o TRABALHADOR
+  // (peerRole === "especialista") e o id veio em formato legado
+  // (`spec_<especialista>`, sem o segmento `__u_<workerUid>`), reconstruímos
+  // o id único do par. Isso evita escrever no documento legado COMPARTILHADO
+  // — cujo `participants` pode não incluir este trabalhador, causando
+  // "permission-denied" tanto no getDoc quanto no envio da mensagem.
+  const effectiveConversationId = useMemo(() => {
+    if (!conversationId) return "";
+    if (
+      authUid &&
+      peerRole === "especialista" &&
+      !conversationId.includes("__u_")
+    ) {
+      const specId = getSpecialistIdFromConversationId(conversationId);
+      if (specId) return buildSpecialistConversationId(authUid, specId);
+    }
+    return conversationId;
+  }, [conversationId, authUid, peerRole]);
+
+  const useFirestore = Boolean(authUid && effectiveConversationId);
   const myId = authUid || profile?.apoiadorId || profile?.uid || profile?.id || "anon";
   const myName = profile?.nome || profile?.displayName || profile?.name || "Você";
   const isPremium =
@@ -169,10 +198,10 @@ export default function PlatformChat({ theme, toggleTheme }) {
 
   // Descobre se o pedido Ad Exitum desta conversa já foi aceito.
   useEffect(() => {
-    if (!isAdExitum || !conversationId) return;
+    if (!isAdExitum || !effectiveConversationId) return;
     let cancelled = false;
-    const uid = auth.currentUser?.uid || myId;
-    isAdExitumAccepted({ conversationId, uid })
+    const uid = authUid || myId;
+    isAdExitumAccepted({ conversationId: effectiveConversationId, uid })
       .then((ok) => {
         if (!cancelled) setAdExitumAccepted(ok);
       })
@@ -180,7 +209,7 @@ export default function PlatformChat({ theme, toggleTheme }) {
     return () => {
       cancelled = true;
     };
-  }, [isAdExitum, conversationId, myId]);
+  }, [isAdExitum, effectiveConversationId, authUid, myId]);
 
   // Pode anexar documentos? Premium sempre pode; no Ad Exitum, qualquer plano
   // pode — desde que o especialista tenha aceitado o contato.
@@ -190,21 +219,29 @@ export default function PlatformChat({ theme, toggleTheme }) {
   // real (mesma conversa visível para trabalhador e especialista). Sem
   // autenticação, cai no fallback legado em localStorage.
   useEffect(() => {
-    if (!conversationId) return undefined;
+    if (!effectiveConversationId) return undefined;
 
     if (useFirestore) {
       let unsub = () => {};
+      console.log("[chat] carregando conversa", {
+        effectiveConversationId,
+        routeConversationId: conversationId,
+        authUid,
+        peerRole,
+      });
       ensureConversation({
-        conversationId,
+        conversationId: effectiveConversationId,
         currentUid: authUid,
         currentName: myName,
         peerName,
         peerRole,
         kind: isAdExitum ? "adExitum" : "consulta",
       })
-        .catch(() => {})
+        .catch((err) => {
+          console.warn("[chat] ensureConversation falhou no load:", err);
+        })
         .finally(() => {
-          unsub = subscribeToMessages(conversationId, (msgs) => {
+          unsub = subscribeToMessages(effectiveConversationId, (msgs) => {
             // Normaliza para o formato usado pelos balões.
             setMessages(
               msgs.map((m) => ({
@@ -222,9 +259,9 @@ export default function PlatformChat({ theme, toggleTheme }) {
     }
 
     // Fallback legado (sem autenticação): localStorage por conversa.
-    setMessages(seedIfEmpty(conversationId, peerName));
+    setMessages(seedIfEmpty(effectiveConversationId, peerName));
     return undefined;
-  }, [conversationId, peerName, peerRole, useFirestore, authUid, myName, isAdExitum]);
+  }, [effectiveConversationId, conversationId, peerName, peerRole, useFirestore, authUid, myName, isAdExitum]);
 
   useEffect(() => {
     if (listRef.current) {
@@ -274,10 +311,17 @@ export default function PlatformChat({ theme, toggleTheme }) {
       // `participants`) ANTES de gravar a mensagem — assim a regra de
       // create da subcoleção `messages` não rejeita o envio. Em seguida
       // persiste no Firestore; o listener em tempo real atualiza a lista.
+      console.log("[chat] enviando mensagem", {
+        effectiveConversationId,
+        routeConversationId: conversationId,
+        authUid,
+        peerRole,
+        len: text.length,
+      });
       (async () => {
         try {
           await ensureConversation({
-            conversationId,
+            conversationId: effectiveConversationId,
             currentUid: authUid,
             currentName: myName,
             peerName,
@@ -285,17 +329,27 @@ export default function PlatformChat({ theme, toggleTheme }) {
             kind: isAdExitum ? "adExitum" : "consulta",
           });
           await sendChatMessage({
-            conversationId,
+            conversationId: effectiveConversationId,
             senderUid: authUid,
             senderName: myName,
             text,
           });
+          setDraft("");
+          setWarning("");
         } catch (err) {
-          console.warn("Falha ao enviar mensagem:", err);
-          setWarning("Não foi possível enviar a mensagem. Tente novamente.");
+          // Loga o erro COMPLETO para diagnóstico (code + message do Firestore).
+          console.error("[chat] Falha ao enviar mensagem:", {
+            code: err?.code,
+            message: err?.message,
+            error: err,
+            effectiveConversationId,
+          });
+          const detail = err?.code ? ` (${err.code})` : "";
+          setWarning(
+            `Não foi possível enviar a mensagem. Tente novamente.${detail}`
+          );
         }
       })();
-      setDraft("");
       return;
     }
 
@@ -351,15 +405,23 @@ export default function PlatformChat({ theme, toggleTheme }) {
         try {
           const safeName = file.name.replace(/[^\w.\-]+/g, "_").slice(-160);
           const path = `adExitumDocs/${encodeURIComponent(
-            conversationId
+            effectiveConversationId
           )}/${Date.now()}_${safeName}`;
           const fileRef = storageRef(storage, path);
           await uploadBytes(fileRef, file, { contentType: file.type || undefined });
           const url = await getDownloadURL(fileRef);
           const attachment = { name: file.name, size: file.size, url, storagePath: path };
           if (useFirestore) {
+            await ensureConversation({
+              conversationId: effectiveConversationId,
+              currentUid: authUid,
+              currentName: myName,
+              peerName,
+              peerRole,
+              kind: isAdExitum ? "adExitum" : "consulta",
+            });
             await sendChatMessage({
-              conversationId,
+              conversationId: effectiveConversationId,
               senderUid: authUid,
               senderName: myName,
               text: "",
@@ -401,7 +463,7 @@ export default function PlatformChat({ theme, toggleTheme }) {
       };
       if (useFirestore) {
         sendChatMessage({
-          conversationId,
+          conversationId: effectiveConversationId,
           senderUid: authUid,
           senderName: myName,
           text: "",
