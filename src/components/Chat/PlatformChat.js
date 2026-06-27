@@ -270,16 +270,31 @@ export default function PlatformChat({ theme, toggleTheme }) {
     }
 
     if (useFirestore) {
-      // Persiste no Firestore; o listener em tempo real atualiza a lista.
-      sendChatMessage({
-        conversationId,
-        senderUid: authUid,
-        senderName: myName,
-        text,
-      }).catch((err) => {
-        console.warn("Falha ao enviar mensagem:", err);
-        setWarning("Não foi possível enviar a mensagem. Tente novamente.");
-      });
+      // Garante que a conversa exista (e que o usuário esteja em
+      // `participants`) ANTES de gravar a mensagem — assim a regra de
+      // create da subcoleção `messages` não rejeita o envio. Em seguida
+      // persiste no Firestore; o listener em tempo real atualiza a lista.
+      (async () => {
+        try {
+          await ensureConversation({
+            conversationId,
+            currentUid: authUid,
+            currentName: myName,
+            peerName,
+            peerRole,
+            kind: isAdExitum ? "adExitum" : "consulta",
+          });
+          await sendChatMessage({
+            conversationId,
+            senderUid: authUid,
+            senderName: myName,
+            text,
+          });
+        } catch (err) {
+          console.warn("Falha ao enviar mensagem:", err);
+          setWarning("Não foi possível enviar a mensagem. Tente novamente.");
+        }
+      })();
       setDraft("");
       return;
     }

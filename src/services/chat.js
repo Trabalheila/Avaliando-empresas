@@ -108,20 +108,49 @@ export async function ensureConversation({
 
   const ref = doc(db, "conversations", conversationId);
   try {
-    await setDoc(
-      ref,
-      {
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+      // Documento novo: cria com o array `participants` (UIDs do Auth). A
+      // regra de create exige que o usuário atual esteja em participants.
+      await setDoc(ref, {
         participants,
         workerId: workerUid || null,
         specialistId: specialistUid || null,
         specialistDocId: specialistDocId || null,
         peerNames,
         kind,
-        updatedAt: serverTimestamp(),
         createdAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
+        updatedAt: serverTimestamp(),
+      });
+      return participants;
+    }
+
+    // Documento já existe.
+    const existing = snap.data() || {};
+    const existingParticipants = Array.isArray(existing.participants)
+      ? existing.participants
+      : [];
+
+    // Se o usuário atual não faz parte da conversa (ex.: conversationId
+    // legado compartilhado por vários trabalhadores), NÃO escrevemos — isso
+    // violaria as regras e vazaria mensagens entre usuários. Apenas
+    // devolvemos os participantes existentes.
+    if (!existingParticipants.includes(currentUid)) {
+      console.warn(
+        "Conversa existente não inclui o usuário atual (possível id legado); nenhuma escrita realizada."
+      );
+      return existingParticipants;
+    }
+
+    // Atualiza apenas metadados, mantendo `participants` INALTERADO — a regra
+    // de update exige request.resource.data.participants == resource.data.participants.
+    await updateDoc(ref, {
+      peerNames: { ...(existing.peerNames || {}), ...peerNames },
+      kind: existing.kind || kind,
+      updatedAt: serverTimestamp(),
+    });
+    return existingParticipants;
   } catch (err) {
     console.warn("Falha ao garantir a conversa no Firestore:", err);
   }

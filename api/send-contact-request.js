@@ -130,6 +130,105 @@ export default async function handler(req, res) {
   const fromAddress = process.env.EMAIL_FROM_ADDRESS;
   const appBaseUrl = (process.env.APP_BASE_URL || "").replace(/\/+$/, "");
 
+  // ── Fluxo Ad Exitum ───────────────────────────────────────────────
+  // Notifica o especialista (coleção `apoiadores`) de que um trabalhador
+  // iniciou um pedido Ad Exitum. O e-mail é enviado para o endereço
+  // cadastrado em "Gerenciar perfil" (campo `email` do doc apoiadores).
+  if (type === "adexitum") {
+    const tag = "send-contact-request:adExitum";
+    const toApoiadorId = String(body.toApoiadorId || "").trim();
+    const toApoiadorName = String(body.toApoiadorName || "").trim();
+    const conversationId = String(body.conversationId || "").trim();
+
+    if (!toApoiadorId) {
+      return res
+        .status(400)
+        .json({ ok: false, error: "toApoiadorId obrigatório." });
+    }
+    if (!resendKey || !fromAddress) {
+      return res
+        .status(200)
+        .json({ ok: true, emailed: false, reason: "email_disabled" });
+    }
+
+    // Prioriza o e-mail cadastrado no perfil (resolvido no servidor);
+    // cai no e-mail enviado pelo cliente apenas como último recurso.
+    const apoiadorEmail =
+      (await tryResolveEmail("apoiadores", toApoiadorId, tag)) ||
+      String(body.toEmail || "").trim().toLowerCase() ||
+      null;
+    if (!apoiadorEmail) {
+      return res
+        .status(200)
+        .json({ ok: true, emailed: false, reason: "email_unknown" });
+    }
+
+    const subject = "Novo pedido Ad Exitum no Trabalhei Lá";
+    const link = `${appBaseUrl || ""}/apoiador/my-contacts`;
+    const html = `
+    <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#0f172a;">
+      <h2 style="color:#1d4ed8;">Novo pedido Ad Exitum</h2>
+      <p>${toApoiadorName ? `Olá, ${escapeHtml(toApoiadorName)}!` : "Olá!"}</p>
+      <p>O trabalhador${
+        fromCompanyName ? ` <strong>${escapeHtml(fromCompanyName)}</strong>` : ""
+      } iniciou um pedido <strong>Ad Exitum</strong> e deseja iniciar um
+      atendimento com você.</p>
+      <blockquote style="border-left:4px solid #93c5fd;padding:8px 12px;background:#eff6ff;color:#1e3a8a;">
+        ${escapeHtml(message).replace(/\n/g, "<br>")}
+      </blockquote>
+      <p>A troca de documentos no chat só é liberada após você <strong>aceitar</strong>
+      o contato. Acesse a área "Meus Contatos" para aceitar ou recusar:</p>
+      <p style="text-align:center;margin:24px 0;">
+        <a href="${link}"
+           style="background:#1d4ed8;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold;">
+          Ver pedido Ad Exitum
+        </a>
+      </p>
+      <p style="font-size:12px;color:#94a3b8;">
+        ID: ${escapeHtml(requestId)}${
+          conversationId ? ` · Conversa: ${escapeHtml(conversationId)}` : ""
+        }. Você está recebendo este e-mail porque é um especialista cadastrado
+        no Trabalhei Lá.
+      </p>
+    </div>
+  `;
+    const text = [
+      "Novo pedido Ad Exitum no Trabalhei Lá",
+      "",
+      fromCompanyName ? `Trabalhador: ${fromCompanyName}` : "Um trabalhador",
+      "",
+      "Mensagem:",
+      message,
+      "",
+      `Acesse para aceitar ou recusar: ${link}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    try {
+      const resend = new Resend(resendKey);
+      const { error } = await resend.emails.send({
+        from: fromAddress,
+        to: apoiadorEmail,
+        subject,
+        html,
+        text,
+      });
+      if (error) {
+        console.error(`[${tag}] Resend erro:`, error);
+        return res
+          .status(200)
+          .json({ ok: true, emailed: false, reason: "send_failed" });
+      }
+      return res.status(200).json({ ok: true, emailed: true });
+    } catch (err) {
+      console.error(`[${tag}] erro inesperado:`, err?.message || err);
+      return res
+        .status(200)
+        .json({ ok: true, emailed: false, reason: "exception" });
+    }
+  }
+
   // ── Fluxo Apoiador ────────────────────────────────────────────────
   if (type === "apoiador") {
     const tag = "send-contact-request:apoiador";

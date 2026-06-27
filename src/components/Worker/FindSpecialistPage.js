@@ -13,7 +13,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { db } from "../../firebase";
+import { db, auth } from "../../firebase";
 import { collection, onSnapshot, query } from "firebase/firestore";
 import AppHeader from "../AppHeader";
 import { filterOutTestApoiadores } from "../../utils/testAccounts";
@@ -625,12 +625,16 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
 
   // UID do trabalhador logado — usado para isolar a conversa por par
   // (trabalhador × especialista), garantindo chats privados e únicos.
+  // Preferimos SEMPRE o UID do Firebase Auth: é ele que as regras do
+  // Firestore validam (request.auth.uid). Cair no localStorage só quando
+  // o usuário ainda não está autenticado evita gerar um conversationId
+  // legado (sem o segmento do trabalhador), que quebra o envio no chat.
   const workerId = useMemo(() => {
     try {
       const p = JSON.parse(localStorage.getItem("userProfile") || "{}") || {};
-      return p.uid || p.id || "";
+      return auth.currentUser?.uid || p.uid || p.id || "";
     } catch {
-      return "";
+      return auth.currentUser?.uid || "";
     }
   }, []);
 
