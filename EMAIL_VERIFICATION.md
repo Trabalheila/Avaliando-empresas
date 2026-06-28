@@ -26,7 +26,7 @@ Defina em `.env` local **e** no painel da Vercel (Production + Preview):
 | `RESEND_API_KEY` | Chave da [Resend](https://resend.com). |
 | `EMAIL_FROM_ADDRESS` | Remetente verificado na Resend (ex.: `no-reply@trabalheila.com.br`). |
 | `APP_BASE_URL` | URL pública da aplicação (ex.: `https://www.trabalheila.com.br`). |
-| `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` | Credenciais Firebase Admin (já usadas em outras rotas). |
+| `FIREBASE_SERVICE_ACCOUNT` | JSON completo da Service Account do Firebase Admin (uma única variável). |
 
 > O `.env.example` lista também `EMAIL_SERVICE_HOST/PORT/USER/PASS` apenas como
 > referência, caso no futuro o envio seja migrado para SMTP via `nodemailer`.

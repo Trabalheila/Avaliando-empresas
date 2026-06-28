@@ -4,6 +4,8 @@
 // - op=delete   : exclui documentos via Firebase Admin SDK (apenas ADMIN_UID).
 // - op=reviews  : retorna agregados de avaliações por mês (acesso premium).
 
+import { getServiceAccount } from "./_firebaseAdmin.js";
+
 let _adminAppPromise = null;
 
 async function ensureAdmin() {
@@ -12,12 +14,14 @@ async function ensureAdmin() {
     const { initializeApp, getApps, cert } = await import("firebase-admin/app");
     const { getFirestore, FieldValue } = await import("firebase-admin/firestore");
     if (!getApps().length) {
+      const serviceAccount = getServiceAccount();
+      if (!serviceAccount) {
+        throw new Error(
+          "FIREBASE_SERVICE_ACCOUNT nao configurada ou invalida no ambiente."
+        );
+      }
       initializeApp({
-        credential: cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: (process.env.FIREBASE_PRIVATE_KEY || "").replace(/\\n/g, "\n"),
-        }),
+        credential: cert(serviceAccount),
       });
     }
     return { db: getFirestore(), FieldValue };

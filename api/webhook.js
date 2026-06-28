@@ -1,4 +1,5 @@
 import { tryEmitNfseForMercadoPagoPayment } from "./_nfse.js";
+import { getServiceAccount } from "./_firebaseAdmin.js";
 
 function normalizeCompanySlug(value) {
   return (value || "")
@@ -231,21 +232,14 @@ async function getAdminResources() {
       const { getFirestore, FieldValue, Timestamp } = adminFirestore;
 
       if (!getApps().length) {
-        const hasCredentials =
-          process.env.FIREBASE_PROJECT_ID &&
-          process.env.FIREBASE_CLIENT_EMAIL &&
-          process.env.FIREBASE_PRIVATE_KEY;
+        const serviceAccount = getServiceAccount();
 
-        if (!hasCredentials) {
-          throw new Error("Credenciais FIREBASE_* nao configuradas no ambiente da Vercel.");
+        if (!serviceAccount) {
+          throw new Error("FIREBASE_SERVICE_ACCOUNT nao configurada ou invalida no ambiente da Vercel.");
         }
 
         initializeApp({
-          credential: cert({
-            projectId: process.env.FIREBASE_PROJECT_ID,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: (process.env.FIREBASE_PRIVATE_KEY || "").replace(/\\n/g, "\n"),
-          }),
+          credential: cert(serviceAccount),
         });
       }
 

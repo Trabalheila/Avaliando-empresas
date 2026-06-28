@@ -14,6 +14,7 @@
 import * as admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
 import { bqQuery } from "./_bigquery.js";
+import { getServiceAccount } from "./_firebaseAdmin.js";
 
 // ── Inicialização lazy/tolerante do Firebase Admin (apenas para op=status). ──
 let _adminInitTried = false;
@@ -22,17 +23,10 @@ function ensureAdmin() {
   _adminInitTried = true;
   if (admin.apps.length) return;
   try {
-    if (
-      process.env.FIREBASE_PROJECT_ID &&
-      process.env.FIREBASE_CLIENT_EMAIL &&
-      process.env.FIREBASE_PRIVATE_KEY
-    ) {
+    const serviceAccount = getServiceAccount();
+    if (serviceAccount) {
       admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
-        }),
+        credential: admin.credential.cert(serviceAccount),
       });
     }
   } catch (e) {

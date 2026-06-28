@@ -12,10 +12,11 @@
 //   RESEND_API_KEY        chave da Resend
 //   EMAIL_FROM_ADDRESS    remetente verificado
 //   APP_BASE_URL          base URL pública do app
-//   FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY
+//   FIREBASE_SERVICE_ACCOUNT  JSON completo da Service Account
 
 import { Resend } from "resend";
 import { handleSendReceipt } from "./_sendReceipt.js";
+import { getServiceAccount } from "./_firebaseAdmin.js";
 
 function escapeHtml(value) {
   return String(value || "")
@@ -78,23 +79,13 @@ function evidenceTextBlock(evidence) {
 
 async function tryResolveEmail(collectionName, docId, tag) {
   try {
-    const projectId =
-      process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
-    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-    const privateKey = (process.env.FIREBASE_PRIVATE_KEY || "").replace(
-      /\\n/g,
-      "\n"
-    );
-    if (!projectId || !clientEmail || !privateKey) return null;
+    const serviceAccount = getServiceAccount();
+    if (!serviceAccount) return null;
 
     const admin = await import("firebase-admin");
     if (!admin.apps?.length) {
       admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId,
-          clientEmail,
-          privateKey,
-        }),
+        credential: admin.credential.cert(serviceAccount),
       });
     }
     const snap = await admin.firestore().doc(`${collectionName}/${docId}`).get();

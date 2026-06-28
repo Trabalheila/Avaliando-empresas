@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import * as admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getServiceAccount } from './_firebaseAdmin.js';
 
 // Endpoint duplo (rota por body.action):
 //   action: "send"    (padrão) → envia e-mail de confirmação para a empresa
@@ -11,36 +12,14 @@ import { getFirestore } from 'firebase-admin/firestore';
 // 500 com mensagem JSON ao invés de a função falhar antes do try/catch.
 function ensureAdmin() {
   if (admin.apps.length) return;
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
-  if (!projectId || !clientEmail || !privateKeyRaw) {
+  const serviceAccount = getServiceAccount();
+  if (!serviceAccount) {
     throw new Error(
-      'Configuração do Firebase Admin incompleta no servidor (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY).'
+      'Configuração do Firebase Admin incompleta no servidor (FIREBASE_SERVICE_ACCOUNT ausente ou inválida).'
     );
   }
-  let privateKey = privateKeyRaw
-    .replace(/^\uFEFF/, '')
-    .trim();
-  if (
-    (privateKey.startsWith('"') && privateKey.endsWith('"')) ||
-    (privateKey.startsWith("'") && privateKey.endsWith("'"))
-  ) {
-    privateKey = privateKey.slice(1, -1);
-  }
-  privateKey = privateKey.replace(/\\n/g, '\n').replace(/\r/g, '');
-
-  if (
-    !privateKey.includes('BEGIN PRIVATE KEY') ||
-    !privateKey.includes('END PRIVATE KEY')
-  ) {
-    throw new Error(
-      'FIREBASE_PRIVATE_KEY mal formatada: faltam os delimitadores "-----BEGIN PRIVATE KEY-----" / "-----END PRIVATE KEY-----". Reconfigure a variável de ambiente na Vercel.'
-    );
-  }
-
   admin.initializeApp({
-    credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
+    credential: admin.credential.cert(serviceAccount),
   });
 }
 

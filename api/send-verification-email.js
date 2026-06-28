@@ -15,12 +15,13 @@
 //   RESEND_API_KEY             — chave da Resend (obrigatório p/ POST)
 //   EMAIL_FROM_ADDRESS         — remetente verificado (obrigatório p/ POST)
 //   APP_BASE_URL               — base URL pública (obrigatório)
-//   FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY (GET)
+//   FIREBASE_SERVICE_ACCOUNT   — JSON completo da Service Account (GET)
 
 import jwt from 'jsonwebtoken';
 import { Resend } from 'resend';
 import * as admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getServiceAccount } from './_firebaseAdmin.js';
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
@@ -37,24 +38,14 @@ function escapeHtml(value) {
 
 function ensureAdmin() {
   if (admin.apps.length) return;
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
-  if (!projectId || !clientEmail || !privateKeyRaw) {
+  const serviceAccount = getServiceAccount();
+  if (!serviceAccount) {
     throw new Error(
-      'Configuração do Firebase Admin incompleta (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY).'
+      'Configuração do Firebase Admin incompleta (FIREBASE_SERVICE_ACCOUNT ausente ou inválida).'
     );
   }
-  let privateKey = privateKeyRaw.replace(/^\uFEFF/, '').trim();
-  if (
-    (privateKey.startsWith('"') && privateKey.endsWith('"')) ||
-    (privateKey.startsWith("'") && privateKey.endsWith("'"))
-  ) {
-    privateKey = privateKey.slice(1, -1);
-  }
-  privateKey = privateKey.replace(/\\n/g, '\n').replace(/\r/g, '');
   admin.initializeApp({
-    credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
+    credential: admin.credential.cert(serviceAccount),
   });
 }
 
