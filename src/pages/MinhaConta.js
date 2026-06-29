@@ -31,6 +31,7 @@ import {
   uploadWorkerDocument,
   listWorkerDocuments,
   WORKER_DOC_MAX_BYTES,
+  MAX_FILE_SIZE_MB,
 } from "../services/workerDocuments";
 /* ════════════════════════════════════════════════
    MinhaConta — Página privada "Minha conta"
@@ -1116,7 +1117,9 @@ function WorkerDocumentsSection({ profile }) {
   const [specialists, setSpecialists] = useState([]);
   const [docsBySpec, setDocsBySpec] = useState({});
   const [loading, setLoading] = useState(false);
-  const [uploadingId, setUploadingId] = useState("");
+  // Uploads em andamento por especialista:
+  //   uploadsBySpec[specId] = [{ id, name, percent, error }]
+  const [uploadsBySpec, setUploadsBySpec] = useState({});
   const [errorBySpec, setErrorBySpec] = useState({});
   const fileInputs = useRef({});
 
@@ -1176,42 +1179,73 @@ function WorkerDocumentsSection({ profile }) {
     if (input) input.click();
   };
 
+  // Atualiza um item de upload específico (por especialista + id do upload).
+  const patchUpload = useCallback((specId, uploadId, patch) => {
+    setUploadsBySpec((prev) => {
+      const list = prev[specId] || [];
+      return {
+        ...prev,
+        [specId]: list.map((u) =>
+          u.id === uploadId ? { ...u, ...patch } : u
+        ),
+      };
+    });
+  }, []);
+
   const handleFile = async (spec, event) => {
-    const file = event?.target?.files?.[0];
+    const files = Array.from(event?.target?.files || []);
     if (event?.target) event.target.value = "";
-    if (!file) return;
+    if (files.length === 0) return;
     setErrorBySpec((prev) => ({ ...prev, [spec.id]: "" }));
 
-    if (file.size > WORKER_DOC_MAX_BYTES) {
-      setErrorBySpec((prev) => ({
-        ...prev,
-        [spec.id]: "O arquivo excede o limite de 25 MB.",
-      }));
-      return;
-    }
+    // Cria um item de progresso para cada arquivo selecionado.
+    const queued = files.map((file) => ({
+      id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      name: file.name,
+      percent: 0,
+      error: "",
+      file,
+    }));
+    setUploadsBySpec((prev) => ({
+      ...prev,
+      [spec.id]: [...(prev[spec.id] || []), ...queued.map(({ file, ...u }) => u)],
+    }));
 
-    setUploadingId(spec.id);
-    try {
-      await uploadWorkerDocument({
-        conversationId: spec.conversationId,
-        file,
-        senderUid: uid,
-        senderName: myName,
-        receiverUid: spec.receiverUid,
-        peerName: spec.name,
-      });
-      await loadDocs(spec.conversationId);
-    } catch (err) {
-      console.warn("Falha ao enviar documento:", err);
-      setErrorBySpec((prev) => ({
-        ...prev,
-        [spec.id]:
-          err?.code === "FILE_TOO_LARGE"
-            ? "O arquivo excede o limite de 25 MB."
-            : "Não foi possível enviar o documento. Tente novamente.",
-      }));
-    } finally {
-      setUploadingId("");
+    // Envia os arquivos em sequência, atualizando a barra de cada um.
+    for (const item of queued) {
+      const { file, id: uploadId } = item;
+      if (file.size > WORKER_DOC_MAX_BYTES) {
+        patchUpload(spec.id, uploadId, {
+          error: `Excede o limite de ${MAX_FILE_SIZE_MB} MB.`,
+        });
+        continue;
+      }
+      try {
+        await uploadWorkerDocument({
+          conversationId: spec.conversationId,
+          file,
+          senderUid: uid,
+          senderName: myName,
+          receiverUid: spec.receiverUid,
+          peerName: spec.name,
+          onProgress: (percent) =>
+            patchUpload(spec.id, uploadId, { percent }),
+        });
+        // Concluído: remove o item de progresso e recarrega a lista.
+        setUploadsBySpec((prev) => ({
+          ...prev,
+          [spec.id]: (prev[spec.id] || []).filter((u) => u.id !== uploadId),
+        }));
+        await loadDocs(spec.conversationId);
+      } catch (err) {
+        console.warn("Falha ao enviar documento:", err);
+        patchUpload(spec.id, uploadId, {
+          error:
+            err?.code === "FILE_TOO_LARGE"
+              ? `Excede o limite de ${MAX_FILE_SIZE_MB} MB.`
+              : "Falha no envio. Tente novamente.",
+        });
+      }
     }
   };
 
@@ -1238,7 +1272,8 @@ function WorkerDocumentsSection({ profile }) {
         <ul className="space-y-4">
           {specialists.map((spec) => {
             const docs = docsBySpec[spec.conversationId] || [];
-            const isUploading = uploadingId === spec.id;
+            const uploads = uploadsBySpec[spec.id] || [];
+            const isUploading = uploads.some((u) => !u.error && u.percent < 100);
             const err = errorBySpec[spec.id];
             return (
               <li
@@ -1262,6 +1297,8 @@ function WorkerDocumentsSection({ profile }) {
                         fileInputs.current[spec.id] = el;
                       }}
                       type="file"
+                      multiple
+                      accept="image/*,.pdf,audio/mpeg,video/mp4"
                       className="hidden"
                       onChange={(e) => handleFile(spec, e)}
                     />
@@ -1271,7 +1308,7 @@ function WorkerDocumentsSection({ profile }) {
                       disabled={isUploading}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      {isUploading ? "⏳ Enviando…" : "📤 Enviar Documento"}
+                      {isUploading ? "⏳ Enviando…" : "📤 Enviar Documentos"}
                     </button>
                   </div>
                 </div>
@@ -1280,6 +1317,45 @@ function WorkerDocumentsSection({ profile }) {
                   <p className="mt-2 text-xs text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
                     {err}
                   </p>
+                )}
+
+                {/* Barras de progresso por arquivo em envio */}
+                {uploads.length > 0 && (
+                  <ul className="mt-3 space-y-2">
+                    {uploads.map((u) => (
+                      <li key={u.id}>
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="text-xs text-slate-600 dark:text-slate-300 truncate min-w-0">
+                            📎 {u.name}
+                          </span>
+                          <span
+                            className={
+                              "text-[11px] font-semibold shrink-0 " +
+                              (u.error
+                                ? "text-red-600 dark:text-red-400"
+                                : "text-blue-600 dark:text-blue-300")
+                            }
+                          >
+                            {u.error ? "Erro" : `${u.percent}%`}
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                          <div
+                            className={
+                              "h-full rounded-full transition-all duration-200 " +
+                              (u.error ? "bg-red-500" : "bg-blue-600")
+                            }
+                            style={{ width: `${u.error ? 100 : u.percent}%` }}
+                          />
+                        </div>
+                        {u.error && (
+                          <p className="mt-1 text-[11px] text-red-600 dark:text-red-400">
+                            {u.error}
+                          </p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 )}
 
                 {docs.length > 0 ? (
@@ -1308,9 +1384,11 @@ function WorkerDocumentsSection({ profile }) {
                     ))}
                   </ul>
                 ) : (
-                  <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
-                    Nenhum documento enviado a este especialista ainda.
-                  </p>
+                  uploads.length === 0 && (
+                    <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
+                      Nenhum documento enviado a este especialista ainda.
+                    </p>
+                  )
                 )}
               </li>
             );

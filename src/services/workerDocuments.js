@@ -14,7 +14,11 @@
 // atualiza o `lastMessage`, notificando o especialista pelo mesmo canal
 // já existente (sininho + "Mensagens recentes").
 
-import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import {
+  ref as storageRef,
+  uploadBytesResumable,
+  getDownloadURL,
+} from "firebase/storage";
 import {
   addDoc,
   collection,
@@ -27,8 +31,10 @@ import {
 import { db, storage } from "../firebase";
 import { ensureConversation, sendChatMessage } from "./chat";
 
-// Limite de tamanho por documento (25 MB), alinhado ao chat Ad Exitum.
-export const WORKER_DOC_MAX_BYTES = 25 * 1024 * 1024;
+// Limite de tamanho por documento (em MB). Mantido em sincronia com a regra
+// do Firebase Storage para `adExitumDocs/`.
+export const MAX_FILE_SIZE_MB = 60;
+export const WORKER_DOC_MAX_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 /**
  * Envia um documento do trabalhador para um especialista.
@@ -40,6 +46,7 @@ export const WORKER_DOC_MAX_BYTES = 25 * 1024 * 1024;
  * @param {string} args.senderName      nome do trabalhador.
  * @param {string} [args.receiverUid]   UID do especialista (Auth), se conhecido.
  * @param {string} [args.peerName]      nome do especialista (para metadados da conversa).
+ * @param {(percent:number)=>void} [args.onProgress]  callback de progresso (0-100).
  * @returns {Promise<object>} metadados do documento gravado.
  */
 export async function uploadWorkerDocument({
@@ -49,6 +56,7 @@ export async function uploadWorkerDocument({
   senderName,
   receiverUid,
   peerName,
+  onProgress,
 }) {
   if (!conversationId || !file || !senderUid) {
     throw new Error("conversationId, file e senderUid são obrigatórios.");
@@ -76,8 +84,29 @@ export async function uploadWorkerDocument({
     .slice(-160);
   const path = `adExitumDocs/${encodeURIComponent(conversationId)}/${Date.now()}_${safeName}`;
   const fileRef = storageRef(storage, path);
-  await uploadBytes(fileRef, file, { contentType: file.type || undefined });
+
+  // Upload resumível para emitir progresso por arquivo. O percentual é
+  // reportado via `onProgress` enquanto os bytes são transferidos.
+  if (typeof onProgress === "function") onProgress(0);
+  const task = uploadBytesResumable(fileRef, file, {
+    contentType: file.type || undefined,
+  });
+  await new Promise((resolve, reject) => {
+    task.on(
+      "state_changed",
+      (snap) => {
+        if (typeof onProgress === "function" && snap.totalBytes > 0) {
+          onProgress(
+            Math.round((snap.bytesTransferred / snap.totalBytes) * 100)
+          );
+        }
+      },
+      (err) => reject(err),
+      () => resolve()
+    );
+  });
   const url = await getDownloadURL(fileRef);
+  if (typeof onProgress === "function") onProgress(100);
 
   const createdAt = new Date().toISOString();
   const meta = {

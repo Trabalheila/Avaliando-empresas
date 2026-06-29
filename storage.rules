@@ -1,0 +1,70 @@
+rules_version = '2';
+
+// Regras do Firebase Storage para o app "Trabalhei lá".
+//
+// Princípios:
+//  - Leitura pública apenas para os artefatos que já são exibidos
+//    abertamente no produto (logos de empresas, fotos de apoiadores,
+//    avatares e evidências de avaliação públicas).
+//  - Escrita exige usuário autenticado (inclui sessão anônima usada em
+//    alguns fluxos de avaliação).
+//  - Documentos do fluxo Ad Exitum (`adExitumDocs/`) têm limite de 60 MB
+//    por arquivo, alinhado a MAX_FILE_SIZE_MB em src/services/workerDocuments.js.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helpers --------------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Tamanho máximo (em bytes) do upload em curso.
+    function underMb(mb) {
+      return request.resource.size < mb * 1024 * 1024;
+    }
+
+    // Avatares de usuários: avatars/{uid}/...
+    // Leitura pública (exibidos no perfil); escrita só pelo dono.
+    match /avatars/{uid}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.uid == uid && underMb(10);
+    }
+
+    // Fotos de apoiadores/especialistas (cadastro e edição).
+    match /apoiadores/{uid}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.uid == uid && underMb(10);
+    }
+    match /apoiadorPhotos/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn() && underMb(10);
+    }
+
+    // Logos de empresas (exibidos publicamente no perfil da empresa).
+    match /companyLogos/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn() && underMb(10);
+    }
+
+    // Evidências de avaliação (fotos/vídeos anexados a avaliações públicas).
+    match /evaluationEvidence/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn() && underMb(60);
+    }
+
+    // Documentos trocados no chat trabalhador × especialista (fluxo Ad
+    // Exitum). Privados: somente usuários autenticados leem/escrevem, com
+    // limite de 60 MB por arquivo. A privacidade fina (apenas participantes)
+    // é garantida pelos metadados em conversations/{id}/documents (Firestore).
+    match /adExitumDocs/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && underMb(60);
+    }
+
+    // Demais caminhos: bloqueados por padrão.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
