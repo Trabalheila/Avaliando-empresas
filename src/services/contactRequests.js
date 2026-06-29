@@ -568,3 +568,37 @@ export async function isAdExitumAccepted({ conversationId, uid }) {
 
   return false;
 }
+
+/**
+ * Lista os pedidos Ad Exitum ACEITOS em que o trabalhador (`fromUid`) é o
+ * solicitante. Cada item traz o especialista (`toApoiadorId`,
+ * `toApoiadorUid`, `toApoiadorName`, `specialtyId`) e o `conversationId`,
+ * permitindo abrir o chat e enviar documentos. Usado pela página
+ * "Minha Conta" (Contatos Liberados + Meus Documentos para Especialistas).
+ *
+ * @param {string} fromUid  UID do trabalhador logado.
+ * @param {number} [max]    limite de leitura.
+ * @returns {Promise<Array>} pedidos aceitos, mais recentes primeiro.
+ */
+export async function listAcceptedAdExitumForWorker(fromUid, max = 50) {
+  if (!fromUid) return [];
+  try {
+    const q = query(
+      collection(db, "contactRequestsApoiador"),
+      where("fromUid", "==", fromUid),
+      limit(max)
+    );
+    const snap = await getDocs(q);
+    return snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter((r) => r.kind === "adExitum" && r.status === "accepted")
+      .sort((a, b) =>
+        String(b.respondedAt || b.createdAt || "").localeCompare(
+          String(a.respondedAt || a.createdAt || "")
+        )
+      );
+  } catch (err) {
+    console.warn("listAcceptedAdExitumForWorker:", err);
+    return [];
+  }
+}

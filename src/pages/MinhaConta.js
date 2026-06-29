@@ -25,6 +25,13 @@ import ExperienceManagerModal from "../components/ExperienceManagerModal";
 import EditProfileModal from "../components/EditProfileModal";
 import { buildVideoCallLink, formatStartsIn } from "../utils/videoCall";
 import { openReceiptPdf } from "../utils/receiptDocument";
+import { listAcceptedAdExitumForWorker } from "../services/contactRequests";
+import { buildSpecialistConversationId } from "../utils/chatId";
+import {
+  uploadWorkerDocument,
+  listWorkerDocuments,
+  WORKER_DOC_MAX_BYTES,
+} from "../services/workerDocuments";
 /* ════════════════════════════════════════════════
    MinhaConta — Página privada "Minha conta"
    ════════════════════════════════════════════════ */
@@ -737,6 +744,9 @@ export default function MinhaConta({ theme, toggleTheme }) {
         {/* ══════ Contatos Liberados ══════ */}
         <ReleasedContactsSection profile={safeProfile} />
 
+        {/* ══════ Meus Documentos para Especialistas ══════ */}
+        <WorkerDocumentsSection profile={safeProfile} />
+
         {/* ══════ Minhas Experiências Profissionais ══════ */}
         <section id="experiencias" className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
           <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
@@ -937,8 +947,10 @@ export default function MinhaConta({ theme, toggleTheme }) {
    Mercado Pago). Exibe e-mail e WhatsApp do especialista.
    ════════════════════════════════════════════════ */
 function ReleasedContactsSection({ profile }) {
+  const navigate = useNavigate();
   const uid = auth.currentUser?.uid || profile?.uid || profile?.id || "";
   const [contacts, setContacts] = useState([]);
+  const [adExitum, setAdExitum] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -947,9 +959,12 @@ function ReleasedContactsSection({ profile }) {
     setLoading(true);
     (async () => {
       try {
-        const snap = await getDocs(
-          collection(db, "users", uid, "releasedContacts")
-        );
+        const [snap, accepted] = await Promise.all([
+          getDocs(collection(db, "users", uid, "releasedContacts")).catch(
+            () => ({ docs: [] })
+          ),
+          listAcceptedAdExitumForWorker(uid).catch(() => []),
+        ]);
         if (!cancelled) {
           const list = snap.docs
             .map((d) => ({ id: d.id, ...d.data() }))
@@ -959,6 +974,7 @@ function ReleasedContactsSection({ profile }) {
                 (a?.releasedAt?.toMillis?.() || 0)
             );
           setContacts(list);
+          setAdExitum(Array.isArray(accepted) ? accepted : []);
         }
       } catch {
         // best-effort
@@ -970,6 +986,21 @@ function ReleasedContactsSection({ profile }) {
       cancelled = true;
     };
   }, [uid]);
+
+  const openChat = (req) => {
+    const convId =
+      req.conversationId ||
+      buildSpecialistConversationId(uid, req.toApoiadorId);
+    if (!convId) return;
+    const params = new URLSearchParams({
+      peer: req.toApoiadorName || "Especialista",
+      peerRole: "especialista",
+      adExitum: "1",
+    });
+    navigate(`/chat/${encodeURIComponent(convId)}?${params.toString()}`);
+  };
+
+  const hasAny = contacts.length > 0 || adExitum.length > 0;
 
   return (
     <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
@@ -984,13 +1015,41 @@ function ReleasedContactsSection({ profile }) {
         <p className="text-sm text-slate-500 dark:text-slate-400 animate-pulse">
           Carregando contatos…
         </p>
-      ) : contacts.length === 0 ? (
+      ) : !hasAny ? (
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Nenhum contato liberado ainda. Ao contratar uma consulta, os dados de
-          contato do especialista aparecem aqui após a confirmação do pagamento.
+          Nenhum contato liberado ainda. Ao contratar uma consulta ou ter um
+          pedido Ad Exitum aceito por um especialista, os dados aparecem aqui.
         </p>
       ) : (
         <ul className="space-y-3">
+          {/* Especialistas que aceitaram um pedido Ad Exitum */}
+          {adExitum.map((r) => (
+            <li
+              key={`ae-${r.id}`}
+              className="p-4 rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-900/20"
+            >
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 break-words">
+                    {r.toApoiadorName || "Especialista"}
+                  </p>
+                  <p className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold">
+                    ⚖️ {r.specialtyId || "Especialista"} · contato Ad Exitum
+                    aceito
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => openChat(r)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition shrink-0"
+                >
+                  💬 Abrir chat
+                </button>
+              </div>
+            </li>
+          ))}
+
+          {/* Contatos liberados após pagamento de consulta */}
           {contacts.map((c) => {
             const waDigits = String(c.especialistaWhatsapp || "").replace(/\D/g, "");
             return (
@@ -1005,7 +1064,7 @@ function ReleasedContactsSection({ profile }) {
                   {c.especialistaEmail && (
                     <a
                       href={`mailto:${c.especialistaEmail}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 text-xs font-bold hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 text-xs font-bold hover:bg-blue-50 dark:hover:bg-blue-900/30 break-all"
                     >
                       📧 {c.especialistaEmail}
                     </a>
@@ -1026,6 +1085,233 @@ function ReleasedContactsSection({ profile }) {
                     </span>
                   )}
                 </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/* ════════════════════════════════════════════════
+   WorkerDocumentsSection
+   ────────────────────────────────────────────────
+   Card "Meus Documentos para Especialistas". Lista os
+   especialistas com contato ativo (pedidos Ad Exitum
+   aceitos) e permite ao trabalhador enviar documentos
+   (Firebase Storage + subcoleção conversations/{id}/documents).
+   Mostra também os documentos já enviados, com link para
+   visualizar/baixar. O especialista é notificado pelo mesmo
+   canal do chat (o documento entra como mensagem com anexo).
+   ════════════════════════════════════════════════ */
+function WorkerDocumentsSection({ profile }) {
+  const uid = auth.currentUser?.uid || profile?.uid || profile?.id || "";
+  const myName =
+    profile?.nomeReal ||
+    profile?.fullName ||
+    profile?.pseudonimo ||
+    profile?.nome ||
+    "Trabalhador";
+  const [specialists, setSpecialists] = useState([]);
+  const [docsBySpec, setDocsBySpec] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [uploadingId, setUploadingId] = useState("");
+  const [errorBySpec, setErrorBySpec] = useState({});
+  const fileInputs = useRef({});
+
+  const loadDocs = useCallback(async (convId) => {
+    if (!convId) return;
+    const docs = await listWorkerDocuments(convId).catch(() => []);
+    setDocsBySpec((prev) => ({ ...prev, [convId]: docs }));
+  }, []);
+
+  useEffect(() => {
+    if (!uid) return undefined;
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      try {
+        const accepted = await listAcceptedAdExitumForWorker(uid).catch(
+          () => []
+        );
+        // Deduplica por especialista (um trabalhador pode ter mais de um
+        // pedido aceito com o mesmo especialista).
+        const byApoiador = new Map();
+        for (const r of accepted) {
+          const key = String(r.toApoiadorId || r.toApoiadorUid || r.id);
+          if (!byApoiador.has(key)) {
+            const conversationId =
+              r.conversationId ||
+              buildSpecialistConversationId(uid, r.toApoiadorId);
+            byApoiador.set(key, {
+              id: key,
+              name: r.toApoiadorName || "Especialista",
+              specialtyId: r.specialtyId || "",
+              receiverUid: r.toApoiadorUid || "",
+              conversationId,
+            });
+          }
+        }
+        const list = Array.from(byApoiador.values()).filter(
+          (s) => s.conversationId
+        );
+        if (cancelled) return;
+        setSpecialists(list);
+        // Carrega os documentos já enviados de cada conversa.
+        await Promise.all(list.map((s) => loadDocs(s.conversationId)));
+      } catch {
+        // best-effort
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [uid, loadDocs]);
+
+  const handlePick = (spec) => {
+    const input = fileInputs.current[spec.id];
+    if (input) input.click();
+  };
+
+  const handleFile = async (spec, event) => {
+    const file = event?.target?.files?.[0];
+    if (event?.target) event.target.value = "";
+    if (!file) return;
+    setErrorBySpec((prev) => ({ ...prev, [spec.id]: "" }));
+
+    if (file.size > WORKER_DOC_MAX_BYTES) {
+      setErrorBySpec((prev) => ({
+        ...prev,
+        [spec.id]: "O arquivo excede o limite de 25 MB.",
+      }));
+      return;
+    }
+
+    setUploadingId(spec.id);
+    try {
+      await uploadWorkerDocument({
+        conversationId: spec.conversationId,
+        file,
+        senderUid: uid,
+        senderName: myName,
+        receiverUid: spec.receiverUid,
+        peerName: spec.name,
+      });
+      await loadDocs(spec.conversationId);
+    } catch (err) {
+      console.warn("Falha ao enviar documento:", err);
+      setErrorBySpec((prev) => ({
+        ...prev,
+        [spec.id]:
+          err?.code === "FILE_TOO_LARGE"
+            ? "O arquivo excede o limite de 25 MB."
+            : "Não foi possível enviar o documento. Tente novamente.",
+      }));
+    } finally {
+      setUploadingId("");
+    }
+  };
+
+  return (
+    <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
+      <h2 className="text-lg font-bold text-blue-800 dark:text-blue-200 mb-4 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        Meus Documentos para Especialistas
+      </h2>
+
+      {loading ? (
+        <p className="text-sm text-slate-500 dark:text-slate-400 animate-pulse">
+          Carregando especialistas…
+        </p>
+      ) : specialists.length === 0 ? (
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Você ainda não tem especialistas com contato ativo. Quando um
+          especialista aceitar o seu pedido Ad Exitum, você poderá enviar
+          documentos com segurança por aqui.
+        </p>
+      ) : (
+        <ul className="space-y-4">
+          {specialists.map((spec) => {
+            const docs = docsBySpec[spec.conversationId] || [];
+            const isUploading = uploadingId === spec.id;
+            const err = errorBySpec[spec.id];
+            return (
+              <li
+                key={spec.id}
+                className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-4"
+              >
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-100 break-words">
+                      {spec.name}
+                    </p>
+                    {spec.specialtyId && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        ⚖️ {spec.specialtyId}
+                      </p>
+                    )}
+                  </div>
+                  <div className="shrink-0">
+                    <input
+                      ref={(el) => {
+                        fileInputs.current[spec.id] = el;
+                      }}
+                      type="file"
+                      className="hidden"
+                      onChange={(e) => handleFile(spec, e)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handlePick(spec)}
+                      disabled={isUploading}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {isUploading ? "⏳ Enviando…" : "📤 Enviar Documento"}
+                    </button>
+                  </div>
+                </div>
+
+                {err && (
+                  <p className="mt-2 text-xs text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+                    {err}
+                  </p>
+                )}
+
+                {docs.length > 0 ? (
+                  <ul className="mt-3 space-y-1.5">
+                    {docs.map((d) => (
+                      <li
+                        key={d.id}
+                        className="flex items-center justify-between gap-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2"
+                      >
+                        <div className="min-w-0 flex items-center gap-2">
+                          <span aria-hidden="true">📎</span>
+                          <span className="text-xs text-slate-700 dark:text-slate-200 truncate">
+                            {d.name}
+                          </span>
+                        </div>
+                        <a
+                          href={d.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download={d.name}
+                          className="text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline shrink-0"
+                        >
+                          Visualizar
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
+                    Nenhum documento enviado a este especialista ainda.
+                  </p>
+                )}
               </li>
             );
           })}

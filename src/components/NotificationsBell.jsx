@@ -3,9 +3,40 @@ import { useNavigate } from "react-router-dom";
 import {
   listIncomingRequests,
   listIncomingApoiadorRequests,
+  listAcceptedAdExitumForWorker,
 } from "../services/contactRequests";
-import { db } from "../firebase";
+import { listConversationsForParticipant } from "../services/chat";
+import { db, auth } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
+
+/* Estado "lido" mantido no localStorage (sem escrita no Firestore). */
+const SEEN_MSG_KEY = "tl_notif_seen_messages"; // { [conversationId]: ISO }
+const SEEN_AE_KEY = "tl_notif_seen_adexitum"; // [requestId]
+
+function readSeenMap(key) {
+  try {
+    const v = JSON.parse(localStorage.getItem(key) || "{}");
+    return v && typeof v === "object" ? v : {};
+  } catch {
+    return {};
+  }
+}
+function readSeenList(key) {
+  try {
+    const v = JSON.parse(localStorage.getItem(key) || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+function writeSeen(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* quota/privado: silencioso */
+  }
+}
 
 /**
  * NotificationsBell
@@ -24,6 +55,13 @@ export default function NotificationsBell() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [profileInfo, setProfileInfo] = useState({ uid: "", apoiadorId: "" });
+  const [authUid, setAuthUid] = useState(auth.currentUser?.uid || "");
+
+  /* UID do Firebase Auth — usado para ler conversas (participants são UIDs). */
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => setAuthUid(u?.uid || ""));
+    return () => unsub();
+  }, []);
 
   /* Detecta UID do usuário logado a partir do localStorage */
   useEffect(() => {
@@ -48,31 +86,60 @@ export default function NotificationsBell() {
 
   /* Carrega notificações */
   const load = useCallback(async () => {
-    if (!uid && !apoiadorId) {
+    if (!uid && !apoiadorId && !authUid) {
       setItems([]);
       return;
     }
     setLoading(true);
     try {
-      const [worker, apoiador, consultas] = await Promise.all([
-        uid ? listIncomingRequests(uid, 30) : Promise.resolve([]),
-        apoiadorId ? listIncomingApoiadorRequests(apoiadorId, 30) : Promise.resolve([]),
-        apoiadorId
-          ? (async () => {
-              try {
-                const q = query(
-                  collection(db, "consultas"),
-                  where("apoiadorId", "==", apoiadorId),
-                  limit(30)
-                );
-                const snap = await getDocs(q);
-                return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-              } catch {
-                return [];
-              }
-            })()
-          : Promise.resolve([]),
-      ]);
+      const [worker, apoiador, consultas, adExitumAccepted, conversations] =
+        await Promise.all([
+          uid ? listIncomingRequests(uid, 30) : Promise.resolve([]),
+          apoiadorId
+            ? listIncomingApoiadorRequests(apoiadorId, 30)
+            : Promise.resolve([]),
+          apoiadorId
+            ? (async () => {
+                try {
+                  const q = query(
+                    collection(db, "consultas"),
+                    where("apoiadorId", "==", apoiadorId),
+                    limit(30)
+                  );
+                  const snap = await getDocs(q);
+                  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+                } catch {
+                  return [];
+                }
+              })()
+            : Promise.resolve([]),
+          // Pedidos Ad Exitum que o especialista ACEITOU (trabalhador é o
+          // solicitante = fromUid). Relevante apenas para trabalhadores.
+          authUid || uid
+            ? listAcceptedAdExitumForWorker(authUid || uid, 30)
+            : Promise.resolve([]),
+          // Novas mensagens recebidas no chat (qualquer conversa em que o
+          // usuário é participante e a última mensagem veio do OUTRO lado).
+          authUid
+            ? listConversationsForParticipant(authUid, 30)
+            : Promise.resolve([]),
+        ]);
+
+      const seenMsg = readSeenMap(SEEN_MSG_KEY);
+      const seenAe = readSeenList(SEEN_AE_KEY);
+
+      const messageItems = conversations
+        .filter((c) => {
+          const last = c.lastMessage;
+          if (!last || !last.senderUid) return false;
+          return last.senderUid !== authUid; // só mensagens do interlocutor
+        })
+        .map((c) => ({
+          ...c,
+          _kind: "message",
+          createdAt: c.lastMessage?.createdAt || c.updatedAt || "",
+        }));
+
       const combined = [
         ...worker.map((r) => ({ ...r, _kind: "worker" })),
         ...apoiador.map((r) => ({ ...r, _kind: "apoiador" })),
@@ -87,6 +154,18 @@ export default function NotificationsBell() {
             ? "pending"
             : r.status,
         })),
+        ...adExitumAccepted.map((r) => ({
+          ...r,
+          _kind: "adExitumAccepted",
+          createdAt: r.respondedAt || r.createdAt || "",
+          _unread: !seenAe.includes(r.id),
+        })),
+        ...messageItems.map((r) => ({
+          ...r,
+          _unread:
+            String(r.lastMessage?.createdAt || "") >
+            String(seenMsg[r.id] || ""),
+        })),
       ].sort((a, b) =>
         String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
       );
@@ -96,30 +175,100 @@ export default function NotificationsBell() {
     } finally {
       setLoading(false);
     }
-  }, [uid, apoiadorId]);
+  }, [uid, apoiadorId, authUid]);
 
   useEffect(() => {
-    if (uid || apoiadorId) load();
-  }, [uid, apoiadorId, load]);
+    if (uid || apoiadorId || authUid) load();
+  }, [uid, apoiadorId, authUid, load]);
 
   /* Polling leve a cada 60s enquanto a aba está visível */
   useEffect(() => {
-    if (!uid && !apoiadorId) return undefined;
+    if (!uid && !apoiadorId && !authUid) return undefined;
     const id = setInterval(() => {
       if (typeof document === "undefined" || !document.hidden) {
         load();
       }
     }, 60000);
     return () => clearInterval(id);
-  }, [uid, apoiadorId, load]);
+  }, [uid, apoiadorId, authUid, load]);
 
   const unreadCount = items.filter((r) => {
     if (r._kind === "consulta") return r.status === "pending" && r.readByApoiador === false;
+    if (r._kind === "adExitumAccepted" || r._kind === "message") return Boolean(r._unread);
     if (r.status !== "pending") return false;
     return r._kind === "apoiador" ? !r.readByApoiador : !r.readByWorker;
   }).length;
 
-  if (!uid && !apoiadorId) return null;
+  if (!uid && !apoiadorId && !authUid) return null;
+
+  /* Monta a rota do chat para uma conversa em que o usuário participa. */
+  const buildChatHref = (conv) => {
+    const convId = conv.id || conv.conversationId;
+    if (!convId) return "";
+    const iAmWorker = authUid && conv.workerId === authUid;
+    const otherUid = iAmWorker ? conv.specialistId : conv.workerId;
+    const peerName =
+      (conv.peerNames && otherUid && conv.peerNames[otherUid]) ||
+      (iAmWorker ? "Especialista" : "Trabalhador");
+    const params = new URLSearchParams({
+      peer: peerName,
+      peerRole: iAmWorker ? "especialista" : "trabalhador",
+    });
+    if (conv.kind === "adExitum") params.set("adExitum", "1");
+    return `/chat/${encodeURIComponent(convId)}?${params.toString()}`;
+  };
+
+  /* Navega para o destino do item e marca como lido (estado local). */
+  const handleItemClick = (r) => {
+    setOpen(false);
+    if (r._kind === "message") {
+      const seen = readSeenMap(SEEN_MSG_KEY);
+      seen[r.id] = r.lastMessage?.createdAt || new Date().toISOString();
+      writeSeen(SEEN_MSG_KEY, seen);
+      setItems((prev) =>
+        prev.map((it) =>
+          it._kind === "message" && it.id === r.id
+            ? { ...it, _unread: false }
+            : it
+        )
+      );
+      const href = buildChatHref(r);
+      if (href) navigate(href);
+      return;
+    }
+    if (r._kind === "adExitumAccepted") {
+      const seen = readSeenList(SEEN_AE_KEY);
+      if (!seen.includes(r.id)) writeSeen(SEEN_AE_KEY, [...seen, r.id]);
+      setItems((prev) =>
+        prev.map((it) =>
+          it._kind === "adExitumAccepted" && it.id === r.id
+            ? { ...it, _unread: false }
+            : it
+        )
+      );
+      const convId =
+        r.conversationId ||
+        (authUid ? `spec_${r.toApoiadorId}__u_${authUid}` : "");
+      if (convId) {
+        const params = new URLSearchParams({
+          peer: r.toApoiadorName || "Especialista",
+          peerRole: "especialista",
+          adExitum: "1",
+        });
+        navigate(`/chat/${encodeURIComponent(convId)}?${params.toString()}`);
+      } else {
+        navigate("/minha-conta");
+      }
+      return;
+    }
+    const target =
+      r._kind === "consulta"
+        ? "/apoiador/requisicoes"
+        : r._kind === "apoiador"
+        ? "/apoiador/my-contacts"
+        : "/my-contacts";
+    navigate(target);
+  };
 
   return (
     <div className="relative">
@@ -151,7 +300,7 @@ export default function NotificationsBell() {
             onClick={() => setOpen(false)}
             style={{ position: "fixed", inset: 0, zIndex: 55 }}
           />
-          <div className="absolute right-0 top-full mt-2 w-80 max-w-[90vw] rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl z-[60] py-1">
+          <div className="absolute right-0 top-full mt-2 w-[min(20rem,calc(100vw-1.5rem))] rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl z-[60] py-1">
             <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
               <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">
                 Notificações
@@ -179,37 +328,55 @@ export default function NotificationsBell() {
             ) : (
               <ul className="max-h-80 overflow-y-auto">
                 {items.slice(0, 8).map((r) => {
-                  const unread =
-                    r._kind === "consulta"
-                      ? r.status === "pending" && r.readByApoiador === false
-                      : r.status === "pending" &&
-                        (r._kind === "apoiador" ? !r.readByApoiador : !r.readByWorker);
-                  const target =
-                    r._kind === "consulta"
-                      ? "/apoiador/requisicoes"
-                      : r._kind === "apoiador"
-                      ? "/apoiador/my-contacts"
-                      : "/my-contacts";
-                  const title =
-                    r._kind === "consulta"
-                      ? unread
-                        ? "📅 Nova requisição de consulta"
-                        : "Requisição de consulta"
-                      : unread
+                  let unread;
+                  let title;
+                  let desc;
+                  if (r._kind === "message") {
+                    unread = Boolean(r._unread);
+                    const fromName =
+                      (r.peerNames && r.lastMessage?.senderUid
+                        ? r.peerNames[r.lastMessage.senderUid]
+                        : "") || "seu contato";
+                    title = unread ? "💬 Nova mensagem" : "Mensagem";
+                    desc = `${fromName}${
+                      r.lastMessage?.attachmentName
+                        ? `: 📎 ${r.lastMessage.attachmentName}`
+                        : r.lastMessage?.text
+                        ? `: ${r.lastMessage.text}`
+                        : ""
+                    }`;
+                  } else if (r._kind === "adExitumAccepted") {
+                    unread = Boolean(r._unread);
+                    title = unread
+                      ? "✅ Pedido Ad Exitum aceito"
+                      : "Pedido Ad Exitum aceito";
+                    desc = `${
+                      r.toApoiadorName || "O especialista"
+                    } aceitou seu pedido. Toque para abrir o chat.`;
+                  } else if (r._kind === "consulta") {
+                    unread = r.status === "pending" && r.readByApoiador === false;
+                    title = unread
+                      ? "📅 Nova requisição de consulta"
+                      : "Requisição de consulta";
+                    desc = `${
+                      r.requesterAudience === "employer"
+                        ? "Empresa"
+                        : "Trabalhador"
+                    } • ${r.especialidade || "consulta intermediada"}`;
+                  } else {
+                    unread =
+                      r.status === "pending" &&
+                      (r._kind === "apoiador" ? !r.readByApoiador : !r.readByWorker);
+                    title = unread
                       ? "📩 Novo pedido de contato"
                       : "Pedido de contato";
-                  const desc =
-                    r._kind === "consulta"
-                      ? `${r.requesterAudience === "employer" ? "Empresa" : "Trabalhador"} • ${r.especialidade || "consulta intermediada"}`
-                      : "Você recebeu um pedido de contato. Clique para ver.";
+                    desc = "Você recebeu um pedido de contato. Clique para ver.";
+                  }
                   return (
                     <li key={`${r._kind}-${r.id}`}>
                       <button
                         type="button"
-                        onClick={() => {
-                          setOpen(false);
-                          navigate(target);
-                        }}
+                        onClick={() => handleItemClick(r)}
                         className={
                           "w-full text-left px-4 py-2 transition border-l-4 " +
                           (unread
@@ -217,10 +384,10 @@ export default function NotificationsBell() {
                             : "border-transparent hover:bg-slate-50 dark:hover:bg-slate-700")
                         }
                       >
-                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 break-words">
                           {title}
                         </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 break-words line-clamp-2">
                           {desc}
                         </p>
                       </button>

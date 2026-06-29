@@ -335,6 +335,21 @@ service cloud.firestore {
           && request.resource.data.senderUid == request.auth.uid;
         allow update, delete: if false;
       }
+
+      // Documentos trocados na conversa (trabalhador → especialista e
+      // vice-versa). Subcoleção /conversations/{id}/documents/{docId}.
+      // Apenas participantes leem; quem cria precisa declarar-se como
+      // remetente (senderId == auth.uid). Metadados imutáveis.
+      match /documents/{documentId} {
+        allow read: if request.auth != null
+          && request.auth.uid in
+             get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+        allow create: if request.auth != null
+          && request.auth.uid in
+             get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants
+          && request.resource.data.senderId == request.auth.uid;
+        allow update, delete: if false;
+      }
     }
 
     // Funil de cadastro: registra quem entrou na página /pseudonym
