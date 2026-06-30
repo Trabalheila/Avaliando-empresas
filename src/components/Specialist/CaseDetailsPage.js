@@ -17,6 +17,10 @@ import { db, auth } from "../../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { getSpecialistCase } from "../../services/specialistCases";
 import {
+  getSpecialistIdFromConversationId,
+  getWorkerIdFromConversationId,
+} from "../../utils/chatId";
+import {
   COMMISSION_RATE,
   computeCommission,
   registerAdExitumCommission,
@@ -834,6 +838,59 @@ function NotesCard({ notes }) {
   );
 }
 
+/** Card com os dados pessoais do cliente, preenchidos pelo próprio
+ *  trabalhador no seu perfil. Só aparece quando há dados disponíveis. */
+function ClientPersonalDataCard({ client }) {
+  if (!client) return null;
+  const hasAny = [
+    client.fullName,
+    client.cpf,
+    client.rg,
+    client.birthDate,
+    client.maritalStatus,
+    client.profession,
+    client.phone,
+    client.address,
+  ].some((v) => v && String(v).trim());
+  if (!hasAny) return null;
+
+  const fullAddress = [
+    client.address,
+    client.addressNumber && `nº ${client.addressNumber}`,
+    client.addressComplement,
+    client.neighborhood,
+    client.city && client.state ? `${client.city}/${client.state}` : client.city || client.state,
+    client.cep && `CEP ${client.cep}`,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  return (
+    <InfoCard>
+      <h2 className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+        <span aria-hidden="true">🪪</span> Dados pessoais do cliente
+      </h2>
+      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+        Informações fornecidas pelo próprio trabalhador. Use-as apenas para o
+        atendimento deste caso.
+      </p>
+      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Field label="Nome completo" value={client.fullName} />
+        <Field label="CPF" value={client.cpf} />
+        <Field label="RG" value={client.rg} />
+        <Field label="Data de nascimento" value={client.birthDate} />
+        <Field label="Estado civil" value={client.maritalStatus} />
+        <Field label="Profissão" value={client.profession} />
+        <Field label="Telefone" value={client.phone} />
+        <Field label="E-mail" value={client.email} />
+        <div className="sm:col-span-2">
+          <Field label="Endereço completo" value={fullAddress} />
+        </div>
+      </div>
+    </InfoCard>
+  );
+}
+
 /** Conteúdo específico por tipo de especialista. */
 function CaseBody({ tipo, data }) {
   switch (tipo) {
@@ -1034,6 +1091,8 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
   // Caso real lido de /apoiadores/{apoiadorId}/cases/{caseId}. Quando existe,
   // tem prioridade sobre os dados mockados.
   const [realCase, setRealCase] = useState(null);
+  // Dados pessoais do cliente (preenchidos pelo trabalhador no seu perfil).
+  const [clientProfile, setClientProfile] = useState(null);
   useEffect(() => {
     let prof = {};
     try {
@@ -1073,12 +1132,35 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
 
   // Busca o caso real do especialista. Quando existe, tem prioridade sobre
   // o mock (que segue servindo de demonstração quando não há caso real).
+  //
+  // IMPORTANTE: o caso é gravado em /apoiadores/{specialistId}/cases/{caseId},
+  // onde {specialistId} é o id embutido no próprio caseId
+  // (case_spec_<specialistId>__u_<workerId>). Derivamos esse id a partir do
+  // caseId para ler SEMPRE do caminho correto — o `apoiadorId` do
+  // localStorage pode divergir (ex.: ser o UID do Auth em vez do doc id).
   useEffect(() => {
-    if (!apoiadorId || !caseId) return undefined;
+    if (!caseId) return undefined;
     let cancelled = false;
+    const convId = String(caseId).replace(/^case_/, "");
+    const specialistIdFromCase =
+      getSpecialistIdFromConversationId(convId) || apoiadorId;
+    const workerUid = getWorkerIdFromConversationId(convId);
     (async () => {
-      const found = await getSpecialistCase(apoiadorId, caseId);
-      if (!cancelled) setRealCase(found);
+      if (specialistIdFromCase) {
+        const found = await getSpecialistCase(specialistIdFromCase, caseId);
+        if (!cancelled) setRealCase(found);
+        // Dados pessoais do cliente: preferimos o workerUid salvo no caso e,
+        // como fallback, o id extraído do caseId.
+        const clientUid = found?.workerUid || found?.userId || workerUid;
+        if (clientUid) {
+          try {
+            const snap = await getDoc(doc(db, "clientProfiles", String(clientUid)));
+            if (!cancelled) setClientProfile(snap.exists() ? snap.data() : null);
+          } catch (err) {
+            console.warn("Falha ao ler dados do cliente:", err);
+          }
+        }
+      }
     })();
     return () => {
       cancelled = true;
@@ -1195,6 +1277,7 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
                 <VideoEssencialCard caseId={caseId} navigate={navigate} />
               ))}
             <CaseBody tipo={tipo} data={data} />
+            <ClientPersonalDataCard client={clientProfile} />
             {tipo === "advogado" && (
               <CommissionPaymentCard
                 caseId={caseId}

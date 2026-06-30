@@ -11,6 +11,8 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { saveUserProfile } from "../services/users";
+import { db } from "../firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 const PREDEFINED_AVATARS = [
   "🧑", "🧑‍💼", "🧑‍🔧", "🧑‍💻", "🧑‍🔬",
@@ -27,6 +29,22 @@ const EDUCATION_OPTIONS = [
   "Pós-graduação",
   "Mestrado",
   "Doutorado",
+];
+
+const MARITAL_OPTIONS = [
+  "",
+  "Solteiro(a)",
+  "Casado(a)",
+  "União estável",
+  "Divorciado(a)",
+  "Separado(a)",
+  "Viúvo(a)",
+];
+
+const UF_OPTIONS = [
+  "", "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS",
+  "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP",
+  "SE", "TO",
 ];
 
 function persistLocalProfile(nextProfile) {
@@ -57,6 +75,20 @@ export default function EditProfileModal({ open, onClose, profile, onSaved }) {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
 
+  // Dados pessoais compartilhados com o especialista que aceitar o caso.
+  const [cpf, setCpf] = useState("");
+  const [rg, setRg] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [maritalStatus, setMaritalStatus] = useState("");
+  const [profession, setProfession] = useState("");
+  const [cep, setCep] = useState("");
+  const [address, setAddress] = useState("");
+  const [addressNumber, setAddressNumber] = useState("");
+  const [addressComplement, setAddressComplement] = useState("");
+  const [neighborhood, setNeighborhood] = useState("");
+  const [city, setCity] = useState("");
+  const [uf, setUf] = useState("");
+
   useEffect(() => {
     if (!open) return;
     setPseudonimo(profile?.pseudonimo || "");
@@ -65,6 +97,18 @@ export default function EditProfileModal({ open, onClose, profile, onSaved }) {
     setPhone(profile?.phone || "");
     setEducation(profile?.education || "");
     setAvatar(profile?.avatar || profile?.picture || "");
+    setCpf(profile?.cpf || "");
+    setRg(profile?.rg || "");
+    setBirthDate(profile?.birthDate || "");
+    setMaritalStatus(profile?.maritalStatus || "");
+    setProfession(profile?.profession || "");
+    setCep(profile?.cep || "");
+    setAddress(profile?.address || "");
+    setAddressNumber(profile?.addressNumber || "");
+    setAddressComplement(profile?.addressComplement || "");
+    setNeighborhood(profile?.neighborhood || "");
+    setCity(profile?.city || "");
+    setUf(profile?.state || profile?.uf || "");
     setError("");
     setInfo("");
   }, [open, profile]);
@@ -96,8 +140,51 @@ export default function EditProfileModal({ open, onClose, profile, onSaved }) {
         picture: avatar && (avatar.startsWith("http") || avatar.startsWith("data:"))
           ? avatar
           : profile?.picture || "",
+        cpf: cpf.trim(),
+        rg: rg.trim(),
+        birthDate: birthDate.trim(),
+        maritalStatus,
+        profession: profession.trim(),
+        cep: cep.trim(),
+        address: address.trim(),
+        addressNumber: addressNumber.trim(),
+        addressComplement: addressComplement.trim(),
+        neighborhood: neighborhood.trim(),
+        city: city.trim(),
+        state: uf,
       };
       const persisted = await saveUserProfile(update);
+
+      // Espelha os dados pessoais num documento legível pelo especialista que
+      // aceitar o caso (/clientProfiles/{uid}). O documento privado completo
+      // segue em /users/{uid}; aqui guardamos só o necessário ao atendimento.
+      try {
+        await setDoc(
+          doc(db, "clientProfiles", String(id)),
+          {
+            fullName: update.fullName,
+            email: update.email,
+            phone: update.phone,
+            cpf: update.cpf,
+            rg: update.rg,
+            birthDate: update.birthDate,
+            maritalStatus: update.maritalStatus,
+            profession: update.profession,
+            cep: update.cep,
+            address: update.address,
+            addressNumber: update.addressNumber,
+            addressComplement: update.addressComplement,
+            neighborhood: update.neighborhood,
+            city: update.city,
+            state: update.state,
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      } catch (mirrorErr) {
+        console.warn("Falha ao espelhar dados do cliente:", mirrorErr);
+      }
+
       const nextProfile = { ...(profile || {}), ...update, ...persisted };
       persistLocalProfile(nextProfile);
       onSaved?.(nextProfile);
@@ -115,6 +202,18 @@ export default function EditProfileModal({ open, onClose, profile, onSaved }) {
     phone,
     education,
     avatar,
+    cpf,
+    rg,
+    birthDate,
+    maritalStatus,
+    profession,
+    cep,
+    address,
+    addressNumber,
+    addressComplement,
+    neighborhood,
+    city,
+    uf,
     profile,
     onSaved,
     onClose,
@@ -307,6 +406,229 @@ export default function EditProfileModal({ open, onClose, profile, onSaved }) {
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* ───── Dados pessoais para o especialista ───── */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+            <h3 className="text-sm font-bold text-blue-800 dark:text-blue-200">
+              Dados pessoais (para o especialista)
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              Esses dados ficam visíveis apenas para o especialista que aceitar
+              o seu caso. São necessários para elaborar petições, contratos e
+              relatórios.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label
+                htmlFor="edit-cpf"
+                className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1"
+              >
+                CPF
+              </label>
+              <input
+                id="edit-cpf"
+                type="text"
+                inputMode="numeric"
+                value={cpf}
+                onChange={(e) => setCpf(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="000.000.000-00"
+                maxLength={14}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="edit-rg"
+                className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1"
+              >
+                RG
+              </label>
+              <input
+                id="edit-rg"
+                type="text"
+                value={rg}
+                onChange={(e) => setRg(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="00.000.000-0"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="edit-birthdate"
+                className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1"
+              >
+                Data de nascimento
+              </label>
+              <input
+                id="edit-birthdate"
+                type="date"
+                value={birthDate}
+                onChange={(e) => setBirthDate(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="edit-marital"
+                className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1"
+              >
+                Estado civil
+              </label>
+              <select
+                id="edit-marital"
+                value={maritalStatus}
+                onChange={(e) => setMaritalStatus(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {MARITAL_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt || "Selecione..."}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label
+                htmlFor="edit-profession"
+                className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1"
+              >
+                Profissão
+              </label>
+              <input
+                id="edit-profession"
+                type="text"
+                value={profession}
+                onChange={(e) => setProfession(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Ex.: Auxiliar administrativo"
+              />
+            </div>
+          </div>
+
+          {/* Endereço */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label
+                htmlFor="edit-cep"
+                className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1"
+              >
+                CEP
+              </label>
+              <input
+                id="edit-cep"
+                type="text"
+                inputMode="numeric"
+                value={cep}
+                onChange={(e) => setCep(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="00000-000"
+                maxLength={9}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label
+                htmlFor="edit-address"
+                className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1"
+              >
+                Logradouro (rua/avenida)
+              </label>
+              <input
+                id="edit-address"
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Rua, avenida..."
+                autoComplete="street-address"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="edit-address-number"
+                className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1"
+              >
+                Número
+              </label>
+              <input
+                id="edit-address-number"
+                type="text"
+                value={addressNumber}
+                onChange={(e) => setAddressNumber(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="123"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="edit-address-complement"
+                className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1"
+              >
+                Complemento
+              </label>
+              <input
+                id="edit-address-complement"
+                type="text"
+                value={addressComplement}
+                onChange={(e) => setAddressComplement(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Apto, bloco..."
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="edit-neighborhood"
+                className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1"
+              >
+                Bairro
+              </label>
+              <input
+                id="edit-neighborhood"
+                type="text"
+                value={neighborhood}
+                onChange={(e) => setNeighborhood(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Bairro"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="edit-city"
+                className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1"
+              >
+                Cidade
+              </label>
+              <input
+                id="edit-city"
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Cidade"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="edit-uf"
+                className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1"
+              >
+                UF
+              </label>
+              <select
+                id="edit-uf"
+                value={uf}
+                onChange={(e) => setUf(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {UF_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt || "UF"}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {error && (

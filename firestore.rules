@@ -233,6 +233,18 @@ service cloud.firestore {
       }
     }
 
+    // Dados pessoais do trabalhador compartilhados com o especialista que
+    // aceitar o seu caso (CPF, RG, endereço, estado civil, etc.). O documento
+    // privado completo segue em /users/{uid}; aqui guardamos apenas o subset
+    // necessário ao atendimento. Escrita restrita ao próprio dono; leitura
+    // liberada a qualquer usuário autenticado (o especialista só conhece o
+    // uid via uma conversa/caso aceito — uids não são enumeráveis).
+    match /clientProfiles/{userId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
     // Apoiadores (coleção unificada).
     match /apoiadores/{apoiadorId} {
       allow read: if true;
