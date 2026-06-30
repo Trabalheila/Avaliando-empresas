@@ -16,6 +16,7 @@ import { SPECIALIST_CONFIGS } from "../../pages/MyContactsApoiador";
 import { db, auth } from "../../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { getSpecialistCase } from "../../services/specialistCases";
+import { listWorkerDocuments } from "../../services/workerDocuments";
 import {
   getSpecialistIdFromConversationId,
   getWorkerIdFromConversationId,
@@ -737,6 +738,10 @@ const TIPO_LABELS = {
   outro: "Especialista",
 };
 
+// Tipos cujo CaseBody já renderiza uma lista a partir de `data.documents`
+// (evita duplicar a seção "Documentos do processo" em casos reais).
+const CASEBODY_RENDERS_DOCS = new Set(["advogado", "consultor_rh", "recrutador"]);
+
 function formatDate(iso) {
   if (!iso) return "—";
   try {
@@ -1093,6 +1098,10 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
   const [realCase, setRealCase] = useState(null);
   // Dados pessoais do cliente (preenchidos pelo trabalhador no seu perfil).
   const [clientProfile, setClientProfile] = useState(null);
+  // Documentos enviados pelo trabalhador para este caso. Ficam na subcoleção
+  // /conversations/{conversationId}/documents (mesma conversa do caso), de
+  // onde também são lidos no chat. Aqui aparecem como "Documentos do processo".
+  const [caseDocuments, setCaseDocuments] = useState([]);
   useEffect(() => {
     let prof = {};
     try {
@@ -1146,8 +1155,9 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
       getSpecialistIdFromConversationId(convId) || apoiadorId;
     const workerUid = getWorkerIdFromConversationId(convId);
     (async () => {
+      let found = null;
       if (specialistIdFromCase) {
-        const found = await getSpecialistCase(specialistIdFromCase, caseId);
+        found = await getSpecialistCase(specialistIdFromCase, caseId);
         if (!cancelled) setRealCase(found);
         // Dados pessoais do cliente: preferimos o workerUid salvo no caso e,
         // como fallback, o id extraído do caseId.
@@ -1161,6 +1171,16 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
           }
         }
       }
+      // Documentos do trabalhador para este caso (mesma conversa do caso).
+      const conversationId = found?.conversationId || convId;
+      if (conversationId) {
+        try {
+          const docs = await listWorkerDocuments(conversationId);
+          if (!cancelled) setCaseDocuments(Array.isArray(docs) ? docs : []);
+        } catch (err) {
+          console.warn("Falha ao ler documentos do caso:", err);
+        }
+      }
     })();
     return () => {
       cancelled = true;
@@ -1170,6 +1190,12 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
   // `data` consumido pela interface: caso real (Firestore) tem prioridade;
   // na ausência dele, cai no mock por tipo/caseId.
   const data = useMemo(() => {
+    // Documentos enviados pelo trabalhador (subcoleção da conversa),
+    // normalizados para o formato { name, url } usado pela lista.
+    const workerDocs = (caseDocuments || []).map((d) => ({
+      name: d.name || "Documento",
+      url: d.url || "#",
+    }));
     if (realCase) {
       return {
         client: realCase.clientAlias || "Cliente",
@@ -1179,14 +1205,24 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
         nextActionDate: realCase.nextActionDate || "",
         processNumber: realCase.processNumber || "",
         court: realCase.court || "",
-        documents: realCase.documents || [],
+        documents: [...(realCase.documents || []), ...workerDocs],
         timeline: realCase.timeline || [],
         notes: realCase.notes || "",
         conversationId: realCase.conversationId || "",
+        workerUid: realCase.workerUid || realCase.userId || "",
+        workerEmail: realCase.workerEmail || "",
       };
     }
-    return getCaseDetails(tipo, caseId);
-  }, [realCase, tipo, caseId]);
+    const mock = getCaseDetails(tipo, caseId);
+    if (mock && workerDocs.length) {
+      return { ...mock, documents: [...(mock.documents || []), ...workerDocs] };
+    }
+    return mock;
+  }, [realCase, tipo, caseId, caseDocuments]);
+  // Caso real (Ad Exitum) habilita o conjunto completo de recursos
+  // (videoconferência, documentos do processo, comissão), independentemente
+  // do tipo de especialista derivado da URL.
+  const isRealCase = Boolean(realCase);
   const tipoLabel = TIPO_LABELS[tipo] || TIPO_LABELS.outro;
 
   if (authorized === false) {
@@ -1220,7 +1256,7 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
               {tipoLabel}
             </p>
             <h1 className="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-slate-100">
-              Caso {caseId}
+              {data?.client || `Caso ${caseId}`}
             </h1>
           </div>
           <button
@@ -1270,15 +1306,23 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
           </InfoCard>
         ) : (
           <>
-            {SPECIALIST_CONFIGS?.[tipo]?.canVideoConference &&
+            {(SPECIALIST_CONFIGS?.[tipo]?.canVideoConference || isRealCase) &&
               (isPremium ? (
                 <VideoConferenceCard caseId={caseId} data={data} />
               ) : (
                 <VideoEssencialCard caseId={caseId} navigate={navigate} />
               ))}
             <CaseBody tipo={tipo} data={data} />
+            {/* Em casos reais o CaseBody "default" não lista documentos;
+                renderizamos aqui os documentos enviados pelo trabalhador. */}
+            {isRealCase && !CASEBODY_RENDERS_DOCS.has(tipo) && (
+              <DocumentList
+                title="Documentos do processo"
+                items={data.documents}
+              />
+            )}
             <ClientPersonalDataCard client={clientProfile} />
-            {tipo === "advogado" && (
+            {(tipo === "advogado" || isRealCase) && (
               <CommissionPaymentCard
                 caseId={caseId}
                 data={data}
