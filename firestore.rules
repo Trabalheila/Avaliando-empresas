@@ -250,12 +250,19 @@ service cloud.firestore {
 
       // Casos ativos do especialista (clientes aceitos no chat).
       // Apenas o PRÓPRIO especialista dono do perfil pode ler/escrever os
-      // seus casos. A identidade é confirmada comparando o UID autenticado
-      // com o campo `uid` do documento /apoiadores/{apoiadorId}.
+      // seus casos. A identidade é confirmada de duas formas (qualquer uma
+      // basta), para cobrir tanto os docs novos (id = "apoiador_<...>", com
+      // campo `uid` = Auth uid) quanto os legados/seed (id = Auth uid):
+      //   1) request.auth.uid == apoiadorId  (doc id é o próprio uid); ou
+      //   2) request.auth.uid == apoiador.data.uid  (campo uid do doc).
       match /cases/{caseId} {
-        allow read, create, update: if request.auth != null
-          && request.auth.uid ==
-             get(/databases/$(database)/documents/apoiadores/$(apoiadorId)).data.uid;
+        function isCaseOwner() {
+          return request.auth != null
+            && (request.auth.uid == apoiadorId
+                || request.auth.uid ==
+                   get(/databases/$(database)/documents/apoiadores/$(apoiadorId)).data.uid);
+        }
+        allow read, create, update: if isCaseOwner();
         allow delete: if false;
       }
     }
