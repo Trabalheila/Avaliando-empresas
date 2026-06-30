@@ -745,7 +745,7 @@ export default function Login({ theme, toggleTheme }) {
 
           <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-300">
             Não tem conta?{" "}
-            <Link to="/empresa/cadastro" className="font-bold text-blue-700 dark:text-blue-300 hover:underline">
+            <Link to="/cadastro" className="font-bold text-blue-700 dark:text-blue-300 hover:underline">
               Cadastre-se aqui
             </Link>
           </p>

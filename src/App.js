@@ -26,6 +26,7 @@ import IndiqueGanhe from './pages/IndiqueGanhe';
 import ConsultorCadastro from './pages/ConsultorCadastro';
 import PrestadorCadastro from './pages/PrestadorCadastro';
 import ApoiadorCadastro from './pages/ApoiadorCadastro';
+import CadastroEscolha from './pages/CadastroEscolha';
 import ApoiadoresList from './pages/ApoiadoresList';
 import Apoiadores from './pages/Apoiadores';
 import ApoiadorPerfil from './pages/ApoiadorPerfil';
@@ -241,6 +242,7 @@ function App() {
       <Route path="/apoiadores" element={<Apoiadores theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/apoiadores/lista" element={<ApoiadoresList theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/apoiadores/cadastro" element={<ApoiadorCadastro theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/cadastro" element={<CadastroEscolha theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/apoiadores/perfil/:id" element={<ApoiadorPerfil theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/empresa/comentarios-item" element={<CompanyItemComments theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/purpose" element={<Purpose theme={theme} toggleTheme={toggleTheme} />} />

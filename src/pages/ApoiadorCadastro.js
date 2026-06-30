@@ -65,7 +65,21 @@ const SEGMENTOS_PRESTADOR = [
 /* ── Profissões regulamentadas exigem número + estado/região do conselho ── */
 const REGULATED_PROFESSIONS = new Set(["advogado", "medico", "psicologo", "assistente_social", "engenheiro_seguranca", "fisioterapeuta_ocupacional", "contador"]);
 
-const CREDENTIAL_LABELS = {
+/* ── Ramos de atuação do Direito (exibido apenas para advogados) ── */
+const RAMOS_DIREITO = [
+  "Direito Trabalhista",
+  "Direito Previdenciário",
+  "Direito Civil",
+  "Direito Empresarial",
+  "Direito do Consumidor",
+  "Direito Digital",
+  "Direito Tributário",
+  "Direito Penal",
+  "Direito Ambiental",
+  "Direito Imobiliário",
+  "Direito de Família",
+  "Direito Administrativo",
+];const CREDENTIAL_LABELS = {
   advogado:                  { number: "Número da OAB",  state: "Estado da OAB (UF)",     placeholder: "Ex: SP" },
   medico:                    { number: "Número do CRM",  state: "Estado do CRM (UF)",     placeholder: "Ex: SP" },
   psicologo:                 { number: "Número do CRP",  state: "Região do CRP",          placeholder: "Ex: 06/SP" },
@@ -111,6 +125,8 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
   const [servesWorker, setServesWorker] = useState(true);
   const [servesEmployer, setServesEmployer] = useState(false);
   const [ramoEspecializacao, setRamoEspecializacao] = useState("");
+  /* Ramos de atuação do Direito (apenas advogados, múltipla escolha). */
+  const [ramosDireito, setRamosDireito] = useState([]);
 
   /* ── Estado consultor ── */
   const [especialidade, setEspecialidade] = useState("");
@@ -178,6 +194,12 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
 
   const toggleSegmento = useCallback((seg) => {
     setSegmentos((prev) => (prev.includes(seg) ? prev.filter((s) => s !== seg) : [...prev, seg]));
+  }, []);
+
+  const toggleRamoDireito = useCallback((ramo) => {
+    setRamosDireito((prev) =>
+      prev.includes(ramo) ? prev.filter((r) => r !== ramo) : [...prev, ramo]
+    );
   }, []);
 
   const handleFiles = useCallback((e) => {
@@ -295,6 +317,10 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
     if (!tipo) { setError("Selecione o tipo de especialista."); return; }
     if (!nome.trim() || !email.trim() || !telefone.trim()) { setError("Preencha todos os campos obrigatórios."); return; }
     if (!ramoEspecializacao) { setError("Selecione o Ramo de Especialização."); return; }
+    if (isAdvogadoTipo(tipo) && ramosDireito.length === 0) {
+      setError("Selecione ao menos um Ramo de Atuação de Direito.");
+      return;
+    }
 
     /* Validação das credenciais */
     if (REGULATED_PROFESSIONS.has(tipo)) {
@@ -376,6 +402,9 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
           ...(servesEmployer ? ["employer"] : []),
         ],
         ramoEspecializacao,
+        // Ramos de atuação do Direito (somente advogados). Permite filtrar
+        // advogados por especialidade jurídica.
+        ramosDireito: isAdvogadoTipo(tipo) ? ramosDireito : [],
         uid: auth.currentUser?.uid || null,
         createdAt: serverTimestamp(),
 
@@ -458,7 +487,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
       setError("Ocorreu um erro ao enviar o cadastro. Tente novamente.");
     }
     setSubmitting(false);
-  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, fotoFile, arquivos, allTermosAceitos, conflictDeclarationAccepted, cnpj, segmentos, site, portfolio, nichos, adExitum, servesWorker, servesEmployer, ramoEspecializacao, credentialNumber, credentialStateOrRegion, credentialPortfolioUrl, credentialCertifications, credentialProof]);
+  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, fotoFile, arquivos, allTermosAceitos, conflictDeclarationAccepted, cnpj, segmentos, site, portfolio, nichos, adExitum, servesWorker, servesEmployer, ramoEspecializacao, ramosDireito, credentialNumber, credentialStateOrRegion, credentialPortfolioUrl, credentialCertifications, credentialProof]);
 
   /* Fecha o WelcomeModal e marca welcomeModalShown=true no Firestore.
      O proprio WelcomeModal ja persiste o flag; aqui apenas garantimos
@@ -727,6 +756,35 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                   especialistas compatíveis por este ramo.
                 </p>
               </div>
+
+              {/* ── Ramo de Atuação de Direito (apenas advogados, múltipla escolha) ── */}
+              {isAdvogadoTipo(tipo) && (
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
+                    Ramo de Atuação de Direito <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {RAMOS_DIREITO.map((ramo) => (
+                      <button
+                        key={ramo}
+                        type="button"
+                        onClick={() => toggleRamoDireito(ramo)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
+                          ramosDireito.includes(ramo)
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-blue-400"
+                        }`}
+                      >
+                        {ramo}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Selecione uma ou mais áreas do Direito em que você atua. Ajuda
+                    os trabalhadores a encontrar o advogado certo para o caso.
+                  </p>
+                </div>
+              )}
 
               {/* ── Nichos de atuação (todos os tipos, máx 3) ── */}
               <div className="mb-6">

@@ -9,6 +9,22 @@ import AppHeader from "../components/AppHeader";
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5MB
 
+/* ── Ramos de atuação do Direito (exibido apenas para advogados) ── */
+const RAMOS_DIREITO = [
+  "Direito Trabalhista",
+  "Direito Previdenciário",
+  "Direito Civil",
+  "Direito Empresarial",
+  "Direito do Consumidor",
+  "Direito Digital",
+  "Direito Tributário",
+  "Direito Penal",
+  "Direito Ambiental",
+  "Direito Imobiliário",
+  "Direito de Família",
+  "Direito Administrativo",
+];
+
 /**
  * Página de gerenciamento do perfil do Especialista (Apoiador).
  * Rota: /apoiador/perfil
@@ -56,6 +72,8 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
   // de advogados (só recebe se ganhar a causa do cliente).
   const [tipo, setTipo] = useState("");
   const [adExitum, setAdExitum] = useState(false);
+  // Ramos de atuação do Direito (apenas advogados, múltipla escolha).
+  const [ramosDireito, setRamosDireito] = useState([]);
   const isAdvogado = String(tipo || "").toLowerCase().includes("advogado");
   // "Ad Exitum aceito" funciona como um desbloqueio total: o especialista
   // passa a enxergar todas as funcionalidades normalmente exclusivas do
@@ -99,6 +117,7 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
           setPlano(d.plano || d.planType || d.tier || "");
           setTipo(d.tipo || d.profissao || "");
           setAdExitum(d.adExitum === true);
+          setRamosDireito(Array.isArray(d.ramosDireito) ? d.ramosDireito : []);
           setMpEmail(d.mercadoPagoEmail || d.mpEmail || "");
           const precoEsp = Number(d.precoConsultaEspecializada || 0);
           setPrecoConsultaEspecializada(precoEsp > 0 ? String(precoEsp) : "");
@@ -196,6 +215,7 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
         // outros tipos de profissional.
         if (isAdvogado) {
           updates.adExitum = Boolean(adExitum);
+          updates.ramosDireito = ramosDireito;
         }
 
         // E-mail do Mercado Pago — valida o formato antes de salvar. Permite
@@ -316,7 +336,7 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
         setSaving(false);
       }
     },
-    [apoiadorId, descricao, areasText, nichosText, disponibilidade, fotoFile, compressImageToDataUrl, isPremium, precoConsultaEspecializada, mpEmail, isAdvogado, adExitum]
+    [apoiadorId, descricao, areasText, nichosText, disponibilidade, fotoFile, compressImageToDataUrl, isPremium, precoConsultaEspecializada, mpEmail, isAdvogado, adExitum, ramosDireito]
   );
 
   if (!apoiadorId) {
@@ -493,6 +513,40 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
                 Separe múltiplos nichos por vírgula.
               </p>
             </div>
+
+            {/* Ramo de Atuação de Direito — exclusivo de advogados */}
+            {isAdvogado && (
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
+                  Ramo de Atuação de Direito
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {RAMOS_DIREITO.map((ramo) => (
+                    <button
+                      key={ramo}
+                      type="button"
+                      onClick={() =>
+                        setRamosDireito((prev) =>
+                          prev.includes(ramo)
+                            ? prev.filter((r) => r !== ramo)
+                            : [...prev, ramo]
+                        )
+                      }
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
+                        ramosDireito.includes(ramo)
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:border-blue-400"
+                      }`}
+                    >
+                      {ramo}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                  Selecione uma ou mais áreas do Direito em que você atua.
+                </p>
+              </div>
+            )}
 
             {/* Disponibilidade */}
             <div>
