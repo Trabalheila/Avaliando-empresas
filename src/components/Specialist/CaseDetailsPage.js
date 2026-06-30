@@ -17,6 +17,7 @@ import { db, auth } from "../../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { getSpecialistCase } from "../../services/specialistCases";
 import { listWorkerDocuments } from "../../services/workerDocuments";
+import { downloadPeticao } from "../../utils/peticaoDocument";
 import {
   getSpecialistIdFromConversationId,
   getWorkerIdFromConversationId,
@@ -896,6 +897,62 @@ function ClientPersonalDataCard({ client }) {
   );
 }
 
+/** Card que gera a Petição Inicial pré-preenchida com os dados do cliente.
+ *  Usa o modelo /public/Petição Inicial.docx e insere automaticamente o
+ *  nome, estado civil, profissão, RG, CPF e endereço do autor (cliente),
+ *  poupando o advogado de redigitar a qualificação. */
+function PeticaoCard({ client, clientAlias }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const hasData = Boolean(
+    client && (client.fullName || client.cpf || client.address)
+  );
+
+  const handleDownload = async () => {
+    setError("");
+    setBusy(true);
+    try {
+      await downloadPeticao(client || {}, clientAlias);
+    } catch (err) {
+      setError(err?.message || "Não foi possível gerar a petição.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <InfoCard>
+      <h2 className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+        <span aria-hidden="true">📄</span> Petição inicial pré-preenchida
+      </h2>
+      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+        Gere a petição já com a qualificação do autor (nome, estado civil,
+        profissão, RG, CPF e endereço) preenchida automaticamente a partir dos
+        dados do cliente. Você só precisa completar os fatos, o direito e os
+        pedidos.
+      </p>
+      {!hasData && (
+        <p className="mt-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
+          O cliente ainda não preencheu os dados pessoais no perfil. A petição
+          será gerada com os campos em branco para preenchimento manual.
+        </p>
+      )}
+      <button
+        type="button"
+        onClick={handleDownload}
+        disabled={busy}
+        className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold disabled:opacity-60"
+      >
+        {busy ? "Gerando…" : "⬇️ Baixar petição (.docx)"}
+      </button>
+      {error && (
+        <p className="mt-2 text-xs text-red-700 dark:text-red-300">{error}</p>
+      )}
+    </InfoCard>
+  );
+}
+
 /** Conteúdo específico por tipo de especialista. */
 function CaseBody({ tipo, data }) {
   switch (tipo) {
@@ -1322,6 +1379,12 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
               />
             )}
             <ClientPersonalDataCard client={clientProfile} />
+            {(tipo === "advogado" || isRealCase) && (
+              <PeticaoCard
+                client={clientProfile}
+                clientAlias={data.client}
+              />
+            )}
             {(tipo === "advogado" || isRealCase) && (
               <CommissionPaymentCard
                 caseId={caseId}

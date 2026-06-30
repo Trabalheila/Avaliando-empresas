@@ -17,6 +17,7 @@
     "jsonwebtoken": "^9.0.3",
     "mammoth": "^1.8.0",
     "pdfjs-dist": "^4.10.38",
+    "pizzip": "^3.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.5.2",

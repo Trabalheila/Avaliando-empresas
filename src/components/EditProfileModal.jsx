@@ -9,7 +9,7 @@
 // evento "trabalheiLa_user_updated" para outras partes do app
 // (AppHeader, etc.) re-renderizarem.
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { saveUserProfile } from "../services/users";
 import { db } from "../firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
@@ -89,8 +89,18 @@ export default function EditProfileModal({ open, onClose, profile, onSaved }) {
   const [city, setCity] = useState("");
   const [uf, setUf] = useState("");
 
+  // Inicializa os campos UMA vez por abertura. Sem isso, qualquer
+  // re-render do componente pai (que recria o objeto `profile`) dispararia
+  // o efeito e apagaria o que o usuário está digitando — dando a impressão
+  // de que "não salva" e de que o popup "reseta" ao interagir.
+  const initializedRef = useRef(false);
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      initializedRef.current = false;
+      return;
+    }
+    if (initializedRef.current) return;
+    initializedRef.current = true;
     setPseudonimo(profile?.pseudonimo || "");
     setFullName(profile?.fullName || profile?.name || "");
     setEmail(profile?.email || "");
@@ -252,7 +262,7 @@ export default function EditProfileModal({ open, onClose, profile, onSaved }) {
         if (e.target === e.currentTarget && !busy) onClose?.();
       }}
     >
-      <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 max-h-[92vh] overflow-y-auto">
+      <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 sm:px-6 pt-5 pb-3 border-b border-slate-100 dark:border-slate-800">
           <h2
             id="edit-profile-title"
