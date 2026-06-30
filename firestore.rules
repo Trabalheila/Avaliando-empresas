@@ -348,7 +348,10 @@ service cloud.firestore {
           && request.auth.uid in
              get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants
           && request.resource.data.senderId == request.auth.uid;
-        allow update, delete: if false;
+        allow update: if false;
+        // Apenas o remetente pode apagar o próprio documento.
+        allow delete: if request.auth != null
+          && resource.data.senderId == request.auth.uid;
       }
     }
 

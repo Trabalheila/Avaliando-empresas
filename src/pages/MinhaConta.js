@@ -30,6 +30,7 @@ import { buildSpecialistConversationId } from "../utils/chatId";
 import {
   uploadWorkerDocument,
   listWorkerDocuments,
+  deleteWorkerDocument,
   WORKER_DOC_MAX_BYTES,
   MAX_FILE_SIZE_MB,
 } from "../services/workerDocuments";
@@ -1122,6 +1123,10 @@ function WorkerDocumentsSection({ profile }) {
   const [uploadsBySpec, setUploadsBySpec] = useState({});
   const [errorBySpec, setErrorBySpec] = useState({});
   const fileInputs = useRef({});
+  // Documento aguardando confirmação de exclusão:
+  //   { conversationId, docId, name, storagePath }
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [deletingId, setDeletingId] = useState("");
 
   const loadDocs = useCallback(async (convId) => {
     if (!convId) return;
@@ -1249,6 +1254,31 @@ function WorkerDocumentsSection({ profile }) {
     }
   };
 
+  // Confirma a exclusão de um documento: remove do Storage e do Firestore
+  // e atualiza a lista da UI sem recarregar a página.
+  const handleConfirmDelete = async () => {
+    if (!confirmDelete) return;
+    const { conversationId, docId, storagePath } = confirmDelete;
+    setDeletingId(docId);
+    try {
+      await deleteWorkerDocument({ conversationId, docId, storagePath });
+      setDocsBySpec((prev) => ({
+        ...prev,
+        [conversationId]: (prev[conversationId] || []).filter(
+          (d) => d.id !== docId
+        ),
+      }));
+      setConfirmDelete(null);
+    } catch (err) {
+      console.warn("Falha ao apagar documento:", err);
+      setConfirmDelete((prev) =>
+        prev ? { ...prev, error: "Não foi possível apagar. Tente novamente." } : prev
+      );
+    } finally {
+      setDeletingId("");
+    }
+  };
+
   return (
     <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
       <h2 className="text-lg font-bold text-blue-800 dark:text-blue-200 mb-4 flex items-center gap-2">
@@ -1371,15 +1401,48 @@ function WorkerDocumentsSection({ profile }) {
                             {d.name}
                           </span>
                         </div>
-                        <a
-                          href={d.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          download={d.name}
-                          className="text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline shrink-0"
-                        >
-                          Visualizar
-                        </a>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <a
+                            href={d.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download={d.name}
+                            className="text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline"
+                          >
+                            Visualizar
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setConfirmDelete({
+                                conversationId: spec.conversationId,
+                                docId: d.id,
+                                name: d.name,
+                                storagePath: d.storagePath,
+                              })
+                            }
+                            disabled={deletingId === d.id}
+                            title="Apagar documento"
+                            className="inline-flex items-center gap-1 text-xs font-bold text-red-600 dark:text-red-400 hover:underline disabled:opacity-60 disabled:cursor-not-allowed"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-3.5 w-3.5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                              aria-hidden="true"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                            Apagar
+                          </button>
+                        </div>
                       </li>
                     ))}
                   </ul>
@@ -1394,6 +1457,55 @@ function WorkerDocumentsSection({ profile }) {
             );
           })}
         </ul>
+      )}
+
+      {confirmDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => deletingId === "" && setConfirmDelete(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
+              Apagar documento
+            </h3>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              Tem certeza que deseja apagar este documento?
+            </p>
+            {confirmDelete.name && (
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 break-words">
+                📎 {confirmDelete.name}
+              </p>
+            )}
+            {confirmDelete.error && (
+              <p className="mt-2 text-xs text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+                {confirmDelete.error}
+              </p>
+            )}
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(null)}
+                disabled={deletingId !== ""}
+                className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={deletingId !== ""}
+                className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-sm font-bold hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {deletingId !== "" ? "Apagando…" : "Apagar"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );

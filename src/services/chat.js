@@ -204,6 +204,7 @@ export async function sendChatMessage({
       size: Number(attachment.size) || 0,
       url: String(attachment.url),
       storagePath: attachment.storagePath ? String(attachment.storagePath) : "",
+      contentType: attachment.contentType ? String(attachment.contentType) : "",
     };
   }
 

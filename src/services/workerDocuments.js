@@ -18,10 +18,13 @@ import {
   ref as storageRef,
   uploadBytesResumable,
   getDownloadURL,
+  deleteObject,
 } from "firebase/storage";
 import {
   addDoc,
   collection,
+  deleteDoc,
+  doc,
   getDocs,
   limit as fbLimit,
   orderBy,
@@ -35,6 +38,72 @@ import { ensureConversation, sendChatMessage } from "./chat";
 // do Firebase Storage para `adExitumDocs/`.
 export const MAX_FILE_SIZE_MB = 60;
 export const WORKER_DOC_MAX_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+// Parâmetros de otimização de imagens (antes do upload).
+const IMAGE_MAX_DIMENSION = 1920; // largura/altura máxima em px
+const IMAGE_JPEG_QUALITY = 0.8; // 80% de qualidade JPEG
+
+/**
+ * Otimiza uma imagem no navegador antes do upload: redimensiona para no
+ * máximo IMAGE_MAX_DIMENSION (mantendo a proporção) e recomprime em JPEG a
+ * IMAGE_JPEG_QUALITY. Apenas para arquivos `image/*` (PDF/MP3/MP4 passam
+ * intactos). Se a otimização falhar ou não reduzir o tamanho, devolve o
+ * arquivo original — nunca aumenta o upload.
+ *
+ * @param {File} file
+ * @returns {Promise<File>} arquivo otimizado (ou o original).
+ */
+export async function optimizeImageFile(file) {
+  if (!file || !String(file.type || "").startsWith("image/")) return file;
+  // GIFs animados perderiam a animação ao recomprimir em JPEG: não mexe.
+  if (file.type === "image/gif") return file;
+
+  try {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result || ""));
+      r.onerror = () => reject(new Error("read-failed"));
+      r.readAsDataURL(file);
+    });
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => reject(new Error("decode-failed"));
+      i.src = dataUrl;
+    });
+
+    const srcW = img.width || 1;
+    const srcH = img.height || 1;
+    const scale = Math.min(1, IMAGE_MAX_DIMENSION / Math.max(srcW, srcH));
+    const w = Math.max(1, Math.round(srcW * scale));
+    const h = Math.max(1, Math.round(srcH * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(img, 0, 0, w, h);
+
+    const blob = await new Promise((resolve) => {
+      if (canvas.toBlob) {
+        canvas.toBlob((b) => resolve(b), "image/jpeg", IMAGE_JPEG_QUALITY);
+      } else {
+        resolve(null);
+      }
+    });
+    if (!blob || blob.size >= file.size) return file; // não piora o tamanho
+
+    const baseName = String(file.name || "imagem").replace(/\.[^.]+$/, "");
+    return new File([blob], `${baseName}.jpg`, {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+  } catch {
+    // Qualquer falha (CSP de canvas, imagem corrompida): envia o original.
+    return file;
+  }
+}
 
 /**
  * Envia um documento do trabalhador para um especialista.
@@ -67,6 +136,9 @@ export async function uploadWorkerDocument({
     throw err;
   }
 
+  // Otimiza imagens antes do upload (PDF/MP3/MP4 passam intactos).
+  const uploadFile = await optimizeImageFile(file);
+
   // Garante que a conversa exista (com o trabalhador em `participants`)
   // ANTES de gravar — as regras do Firestore validam a escrita na
   // subcoleção `documents` consultando os participantes da conversa.
@@ -79,7 +151,7 @@ export async function uploadWorkerDocument({
     kind: "adExitum",
   });
 
-  const safeName = String(file.name || "documento")
+  const safeName = String(uploadFile.name || "documento")
     .replace(/[^\w.-]+/g, "_")
     .slice(-160);
   const path = `adExitumDocs/${encodeURIComponent(conversationId)}/${Date.now()}_${safeName}`;
@@ -88,8 +160,8 @@ export async function uploadWorkerDocument({
   // Upload resumível para emitir progresso por arquivo. O percentual é
   // reportado via `onProgress` enquanto os bytes são transferidos.
   if (typeof onProgress === "function") onProgress(0);
-  const task = uploadBytesResumable(fileRef, file, {
-    contentType: file.type || undefined,
+  const task = uploadBytesResumable(fileRef, uploadFile, {
+    contentType: uploadFile.type || undefined,
   });
   await new Promise((resolve, reject) => {
     task.on(
@@ -110,11 +182,11 @@ export async function uploadWorkerDocument({
 
   const createdAt = new Date().toISOString();
   const meta = {
-    name: String(file.name || "documento").slice(0, 200),
+    name: String(uploadFile.name || "documento").slice(0, 200),
     url,
     storagePath: path,
-    size: Number(file.size) || 0,
-    contentType: String(file.type || ""),
+    size: Number(uploadFile.size) || 0,
+    contentType: String(uploadFile.type || ""),
     senderId: String(senderUid),
     receiverId: String(receiverUid || ""),
     senderName: String(senderName || "").slice(0, 160),
@@ -136,7 +208,13 @@ export async function uploadWorkerDocument({
       senderUid,
       senderName,
       text: "",
-      attachment: { name: meta.name, size: meta.size, url, storagePath: path },
+      attachment: {
+        name: meta.name,
+        size: meta.size,
+        contentType: meta.contentType,
+        url,
+        storagePath: path,
+      },
     });
   } catch (err) {
     console.warn("Falha ao publicar documento no chat:", err);
@@ -144,6 +222,39 @@ export async function uploadWorkerDocument({
 
   return { id: ref.id, ...meta };
 }
+
+/**
+ * Exclui um documento: remove o arquivo do Firebase Storage e a entrada de
+ * metadados no Firestore. A operação é resiliente — se o arquivo já não
+ * existir no Storage, ainda assim remove o registro no Firestore para manter
+ * a lista consistente.
+ *
+ * @param {object} args
+ * @param {string} args.conversationId  id da conversa.
+ * @param {string} args.docId           id do documento no Firestore.
+ * @param {string} [args.storagePath]   caminho do arquivo no Storage.
+ * @returns {Promise<void>}
+ */
+export async function deleteWorkerDocument({ conversationId, docId, storagePath }) {
+  if (!conversationId || !docId) {
+    throw new Error("conversationId e docId são obrigatórios.");
+  }
+
+  // 1) Remove o arquivo do Storage (best-effort: ignora "object-not-found").
+  if (storagePath) {
+    try {
+      await deleteObject(storageRef(storage, storagePath));
+    } catch (err) {
+      if (err?.code !== "storage/object-not-found") {
+        console.warn("Falha ao remover arquivo do Storage:", err);
+      }
+    }
+  }
+
+  // 2) Remove o registro de metadados no Firestore.
+  await deleteDoc(doc(db, "conversations", conversationId, "documents", docId));
+}
+
 
 /**
  * Lista os documentos de uma conversa (mais recentes primeiro).

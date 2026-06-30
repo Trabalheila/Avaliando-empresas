@@ -36,6 +36,7 @@ import {
   buildSpecialistConversationId,
   getSpecialistIdFromConversationId,
 } from "../../utils/chatId";
+import { optimizeImageFile } from "../../services/workerDocuments";
 
 // Limite de tamanho para documentos no chat Ad Exitum (25 MB).
 const ADEXITUM_MAX_FILE_BYTES = 25 * 1024 * 1024;
@@ -108,6 +109,13 @@ function Bubble({ msg, isMine }) {
       </div>
     );
   }
+  // Lista de anexos do balão (1 ou mais, quando agrupados).
+  const attachments =
+    msg.attachments && msg.attachments.length
+      ? msg.attachments
+      : msg.attachment
+      ? [msg.attachment]
+      : [];
   return (
     <div className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
       <div
@@ -118,16 +126,16 @@ function Bubble({ msg, isMine }) {
             : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-bl-sm",
         ].join(" ")}
       >
-        {msg.attachment ? (
-          <a
-            href={msg.attachment.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            download={msg.attachment.name}
-            className={isMine ? "underline" : "text-blue-700 dark:text-blue-300 underline"}
-          >
-            📎 {msg.attachment.name}
-          </a>
+        {attachments.length > 0 ? (
+          <div className="space-y-2">
+            {attachments.map((att, i) => (
+              <AttachmentView
+                key={att.storagePath || att.url || i}
+                att={att}
+                isMine={isMine}
+              />
+            ))}
+          </div>
         ) : (
           <p className="whitespace-pre-wrap break-words">{msg.text}</p>
         )}
@@ -138,6 +146,124 @@ function Bubble({ msg, isMine }) {
     </div>
   );
 }
+
+/** Classifica o anexo a partir do nome/tipo: "image" | "pdf" | "file". */
+function getAttachmentKind(att) {
+  const type = String(att?.contentType || "").toLowerCase();
+  const name = String(att?.name || "").toLowerCase();
+  if (type.startsWith("image/") || /\.(png|jpe?g|gif|webp|bmp|svg)$/.test(name)) {
+    return "image";
+  }
+  if (type === "application/pdf" || /\.pdf$/.test(name)) return "pdf";
+  return "file";
+}
+
+/** Renderiza um único anexo conforme o tipo (imagem, PDF ou genérico). */
+function AttachmentView({ att, isMine }) {
+  const kind = getAttachmentKind(att);
+  const url = att?.url || "";
+  const name = att?.name || "documento";
+
+  if (kind === "image" && url) {
+    // Miniatura clicável que abre a imagem em tamanho real em nova aba.
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block"
+        title={`Abrir ${name}`}
+      >
+        <img
+          src={url}
+          alt={name}
+          loading="lazy"
+          className="max-h-48 w-auto max-w-full rounded-lg object-cover border border-black/10"
+        />
+      </a>
+    );
+  }
+
+  const linkClass = isMine
+    ? "underline"
+    : "text-blue-700 dark:text-blue-300 underline";
+
+  if (kind === "pdf") {
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        download={name}
+        className="flex items-center gap-2 group"
+        title={`Abrir ${name}`}
+      >
+        <span aria-hidden="true" className="text-lg shrink-0">
+          📄
+        </span>
+        <span className={`min-w-0 truncate ${linkClass}`}>{name}</span>
+      </a>
+    );
+  }
+
+  // Genérico: ícone de clipe + nome + download.
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      download={name}
+      className="flex items-center gap-2"
+      title={`Baixar ${name}`}
+    >
+      <span aria-hidden="true" className="shrink-0">
+        📎
+      </span>
+      <span className={`min-w-0 truncate ${linkClass}`}>{name}</span>
+    </a>
+  );
+}
+
+/**
+ * Agrupa mensagens consecutivas de anexos do mesmo remetente (enviadas em
+ * uma mesma ação) num único balão. Mensagens de texto/sistema permanecem
+ * isoladas. Anexos são agrupados quando: mesmo remetente, ambos são anexos
+ * e enviados num intervalo curto (≤ 60s) entre si.
+ */
+function groupMessages(messages) {
+  const GROUP_WINDOW_MS = 60 * 1000;
+  const items = [];
+  for (const m of messages) {
+    const isAttachment = Boolean(m.attachment);
+    const last = items[items.length - 1];
+    if (
+      isAttachment &&
+      last &&
+      last.grouped &&
+      last.from === m.from &&
+      Math.abs(new Date(m.createdAt).getTime() - last._lastTs) <= GROUP_WINDOW_MS
+    ) {
+      last.attachments.push(m.attachment);
+      last._lastTs = new Date(m.createdAt).getTime();
+      continue;
+    }
+    if (isAttachment) {
+      items.push({
+        id: m.id,
+        from: m.from,
+        fromName: m.fromName,
+        createdAt: m.createdAt,
+        attachments: [m.attachment],
+        grouped: true,
+        _lastTs: new Date(m.createdAt).getTime(),
+      });
+    } else {
+      items.push(m);
+    }
+  }
+  return items;
+}
+
 
 export default function PlatformChat({ theme, toggleTheme }) {
   const navigate = useNavigate();
@@ -270,10 +396,20 @@ export default function PlatformChat({ theme, toggleTheme }) {
   }, [messages]);
 
   // Quantas mensagens MINHAS já existem (para aplicar limite do Essencial).
+  // Importante: somente mensagens de TEXTO contam. Anexos (documentos do
+  // fluxo Ad Exitum) NÃO consomem o limite do plano — caso contrário, enviar
+  // vários documentos travaria o campo de texto do trabalhador.
   const myMessageCount = useMemo(
-    () => messages.filter((m) => m.from === myId).length,
+    () =>
+      messages.filter(
+        (m) => m.from === myId && !m.attachment && String(m.text || "").trim()
+      ).length,
     [messages, myId]
   );
+
+  // Mensagens preparadas para render: anexos consecutivos do mesmo remetente
+  // (mesma ação de envio) são agrupados num único balão.
+  const renderItems = useMemo(() => groupMessages(messages), [messages]);
 
   const hitLimit = !isPremium && myMessageCount >= ESSENCIAL_MESSAGE_LIMIT;
 
@@ -403,14 +539,24 @@ export default function PlatformChat({ theme, toggleTheme }) {
       setUploading(true);
       (async () => {
         try {
-          const safeName = file.name.replace(/[^\w.\-]+/g, "_").slice(-160);
+          // Otimiza imagens antes do upload (PDF/MP3/MP4 passam intactos).
+          const uploadFile = await optimizeImageFile(file);
+          const safeName = uploadFile.name.replace(/[^\w.-]+/g, "_").slice(-160);
           const path = `adExitumDocs/${encodeURIComponent(
             effectiveConversationId
           )}/${Date.now()}_${safeName}`;
           const fileRef = storageRef(storage, path);
-          await uploadBytes(fileRef, file, { contentType: file.type || undefined });
+          await uploadBytes(fileRef, uploadFile, {
+            contentType: uploadFile.type || undefined,
+          });
           const url = await getDownloadURL(fileRef);
-          const attachment = { name: file.name, size: file.size, url, storagePath: path };
+          const attachment = {
+            name: uploadFile.name,
+            size: uploadFile.size,
+            contentType: uploadFile.type || "",
+            url,
+            storagePath: path,
+          };
           if (useFirestore) {
             await ensureConversation({
               conversationId: effectiveConversationId,
@@ -566,7 +712,7 @@ export default function PlatformChat({ theme, toggleTheme }) {
           ref={listRef}
           className="flex-1 min-h-[300px] bg-white/60 dark:bg-slate-900/60 rounded-2xl border border-blue-100 dark:border-slate-700 p-3 overflow-y-auto space-y-2"
         >
-          {messages.map((m) => (
+          {renderItems.map((m) => (
             <Bubble key={m.id} msg={m} isMine={m.from === myId} />
           ))}
         </div>
