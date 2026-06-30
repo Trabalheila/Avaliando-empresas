@@ -15,6 +15,7 @@ import { getCaseDetails } from "../../data/mockCaseDetails";
 import { SPECIALIST_CONFIGS } from "../../pages/MyContactsApoiador";
 import { db, auth } from "../../firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { getSpecialistCase } from "../../services/specialistCases";
 import {
   COMMISSION_RATE,
   computeCommission,
@@ -1030,6 +1031,9 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
   const [isPremium, setIsPremium] = useState(false);
   const [apoiadorId, setApoiadorId] = useState("");
   const [specialistName, setSpecialistName] = useState("");
+  // Caso real lido de /apoiadores/{apoiadorId}/cases/{caseId}. Quando existe,
+  // tem prioridade sobre os dados mockados.
+  const [realCase, setRealCase] = useState(null);
   useEffect(() => {
     let prof = {};
     try {
@@ -1067,7 +1071,40 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
     }
   }, []);
 
-  const data = useMemo(() => getCaseDetails(tipo, caseId), [tipo, caseId]);
+  // Busca o caso real do especialista. Quando existe, tem prioridade sobre
+  // o mock (que segue servindo de demonstração quando não há caso real).
+  useEffect(() => {
+    if (!apoiadorId || !caseId) return undefined;
+    let cancelled = false;
+    (async () => {
+      const found = await getSpecialistCase(apoiadorId, caseId);
+      if (!cancelled) setRealCase(found);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [apoiadorId, caseId]);
+
+  // `data` consumido pela interface: caso real (Firestore) tem prioridade;
+  // na ausência dele, cai no mock por tipo/caseId.
+  const data = useMemo(() => {
+    if (realCase) {
+      return {
+        client: realCase.clientAlias || "Cliente",
+        caseType: realCase.caseType || "Atendimento",
+        status: realCase.status || "Ativo",
+        nextAction: realCase.nextAction || "Analisar caso do cliente",
+        nextActionDate: realCase.nextActionDate || "",
+        processNumber: realCase.processNumber || "",
+        court: realCase.court || "",
+        documents: realCase.documents || [],
+        timeline: realCase.timeline || [],
+        notes: realCase.notes || "",
+        conversationId: realCase.conversationId || "",
+      };
+    }
+    return getCaseDetails(tipo, caseId);
+  }, [realCase, tipo, caseId]);
   const tipoLabel = TIPO_LABELS[tipo] || TIPO_LABELS.outro;
 
   if (authorized === false) {
@@ -1119,7 +1156,9 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
               type="button"
               onClick={() =>
                 navigate(
-                  `/chat/case_${encodeURIComponent(caseId)}?peer=${encodeURIComponent(
+                  `/chat/${encodeURIComponent(
+                    data.conversationId || `case_${caseId}`
+                  )}?peer=${encodeURIComponent(
                     data.client || "Cliente do caso"
                   )}&peerRole=trabalhador&caseId=${encodeURIComponent(
                     caseId

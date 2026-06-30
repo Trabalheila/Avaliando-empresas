@@ -35,8 +35,10 @@ import {
 import {
   buildSpecialistConversationId,
   getSpecialistIdFromConversationId,
+  getWorkerIdFromConversationId,
 } from "../../utils/chatId";
 import { optimizeImageFile } from "../../services/workerDocuments";
+import { acceptClientCase } from "../../services/specialistCases";
 
 // Limite de tamanho para documentos no chat Ad Exitum (25 MB).
 const ADEXITUM_MAX_FILE_BYTES = 25 * 1024 * 1024;
@@ -314,11 +316,30 @@ export default function PlatformChat({ theme, toggleTheme }) {
     profile?.isPremium === true ||
     String(profile?.plano || "").toLowerCase() === "premium";
 
+  // O usuário logado é o ESPECIALISTA quando a conversa é com um trabalhador
+  // (peerRole === "trabalhador"). Esse é o mesmo sinal usado em
+  // ensureConversation para identificar os lados da conversa.
+  const iAmSpecialist = peerRole === "trabalhador";
+  // id do doc /apoiadores/{id} do especialista logado.
+  const specialistDocId =
+    profile?.apoiadorId ||
+    getSpecialistIdFromConversationId(effectiveConversationId) ||
+    profile?.uid ||
+    profile?.id ||
+    "";
+  // Tipo do especialista (para montar a rota de detalhes do caso).
+  const specialistType =
+    searchParams.get("specialistType") ||
+    profile?.tipo ||
+    profile?.areaDeAtuacao ||
+    "outro";
+
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
   const [warning, setWarning] = useState("");
   const [adExitumAccepted, setAdExitumAccepted] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [accepting, setAccepting] = useState(false);
   const listRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -636,6 +657,75 @@ export default function PlatformChat({ theme, toggleTheme }) {
     e.target.value = "";
   };
 
+  // Especialista aceita o cliente: cria/atualiza o caso ativo no Firestore,
+  // marca a conversa como aceita, envia uma notificação ao cliente no chat e
+  // redireciona para a página de detalhes do caso recém-criado.
+  const handleAcceptClient = async () => {
+    if (accepting) return;
+    setWarning("");
+    if (!iAmSpecialist) return;
+    if (!useFirestore || !authUid) {
+      setWarning("Você precisa estar autenticado para aceitar o cliente.");
+      return;
+    }
+    if (!specialistDocId) {
+      setWarning("Não foi possível identificar seu perfil de especialista.");
+      return;
+    }
+    setAccepting(true);
+    try {
+      // Garante que a conversa exista e que o especialista esteja em
+      // `participants` antes de marcar como aceita / enviar a notificação.
+      await ensureConversation({
+        conversationId: effectiveConversationId,
+        currentUid: authUid,
+        currentName: myName,
+        peerName,
+        peerRole,
+        kind: isAdExitum ? "adExitum" : "consulta",
+      });
+
+      const newCaseId = await acceptClientCase({
+        specialistId: specialistDocId,
+        specialistUid: authUid,
+        conversationId: effectiveConversationId,
+        workerUid: getWorkerIdFromConversationId(effectiveConversationId),
+        clientAlias: peerName,
+        specialistType,
+      });
+
+      // Notifica o cliente dentro do chat (best-effort).
+      try {
+        await sendChatMessage({
+          conversationId: effectiveConversationId,
+          senderUid: authUid,
+          senderName: myName,
+          text:
+            "✅ Aceitei o seu caso. A partir de agora vamos dar andamento ao " +
+            "seu atendimento por aqui.",
+        });
+      } catch (err) {
+        console.warn("[chat] Falha ao notificar o cliente sobre o aceite:", err);
+      }
+
+      navigate(
+        `/especialista/${encodeURIComponent(
+          specialistType
+        )}/caso/${encodeURIComponent(newCaseId)}`
+      );
+    } catch (err) {
+      console.error("[chat] Falha ao aceitar o cliente:", {
+        code: err?.code,
+        message: err?.message,
+        error: err,
+      });
+      const detail = err?.code ? ` (${err.code})` : "";
+      setWarning(`Não foi possível aceitar o cliente. Tente novamente.${detail}`);
+    } finally {
+      setAccepting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
       <AppHeader theme={theme} toggleTheme={toggleTheme} title={`Chat · ${peerName}`} />
@@ -668,6 +758,26 @@ export default function PlatformChat({ theme, toggleTheme }) {
             ← Voltar
           </button>
         </div>
+
+        {/* Ação exclusiva do especialista: aceitar o cliente e transformar a
+            conversa num caso ativo gerenciável. Visível somente quando o
+            usuário logado é o especialista desta conversa. */}
+        {iAmSpecialist && useFirestore && (
+          <div className="mb-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
+            <span className="text-xs text-emerald-900 dark:text-emerald-100">
+              Pronto para atender? Aceite este cliente para iniciar um caso ativo
+              e acompanhar o atendimento.
+            </span>
+            <button
+              type="button"
+              onClick={handleAcceptClient}
+              disabled={accepting}
+              className="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {accepting ? "Aceitando…" : "✓ Aceitar cliente"}
+            </button>
+          </div>
+        )}
 
         {!isPremium && (
           <div className="mb-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 px-3 py-2 text-xs text-amber-900 dark:text-amber-100 flex items-center justify-between gap-3 flex-wrap">

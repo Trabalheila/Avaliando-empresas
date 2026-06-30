@@ -247,6 +247,17 @@ service cloud.firestore {
         allow update: if false;
         allow delete: if false;
       }
+
+      // Casos ativos do especialista (clientes aceitos no chat).
+      // Apenas o PRÓPRIO especialista dono do perfil pode ler/escrever os
+      // seus casos. A identidade é confirmada comparando o UID autenticado
+      // com o campo `uid` do documento /apoiadores/{apoiadorId}.
+      match /cases/{caseId} {
+        allow read, create, update: if request.auth != null
+          && request.auth.uid ==
+             get(/databases/$(database)/documents/apoiadores/$(apoiadorId)).data.uid;
+        allow delete: if false;
+      }
     }
 
     // Profissionais de Apoio (userType = 'supportProfessional').

@@ -11,6 +11,7 @@ import {
 import { listConversationsForParticipant } from "../services/chat";
 import { isTestApoiador } from "../utils/testAccounts";
 import { buildSpecialistConversationId } from "../utils/chatId";
+import { listSpecialistCases } from "../services/specialistCases";
 
 /* ──────────────────────────────────────────────────────────────
  * Configurações por tipo de especialista (área de atuação).
@@ -957,13 +958,21 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
     let cancelled = false;
     (async () => {
       try {
-        const [cases, history, rev] = await Promise.all([
+        const [mockCases, realCases, history, rev] = await Promise.all([
           showMockData ? fetchActiveCases(apoiadorId, specialistTipo) : Promise.resolve([]),
+          listSpecialistCases(apoiadorId),
           showMockData ? fetchCaseHistory(apoiadorId) : Promise.resolve([]),
           fetchSpecialistReviews(apoiadorId),
         ]);
         if (cancelled) return;
-        setActiveCases(cases);
+        // Casos reais (clientes aceitos no chat) primeiro; mocks depois,
+        // sem duplicar ids já presentes nos casos reais.
+        const realIds = new Set(realCases.map((c) => c.id));
+        const merged = [
+          ...realCases,
+          ...mockCases.filter((c) => !realIds.has(c.id)),
+        ];
+        setActiveCases(merged);
         setCaseHistory(history);
         setReviews(rev);
       } catch (err) {
