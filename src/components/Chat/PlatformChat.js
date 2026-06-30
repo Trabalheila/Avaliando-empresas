@@ -21,7 +21,6 @@ import AppHeader from "../AppHeader";
 import {
   detectContactInfo,
   CONTACT_BLOCK_MESSAGE,
-  ESSENCIAL_MESSAGE_LIMIT,
 } from "../../utils/chatContentGuard";
 import { auth, storage } from "../../firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -40,8 +39,8 @@ import {
 import { optimizeImageFile } from "../../services/workerDocuments";
 import { acceptClientCase } from "../../services/specialistCases";
 
-// Limite de tamanho para documentos no chat Ad Exitum (25 MB).
-const ADEXITUM_MAX_FILE_BYTES = 25 * 1024 * 1024;
+// Limite de tamanho para documentos no chat Ad Exitum (60 MB).
+const ADEXITUM_MAX_FILE_BYTES = 60 * 1024 * 1024;
 
 /** Lê o userProfile do localStorage (mesmo padrão usado no app). */
 function readProfile() {
@@ -416,23 +415,13 @@ export default function PlatformChat({ theme, toggleTheme }) {
     }
   }, [messages]);
 
-  // Quantas mensagens MINHAS já existem (para aplicar limite do Essencial).
-  // Importante: somente mensagens de TEXTO contam. Anexos (documentos do
-  // fluxo Ad Exitum) NÃO consomem o limite do plano — caso contrário, enviar
-  // vários documentos travaria o campo de texto do trabalhador.
-  const myMessageCount = useMemo(
-    () =>
-      messages.filter(
-        (m) => m.from === myId && !m.attachment && String(m.text || "").trim()
-      ).length,
-    [messages, myId]
-  );
-
   // Mensagens preparadas para render: anexos consecutivos do mesmo remetente
   // (mesma ação de envio) são agrupados num único balão.
   const renderItems = useMemo(() => groupMessages(messages), [messages]);
 
-  const hitLimit = !isPremium && myMessageCount >= ESSENCIAL_MESSAGE_LIMIT;
+  // Limite de mensagens por conversa removido: o trabalhador pode trocar
+  // quantas mensagens precisar com o especialista.
+  const hitLimit = false;
 
   const persist = (next) => {
     setMessages(next);
@@ -444,14 +433,6 @@ export default function PlatformChat({ theme, toggleTheme }) {
     setWarning("");
     const text = draft.trim();
     if (!text) return;
-
-    if (hitLimit) {
-      setWarning(
-        `Você atingiu o limite de ${ESSENCIAL_MESSAGE_LIMIT} mensagens por conversa no Plano Essencial. ` +
-          `Faça upgrade para o Premium para continuar.`
-      );
-      return;
-    }
 
     if (!isPremium) {
       const { hasContact, reasons } = detectContactInfo(text);
@@ -548,11 +529,11 @@ export default function PlatformChat({ theme, toggleTheme }) {
     }
 
     // Fluxo Ad Exitum: upload seguro no Firebase Storage (suporta arquivos
-    // grandes, até 25 MB) — a troca de documentação acontece exclusivamente
+    // grandes, até 60 MB) — a troca de documentação acontece exclusivamente
     // pela plataforma.
     if (isAdExitum) {
       if (file.size > ADEXITUM_MAX_FILE_BYTES) {
-        setWarning("O arquivo excede o limite de 25 MB.");
+        setWarning("O arquivo excede o limite de 60 MB.");
         e.target.value = "";
         return;
       }
@@ -782,7 +763,7 @@ export default function PlatformChat({ theme, toggleTheme }) {
         {!isPremium && (
           <div className="mb-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 px-3 py-2 text-xs text-amber-900 dark:text-amber-100 flex items-center justify-between gap-3 flex-wrap">
             <span>
-              Plano Essencial · até {ESSENCIAL_MESSAGE_LIMIT} mensagens por conversa, sem links/contatos diretos.
+              Plano Essencial · mensagens ilimitadas, sem links/contatos diretos.
             </span>
             <Link
               to={peerRole === "especialista" ? "/trabalhador/beneficios" : "/especialista/beneficios"}
@@ -806,7 +787,7 @@ export default function PlatformChat({ theme, toggleTheme }) {
             {adExitumAccepted ? (
               <span>
                 Atendimento <strong>Ad Exitum</strong> ativo. Você já pode enviar
-                documentos (até 25 MB) com segurança — a troca acontece
+                documentos (até 60 MB) com segurança — a troca acontece
                 exclusivamente pela plataforma.
               </span>
             ) : (
@@ -843,7 +824,7 @@ export default function PlatformChat({ theme, toggleTheme }) {
             disabled={!canAttach || uploading}
             title={
               canAttach
-                ? "Anexar documento (até 25 MB)"
+                ? "Anexar documento (até 60 MB)"
                 : isAdExitum
                 ? "Liberado após o especialista aceitar o pedido"
                 : "Anexos disponíveis no Premium"
@@ -883,12 +864,6 @@ export default function PlatformChat({ theme, toggleTheme }) {
             Enviar
           </button>
         </form>
-
-        {!isPremium && (
-          <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 text-center">
-            {myMessageCount}/{ESSENCIAL_MESSAGE_LIMIT} mensagens usadas nesta conversa.
-          </p>
-        )}
       </main>
     </div>
   );
