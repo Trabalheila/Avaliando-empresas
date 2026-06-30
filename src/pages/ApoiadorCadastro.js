@@ -1,13 +1,13 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { db, auth, storage } from "../firebase";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
-import { signInAnonymously } from "firebase/auth";
+import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import AppHeader from "../components/AppHeader";
 import LoginLinkedInButton from "../LoginLinkedInButton";
 import { FaGoogle } from "react-icons/fa";
-import { loginWithGoogleAndFinalize } from "../services/socialAuth";
+import { loginWithGoogleAndFinalize, signUpWithEmailPassword } from "../services/socialAuth";
 import {
   setSelectedProfileType,
   clearSelectedProfileType,
@@ -19,6 +19,7 @@ import { buildDeclarationText } from "../components/ConflictDeclarationGate";
 import SECTORS from "../data/sectors";
 import WelcomeModal from "../components/WelcomeModal";
 import PaymentInfoModal from "../components/Specialist/PaymentInfoModal";
+import { passwordStrengthError, getPasswordChecks } from "../utils/passwordValidation";
 
 /* ── Opções por tipo (lista abrangente de profissões) ── */
 const TIPOS = [
@@ -79,7 +80,9 @@ const RAMOS_DIREITO = [
   "Direito Imobiliário",
   "Direito de Família",
   "Direito Administrativo",
-];const CREDENTIAL_LABELS = {
+];
+
+const CREDENTIAL_LABELS = {
   advogado:                  { number: "Número da OAB",  state: "Estado da OAB (UF)",     placeholder: "Ex: SP" },
   medico:                    { number: "Número do CRM",  state: "Estado do CRM (UF)",     placeholder: "Ex: SP" },
   psicologo:                 { number: "Número do CRP",  state: "Região do CRP",          placeholder: "Ex: 06/SP" },
@@ -111,6 +114,13 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
   const [tipo, setTipo] = useState("");
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  /* Credenciais de acesso (cria a conta de login do especialista, como no
+     cadastro de trabalhador). Só são exigidas quando o usuário ainda não
+     está autenticado por um provedor social (Google/LinkedIn). */
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [telefone, setTelefone] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -157,6 +167,19 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
   const [createdApoiadorId, setCreatedApoiadorId] = useState("");
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [error, setError] = useState("");
+  /* true quando há um login social/real ativo (Google/LinkedIn). Nesse caso
+     a conta já existe e os campos de e-mail/senha de acesso são ocultados. */
+  const [socialAuthed, setSocialAuthed] = useState(false);
+
+  // Observa o estado de autenticação para decidir se pede senha de acesso.
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setSocialAuthed(Boolean(user && !user.isAnonymous));
+    });
+    return () => {
+      try { unsub(); } catch { /* ignore */ }
+    };
+  }, []);
 
   /* ── Portfólio (Premium) ── */
   const [portfolio, setPortfolio] = useState([]);
@@ -316,6 +339,17 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
 
     if (!tipo) { setError("Selecione o tipo de especialista."); return; }
     if (!nome.trim() || !email.trim() || !telefone.trim()) { setError("Preencha todos os campos obrigatórios."); return; }
+
+    // Credenciais de acesso: exigidas apenas quando o usuário ainda não está
+    // autenticado por um provedor social (Google/LinkedIn). Nesses casos o
+    // login já criou a conta e não pedimos senha novamente.
+    const alreadyAuthed = Boolean(auth.currentUser && !auth.currentUser.isAnonymous);
+    if (!alreadyAuthed) {
+      const strengthError = passwordStrengthError(password);
+      if (strengthError) { setError(strengthError); return; }
+      if (password !== confirmPassword) { setError("As senhas não coincidem."); return; }
+    }
+
     if (!ramoEspecializacao) { setError("Selecione o Ramo de Especialização."); return; }
     if (isAdvogadoTipo(tipo) && ramosDireito.length === 0) {
       setError("Selecione ao menos um Ramo de Atuação de Direito.");
@@ -340,7 +374,44 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
 
     setSubmitting(true);
     try {
-      if (!auth.currentUser) await signInAnonymously(auth);
+      // Cria a conta de acesso (e-mail + senha) do especialista, à semelhança
+      // do cadastro de trabalhador. Se já houver login social ativo, apenas
+      // reaproveitamos a sessão. Se nem isso, caímos no anônimo (não deveria
+      // ocorrer pois a senha é obrigatória quando não autenticado).
+      if (!alreadyAuthed) {
+        try {
+          await signUpWithEmailPassword({
+            email: email.trim().toLowerCase(),
+            password,
+          });
+        } catch (authErr) {
+          const code = String(authErr?.code || "");
+          if (
+            code === "trabalheila/email-already-in-use" ||
+            code.includes("auth/email-already-in-use")
+          ) {
+            setError("Este e-mail já está cadastrado. Entre pelo /login para continuar.");
+            setSubmitting(false);
+            return;
+          }
+          if (code.includes("auth/invalid-email")) {
+            setError("E-mail inválido.");
+            setSubmitting(false);
+            return;
+          }
+          if (code.includes("auth/weak-password")) {
+            setError("Senha muito fraca. Use uma senha mais forte.");
+            setSubmitting(false);
+            return;
+          }
+          console.error("[apoiadorCadastro] falha ao criar conta:", authErr);
+          setError("Não foi possível criar sua conta de acesso. Tente novamente.");
+          setSubmitting(false);
+          return;
+        }
+      } else if (!auth.currentUser) {
+        await signInAnonymously(auth);
+      }
 
       const id = `apoiador_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
 
@@ -487,7 +558,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
       setError("Ocorreu um erro ao enviar o cadastro. Tente novamente.");
     }
     setSubmitting(false);
-  }, [tipo, nome, email, telefone, whatsapp, descricao, foto, fotoFile, arquivos, allTermosAceitos, conflictDeclarationAccepted, cnpj, segmentos, site, portfolio, nichos, adExitum, servesWorker, servesEmployer, ramoEspecializacao, ramosDireito, credentialNumber, credentialStateOrRegion, credentialPortfolioUrl, credentialCertifications, credentialProof]);
+  }, [tipo, nome, email, password, confirmPassword, telefone, whatsapp, descricao, foto, fotoFile, arquivos, allTermosAceitos, conflictDeclarationAccepted, cnpj, segmentos, site, portfolio, nichos, adExitum, servesWorker, servesEmployer, ramoEspecializacao, ramosDireito, credentialNumber, credentialStateOrRegion, credentialPortfolioUrl, credentialCertifications, credentialProof]);
 
   /* Fecha o WelcomeModal e marca welcomeModalShown=true no Firestore.
      O proprio WelcomeModal ja persiste o flag; aqui apenas garantimos
@@ -697,6 +768,74 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                   <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200" />
                 </div>
+                {!socialAuthed && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Senha de acesso *</label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          autoComplete="new-password"
+                          placeholder="Crie uma senha"
+                          className="w-full px-3 py-2 pr-16 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((v) => !v)}
+                          className="absolute inset-y-0 right-0 px-3 text-xs font-semibold text-blue-600 dark:text-blue-300"
+                        >
+                          {showPassword ? "Ocultar" : "Mostrar"}
+                        </button>
+                      </div>
+                      {password && (
+                        <ul className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+                          {(() => {
+                            const c = getPasswordChecks(password);
+                            const Item = ({ ok, children }) => (
+                              <li className={ok ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500"}>
+                                {ok ? "✓" : "•"} {children}
+                              </li>
+                            );
+                            return (
+                              <>
+                                <Item ok={c.tamanho}>Mín. 8 caracteres</Item>
+                                <Item ok={c.maiuscula}>Letra maiúscula</Item>
+                                <Item ok={c.minuscula}>Letra minúscula</Item>
+                                <Item ok={c.numero}>Número</Item>
+                                <Item ok={c.especial}>Caractere especial</Item>
+                              </>
+                            );
+                          })()}
+                        </ul>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Confirmar senha *</label>
+                      <div className="relative">
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          autoComplete="new-password"
+                          placeholder="Repita a senha"
+                          className="w-full px-3 py-2 pr-16 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword((v) => !v)}
+                          className="absolute inset-y-0 right-0 px-3 text-xs font-semibold text-blue-600 dark:text-blue-300"
+                        >
+                          {showConfirmPassword ? "Ocultar" : "Mostrar"}
+                        </button>
+                      </div>
+                      {confirmPassword && confirmPassword !== password && (
+                        <p className="mt-1 text-[11px] text-rose-500">As senhas não coincidem.</p>
+                      )}
+                    </div>
+                  </>
+                )}
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Telefone *</label>
                   <input type="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} maxLength={20} placeholder="(11) 99999-0000"
@@ -1111,6 +1250,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
               <li className="flex items-start gap-2"><span className="text-rose-500 mt-0.5">•</span> Tipo de especialista (profissão)</li>
               <li className="flex items-start gap-2"><span className="text-rose-500 mt-0.5">•</span> Nome completo / Razão social</li>
               <li className="flex items-start gap-2"><span className="text-rose-500 mt-0.5">•</span> E-mail</li>
+              <li className="flex items-start gap-2"><span className="text-rose-500 mt-0.5">•</span> Senha de acesso (ou login com Google/LinkedIn)</li>
               <li className="flex items-start gap-2"><span className="text-rose-500 mt-0.5">•</span> Telefone</li>
               <li className="flex items-start gap-2"><span className="text-rose-500 mt-0.5">•</span> Ramo de Especialização</li>
               <li className="flex items-start gap-2"><span className="text-rose-500 mt-0.5">•</span> Número e estado/região do conselho de classe (OAB, CRM, CRP etc.) — para profissões regulamentadas</li>

@@ -1,14 +1,13 @@
 // src/pages/CadastroEscolha.js
 //
-// Tela inicial de cadastro. Apresenta três caminhos claros para o usuário
+// Tela inicial de cadastro. Apresenta os caminhos disponíveis para o usuário
 // escolher como deseja se cadastrar na plataforma:
 //   - Trabalhador  → /pseudonym
 //   - Especialista → /apoiadores/cadastro
-//   - Empresa      → /empresa/cadastro
 //
 // Esta é a primeira tela de um processo de cadastro genérico (ex.: link
-// "Cadastre-se" do login/menu), evitando direcionar o usuário direto para
-// o cadastro de empresas.
+// "Cadastre-se" do login/menu). O cadastro de Empresa está temporariamente
+// indisponível e não é exibido aqui.
 
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -35,16 +34,6 @@ const OPTIONS = [
     accent:
       "from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800",
   },
-  {
-    key: "empresa",
-    title: "Cadastrar como Empresa",
-    description:
-      "Reivindique o perfil da sua empresa, responda avaliações e acompanhe sua reputação.",
-    icon: "🏢",
-    to: "/empresa/cadastro",
-    accent:
-      "from-slate-700 to-slate-900 hover:from-slate-800 hover:to-black",
-  },
 ];
 
 export default function CadastroEscolha({ theme, toggleTheme }) {
@@ -65,7 +54,7 @@ export default function CadastroEscolha({ theme, toggleTheme }) {
           </p>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 max-w-2xl mx-auto">
           {OPTIONS.map((opt) => (
             <button
               key={opt.key}
