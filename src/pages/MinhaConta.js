@@ -5,7 +5,8 @@ import { onAuthStateChanged } from "firebase/auth";
 import {
   doc,
   getDoc,
-  updateDoc,
+  setDoc,
+  serverTimestamp,
   collection,
   query,
   where,
@@ -218,6 +219,7 @@ export default function MinhaConta({ theme, toggleTheme }) {
               pseudonimo: "",
               avatar: cu.photoURL || "",
               picture: cu.photoURL || "",
+              photoURL: cu.photoURL || "",
               nomeReal: cu.displayName || "",
               fullName: cu.displayName || "",
             });
@@ -307,6 +309,7 @@ export default function MinhaConta({ theme, toggleTheme }) {
               pseudonimo: "",
               avatar: cu.photoURL || "",
               picture: cu.photoURL || "",
+              photoURL: cu.photoURL || "",
               nomeReal: cu.displayName || "",
               fullName: cu.displayName || "",
             };
@@ -351,7 +354,7 @@ export default function MinhaConta({ theme, toggleTheme }) {
 
   // Avatar
   const avatarDisplay = useMemo(() => {
-    const av = profile?.avatar || profile?.picture || "";
+    const av = profile?.avatar || profile?.picture || profile?.photoURL || "";
     if (av && (av.startsWith("data:") || av.startsWith("http"))) {
       return <img src={av} alt="avatar" className="h-20 w-20 rounded-full object-cover border-2 border-blue-200 dark:border-slate-600" referrerPolicy="no-referrer" />;
     }
@@ -412,13 +415,29 @@ export default function MinhaConta({ theme, toggleTheme }) {
 
     // Persiste a URL final (Storage ou dataURL) no Firestore + cache local.
     const persistAvatar = async (url) => {
-      await updateDoc(doc(db, "users", docId), { avatar: url });
-      setProfile((prev) => (prev ? { ...prev, avatar: url } : prev));
+      // setDoc(merge) em vez de updateDoc: updateDoc lança "No document to
+      // update" quando o doc ainda não existe (perfil recém-criado / id
+      // alternativo), fazendo a foto NÃO persistir. Carimbamos `uid`/`email`
+      // para satisfazer as regras do Firestore (ownsUserDoc) e gravamos tanto
+      // `avatar` quanto `photoURL` para manter o campo consistente em toda a app.
+      const cu = auth.currentUser || {};
+      await setDoc(
+        doc(db, "users", docId),
+        {
+          avatar: url,
+          photoURL: url,
+          ...(cu.uid ? { uid: cu.uid } : {}),
+          ...(cu.email ? { email: cu.email } : {}),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      setProfile((prev) => (prev ? { ...prev, avatar: url, photoURL: url } : prev));
       try {
         const stored = JSON.parse(localStorage.getItem("userProfile") || "{}");
         localStorage.setItem(
           "userProfile",
-          JSON.stringify({ ...stored, avatar: url })
+          JSON.stringify({ ...stored, avatar: url, photoURL: url })
         );
         window.dispatchEvent(new Event("trabalheiLa_user_updated"));
       } catch {
@@ -529,6 +548,7 @@ export default function MinhaConta({ theme, toggleTheme }) {
       pseudonimo: "",
       avatar: auth.currentUser?.photoURL || "",
       picture: auth.currentUser?.photoURL || "",
+      photoURL: auth.currentUser?.photoURL || "",
       nomeReal: auth.currentUser?.displayName || "",
       fullName: auth.currentUser?.displayName || "",
     };

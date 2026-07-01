@@ -106,7 +106,7 @@ export default function EditProfileModal({ open, onClose, profile, onSaved }) {
     setEmail(profile?.email || "");
     setPhone(profile?.phone || "");
     setEducation(profile?.education || "");
-    setAvatar(profile?.avatar || profile?.picture || "");
+    setAvatar(profile?.avatar || profile?.picture || profile?.photoURL || "");
     setCpf(profile?.cpf || "");
     setRg(profile?.rg || "");
     setBirthDate(profile?.birthDate || "");
@@ -150,6 +150,9 @@ export default function EditProfileModal({ open, onClose, profile, onSaved }) {
         picture: avatar && (avatar.startsWith("http") || avatar.startsWith("data:"))
           ? avatar
           : profile?.picture || "",
+        photoURL: avatar && (avatar.startsWith("http") || avatar.startsWith("data:"))
+          ? avatar
+          : profile?.photoURL || "",
         cpf: cpf.trim(),
         rg: rg.trim(),
         birthDate: birthDate.trim(),

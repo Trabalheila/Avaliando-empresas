@@ -35,6 +35,15 @@ export async function saveUserProfile(profile) {
     updatedAt: serverTimestamp(),
   };
 
+  // Remove chaves com valor `undefined`. O Firestore rejeita o documento
+  // INTEIRO quando qualquer campo é `undefined` ("Unsupported field value:
+  // undefined"), fazendo o setDoc lançar e NENHUM dado ser salvo — a causa
+  // de perfis que "não persistiam". Strings vazias e null são válidos e
+  // preservados; só descartamos undefined.
+  Object.keys(payload).forEach((key) => {
+    if (payload[key] === undefined) delete payload[key];
+  });
+
   const ref = doc(db, "users", id.toString());
   await setDoc(ref, payload, { merge: true });
   return { id: id.toString(), ...payload };
