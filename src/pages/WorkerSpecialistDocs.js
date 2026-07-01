@@ -64,6 +64,10 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
   const [spec, setSpec] = useState(null); // { name, specialtyId, receiverUid, conversationId }
   const [apoiadorInfo, setApoiadorInfo] = useState(null);
   const [notFound, setNotFound] = useState(false);
+  // Pareceres/informações registrados pelo especialista sobre o caso.
+  // A gravação do parecer será implementada em fase posterior; por ora a
+  // estrutura já exibe a lista (ou o estado vazio).
+  const [pareceres] = useState([]);
 
   const [category, setCategory] = useState(DOC_CATEGORY_PROCESS);
   const [docs, setDocs] = useState([]); // documentos já enviados (todas categorias)
@@ -249,6 +253,10 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
   const visibleDocs = docs.filter(
     (d) => String(d.category || DOC_CATEGORY_PROCESS) === category
   );
+  const personalCount = docs.filter(
+    (d) => String(d.category || DOC_CATEGORY_PROCESS) === DOC_CATEGORY_CLIENT
+  ).length;
+  const processCount = docs.length - personalCount;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
@@ -304,7 +312,7 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
                   ● Contato ativo
                 </span>
               </div>
-              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
                 <div>
                   <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">
                     Modelo
@@ -321,6 +329,15 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
                     {apoiadorInfo?.disponibilidade || "Informada no chat do caso"}
                   </p>
                 </div>
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">
+                    Documentos enviados
+                  </p>
+                  <p className="text-slate-800 dark:text-slate-100">
+                    📎 {docs.length} no total · {personalCount} pessoais ·{" "}
+                    {processCount} do processo
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
@@ -333,10 +350,58 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
                     )}&peerRole=especialista&adExitum=1`
                   )
                 }
-                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-200 text-sm font-bold hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                className="mt-4 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 min-h-[44px]"
               >
-                💬 Abrir chat do caso
+                💬 Solicitar Chat
               </button>
+            </section>
+
+            {/* Informações e Pareceres do especialista */}
+            <section className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5">
+              <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                📋 Informações e Pareceres
+              </h2>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Acompanhe aqui as orientações, análises e pareceres que{" "}
+                {spec.name} registrar sobre o seu caso.
+              </p>
+
+              {pareceres.length === 0 ? (
+                <div className="mt-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-5 text-center">
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                    Nenhum parecer disponível ainda
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Quando o especialista registrar uma análise ou parecer sobre
+                    o seu caso, ele aparecerá aqui.
+                  </p>
+                </div>
+              ) : (
+                <ul className="mt-4 space-y-3">
+                  {pareceres.map((p) => (
+                    <li
+                      key={p.id}
+                      className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-4"
+                    >
+                      <div className="flex items-start justify-between gap-2 flex-wrap">
+                        <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                          {p.title || "Parecer do especialista"}
+                        </p>
+                        {p.createdAt && (
+                          <span className="text-xs text-slate-400 dark:text-slate-500">
+                            {p.createdAt}
+                          </span>
+                        )}
+                      </div>
+                      {p.content && (
+                        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line">
+                          {p.content}
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
 
             {/* Seletor de categoria */}
@@ -351,7 +416,7 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
                     : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700",
                 ].join(" ")}
               >
-                🪪 Documentos do Cliente
+                🪪 Documentos Pessoais
               </button>
               <button
                 type="button"
@@ -363,17 +428,23 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
                     : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700",
                 ].join(" ")}
               >
-                📁 Documentos para o Especialista
+                📁 Documentos do Processo
               </button>
             </div>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400 -mt-1 px-1">
+              {category === DOC_CATEGORY_CLIENT
+                ? "🪪 Documentos pessoais: identidade e dados do trabalhador (RG, CPF, comprovantes de residência)."
+                : "📁 Documentos do processo: provas e arquivos específicos deste caso com o especialista."}
+            </p>
 
             {/* Área de upload */}
             <section className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5">
               <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">
                 Enviar{" "}
                 {category === DOC_CATEGORY_CLIENT
-                  ? "documentos do cliente"
-                  : "documentos para o especialista"}
+                  ? "documentos pessoais"
+                  : "documentos do processo"}
               </h2>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 Vários arquivos permitidos · até {MAX_FILE_SIZE_MB} MB cada.

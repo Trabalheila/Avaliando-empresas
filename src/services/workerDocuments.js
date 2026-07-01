@@ -368,8 +368,8 @@ export async function commitWorkerDocuments({
   try {
     const label =
       cat === DOC_CATEGORY_CLIENT
-        ? "Documentos do Cliente"
-        : "Documentos para o especialista";
+        ? "Documentos Pessoais"
+        : "Documentos do Processo";
     const summary =
       saved.length === 1
         ? `📎 Enviei um novo documento (${label}): ${saved[0].name}`

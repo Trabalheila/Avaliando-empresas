@@ -24,19 +24,8 @@ import VerifyIdentitySection from "../components/VerifyIdentitySection";
 import ExperienceManagerModal from "../components/ExperienceManagerModal";
 import EditProfileModal from "../components/EditProfileModal";
 import { buildVideoCallLink, formatStartsIn } from "../utils/videoCall";
-import { openReceiptPdf } from "../utils/receiptDocument";
 import { listAcceptedAdExitumForWorker } from "../services/contactRequests";
 import { buildSpecialistConversationId } from "../utils/chatId";
-import {
-  listWorkerDocuments,
-  stageWorkerDocument,
-  commitWorkerDocuments,
-  deleteWorkerDocument,
-  MAX_FILE_SIZE_MB,
-  WORKER_DOC_MAX_BYTES,
-  DOC_CATEGORY_CLIENT,
-  DOC_CATEGORY_PROCESS,
-} from "../services/workerDocuments";
 /* ════════════════════════════════════════════════
    MinhaConta — Página privada "Minha conta"
    ════════════════════════════════════════════════ */
@@ -743,14 +732,11 @@ export default function MinhaConta({ theme, toggleTheme }) {
         {/* ══════ Próxima Videochamada (Premium) ══════ */}
         <NextVideoCallSection profile={safeProfile} navigate={navigate} />
 
-        {/* ══════ Histórico de Consultas ══════ */}
-        <ConsultationHistorySection profile={safeProfile} navigate={navigate} />
+        {/* ══════ Atendimentos Ativos ══════ */}
+        <ActiveServicesSection profile={safeProfile} navigate={navigate} />
 
         {/* ══════ Contatos Liberados ══════ */}
         <ReleasedContactsSection profile={safeProfile} />
-
-        {/* ══════ Meus Documentos para Especialistas ══════ */}
-        <WorkerDocumentsSection profile={safeProfile} />
 
         {/* ══════ Minhas Experiências Profissionais ══════ */}
         <section id="experiencias" className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
@@ -1100,17 +1086,15 @@ function ReleasedContactsSection({ profile }) {
 }
 
 /* ════════════════════════════════════════════════
-   WorkerDocumentsSection
+   ActiveServicesSection
    ────────────────────────────────────────────────
-   Card "Meus Documentos para Especialistas". Lista os
-   especialistas com contato ativo (pedidos Ad Exitum
-   aceitos) e permite ao trabalhador enviar documentos
-   (Firebase Storage + subcoleção conversations/{id}/documents).
-   Mostra também os documentos já enviados, com link para
-   visualizar/baixar. O especialista é notificado pelo mesmo
-   canal do chat (o documento entra como mensagem com anexo).
+   Card "Atendimentos Ativos". Lista os especialistas com
+   contato ativo (pedidos Ad Exitum aceitos). Cada item traz
+   um botão que leva à página dedicada do especialista
+   (/trabalhador/especialista/:apoiadorId), onde o trabalhador
+   acompanha o caso e envia documentos (pessoais e do processo).
    ════════════════════════════════════════════════ */
-function WorkerDocumentsSection({ profile }) {
+function ActiveServicesSection({ profile, navigate }) {
   const uid = auth.currentUser?.uid || profile?.uid || profile?.id || "";
   const workerName =
     profile?.nomeReal ||
@@ -1171,9 +1155,9 @@ function WorkerDocumentsSection({ profile }) {
     <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
       <h2 className="text-lg font-bold text-blue-800 dark:text-blue-200 mb-4 flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-3-6.65" />
         </svg>
-        Meus Documentos para Especialistas
+        Atendimentos Ativos
       </h2>
 
       {loading ? (
@@ -1182,426 +1166,52 @@ function WorkerDocumentsSection({ profile }) {
         </p>
       ) : specialists.length === 0 ? (
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Você ainda não tem especialistas com contato ativo. Quando um
-          especialista aceitar o seu pedido Ad Exitum, você poderá enviar
-          documentos com segurança por aqui.
+          Você ainda não tem atendimentos ativos. Quando um especialista aceitar
+          o seu pedido Ad Exitum, ele aparecerá aqui com uma página dedicada para
+          acompanhar o caso e enviar seus documentos.
         </p>
       ) : (
-        <div className="space-y-4">
+        <ul className="space-y-3">
           {specialists.map((spec) => (
-            <SpecialistDocsCard
+            <li
               key={spec.id}
-              spec={spec}
-              uid={uid}
-              workerName={workerName}
-            />
+              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-100 break-words">
+                  {spec.name}
+                </p>
+                {spec.specialtyId && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    ⚖️ {spec.specialtyId}
+                  </p>
+                )}
+                <p className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold mt-0.5">
+                  ● Contato ativo
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    `/trabalhador/especialista/${encodeURIComponent(
+                      spec.apoiadorId
+                    )}`
+                  )
+                }
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition shrink-0"
+              >
+                Abrir atendimento →
+              </button>
+            </li>
           ))}
-        </div>
-      )}
-
-      {specialists.length > 0 && (
-        <p className="mt-4 text-xs text-slate-400 dark:text-slate-500">
-          Envie documentos com segurança direto por aqui (até {MAX_FILE_SIZE_MB}{" "}
-          MB por arquivo, vários por vez). O especialista é notificado
-          automaticamente.
-        </p>
+        </ul>
       )}
     </section>
   );
 }
 
-/* ════════════════════════════════════════════════
-   SpecialistDocsCard
-   ────────────────────────────────────────────────
-   Card inline (desktop e mobile) de gerenciamento de
-   documentos com UM especialista: botão "Enviar
-   Documentos" (upload múltiplo com barra de progresso),
-   lista dos arquivos já enviados e ações Visualizar/Apagar.
-   Usa os mesmos serviços da página dedicada
-   (WorkerSpecialistDocs), trazendo os recursos para dentro
-   da seção "Meus Documentos para Especialistas".
-   ════════════════════════════════════════════════ */
-function SpecialistDocsCard({ spec, uid, workerName }) {
-  const conversationId = spec.conversationId;
 
-  const [expanded, setExpanded] = useState(false);
-  const [category, setCategory] = useState(DOC_CATEGORY_PROCESS);
-  const [docs, setDocs] = useState([]);
-  const [loadingDocs, setLoadingDocs] = useState(true);
-  const [staged, setStaged] = useState([]); // { id, name, percent, error, meta }
-  const [sending, setSending] = useState(false);
-  const [uploadError, setUploadError] = useState("");
-  const [confirmMsg, setConfirmMsg] = useState("");
-  const [confirmDeleteId, setConfirmDeleteId] = useState("");
-  const [deletingId, setDeletingId] = useState("");
-  const fileInputRef = useRef(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoadingDocs(true);
-    (async () => {
-      const existing = await listWorkerDocuments(conversationId).catch(() => []);
-      if (!cancelled) {
-        setDocs(Array.isArray(existing) ? existing : []);
-        setLoadingDocs(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [conversationId]);
-
-  const patchStaged = useCallback((id, patch) => {
-    setStaged((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
-  }, []);
-
-  const handleFiles = async (event) => {
-    const files = Array.from(event?.target?.files || []);
-    if (event?.target) event.target.value = "";
-    if (files.length === 0) return;
-    setUploadError("");
-    setConfirmMsg("");
-
-    const queued = files.map((file) => ({
-      id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
-      name: file.name,
-      percent: 0,
-      error: "",
-      meta: null,
-      file,
-    }));
-    setStaged((prev) => [...prev, ...queued.map(({ file, ...rest }) => rest)]);
-
-    for (const item of queued) {
-      const { file, id } = item;
-      if (file.size > WORKER_DOC_MAX_BYTES) {
-        patchStaged(id, { error: `Excede o limite de ${MAX_FILE_SIZE_MB} MB.` });
-        continue;
-      }
-      try {
-        const meta = await stageWorkerDocument({
-          conversationId,
-          file,
-          senderUid: uid,
-          senderName: workerName,
-          peerName: spec.name,
-          onProgress: (percent) => patchStaged(id, { percent }),
-        });
-        patchStaged(id, { percent: 100, meta });
-      } catch (err) {
-        patchStaged(id, {
-          error:
-            err?.code === "FILE_TOO_LARGE"
-              ? `Excede o limite de ${MAX_FILE_SIZE_MB} MB.`
-              : "Falha no envio. Tente novamente.",
-        });
-      }
-    }
-  };
-
-  const removeStaged = (id) =>
-    setStaged((prev) => prev.filter((s) => s.id !== id));
-
-  const readyStaged = staged.filter(
-    (s) => !s.error && s.meta && s.percent >= 100
-  );
-  const anyUploading = staged.some((s) => !s.error && s.percent < 100);
-  const canSend =
-    !sending && staged.length > 0 && !anyUploading && readyStaged.length > 0;
-
-  const handleSend = async () => {
-    if (!canSend) return;
-    setSending(true);
-    setUploadError("");
-    try {
-      await commitWorkerDocuments({
-        conversationId,
-        docs: readyStaged.map((s) => s.meta),
-        senderUid: uid,
-        senderName: workerName,
-        receiverUid: spec.receiverUid,
-        category,
-      });
-      setStaged([]);
-      const existing = await listWorkerDocuments(conversationId).catch(() => []);
-      setDocs(Array.isArray(existing) ? existing : []);
-      setConfirmMsg(
-        `Documentos enviados com sucesso! ${spec.name} foi notificado(a).`
-      );
-    } catch (err) {
-      console.warn("Falha ao enviar documentos:", err);
-      setUploadError("Não foi possível concluir o envio. Tente novamente.");
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const handleDelete = async (docItem) => {
-    setDeletingId(docItem.id);
-    try {
-      await deleteWorkerDocument({
-        conversationId,
-        docId: docItem.id,
-        storagePath: docItem.storagePath,
-      });
-      setDocs((prev) => prev.filter((d) => d.id !== docItem.id));
-      setConfirmDeleteId("");
-    } catch (err) {
-      console.warn("Falha ao apagar documento:", err);
-      setUploadError("Não foi possível apagar. Tente novamente.");
-    } finally {
-      setDeletingId("");
-    }
-  };
-
-  // Documentos filtrados pela categoria selecionada (docs antigos sem
-  // `category` contam como "processo" para compatibilidade).
-  const visibleDocs = docs.filter(
-    (d) => String(d.category || DOC_CATEGORY_PROCESS) === category
-  );
-
-  return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
-      {/* Cabeçalho recolhível: especialista + total + seta */}
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        aria-expanded={expanded}
-        className="w-full flex items-center justify-between gap-3 p-4 text-left transition min-h-[44px] hover:bg-slate-50 dark:hover:bg-slate-800/60"
-      >
-        <span className="min-w-0">
-          <span className="block text-sm font-bold text-slate-800 dark:text-slate-100 break-words">
-            {spec.name}
-          </span>
-          {spec.specialtyId && (
-            <span className="block text-xs text-slate-500 dark:text-slate-400">
-              ⚖️ {spec.specialtyId}
-            </span>
-          )}
-          <span className="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            📎 {docs.length} documento(s) enviado(s)
-          </span>
-        </span>
-        <span
-          aria-hidden="true"
-          className={
-            "shrink-0 text-lg font-bold text-blue-600 dark:text-blue-300 transition-transform " +
-            (expanded ? "rotate-90" : "")
-          }
-        >
-          ›
-        </span>
-      </button>
-
-      {expanded && (
-        <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-800">
-          {/* Abas de categoria (mesmo padrão da versão mobile) */}
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setCategory(DOC_CATEGORY_CLIENT)}
-              className={[
-                "px-3 py-2 rounded-xl text-xs font-bold border transition min-h-[40px]",
-                category === DOC_CATEGORY_CLIENT
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700",
-              ].join(" ")}
-            >
-              🪪 Documentos do Cliente
-            </button>
-            <button
-              type="button"
-              onClick={() => setCategory(DOC_CATEGORY_PROCESS)}
-              className={[
-                "px-3 py-2 rounded-xl text-xs font-bold border transition min-h-[40px]",
-                category === DOC_CATEGORY_PROCESS
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700",
-              ].join(" ")}
-            >
-              📁 Documentos para o Especialista
-            </button>
-          </div>
-
-          {/* Área de upload */}
-          <div className="mt-3">
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/*,.pdf,audio/mpeg,video/mp4"
-              className="hidden"
-              onChange={handleFiles}
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-200 text-xs font-bold hover:bg-blue-50 dark:hover:bg-blue-900/20 min-h-[44px]"
-            >
-              📎 Selecionar arquivos
-            </button>
-            <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
-              Vários arquivos permitidos · até {MAX_FILE_SIZE_MB} MB cada.
-            </p>
-          </div>
-
-          {/* Barras de progresso (estilo Google Drive) */}
-          {staged.length > 0 && (
-            <>
-              <ul className="mt-3 space-y-3">
-                {staged.map((s) => (
-                  <li key={s.id}>
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-xs text-slate-600 dark:text-slate-300 truncate min-w-0">
-                        📎 {s.name}
-                      </span>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span
-                          className={
-                            "text-[11px] font-semibold " +
-                            (s.error
-                              ? "text-red-600 dark:text-red-400"
-                              : s.percent >= 100
-                              ? "text-emerald-600 dark:text-emerald-400"
-                              : "text-blue-600 dark:text-blue-300")
-                          }
-                        >
-                          {s.error
-                            ? "Erro"
-                            : s.percent >= 100
-                            ? "Pronto ✓"
-                            : `${s.percent}%`}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeStaged(s.id)}
-                          className="text-slate-400 hover:text-red-500 text-sm leading-none"
-                          aria-label="Remover"
-                          title="Remover"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    </div>
-                    <div className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                      <div
-                        className={
-                          "h-full rounded-full transition-all duration-200 " +
-                          (s.error
-                            ? "bg-red-500"
-                            : s.percent >= 100
-                            ? "bg-emerald-500"
-                            : "bg-blue-600")
-                        }
-                        style={{ width: `${s.error ? 100 : s.percent}%` }}
-                      />
-                    </div>
-                    {s.error && (
-                      <p className="mt-1 text-[11px] text-red-600 dark:text-red-400">
-                        {s.error}
-                      </p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-              <button
-                type="button"
-                onClick={handleSend}
-                disabled={!canSend}
-                className="mt-3 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
-              >
-                {sending
-                  ? "Enviando…"
-                  : anyUploading
-                  ? "Aguardando upload…"
-                  : `Enviar${readyStaged.length ? ` (${readyStaged.length})` : ""}`}
-              </button>
-            </>
-          )}
-
-          {uploadError && (
-            <p className="mt-2 text-xs text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
-              {uploadError}
-            </p>
-          )}
-          {confirmMsg && (
-            <p className="mt-2 text-xs text-emerald-800 dark:text-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg px-3 py-2">
-              ✅ {confirmMsg}
-            </p>
-          )}
-
-          {/* Documentos já enviados nesta categoria */}
-          <div className="mt-4">
-            <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Enviados
-            </h3>
-            {loadingDocs ? (
-              <p className="mt-2 text-xs text-slate-400 dark:text-slate-500 animate-pulse">
-                Carregando documentos…
-              </p>
-            ) : visibleDocs.length === 0 ? (
-              <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
-                Nenhum documento enviado nesta categoria ainda.
-              </p>
-            ) : (
-              <ul className="mt-2 space-y-1.5">
-                {visibleDocs.map((d) => (
-                  <li
-                    key={d.id}
-                    className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 px-3 py-2"
-                  >
-                    <span className="min-w-0 flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
-                      <span aria-hidden="true">📎</span>
-                      <span className="truncate">{d.name || "Documento"}</span>
-                    </span>
-                    <span className="shrink-0 flex items-center gap-3 text-xs font-semibold">
-                      <a
-                        href={d.url || "#"}
-                        target="_blank"
-                        rel="noreferrer"
-                        download={d.name}
-                        className="text-blue-700 dark:text-blue-300 hover:underline"
-                      >
-                        Visualizar
-                      </a>
-                      {confirmDeleteId === d.id ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(d)}
-                            disabled={deletingId === d.id}
-                            className="text-red-600 dark:text-red-400 hover:underline disabled:opacity-60"
-                          >
-                            {deletingId === d.id ? "Apagando…" : "Confirmar"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfirmDeleteId("")}
-                            className="text-slate-400 hover:underline"
-                          >
-                            Cancelar
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setConfirmDeleteId(d.id)}
-                          className="text-red-600 dark:text-red-400 hover:underline"
-                        >
-                          Apagar
-                        </button>
-                      )}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 /* ════════════════════════════════════════════════
    NextVideoCallSection
@@ -1731,151 +1341,5 @@ function NextVideoCallSection({ profile, navigate }) {
   );
 }
 
-/* ════════════════════════════════════════════════
-   ConsultationHistorySection
-   ────────────────────────────────────────────────
-   Lista o histórico de consultas do trabalhador (todos os status).
-   Cada card mostra "Ver detalhes" com o status da consulta e um botão
-   "Ver nota fiscal ou recibo" que gera/baixa o documento em PDF
-   (impressão do navegador → Salvar como PDF).
-   ════════════════════════════════════════════════ */
-const CONSULTA_STATUS_LABELS = {
-  pending: { label: "Aguardando confirmação", cls: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200" },
-  accepted: { label: "Confirmada", cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200" },
-  in_progress: { label: "Em andamento", cls: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-200" },
-  completed: { label: "Concluída", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200" },
-  cancelled: { label: "Cancelada", cls: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-200" },
-};
 
-function ConsultationHistorySection({ profile }) {
-  const workerId = profile?.id || profile?.profileId || "";
-  const [consultas, setConsultas] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [openId, setOpenId] = useState(null);
-
-  useEffect(() => {
-    if (!workerId) return undefined;
-    let cancelled = false;
-    setLoading(true);
-    (async () => {
-      try {
-        const q1 = query(
-          collection(db, "consultas"),
-          where("workerId", "==", workerId),
-          limit(50)
-        );
-        const snap = await getDocs(q1);
-        if (!cancelled) {
-          const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-          rows.sort((a, b) => {
-            const ta = a.scheduledFor?.toDate?.()?.getTime?.() || a.createdAt?.toDate?.()?.getTime?.() || 0;
-            const tb = b.scheduledFor?.toDate?.()?.getTime?.() || b.createdAt?.toDate?.()?.getTime?.() || 0;
-            return tb - ta;
-          });
-          setConsultas(rows);
-        }
-      } catch {
-        // best-effort
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [workerId]);
-
-  const handleReceipt = (c) => {
-    const ok = openReceiptPdf({ ...c, workerNome: profile?.pseudonym || profile?.name || "" });
-    if (!ok) {
-      alert("Não foi possível abrir o recibo. Permita pop-ups para este site e tente novamente.");
-    }
-  };
-
-  return (
-    <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
-      <h2 className="text-lg font-bold text-blue-800 dark:text-blue-200 mb-4 flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-        </svg>
-        Histórico de Consultas
-      </h2>
-
-      {loading ? (
-        <p className="text-sm text-slate-500 dark:text-slate-400 animate-pulse">
-          Carregando histórico…
-        </p>
-      ) : consultas.length === 0 ? (
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Você ainda não possui consultas registradas.
-        </p>
-      ) : (
-        <ul className="space-y-3">
-          {consultas.map((c) => {
-            const status = CONSULTA_STATUS_LABELS[c.status] || {
-              label: c.status || "—",
-              cls: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
-            };
-            const when =
-              c.scheduledFor?.toDate?.().toLocaleString("pt-BR") ||
-              c.createdAt?.toDate?.().toLocaleString("pt-BR") ||
-              "";
-            const isOpen = openId === c.id;
-            return (
-              <li
-                key={c.id}
-                className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
-                      {c.apoiadorNome || c.especialistaNome || c.especialidade || "Consulta"}
-                    </p>
-                    {c.especialidade && (
-                      <p className="text-xs text-slate-600 dark:text-slate-300">{c.especialidade}</p>
-                    )}
-                    {when && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{when}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className={"inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold " + status.cls}>
-                      {status.label}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setOpenId(isOpen ? null : c.id)}
-                      className="inline-flex items-center px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-700"
-                    >
-                      {isOpen ? "Ocultar" : "Ver detalhes"}
-                    </button>
-                  </div>
-                </div>
-
-                {isOpen && (
-                  <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 grid sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
-                    <p><span className="font-semibold">Status:</span> {status.label}</p>
-                    <p><span className="font-semibold">Formato:</span> {c.modalidade === "video" || c.formato === "video" ? "Videochamada" : c.modalidade === "chat" || c.formato === "chat" ? "Chat" : (c.formato || "—")}</p>
-                    <p><span className="font-semibold">Valor:</span> {Number(c.valor ?? c.amount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
-                    <p><span className="font-semibold">Profissional:</span> {c.apoiadorNome || c.especialistaNome || "—"}</p>
-                  </div>
-                )}
-
-                <div className="mt-3">
-                  <button
-                    type="button"
-                    onClick={() => handleReceipt(c)}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition"
-                  >
-                    🧾 Ver nota fiscal ou recibo (PDF)
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </section>
-  );
-}
 
