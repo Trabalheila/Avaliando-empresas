@@ -37,7 +37,11 @@ import {
   getWorkerIdFromConversationId,
 } from "../../utils/chatId";
 import { optimizeImageFile } from "../../services/workerDocuments";
-import { acceptClientCase } from "../../services/specialistCases";
+import {
+  acceptClientCase,
+  getSpecialistCase,
+  buildCaseIdFromConversation,
+} from "../../services/specialistCases";
 
 // Limite de tamanho para documentos no chat Ad Exitum (60 MB).
 const ADEXITUM_MAX_FILE_BYTES = 60 * 1024 * 1024;
@@ -356,6 +360,33 @@ export default function PlatformChat({ theme, toggleTheme }) {
       cancelled = true;
     };
   }, [isAdExitum, effectiveConversationId, authUid, myId]);
+
+  // Auto-correção (especialista): ao abrir o chat, se JÁ existe um caso ativo
+  // para esta conversa (ou seja, o especialista já aceitou o cliente antes),
+  // sincroniza qualquer pedido Ad Exitum ainda "pending" para "accepted".
+  // Isso conserta dados antigos aceitos antes desta correção, sem exigir que o
+  // especialista clique em "Aceitar" novamente. É best-effort e idempotente.
+  useEffect(() => {
+    if (!iAmSpecialist || !authUid || !effectiveConversationId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const caseId = buildCaseIdFromConversation(effectiveConversationId);
+        if (!caseId) return;
+        const existing = await getSpecialistCase(specialistDocId, caseId);
+        if (cancelled || !existing) return;
+        await acceptAdExitumForConversation({
+          conversationId: effectiveConversationId,
+          specialistUid: authUid,
+        });
+      } catch (err) {
+        console.warn("[chat] Falha ao sincronizar aceite Ad Exitum:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [iAmSpecialist, authUid, effectiveConversationId, specialistDocId]);
 
   // Pode anexar documentos? Premium sempre pode; no Ad Exitum, qualquer plano
   // pode — desde que o especialista tenha aceitado o contato.
