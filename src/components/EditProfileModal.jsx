@@ -11,7 +11,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { saveUserProfile } from "../services/users";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 const PREDEFINED_AVATARS = [
@@ -168,9 +168,12 @@ export default function EditProfileModal({ open, onClose, profile, onSaved }) {
       // Espelha os dados pessoais num documento legível pelo especialista que
       // aceitar o caso (/clientProfiles/{uid}). O documento privado completo
       // segue em /users/{uid}; aqui guardamos só o necessário ao atendimento.
+      // A chave é SEMPRE o UID do Auth: o especialista lê os dados do cliente
+      // por esse uid (extraído da conversa) e as regras exigem auth.uid==id.
+      const clientProfileId = auth.currentUser?.uid || String(id);
       try {
         await setDoc(
-          doc(db, "clientProfiles", String(id)),
+          doc(db, "clientProfiles", clientProfileId),
           {
             fullName: update.fullName,
             email: update.email,

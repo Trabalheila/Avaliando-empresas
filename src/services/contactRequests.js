@@ -594,29 +594,52 @@ export async function acceptAdExitumForConversation({
   if (!conversationId || !specialistUid) return false;
   const workerUid = getWorkerIdFromConversationId(conversationId);
   const toApoiadorId = getSpecialistIdFromConversationId(conversationId);
+
+  // Casa o pedido: (a) primeiro pela chave direta `toApoiadorUid` (rápida) e,
+  // se não achar (pedidos legados em que `toApoiadorUid` ficou vazio na
+  // criação), (b) pela chave `toApoiadorId` extraída da conversa. Sem o
+  // fallback, o aceite de especialistas cujo pedido tinha `toApoiadorUid`
+  // vazio nunca persistia — e o especialista sumia das seções do trabalhador.
+  const matchesRequest = (r) => {
+    if (r.kind !== "adExitum") return false;
+    const sameConv =
+      r.conversationId && String(r.conversationId) === String(conversationId);
+    const samePair =
+      workerUid &&
+      toApoiadorId &&
+      String(r.fromUid) === String(workerUid) &&
+      String(r.toApoiadorId) === String(toApoiadorId);
+    return sameConv || samePair;
+  };
+
+  const findMatch = async (field, value) => {
+    if (!value) return null;
+    try {
+      const snap = await getDocs(
+        query(
+          collection(db, "contactRequestsApoiador"),
+          where(field, "==", value),
+          limit(50)
+        )
+      );
+      const hit = snap.docs.find((d) => matchesRequest(d.data() || {}));
+      return hit ? { id: hit.id, ...(hit.data() || {}) } : null;
+    } catch {
+      return null;
+    }
+  };
+
   try {
-    const q = query(
-      collection(db, "contactRequestsApoiador"),
-      where("toApoiadorUid", "==", specialistUid),
-      limit(50)
-    );
-    const snap = await getDocs(q);
-    const match = snap.docs.find((d) => {
-      const r = d.data() || {};
-      if (r.kind !== "adExitum") return false;
-      const sameConv =
-        r.conversationId && String(r.conversationId) === String(conversationId);
-      const samePair =
-        workerUid &&
-        toApoiadorId &&
-        String(r.fromUid) === String(workerUid) &&
-        String(r.toApoiadorId) === String(toApoiadorId);
-      return sameConv || samePair;
-    });
+    const match =
+      (await findMatch("toApoiadorUid", specialistUid)) ||
+      (await findMatch("toApoiadorId", toApoiadorId));
     if (!match) return false;
-    if ((match.data().status || "pending") === "accepted") return true;
+    if ((match.status || "pending") === "accepted") return true;
     await updateDoc(doc(db, "contactRequestsApoiador", match.id), {
       status: "accepted",
+      // Preenche o uid do especialista quando estava vazio (backfill), para
+      // que futuras leituras por `toApoiadorUid` também encontrem o pedido.
+      toApoiadorUid: match.toApoiadorUid || String(specialistUid),
       reply:
         "Pedido aceito. Vamos dar andamento ao atendimento pelo chat da " +
         "plataforma e trocar os documentos com segurança.",

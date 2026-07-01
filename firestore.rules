@@ -217,16 +217,40 @@ service cloud.firestore {
       allow delete: if request.auth != null;
     }
 
-    // Perfis de usuário: apenas o próprio dono pode ler e escrever.
+    // Perfis de usuário. Apenas o próprio dono pode ler e escrever — mesmo
+    // quando o id do documento é alternativo (ex.: "email:foo@bar") e difere
+    // do Firebase Auth UID. A propriedade é confirmada por QUALQUER uma das
+    // provas abaixo, para cobrir docs por uid e docs por email:
+    //   1) request.auth.uid == userId                (id do doc é o uid);
+    //   2) resource.data.uid == request.auth.uid      (campo uid grava o dono);
+    //   3) resource.data.email == request.auth.token.email (doc por e-mail).
+    // Sem isso, o dono de um doc "email:..." não conseguia ler/editar o
+    // próprio perfil (perfil público exibia "precisa estar logado" e o popup
+    // "Meu perfil profissional" não carregava/salvava os dados).
     match /users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
-      allow update: if request.auth != null && request.auth.uid == userId;
-      allow delete: if request.auth != null && request.auth.uid == userId;
+      function ownsUserDoc() {
+        return request.auth != null
+          && (request.auth.uid == userId
+              || resource.data.uid == request.auth.uid
+              || (request.auth.token.email != null
+                  && resource.data.email == request.auth.token.email));
+      }
+      function ownsNewUserDoc() {
+        return request.auth != null
+          && (request.auth.uid == userId
+              || request.resource.data.uid == request.auth.uid
+              || (request.auth.token.email != null
+                  && request.resource.data.email == request.auth.token.email));
+      }
+      allow read: if ownsUserDoc();
+      allow create: if ownsNewUserDoc();
+      allow update: if ownsUserDoc();
+      allow delete: if ownsUserDoc();
 
       // Contatos de especialistas liberados após pagamento aprovado de
       // consulta. Gravados apenas pelo backend (Admin SDK, que ignora estas
-      // regras); o cliente apenas lê os próprios contatos liberados.
+      // regras); o cliente apenas lê os próprios contatos liberados. A
+      // subcoleção é sempre lida sob o UID do Auth (users/{uid}/...).
       match /releasedContacts/{contactId} {
         allow read: if request.auth != null && request.auth.uid == userId;
         allow write: if false;
@@ -311,13 +335,31 @@ service cloud.firestore {
     // destinatário (toApoiadorUid - apoiador) podem ler. Atualização:
     // somente o apoiador destinatário pode responder.
     match /contactRequestsApoiador/{requestId} {
+      // Identifica o especialista destinatário do pedido. Confirma por
+      // QUALQUER uma das provas (cobre pedidos novos e legados em que
+      // `toApoiadorUid` ficou vazio na criação):
+      //   1) toApoiadorUid == auth.uid  (uid gravado no pedido); ou
+      //   2) apoiadores/{toApoiadorId}.uid == auth.uid  (dono do perfil).
+      function isRequestSpecialist(reqData) {
+        return request.auth != null
+          && (reqData.toApoiadorUid == request.auth.uid
+              || (reqData.toApoiadorId is string
+                  && exists(/databases/$(database)/documents/apoiadores/$(reqData.toApoiadorId))
+                  && get(/databases/$(database)/documents/apoiadores/$(reqData.toApoiadorId)).data.uid == request.auth.uid));
+      }
       allow read: if request.auth != null
         && (resource.data.fromUid == request.auth.uid
-            || resource.data.toApoiadorUid == request.auth.uid);
+            || isRequestSpecialist(resource.data));
       allow create: if request.auth != null
         && request.resource.data.fromUid == request.auth.uid
         && request.resource.data.toApoiadorId is string
         && request.resource.data.message is string;
+      // Somente o especialista destinatário pode responder/aceitar o pedido.
+      // Não pode alterar o solicitante nem o destinatário do pedido (mas pode
+      // preencher `toApoiadorUid` — backfill do próprio uid — ao aceitar).
+      allow update: if isRequestSpecialist(resource.data)
+        && request.resource.data.fromUid == resource.data.fromUid
+        && request.resource.data.toApoiadorId == resource.data.toApoiadorId;
       allow delete: if false;
     }
 

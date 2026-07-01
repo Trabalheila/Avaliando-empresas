@@ -1,4 +1,4 @@
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import { doc, setDoc, getDoc, serverTimestamp, deleteDoc, collection, getDocs, limit, query, where } from "firebase/firestore";
 
 export async function saveUserProfile(profile) {
@@ -21,8 +21,16 @@ export async function saveUserProfile(profile) {
     derivedStatus = hasPseudonym ? "ativo" : "incompleto";
   }
 
+  // Carimba o UID do Auth no documento. Isso permite que as regras do
+  // Firestore autorizem o dono a ler/editar o próprio perfil mesmo quando o
+  // id do documento é alternativo (ex.: "email:foo@bar") e difere do UID —
+  // sem isso o dono recebia permission-denied no próprio perfil.
+  const authUid = auth.currentUser?.uid || "";
+  const ownerUid = profile.uid || authUid || "";
+
   const payload = {
     ...profile,
+    ...(ownerUid ? { uid: ownerUid } : {}),
     ...(derivedStatus ? { status: derivedStatus } : {}),
     updatedAt: serverTimestamp(),
   };
