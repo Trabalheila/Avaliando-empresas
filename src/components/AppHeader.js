@@ -35,6 +35,26 @@ function getPseudonym() {
   }
 }
 
+// Detecta se o usuário logado é um Especialista/Apoiador (mesma heurística
+// usada nas Home mobile/desktop), para exibir o atalho "Ver painel".
+function getIsApoiador() {
+  try {
+    const p = getProfile();
+    const userType = String(p?.userType || p?.tipoUsuario || "").toLowerCase();
+    const chosenType = String(p?.chosenType || "").toLowerCase();
+    return (
+      userType === "apoiador" ||
+      userType === "especialista" ||
+      chosenType === "specialist" ||
+      chosenType === "apoiador" ||
+      chosenType === "especialista" ||
+      Boolean(p?.apoiadorId)
+    );
+  } catch {
+    return false;
+  }
+}
+
 function getAvatarSrc() {
   try {
     const p = getProfile();
@@ -147,6 +167,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
   const avatarEmoji = getAvatarEmoji();
   const pseudonym = getPseudonym();
   const admin = isAdmin();
+  const isApoiador = getIsApoiador();
 
   return (
     <nav className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-blue-100 dark:border-slate-700 shadow-sm" style={{ height: 'auto' }}>
@@ -256,6 +277,15 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
                   >
                     Minha conta
                   </button>
+                  {isApoiador && (
+                    <button
+                      type="button"
+                      onClick={() => { setDropdownOpen(false); navigate("/apoiador/my-contacts"); }}
+                      className="w-full text-left px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-slate-700 transition"
+                    >
+                      Ver painel
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => { setDropdownOpen(false); navigate("/apoiadores"); }}

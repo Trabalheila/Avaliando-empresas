@@ -1403,13 +1403,22 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
               {data?.client || `Caso ${caseId}`}
             </h1>
           </div>
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="text-sm font-semibold text-blue-700 dark:text-blue-300 hover:underline"
-          >
-            ← Voltar
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate("/apoiador/my-contacts")}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold"
+            >
+              ← Voltar para o painel
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="text-sm font-semibold text-blue-700 dark:text-blue-300 hover:underline"
+            >
+              ← Voltar
+            </button>
+          </div>
         </div>
 
         {data && (
