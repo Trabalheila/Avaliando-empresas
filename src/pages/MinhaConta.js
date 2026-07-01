@@ -29,7 +29,12 @@ import { listAcceptedAdExitumForWorker } from "../services/contactRequests";
 import { buildSpecialistConversationId } from "../utils/chatId";
 import {
   listWorkerDocuments,
+  stageWorkerDocument,
+  commitWorkerDocuments,
+  deleteWorkerDocument,
   MAX_FILE_SIZE_MB,
+  WORKER_DOC_MAX_BYTES,
+  DOC_CATEGORY_PROCESS,
 } from "../services/workerDocuments";
 /* ════════════════════════════════════════════════
    MinhaConta — Página privada "Minha conta"
@@ -1105,10 +1110,17 @@ function ReleasedContactsSection({ profile }) {
    canal do chat (o documento entra como mensagem com anexo).
    ════════════════════════════════════════════════ */
 function WorkerDocumentsSection({ profile }) {
-  const navigate = useNavigate();
   const uid = auth.currentUser?.uid || profile?.uid || profile?.id || "";
+  const workerName =
+    profile?.nomeReal ||
+    profile?.fullName ||
+    profile?.nomeCompleto ||
+    profile?.pseudonimo ||
+    profile?.nome ||
+    profile?.name ||
+    auth.currentUser?.displayName ||
+    "Trabalhador";
   const [specialists, setSpecialists] = useState([]);
-  const [countBySpec, setCountBySpec] = useState({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -1134,6 +1146,7 @@ function WorkerDocumentsSection({ profile }) {
               apoiadorId: String(r.toApoiadorId || r.toApoiadorUid || key),
               name: r.toApoiadorName || "Especialista",
               specialtyId: r.specialtyId || "",
+              receiverUid: String(r.toApoiadorUid || ""),
               conversationId,
             });
           }
@@ -1141,17 +1154,7 @@ function WorkerDocumentsSection({ profile }) {
         const list = Array.from(byApoiador.values()).filter(
           (s) => s.conversationId
         );
-        if (cancelled) return;
-        setSpecialists(list);
-        // Conta os documentos já enviados a cada especialista (best-effort).
-        const counts = {};
-        await Promise.all(
-          list.map(async (s) => {
-            const d = await listWorkerDocuments(s.conversationId).catch(() => []);
-            counts[s.id] = Array.isArray(d) ? d.length : 0;
-          })
-        );
-        if (!cancelled) setCountBySpec(counts);
+        if (!cancelled) setSpecialists(list);
       } catch {
         // best-effort
       } finally {
@@ -1183,52 +1186,324 @@ function WorkerDocumentsSection({ profile }) {
           documentos com segurança por aqui.
         </p>
       ) : (
-        <ul className="space-y-3">
+        <div className="space-y-4">
           {specialists.map((spec) => (
-            <li key={spec.id}>
-              <button
-                type="button"
-                onClick={() =>
-                  navigate(
-                    `/trabalhador/especialista/${encodeURIComponent(
-                      spec.apoiadorId
-                    )}`
-                  )
-                }
-                className="w-full flex items-center justify-between gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-4 text-left transition min-h-[44px] hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50/50 dark:hover:bg-blue-900/20"
-              >
-                <span className="min-w-0">
-                  <span className="block text-sm font-bold text-slate-800 dark:text-slate-100 break-words">
-                    {spec.name}
-                  </span>
-                  {spec.specialtyId && (
-                    <span className="block text-xs text-slate-500 dark:text-slate-400">
-                      ⚖️ {spec.specialtyId}
-                    </span>
-                  )}
-                  <span className="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    📎 {countBySpec[spec.id] || 0} documento(s) enviado(s)
-                  </span>
-                </span>
-                <span
-                  aria-hidden="true"
-                  className="shrink-0 text-xl font-bold text-blue-600 dark:text-blue-300"
-                >
-                  ›
-                </span>
-              </button>
-            </li>
+            <SpecialistDocsCard
+              key={spec.id}
+              spec={spec}
+              uid={uid}
+              workerName={workerName}
+            />
           ))}
-        </ul>
+        </div>
       )}
 
       {specialists.length > 0 && (
         <p className="mt-4 text-xs text-slate-400 dark:text-slate-500">
-          Toque em um especialista para ver o atendimento e enviar documentos
-          com segurança (até {MAX_FILE_SIZE_MB} MB por arquivo, vários por vez).
+          Envie documentos com segurança direto por aqui (até {MAX_FILE_SIZE_MB}{" "}
+          MB por arquivo, vários por vez). O especialista é notificado
+          automaticamente.
         </p>
       )}
     </section>
+  );
+}
+
+/* ════════════════════════════════════════════════
+   SpecialistDocsCard
+   ────────────────────────────────────────────────
+   Card inline (desktop e mobile) de gerenciamento de
+   documentos com UM especialista: botão "Enviar
+   Documentos" (upload múltiplo com barra de progresso),
+   lista dos arquivos já enviados e ações Visualizar/Apagar.
+   Usa os mesmos serviços da página dedicada
+   (WorkerSpecialistDocs), trazendo os recursos para dentro
+   da seção "Meus Documentos para Especialistas".
+   ════════════════════════════════════════════════ */
+function SpecialistDocsCard({ spec, uid, workerName }) {
+  const conversationId = spec.conversationId;
+
+  const [docs, setDocs] = useState([]);
+  const [loadingDocs, setLoadingDocs] = useState(true);
+  const [staged, setStaged] = useState([]); // { id, name, percent, error, meta }
+  const [sending, setSending] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [confirmMsg, setConfirmMsg] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState("");
+  const [deletingId, setDeletingId] = useState("");
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingDocs(true);
+    (async () => {
+      const existing = await listWorkerDocuments(conversationId).catch(() => []);
+      if (!cancelled) {
+        setDocs(Array.isArray(existing) ? existing : []);
+        setLoadingDocs(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [conversationId]);
+
+  const patchStaged = useCallback((id, patch) => {
+    setStaged((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  }, []);
+
+  const handleFiles = async (event) => {
+    const files = Array.from(event?.target?.files || []);
+    if (event?.target) event.target.value = "";
+    if (files.length === 0) return;
+    setUploadError("");
+    setConfirmMsg("");
+
+    const queued = files.map((file) => ({
+      id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      name: file.name,
+      percent: 0,
+      error: "",
+      meta: null,
+      file,
+    }));
+    setStaged((prev) => [...prev, ...queued.map(({ file, ...rest }) => rest)]);
+
+    for (const item of queued) {
+      const { file, id } = item;
+      if (file.size > WORKER_DOC_MAX_BYTES) {
+        patchStaged(id, { error: `Excede o limite de ${MAX_FILE_SIZE_MB} MB.` });
+        continue;
+      }
+      try {
+        const meta = await stageWorkerDocument({
+          conversationId,
+          file,
+          senderUid: uid,
+          senderName: workerName,
+          peerName: spec.name,
+          onProgress: (percent) => patchStaged(id, { percent }),
+        });
+        patchStaged(id, { percent: 100, meta });
+      } catch (err) {
+        patchStaged(id, {
+          error:
+            err?.code === "FILE_TOO_LARGE"
+              ? `Excede o limite de ${MAX_FILE_SIZE_MB} MB.`
+              : "Falha no envio. Tente novamente.",
+        });
+      }
+    }
+  };
+
+  const removeStaged = (id) =>
+    setStaged((prev) => prev.filter((s) => s.id !== id));
+
+  const readyStaged = staged.filter(
+    (s) => !s.error && s.meta && s.percent >= 100
+  );
+  const anyUploading = staged.some((s) => !s.error && s.percent < 100);
+  const canSend =
+    !sending && staged.length > 0 && !anyUploading && readyStaged.length > 0;
+
+  const handleSend = async () => {
+    if (!canSend) return;
+    setSending(true);
+    setUploadError("");
+    try {
+      await commitWorkerDocuments({
+        conversationId,
+        docs: readyStaged.map((s) => s.meta),
+        senderUid: uid,
+        senderName: workerName,
+        receiverUid: spec.receiverUid,
+        category: DOC_CATEGORY_PROCESS,
+      });
+      setStaged([]);
+      const existing = await listWorkerDocuments(conversationId).catch(() => []);
+      setDocs(Array.isArray(existing) ? existing : []);
+      setConfirmMsg(
+        `Documentos enviados com sucesso! ${spec.name} foi notificado(a).`
+      );
+    } catch (err) {
+      console.warn("Falha ao enviar documentos:", err);
+      setUploadError("Não foi possível concluir o envio. Tente novamente.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleDelete = async (docItem) => {
+    setDeletingId(docItem.id);
+    try {
+      await deleteWorkerDocument({
+        conversationId,
+        docId: docItem.id,
+        storagePath: docItem.storagePath,
+      });
+      setDocs((prev) => prev.filter((d) => d.id !== docItem.id));
+      setConfirmDeleteId("");
+    } catch (err) {
+      console.warn("Falha ao apagar documento:", err);
+      setUploadError("Não foi possível apagar. Tente novamente.");
+    } finally {
+      setDeletingId("");
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-4">
+      {/* Cabeçalho: especialista + botão de envio */}
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-slate-800 dark:text-slate-100 break-words">
+            {spec.name}
+          </p>
+          {spec.specialtyId && (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              ⚖️ {spec.specialtyId}
+            </p>
+          )}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="image/*,.pdf,audio/mpeg,video/mp4"
+          className="hidden"
+          onChange={handleFiles}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold min-h-[40px]"
+        >
+          ⬆️ Enviar Documentos
+        </button>
+      </div>
+
+      {/* Uploads em andamento (barra de progresso por arquivo) */}
+      {staged.length > 0 && (
+        <>
+          <ul className="mt-3 space-y-2">
+            {staged.map((s) => (
+              <li key={s.id} className="text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-slate-600 dark:text-slate-300">
+                    {s.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeStaged(s.id)}
+                    className="shrink-0 text-slate-400 hover:text-red-500"
+                    aria-label="Remover"
+                  >
+                    ✕
+                  </button>
+                </div>
+                {s.error ? (
+                  <p className="text-red-600 dark:text-red-400">{s.error}</p>
+                ) : (
+                  <div className="mt-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                    <div
+                      className="h-full bg-blue-500 transition-all"
+                      style={{ width: `${s.percent}%` }}
+                    />
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={!canSend}
+            className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {sending
+              ? "Enviando…"
+              : anyUploading
+              ? "Carregando arquivos…"
+              : "Confirmar envio"}
+          </button>
+        </>
+      )}
+
+      {uploadError && (
+        <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+          {uploadError}
+        </p>
+      )}
+      {confirmMsg && (
+        <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
+          {confirmMsg}
+        </p>
+      )}
+
+      {/* Documentos já enviados */}
+      <div className="mt-3">
+        {loadingDocs ? (
+          <p className="text-xs text-slate-400 dark:text-slate-500 animate-pulse">
+            Carregando documentos…
+          </p>
+        ) : docs.length === 0 ? (
+          <p className="text-xs text-slate-400 dark:text-slate-500">
+            Nenhum documento enviado ainda.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {docs.map((d) => (
+              <li
+                key={d.id}
+                className="flex items-center justify-between gap-2 rounded-lg bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 px-3 py-2"
+              >
+                <span className="min-w-0 flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
+                  <span aria-hidden="true">📎</span>
+                  <span className="truncate">{d.name || "Documento"}</span>
+                </span>
+                <span className="shrink-0 flex items-center gap-3 text-xs font-semibold">
+                  <a
+                    href={d.url || "#"}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 dark:text-blue-300 hover:underline"
+                  >
+                    Visualizar
+                  </a>
+                  {confirmDeleteId === d.id ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(d)}
+                        disabled={deletingId === d.id}
+                        className="text-red-600 dark:text-red-400 hover:underline disabled:opacity-60"
+                      >
+                        {deletingId === d.id ? "Apagando…" : "Confirmar"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId("")}
+                        className="text-slate-400 hover:underline"
+                      >
+                        Cancelar
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteId(d.id)}
+                      className="text-red-600 dark:text-red-400 hover:underline"
+                    >
+                      🗑️ Apagar
+                    </button>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
   );
 }
 
