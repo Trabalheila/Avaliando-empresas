@@ -217,16 +217,18 @@ service cloud.firestore {
       allow delete: if request.auth != null;
     }
 
-    // Perfis de usuário. Apenas o próprio dono pode ler e escrever — mesmo
-    // quando o id do documento é alternativo (ex.: "email:foo@bar") e difere
-    // do Firebase Auth UID. A propriedade é confirmada por QUALQUER uma das
-    // provas abaixo, para cobrir docs por uid e docs por email:
+    // Perfis de usuário. Leitura liberada a QUALQUER usuário autenticado, pois
+    // o perfil público do trabalhador (/perfil/:id) precisa ser visível a
+    // outros usuários logados (especialistas, apoiadores, etc.) — não apenas
+    // ao dono. Escrita (create/update/delete) continua restrita ao próprio
+    // dono, mesmo quando o id do documento é alternativo (ex.: "email:foo@bar")
+    // e difere do Firebase Auth UID. A propriedade é confirmada por QUALQUER
+    // uma das provas abaixo, para cobrir docs por uid e docs por email:
     //   1) request.auth.uid == userId                (id do doc é o uid);
     //   2) resource.data.uid == request.auth.uid      (campo uid grava o dono);
     //   3) resource.data.email == request.auth.token.email (doc por e-mail).
-    // Sem isso, o dono de um doc "email:..." não conseguia ler/editar o
-    // próprio perfil (perfil público exibia "precisa estar logado" e o popup
-    // "Meu perfil profissional" não carregava/salvava os dados).
+    // Sem a leitura aberta, o perfil público de OUTRO usuário exibia
+    // "precisa estar logado" para quem não fosse o dono.
     match /users/{userId} {
       function ownsUserDoc() {
         return request.auth != null
@@ -242,7 +244,7 @@ service cloud.firestore {
               || (request.auth.token.email != null
                   && request.resource.data.email == request.auth.token.email));
       }
-      allow read: if ownsUserDoc();
+      allow read: if request.auth != null;
       allow create: if ownsNewUserDoc();
       allow update: if ownsUserDoc();
       allow delete: if ownsUserDoc();

@@ -675,19 +675,21 @@ export default function PlatformChat({ theme, toggleTheme }) {
         specialistType,
       });
 
-      // Fluxo Ad Exitum: persiste o aceite no pedido para que o card de
-      // aceitação não reapareça ao retornar ao chat e a troca de documentos
-      // fique liberada de forma permanente.
-      if (isAdExitum) {
-        try {
-          await acceptAdExitumForConversation({
-            conversationId: effectiveConversationId,
-            specialistUid: authUid,
-          });
-        } catch (err) {
-          console.warn("[chat] Falha ao marcar pedido Ad Exitum como aceito:", err);
-        }
-        setAdExitumAccepted(true);
+      // Persiste o aceite em QUALQUER pedido Ad Exitum correspondente a esta
+      // conversa — mesmo quando a URL do chat do especialista NÃO traz
+      // `adExitum=1` (ex.: chat aberto pelo painel/notificações). A função é
+      // idempotente e um no-op quando não há pedido Ad Exitum, então é segura
+      // de chamar sempre. Sem isso, o pedido do trabalhador ficava "pending" e
+      // o especialista não aparecia em "Contatos Liberados"/Documentos.
+      try {
+        const marked = await acceptAdExitumForConversation({
+          conversationId: effectiveConversationId,
+          specialistUid: authUid,
+        });
+        if (marked || isAdExitum) setAdExitumAccepted(true);
+      } catch (err) {
+        console.warn("[chat] Falha ao marcar pedido Ad Exitum como aceito:", err);
+        if (isAdExitum) setAdExitumAccepted(true);
       }
 
       // Notifica o cliente dentro do chat (best-effort).
