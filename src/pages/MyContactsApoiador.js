@@ -1255,6 +1255,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                       value={pendingCount}
                       accent="amber"
                       emoji="📬"
+                      onClick={() => navigate("/especialista/pedidos-pendentes")}
                     />
                     <OverviewCard
                       label="Finalizados (30 dias)"
@@ -1895,7 +1896,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
 /* ──────────────────────────────────────────────────────────────
  * Helpers visuais locais (sem novos arquivos).
  * ────────────────────────────────────────────────────────────── */
-function OverviewCard({ label, value, emoji, accent = "blue" }) {
+function OverviewCard({ label, value, emoji, accent = "blue", onClick }) {
   const accents = {
     blue: "from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-900/10 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-200",
     amber:
@@ -1905,13 +1906,11 @@ function OverviewCard({ label, value, emoji, accent = "blue" }) {
     indigo:
       "from-indigo-50 to-indigo-100 dark:from-indigo-900/30 dark:to-indigo-900/10 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-200",
   };
-  return (
-    <div
-      className={
-        "rounded-2xl border bg-gradient-to-br shadow-sm p-4 " +
-        (accents[accent] || accents.blue)
-      }
-    >
+  const baseClass =
+    "rounded-2xl border bg-gradient-to-br shadow-sm p-4 " +
+    (accents[accent] || accents.blue);
+  const inner = (
+    <>
       <div className="flex items-center justify-between">
         <p className="text-xs font-bold uppercase tracking-wider">{label}</p>
         <span className="text-lg" aria-hidden="true">
@@ -1921,8 +1920,28 @@ function OverviewCard({ label, value, emoji, accent = "blue" }) {
       <p className="mt-2 text-2xl md:text-3xl font-extrabold text-slate-800 dark:text-slate-50">
         {value}
       </p>
-    </div>
+    </>
   );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={
+          baseClass +
+          " text-left w-full cursor-pointer transition hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 min-h-[44px]"
+        }
+      >
+        {inner}
+        <span className="mt-1 block text-[11px] font-semibold opacity-80">
+          Ver pedidos →
+        </span>
+      </button>
+    );
+  }
+
+  return <div className={baseClass}>{inner}</div>;
 }
 
 function Th({ children, className = "" }) {

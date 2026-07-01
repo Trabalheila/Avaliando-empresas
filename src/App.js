@@ -35,6 +35,7 @@ import MinhaConta from './pages/MinhaConta';
 import WorkerSpecialistDocs from './pages/WorkerSpecialistDocs';
 import MyContacts from './pages/MyContacts';
 import MyContactsApoiador from './pages/MyContactsApoiador';
+import PedidosPendentesEspecialista from './pages/PedidosPendentesEspecialista';
 import ApoiadorPerfilGerenciar from './pages/ApoiadorPerfilGerenciar';
 import CaseDetailsPage from './components/Specialist/CaseDetailsPage';
 import SpecialistBenefitsPage from './components/Specialist/SpecialistBenefitsPage';
@@ -256,6 +257,7 @@ function App() {
       <Route path="/trabalhador/especialista/:apoiadorId" element={<RequireAuth><WorkerSpecialistDocs theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/my-contacts" element={<RequireAuth><MyContacts theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/apoiador/my-contacts" element={<RequireAuth><MyContactsApoiador theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/especialista/pedidos-pendentes" element={<RequireAuth><PedidosPendentesEspecialista theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/apoiador/perfil" element={<RequireAuth><ApoiadorPerfilGerenciar theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/especialista/:specialistType/caso/:caseId" element={<RequireAuth><CaseDetailsPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/especialista/beneficios" element={<RequireAuth><SpecialistBenefitsPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
