@@ -41,7 +41,10 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { buildApiUrl } from "../utils/apiBase";
-import { getSpecialistIdFromConversationId } from "../utils/chatId";
+import {
+  getSpecialistIdFromConversationId,
+  getWorkerIdFromConversationId,
+} from "../utils/chatId";
 
 /* ──────────────────────────────────────────────────────────────
  *  Disponibilidade do trabalhador
@@ -567,6 +570,65 @@ export async function isAdExitumAccepted({ conversationId, uid }) {
   }
 
   return false;
+}
+
+/**
+ * Marca como ACEITO o pedido Ad Exitum associado a uma conversa. Usado quando
+ * o especialista aceita o cliente diretamente pelo chat (fluxo
+ * `handleAcceptClient`), para que o card de aceite NÃO reapareça ao retornar
+ * ao chat e o estado fique persistido no Firestore.
+ *
+ * Casa o pedido tanto pelo `conversationId` gravado quanto pelo par
+ * (trabalhador solicitante, especialista destinatário) extraído do id da
+ * conversa. É idempotente: se já estiver aceito, apenas retorna true.
+ *
+ * @param {object} args
+ * @param {string} args.conversationId  id da conversa do chat.
+ * @param {string} args.specialistUid   UID do Auth do especialista (dono).
+ * @returns {Promise<boolean>} true se havia um pedido e ele está aceito.
+ */
+export async function acceptAdExitumForConversation({
+  conversationId,
+  specialistUid,
+}) {
+  if (!conversationId || !specialistUid) return false;
+  const workerUid = getWorkerIdFromConversationId(conversationId);
+  const toApoiadorId = getSpecialistIdFromConversationId(conversationId);
+  try {
+    const q = query(
+      collection(db, "contactRequestsApoiador"),
+      where("toApoiadorUid", "==", specialistUid),
+      limit(50)
+    );
+    const snap = await getDocs(q);
+    const match = snap.docs.find((d) => {
+      const r = d.data() || {};
+      if (r.kind !== "adExitum") return false;
+      const sameConv =
+        r.conversationId && String(r.conversationId) === String(conversationId);
+      const samePair =
+        workerUid &&
+        toApoiadorId &&
+        String(r.fromUid) === String(workerUid) &&
+        String(r.toApoiadorId) === String(toApoiadorId);
+      return sameConv || samePair;
+    });
+    if (!match) return false;
+    if ((match.data().status || "pending") === "accepted") return true;
+    await updateDoc(doc(db, "contactRequestsApoiador", match.id), {
+      status: "accepted",
+      reply:
+        "Pedido aceito. Vamos dar andamento ao atendimento pelo chat da " +
+        "plataforma e trocar os documentos com segurança.",
+      respondedAt: new Date().toISOString(),
+      readByApoiador: true,
+      conversationId: String(conversationId),
+    });
+    return true;
+  } catch (err) {
+    console.warn("acceptAdExitumForConversation:", err);
+    return false;
+  }
 }
 
 /**

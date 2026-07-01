@@ -25,7 +25,7 @@ import {
 import { auth, storage } from "../../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
-import { isAdExitumAccepted } from "../../services/contactRequests";
+import { isAdExitumAccepted, acceptAdExitumForConversation } from "../../services/contactRequests";
 import {
   ensureConversation,
   sendChatMessage,
@@ -675,6 +675,21 @@ export default function PlatformChat({ theme, toggleTheme }) {
         specialistType,
       });
 
+      // Fluxo Ad Exitum: persiste o aceite no pedido para que o card de
+      // aceitação não reapareça ao retornar ao chat e a troca de documentos
+      // fique liberada de forma permanente.
+      if (isAdExitum) {
+        try {
+          await acceptAdExitumForConversation({
+            conversationId: effectiveConversationId,
+            specialistUid: authUid,
+          });
+        } catch (err) {
+          console.warn("[chat] Falha ao marcar pedido Ad Exitum como aceito:", err);
+        }
+        setAdExitumAccepted(true);
+      }
+
       // Notifica o cliente dentro do chat (best-effort).
       try {
         await sendChatMessage({
@@ -742,8 +757,9 @@ export default function PlatformChat({ theme, toggleTheme }) {
 
         {/* Ação exclusiva do especialista: aceitar o cliente e transformar a
             conversa num caso ativo gerenciável. Visível somente quando o
-            usuário logado é o especialista desta conversa. */}
-        {iAmSpecialist && useFirestore && (
+            usuário logado é o especialista desta conversa. No fluxo Ad Exitum,
+            somente enquanto o pedido ainda NÃO foi aceito (evita reaparecer). */}
+        {iAmSpecialist && useFirestore && !(isAdExitum && adExitumAccepted) && (
           <div className="mb-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
             <span className="text-xs text-emerald-900 dark:text-emerald-100">
               Pronto para atender? Aceite este cliente para iniciar um caso ativo

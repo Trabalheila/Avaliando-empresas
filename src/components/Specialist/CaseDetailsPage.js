@@ -739,10 +739,6 @@ const TIPO_LABELS = {
   outro: "Especialista",
 };
 
-// Tipos cujo CaseBody já renderiza uma lista a partir de `data.documents`
-// (evita duplicar a seção "Documentos do processo" em casos reais).
-const CASEBODY_RENDERS_DOCS = new Set(["advogado", "consultor_rh", "recrutador"]);
-
 function formatDate(iso) {
   if (!iso) return "—";
   try {
@@ -807,8 +803,71 @@ function DocumentList({ title, items }) {
   );
 }
 
-function TimelineList({ title, items, labelKey = "event" }) {
-  if (!items || items.length === 0) return null;
+/** Popup (modal) que lista um conjunto de documentos. Usado pela página do
+ *  caso para separar "Documentos do Cliente" e "Documentos do Processo" sem
+ *  sobrecarregar a tela principal. */
+function DocumentsModal({ open, onClose, title, items, emptyText }) {
+  if (!open) return null;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+    >
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-blue-100 dark:border-slate-700 p-5">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <h2 className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+            <span aria-hidden="true">📁</span> {title}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar"
+            className="text-2xl leading-none text-slate-500 hover:text-slate-800 dark:hover:text-slate-100"
+          >
+            ×
+          </button>
+        </div>
+        {!items || items.length === 0 ? (
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            {emptyText || "Nenhum documento disponível ainda."}
+          </p>
+        ) : (
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+            {items.map((d, idx) => (
+              <li
+                key={`${d.name}-${idx}`}
+                className="py-2 flex items-center justify-between gap-3"
+              >
+                <span className="text-sm text-slate-700 dark:text-slate-200 truncate">
+                  {d.name}
+                </span>
+                <a
+                  href={d.url || "#"}
+                  target={d.url && d.url !== "#" ? "_blank" : undefined}
+                  rel={d.url && d.url !== "#" ? "noopener noreferrer" : undefined}
+                  onClick={(e) => {
+                    if (!d.url || d.url === "#") {
+                      e.preventDefault();
+                      alert(`O download de "${d.name}" estará disponível em breve.`);
+                    }
+                  }}
+                  className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Baixar
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TimelineList({ title, items, labelKey = "event" }) {  if (!items || items.length === 0) return null;
   return (
     <InfoCard>
       <h2 className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -924,17 +983,17 @@ function PeticaoCard({ client, clientAlias }) {
   return (
     <InfoCard>
       <h2 className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-        <span aria-hidden="true">📄</span> Petição inicial pré-preenchida
+        <span aria-hidden="true">📄</span> Procuração pré-preenchida
       </h2>
       <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-        Gere a petição já com a qualificação do autor (nome, estado civil,
-        profissão, RG, CPF e endereço) preenchida automaticamente a partir dos
-        dados do cliente. Você só precisa completar os fatos, o direito e os
-        pedidos.
+        Gere a procuração já com a qualificação do outorgante (nome, estado
+        civil, profissão, RG, CPF e endereço) preenchida automaticamente a
+        partir dos dados do cliente. Você só precisa completar os poderes e a
+        finalidade.
       </p>
       {!hasData && (
         <p className="mt-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
-          O cliente ainda não preencheu os dados pessoais no perfil. A petição
+          O cliente ainda não preencheu os dados pessoais no perfil. A procuração
           será gerada com os campos em branco para preenchimento manual.
         </p>
       )}
@@ -944,7 +1003,7 @@ function PeticaoCard({ client, clientAlias }) {
         disabled={busy}
         className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold disabled:opacity-60"
       >
-        {busy ? "Gerando…" : "⬇️ Baixar petição (.docx)"}
+        {busy ? "Gerando…" : "⬇️ Baixar procuração (.docx)"}
       </button>
       {error && (
         <p className="mt-2 text-xs text-red-700 dark:text-red-300">{error}</p>
@@ -954,7 +1013,7 @@ function PeticaoCard({ client, clientAlias }) {
 }
 
 /** Conteúdo específico por tipo de especialista. */
-function CaseBody({ tipo, data }) {
+function CaseBody({ tipo, data, hideInlineDocs = false }) {
   switch (tipo) {
     case "advogado":
       return (
@@ -969,7 +1028,9 @@ function CaseBody({ tipo, data }) {
               <Field label="Próxima ação" value={`${data.nextAction || "—"} · ${formatDate(data.nextActionDate)}`} />
             </div>
           </InfoCard>
-          <DocumentList title="Documentos do processo" items={data.documents} />
+          {!hideInlineDocs && (
+            <DocumentList title="Documentos do processo" items={data.documents} />
+          )}
           <TimelineList title="Linha do tempo do processo" items={data.timeline} />
           <NotesCard notes={data.notes} />
         </>
@@ -1007,7 +1068,9 @@ function CaseBody({ tipo, data }) {
               <Field label="Próxima ação" value={`${data.nextAction || "—"} · ${formatDate(data.nextActionDate)}`} />
             </div>
           </InfoCard>
-          <DocumentList title="Documentos do projeto" items={data.documents} />
+          {!hideInlineDocs && (
+            <DocumentList title="Documentos do projeto" items={data.documents} />
+          )}
           <TimelineList title="Marcos do projeto" items={data.milestones} />
           <NotesCard notes={data.notes} />
         </>
@@ -1040,7 +1103,9 @@ function CaseBody({ tipo, data }) {
               </ul>
             </InfoCard>
           )}
-          <DocumentList title="Documentos da vaga" items={data.documents} />
+          {!hideInlineDocs && (
+            <DocumentList title="Documentos da vaga" items={data.documents} />
+          )}
           <NotesCard notes={data.notes} />
         </>
       );
@@ -1282,6 +1347,28 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
   const isRealCase = Boolean(realCase);
   const tipoLabel = TIPO_LABELS[tipo] || TIPO_LABELS.outro;
 
+  // Popup de documentos: "cliente" (documentos gerais do trabalhador) ou
+  // "processo" (documentos específicos deste caso). null = fechado.
+  const [docsModal, setDocsModal] = useState(null);
+
+  // Documentos do Cliente: enviados pelo trabalhador marcados como gerais
+  // (category === "cliente").
+  const clientDocs = useMemo(
+    () =>
+      (caseDocuments || [])
+        .filter((d) => String(d.category || "") === "cliente")
+        .map((d) => ({ name: d.name || "Documento", url: d.url || "#" })),
+    [caseDocuments]
+  );
+  // Documentos do Processo: documentos do caso (realCase) + documentos
+  // enviados pelo trabalhador que não sejam "cliente".
+  const processDocs = useMemo(() => {
+    const worker = (caseDocuments || [])
+      .filter((d) => String(d.category || "") !== "cliente")
+      .map((d) => ({ name: d.name || "Documento", url: d.url || "#" }));
+    return [...((realCase && realCase.documents) || []), ...worker];
+  }, [caseDocuments, realCase]);
+
   if (authorized === false) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
@@ -1344,6 +1431,24 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
             >
               💬 Abrir chat deste caso
             </button>
+            {isRealCase && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setDocsModal("cliente")}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-200 text-sm font-bold hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                >
+                  🪪 Documentos do Cliente
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDocsModal("processo")}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-200 text-sm font-bold hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                >
+                  📁 Documentos do Processo
+                </button>
+              </>
+            )}
           </div>
         )}
 
@@ -1369,15 +1474,10 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
               ) : (
                 <VideoEssencialCard caseId={caseId} navigate={navigate} />
               ))}
-            <CaseBody tipo={tipo} data={data} />
-            {/* Em casos reais o CaseBody "default" não lista documentos;
-                renderizamos aqui os documentos enviados pelo trabalhador. */}
-            {isRealCase && !CASEBODY_RENDERS_DOCS.has(tipo) && (
-              <DocumentList
-                title="Documentos do processo"
-                items={data.documents}
-              />
-            )}
+            <CaseBody tipo={tipo} data={data} hideInlineDocs={isRealCase} />
+            {/* Em casos reais os documentos são acessados pelos popups
+                "Documentos do Cliente" / "Documentos do Processo" (botões no
+                topo), evitando sobrecarregar a tela principal. */}
             <ClientPersonalDataCard client={clientProfile} />
             {(tipo === "advogado" || isRealCase) && (
               <PeticaoCard
@@ -1401,6 +1501,21 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
           </>
         )}
       </main>
+
+      <DocumentsModal
+        open={docsModal === "cliente"}
+        onClose={() => setDocsModal(null)}
+        title="Documentos do Cliente"
+        items={clientDocs}
+        emptyText="O trabalhador ainda não enviou documentos gerais do cliente."
+      />
+      <DocumentsModal
+        open={docsModal === "processo"}
+        onClose={() => setDocsModal(null)}
+        title="Documentos do Processo"
+        items={processDocs}
+        emptyText="Nenhum documento do processo foi enviado ainda."
+      />
     </div>
   );
 }

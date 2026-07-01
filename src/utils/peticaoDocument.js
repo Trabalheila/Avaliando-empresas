@@ -104,15 +104,16 @@ export async function generatePeticaoBlob(client, fallbackName = "") {
 export async function downloadPeticao(client, fallbackName = "") {
   const blob = await generatePeticaoBlob(client, fallbackName);
   const url = URL.createObjectURL(blob);
-  const safeName = (client?.fullName || fallbackName || "cliente")
+  // Nome do arquivo: "Procuração de <Nome do Cliente>.docx". Removemos apenas
+  // os caracteres inválidos para nome de arquivo, preservando espaços/acentos.
+  const clientName = (client?.fullName || fallbackName || "Cliente")
     .toString()
-    .replace(/[^\w\s-]+/g, "")
+    .replace(/[\\/:*?"<>|]+/g, "")
     .trim()
-    .replace(/\s+/g, "_")
-    .slice(0, 60);
+    .slice(0, 80);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `Peticao_Inicial_${safeName || "cliente"}.docx`;
+  a.download = `Procuração de ${clientName || "Cliente"}.docx`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

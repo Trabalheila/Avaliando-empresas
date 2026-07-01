@@ -39,6 +39,12 @@ import { ensureConversation, sendChatMessage } from "./chat";
 export const MAX_FILE_SIZE_MB = 60;
 export const WORKER_DOC_MAX_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
+// Categorias de documento do trabalhador:
+//   "cliente"  → documentos gerais do trabalhador (RG, CPF, comprovantes…)
+//   "processo" → documentos específicos do caso com aquele especialista.
+export const DOC_CATEGORY_CLIENT = "cliente";
+export const DOC_CATEGORY_PROCESS = "processo";
+
 // Parâmetros de otimização de imagens (antes do upload).
 const IMAGE_MAX_DIMENSION = 1920; // largura/altura máxima em px
 const IMAGE_JPEG_QUALITY = 0.8; // 80% de qualidade JPEG
@@ -125,6 +131,7 @@ export async function uploadWorkerDocument({
   senderName,
   receiverUid,
   peerName,
+  category,
   onProgress,
 }) {
   if (!conversationId || !file || !senderUid) {
@@ -190,6 +197,7 @@ export async function uploadWorkerDocument({
     senderId: String(senderUid),
     receiverId: String(receiverUid || ""),
     senderName: String(senderName || "").slice(0, 160),
+    category: String(category || DOC_CATEGORY_PROCESS),
     createdAt,
     createdAtServer: serverTimestamp(),
   };
@@ -221,6 +229,162 @@ export async function uploadWorkerDocument({
   }
 
   return { id: ref.id, ...meta };
+}
+
+/**
+ * FASE 1 (upload em duas etapas): envia APENAS os bytes do arquivo para o
+ * Firebase Storage, reportando o progresso (0-100). NÃO grava metadados no
+ * Firestore nem publica no chat — isso fica para `commitWorkerDocuments`,
+ * chamado quando o trabalhador confirma o envio (botão "Enviar"). Assim a
+ * barra de progresso enche primeiro e o especialista só é notificado quando
+ * o trabalhador de fato confirma.
+ *
+ * @param {object} args
+ * @param {string} args.conversationId
+ * @param {File}   args.file
+ * @param {string} args.senderUid
+ * @param {string} args.senderName
+ * @param {string} [args.peerName]
+ * @param {(percent:number)=>void} [args.onProgress]
+ * @returns {Promise<object>} metadados prontos para commit: { name, url,
+ *   storagePath, size, contentType }.
+ */
+export async function stageWorkerDocument({
+  conversationId,
+  file,
+  senderUid,
+  senderName,
+  peerName,
+  onProgress,
+}) {
+  if (!conversationId || !file || !senderUid) {
+    throw new Error("conversationId, file e senderUid são obrigatórios.");
+  }
+  if (file.size > WORKER_DOC_MAX_BYTES) {
+    const err = new Error("FILE_TOO_LARGE");
+    err.code = "FILE_TOO_LARGE";
+    throw err;
+  }
+
+  const uploadFile = await optimizeImageFile(file);
+
+  // Garante a conversa antes de gravar no Storage (as regras validam os
+  // participantes) e para que os metadados de commit encontrem a conversa.
+  await ensureConversation({
+    conversationId,
+    currentUid: senderUid,
+    currentName: senderName,
+    peerName: peerName || "Especialista",
+    peerRole: "especialista",
+    kind: "adExitum",
+  });
+
+  const safeName = String(uploadFile.name || "documento")
+    .replace(/[^\w.-]+/g, "_")
+    .slice(-160);
+  const path = `adExitumDocs/${encodeURIComponent(conversationId)}/${Date.now()}_${safeName}`;
+  const fileRef = storageRef(storage, path);
+
+  if (typeof onProgress === "function") onProgress(0);
+  const task = uploadBytesResumable(fileRef, uploadFile, {
+    contentType: uploadFile.type || undefined,
+  });
+  await new Promise((resolve, reject) => {
+    task.on(
+      "state_changed",
+      (snap) => {
+        if (typeof onProgress === "function" && snap.totalBytes > 0) {
+          onProgress(
+            Math.round((snap.bytesTransferred / snap.totalBytes) * 100)
+          );
+        }
+      },
+      (err) => reject(err),
+      () => resolve()
+    );
+  });
+  const url = await getDownloadURL(fileRef);
+  if (typeof onProgress === "function") onProgress(100);
+
+  return {
+    name: String(uploadFile.name || "documento").slice(0, 200),
+    url,
+    storagePath: path,
+    size: Number(uploadFile.size) || 0,
+    contentType: String(uploadFile.type || ""),
+  };
+}
+
+/**
+ * FASE 2: grava os metadados (Firestore) dos documentos já enviados ao
+ * Storage por `stageWorkerDocument` e NOTIFICA o especialista publicando uma
+ * mensagem no chat (atualiza `lastMessage` → sininho + "Mensagens recentes").
+ * Envia uma única mensagem-resumo quando há vários arquivos.
+ *
+ * @param {object} args
+ * @param {string} args.conversationId
+ * @param {Array<object>} args.docs   itens vindos de `stageWorkerDocument`.
+ * @param {string} args.senderUid
+ * @param {string} args.senderName
+ * @param {string} [args.receiverUid]
+ * @param {string} [args.category]    "cliente" | "processo".
+ * @returns {Promise<Array>} documentos gravados (com id).
+ */
+export async function commitWorkerDocuments({
+  conversationId,
+  docs,
+  senderUid,
+  senderName,
+  receiverUid,
+  category,
+}) {
+  const list = Array.isArray(docs) ? docs.filter(Boolean) : [];
+  if (!conversationId || !senderUid || list.length === 0) return [];
+
+  const cat = String(category || DOC_CATEGORY_PROCESS);
+  const saved = [];
+  for (const d of list) {
+    const meta = {
+      name: String(d.name || "documento").slice(0, 200),
+      url: String(d.url || ""),
+      storagePath: String(d.storagePath || ""),
+      size: Number(d.size) || 0,
+      contentType: String(d.contentType || ""),
+      senderId: String(senderUid),
+      receiverId: String(receiverUid || ""),
+      senderName: String(senderName || "").slice(0, 160),
+      category: cat,
+      createdAt: new Date().toISOString(),
+      createdAtServer: serverTimestamp(),
+    };
+    const ref = await addDoc(
+      collection(db, "conversations", conversationId, "documents"),
+      meta
+    );
+    saved.push({ id: ref.id, ...meta });
+  }
+
+  // Notifica o especialista: uma mensagem-resumo no chat.
+  try {
+    const label =
+      cat === DOC_CATEGORY_CLIENT
+        ? "Documentos do Cliente"
+        : "Documentos para o especialista";
+    const summary =
+      saved.length === 1
+        ? `📎 Enviei um novo documento (${label}): ${saved[0].name}`
+        : `📎 Enviei ${saved.length} novos documentos (${label}).`;
+    await sendChatMessage({
+      conversationId,
+      senderUid,
+      senderName,
+      text: summary,
+    });
+  } catch (err) {
+    console.warn("Falha ao notificar o especialista sobre os documentos:", err);
+  }
+
+  return saved;
 }
 
 /**
