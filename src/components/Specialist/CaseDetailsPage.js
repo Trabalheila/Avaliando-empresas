@@ -19,6 +19,11 @@ import { getSpecialistCase } from "../../services/specialistCases";
 import { listWorkerDocuments } from "../../services/workerDocuments";
 import { downloadPeticao } from "../../utils/peticaoDocument";
 import {
+  downloadContrato,
+  downloadDeclaracao,
+  downloadTermoFatos,
+} from "../../utils/legalDocuments";
+import {
   getSpecialistIdFromConversationId,
   getWorkerIdFromConversationId,
 } from "../../utils/chatId";
@@ -961,50 +966,67 @@ function ClientPersonalDataCard({ client }) {
  *  nome, estado civil, profissão, RG, CPF e endereço do autor (cliente),
  *  poupando o advogado de redigitar a qualificação. */
 function PeticaoCard({ client, clientAlias }) {
-  const [busy, setBusy] = useState(false);
+  // `busy` guarda qual documento está sendo gerado (ou "" quando ocioso), para
+  // desabilitar apenas o botão clicado e exibir o rótulo "Gerando…".
+  const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
 
   const hasData = Boolean(
     client && (client.fullName || client.cpf || client.address)
   );
 
-  const handleDownload = async () => {
+  // Executa qualquer gerador de documento passando SEMPRE o mesmo objeto de
+  // dados do cliente (mesma fonte usada pela procuração).
+  const runDownload = async (key, fn) => {
     setError("");
-    setBusy(true);
+    setBusy(key);
     try {
-      await downloadPeticao(client || {}, clientAlias);
+      await fn(client || {}, clientAlias);
     } catch (err) {
-      setError(err?.message || "Não foi possível gerar a petição.");
+      setError(err?.message || "Não foi possível gerar o documento.");
     } finally {
-      setBusy(false);
+      setBusy("");
     }
   };
+
+  const documentos = [
+    { key: "procuracao", label: "Baixar procuração (.docx)", fn: downloadPeticao },
+    { key: "contrato", label: "Baixar contrato (.docx)", fn: downloadContrato },
+    { key: "declaracao", label: "Baixar declaração (.docx)", fn: downloadDeclaracao },
+    { key: "termo", label: "Baixar termo de fatos (.docx)", fn: downloadTermoFatos },
+  ];
 
   return (
     <InfoCard>
       <h2 className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-        <span aria-hidden="true">📄</span> Procuração pré-preenchida
+        <span aria-hidden="true">📄</span> Documentos jurídicos pré-preenchidos
       </h2>
       <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-        Gere a procuração já com a qualificação do outorgante (nome, estado
-        civil, profissão, RG, CPF e endereço) preenchida automaticamente a
-        partir dos dados do cliente. Você só precisa completar os poderes e a
-        finalidade.
+        Gere procuração, contrato de honorários, declaração de hipossuficiência
+        e termo de fatos já com a qualificação do cliente (nome, estado civil,
+        profissão, RG, CPF, endereço, telefone e e-mail) preenchida
+        automaticamente. Você só precisa completar as partes específicas do caso.
       </p>
       {!hasData && (
         <p className="mt-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
-          O cliente ainda não preencheu os dados pessoais no perfil. A procuração
-          será gerada com os campos em branco para preenchimento manual.
+          O cliente ainda não preencheu os dados pessoais no perfil. Os
+          documentos serão gerados com os campos em branco para preenchimento
+          manual.
         </p>
       )}
-      <button
-        type="button"
-        onClick={handleDownload}
-        disabled={busy}
-        className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold disabled:opacity-60"
-      >
-        {busy ? "Gerando…" : "⬇️ Baixar procuração (.docx)"}
-      </button>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {documentos.map(({ key, label, fn }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => runDownload(key, fn)}
+            disabled={Boolean(busy)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold disabled:opacity-60"
+          >
+            {busy === key ? "Gerando…" : `⬇️ ${label}`}
+          </button>
+        ))}
+      </div>
       {error && (
         <p className="mt-2 text-xs text-red-700 dark:text-red-300">{error}</p>
       )}
