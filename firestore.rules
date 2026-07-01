@@ -366,6 +366,28 @@ service cloud.firestore {
     }
 
     // ──────────────────────────────────────────────────────────────────
+    // Casos (atendimentos) — coleção top-level trabalhador × especialista.
+    //
+    // Cada caso pertence a um TRABALHADOR e a um ESPECIALISTA. Ambos podem
+    // ler/atualizar; a identidade do especialista é confirmada pelo UID do
+    // Auth gravado em `especialistaUid` (o `especialistaId` é o id do doc
+    // /apoiadores/{id}, que pode diferir do UID). Ninguém pode apagar.
+    // ──────────────────────────────────────────────────────────────────
+    match /casos/{casoId} {
+      function ownsCaso(data) {
+        return request.auth != null
+          && (data.trabalhadorId == request.auth.uid
+              || data.especialistaUid == request.auth.uid);
+      }
+      allow read: if ownsCaso(resource.data);
+      allow create: if ownsCaso(request.resource.data);
+      allow update: if ownsCaso(resource.data)
+        && request.resource.data.trabalhadorId == resource.data.trabalhadorId
+        && request.resource.data.especialistaId == resource.data.especialistaId;
+      allow delete: if false;
+    }
+
+    // ──────────────────────────────────────────────────────────────────
     // Chat interno trabalhador × especialista.
     //
     // PRIVACIDADE: cada conversa é EXCLUSIVA do par (trabalhador,

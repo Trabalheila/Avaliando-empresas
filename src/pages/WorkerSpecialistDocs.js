@@ -17,12 +17,13 @@
 //     (o commit publica uma mensagem no chat → sininho do especialista).
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import AppHeader from "../components/AppHeader";
 import { listAcceptedAdExitumForWorker } from "../services/contactRequests";
-import { buildSpecialistConversationId } from "../utils/chatId";
+import { buildSpecialistConversationId, buildCaseConversationId } from "../utils/chatId";
+import { getCaso } from "../services/casos";
 import {
   listWorkerDocuments,
   stageWorkerDocument,
@@ -57,11 +58,14 @@ function readWorkerName() {
 export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const { apoiadorId } = useParams();
+  const [searchParams] = useSearchParams();
+  const casoId = searchParams.get("caso") || "";
   const uid = auth.currentUser?.uid || "";
   const myName = useMemo(() => readWorkerName(), []);
 
   const [loading, setLoading] = useState(true);
   const [spec, setSpec] = useState(null); // { name, specialtyId, receiverUid, conversationId }
+  const [caso, setCaso] = useState(null); // caso selecionado (?caso=)
   const [apoiadorInfo, setApoiadorInfo] = useState(null);
   const [notFound, setNotFound] = useState(false);
   // Pareceres/informações registrados pelo especialista sobre o caso.
@@ -101,9 +105,14 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
           if (!cancelled) setNotFound(true);
           return;
         }
-        const conversationId =
+        const baseConversationId =
           match.conversationId ||
           buildSpecialistConversationId(uid, match.toApoiadorId);
+        // Fase 3: quando um caso específico é aberto (?caso=), o chat e os
+        // documentos ficam isolados numa thread própria daquele caso.
+        const conversationId = casoId
+          ? buildCaseConversationId(uid, match.toApoiadorId, casoId)
+          : baseConversationId;
         const specData = {
           name: match.toApoiadorName || "Especialista",
           specialtyId: match.specialtyId || "",
@@ -111,6 +120,16 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
           conversationId,
         };
         if (!cancelled) setSpec(specData);
+
+        // Metadados do caso selecionado (best-effort).
+        if (casoId) {
+          try {
+            const cs = await getCaso(casoId);
+            if (!cancelled && cs) setCaso(cs);
+          } catch {
+            /* silencioso */
+          }
+        }
 
         // Dados públicos do apoiador (best-effort).
         try {
@@ -130,7 +149,7 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
     return () => {
       cancelled = true;
     };
-  }, [uid, apoiadorId]);
+  }, [uid, apoiadorId, casoId]);
 
   const reloadDocs = useCallback(async () => {
     if (!spec?.conversationId) return;
@@ -307,6 +326,24 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
                       ⚖️ {spec.specialtyId}
                     </p>
                   )}
+                  {caso?.nomeDoCaso && (
+                    <p className="mt-1 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200">
+                      📁 {caso.nomeDoCaso}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        `/trabalhador/especialista/${encodeURIComponent(
+                          apoiadorId
+                        )}/casos`
+                      )
+                    }
+                    className="mt-2 block text-xs font-semibold text-blue-700 dark:text-blue-300 hover:underline"
+                  >
+                    Ver todos os casos com este especialista →
+                  </button>
                 </div>
                 <span className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200">
                   ● Contato ativo
@@ -347,7 +384,9 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
                       spec.conversationId
                     )}?peer=${encodeURIComponent(
                       spec.name
-                    )}&peerRole=especialista&adExitum=1`
+                    )}&peerRole=especialista&adExitum=1${
+                      casoId ? `&caseId=${encodeURIComponent(casoId)}` : ""
+                    }`
                   )
                 }
                 className="mt-4 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 min-h-[44px]"

@@ -25,8 +25,11 @@ import VerifyIdentitySection from "../components/VerifyIdentitySection";
 import ExperienceManagerModal from "../components/ExperienceManagerModal";
 import EditProfileModal from "../components/EditProfileModal";
 import { buildVideoCallLink, formatStartsIn } from "../utils/videoCall";
-import { listAcceptedAdExitumForWorker } from "../services/contactRequests";
-import { buildSpecialistConversationId } from "../utils/chatId";
+import {
+  listWorkerCasosEnriched,
+  groupCasosByEspecialista,
+  casoLabel,
+} from "../services/workerCasos";
 /* ════════════════════════════════════════════════
    MinhaConta — Página privada "Minha conta"
    ════════════════════════════════════════════════ */
@@ -960,8 +963,7 @@ export default function MinhaConta({ theme, toggleTheme }) {
 function ReleasedContactsSection({ profile }) {
   const navigate = useNavigate();
   const uid = auth.currentUser?.uid || profile?.uid || profile?.id || "";
-  const [contacts, setContacts] = useState([]);
-  const [adExitum, setAdExitum] = useState([]);
+  const [specialists, setSpecialists] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -970,23 +972,55 @@ function ReleasedContactsSection({ profile }) {
     setLoading(true);
     (async () => {
       try {
-        const [snap, accepted] = await Promise.all([
+        const [snap, casos] = await Promise.all([
           getDocs(collection(db, "users", uid, "releasedContacts")).catch(
             () => ({ docs: [] })
           ),
-          listAcceptedAdExitumForWorker(uid).catch(() => []),
+          listWorkerCasosEnriched(uid).catch(() => []),
         ]);
-        if (!cancelled) {
-          const list = snap.docs
-            .map((d) => ({ id: d.id, ...d.data() }))
-            .sort(
-              (a, b) =>
-                (b?.releasedAt?.toMillis?.() || 0) -
-                (a?.releasedAt?.toMillis?.() || 0)
-            );
-          setContacts(list);
-          setAdExitum(Array.isArray(accepted) ? accepted : []);
+        if (cancelled) return;
+
+        // Diretório único por especialista. Chave = especialistaId (id do doc
+        // apoiadores/{id}); mescla dados dos casos e dos contatos liberados.
+        const byEspecialista = new Map();
+        const ensure = (key) => {
+          const k = String(key || "");
+          if (!k) return null;
+          if (!byEspecialista.has(k)) {
+            byEspecialista.set(k, {
+              especialistaId: k,
+              nomeDoEspecialista: "Especialista",
+              specialtyId: "",
+              email: "",
+              whatsapp: "",
+              casosCount: 0,
+            });
+          }
+          return byEspecialista.get(k);
+        };
+
+        // 1) A partir dos casos (agrupados por especialista).
+        for (const group of groupCasosByEspecialista(casos)) {
+          const entry = ensure(group.especialistaId);
+          if (!entry) continue;
+          entry.nomeDoEspecialista = group.nomeDoEspecialista;
+          entry.specialtyId = group.specialtyId;
+          entry.casosCount = group.casos.length;
         }
+
+        // 2) A partir dos contatos liberados (e-mail/WhatsApp).
+        const released = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        for (const c of released) {
+          const entry = ensure(c.apoiadorId);
+          if (!entry) continue;
+          if (c.apoiadorNome) entry.nomeDoEspecialista = c.apoiadorNome;
+          if (c.especialidade && !entry.specialtyId)
+            entry.specialtyId = c.especialidade;
+          if (c.especialistaEmail) entry.email = c.especialistaEmail;
+          if (c.especialistaWhatsapp) entry.whatsapp = c.especialistaWhatsapp;
+        }
+
+        setSpecialists(Array.from(byEspecialista.values()));
       } catch {
         // best-effort
       } finally {
@@ -997,21 +1031,6 @@ function ReleasedContactsSection({ profile }) {
       cancelled = true;
     };
   }, [uid]);
-
-  const openChat = (req) => {
-    const convId =
-      req.conversationId ||
-      buildSpecialistConversationId(uid, req.toApoiadorId);
-    if (!convId) return;
-    const params = new URLSearchParams({
-      peer: req.toApoiadorName || "Especialista",
-      peerRole: "especialista",
-      adExitum: "1",
-    });
-    navigate(`/chat/${encodeURIComponent(convId)}?${params.toString()}`);
-  };
-
-  const hasAny = contacts.length > 0 || adExitum.length > 0;
 
   return (
     <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
@@ -1026,76 +1045,74 @@ function ReleasedContactsSection({ profile }) {
         <p className="text-sm text-slate-500 dark:text-slate-400 animate-pulse">
           Carregando contatos…
         </p>
-      ) : !hasAny ? (
+      ) : specialists.length === 0 ? (
         <p className="text-sm text-slate-500 dark:text-slate-400">
           Nenhum contato liberado ainda. Ao contratar uma consulta ou ter um
-          pedido Ad Exitum aceito por um especialista, os dados aparecem aqui.
+          pedido aceito por um especialista, ele aparece aqui — uma entrada por
+          especialista, com todos os seus casos reunidos.
         </p>
       ) : (
         <ul className="space-y-3">
-          {/* Especialistas que aceitaram um pedido Ad Exitum */}
-          {adExitum.map((r) => (
-            <li
-              key={`ae-${r.id}`}
-              className="p-4 rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-900/20"
-            >
-              <div className="flex items-start justify-between gap-3 flex-wrap">
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 break-words">
-                    {r.toApoiadorName || "Especialista"}
-                  </p>
-                  <p className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold">
-                    ⚖️ {r.specialtyId || "Especialista"} · contato Ad Exitum
-                    aceito
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => openChat(r)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition shrink-0"
-                >
-                  💬 Abrir chat
-                </button>
-              </div>
-            </li>
-          ))}
-
-          {/* Contatos liberados após pagamento de consulta */}
-          {contacts.map((c) => {
-            const waDigits = String(c.especialistaWhatsapp || "").replace(/\D/g, "");
+          {specialists.map((s) => {
+            const waDigits = String(s.whatsapp || "").replace(/\D/g, "");
             return (
               <li
-                key={c.id}
+                key={s.especialistaId}
                 className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60"
               >
-                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                  {c.apoiadorNome || "Especialista"}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {c.especialistaEmail && (
-                    <a
-                      href={`mailto:${c.especialistaEmail}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 text-xs font-bold hover:bg-blue-50 dark:hover:bg-blue-900/30 break-all"
-                    >
-                      📧 {c.especialistaEmail}
-                    </a>
-                  )}
-                  {c.especialistaWhatsapp && (
-                    <a
-                      href={`https://wa.me/${waDigits}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
-                    >
-                      📱 {c.especialistaWhatsapp}
-                    </a>
-                  )}
-                  {!c.especialistaEmail && !c.especialistaWhatsapp && (
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                      Contato não informado pelo especialista.
-                    </span>
-                  )}
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-100 break-words">
+                      {s.nomeDoEspecialista}
+                    </p>
+                    {s.specialtyId && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        ⚖️ {s.specialtyId}
+                      </p>
+                    )}
+                    {s.casosCount > 0 && (
+                      <p className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold mt-0.5">
+                        {s.casosCount} caso{s.casosCount === 1 ? "" : "s"}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        `/trabalhador/especialista/${encodeURIComponent(
+                          s.especialistaId
+                        )}/casos`
+                      )
+                    }
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition shrink-0"
+                  >
+                    Ver casos →
+                  </button>
                 </div>
+
+                {(s.email || s.whatsapp) && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {s.email && (
+                      <a
+                        href={`mailto:${s.email}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 text-xs font-bold hover:bg-blue-50 dark:hover:bg-blue-900/30 break-all"
+                      >
+                        📧 {s.email}
+                      </a>
+                    )}
+                    {s.whatsapp && (
+                      <a
+                        href={`https://wa.me/${waDigits}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
+                      >
+                        📱 {s.whatsapp}
+                      </a>
+                    )}
+                  </div>
+                )}
               </li>
             );
           })}
@@ -1116,16 +1133,7 @@ function ReleasedContactsSection({ profile }) {
    ════════════════════════════════════════════════ */
 function ActiveServicesSection({ profile, navigate }) {
   const uid = auth.currentUser?.uid || profile?.uid || profile?.id || "";
-  const workerName =
-    profile?.nomeReal ||
-    profile?.fullName ||
-    profile?.nomeCompleto ||
-    profile?.pseudonimo ||
-    profile?.nome ||
-    profile?.name ||
-    auth.currentUser?.displayName ||
-    "Trabalhador";
-  const [specialists, setSpecialists] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -1134,32 +1142,10 @@ function ActiveServicesSection({ profile, navigate }) {
     setLoading(true);
     (async () => {
       try {
-        const accepted = await listAcceptedAdExitumForWorker(uid).catch(
-          () => []
-        );
-        // Deduplica por especialista (um trabalhador pode ter mais de um
-        // pedido aceito com o mesmo especialista).
-        const byApoiador = new Map();
-        for (const r of accepted) {
-          const key = String(r.toApoiadorId || r.toApoiadorUid || r.id);
-          if (!byApoiador.has(key)) {
-            const conversationId =
-              r.conversationId ||
-              buildSpecialistConversationId(uid, r.toApoiadorId);
-            byApoiador.set(key, {
-              id: key,
-              apoiadorId: String(r.toApoiadorId || r.toApoiadorUid || key),
-              name: r.toApoiadorName || "Especialista",
-              specialtyId: r.specialtyId || "",
-              receiverUid: String(r.toApoiadorUid || ""),
-              conversationId,
-            });
-          }
-        }
-        const list = Array.from(byApoiador.values()).filter(
-          (s) => s.conversationId
-        );
-        if (!cancelled) setSpecialists(list);
+        const casos = await listWorkerCasosEnriched(uid).catch(() => []);
+        // "Atendimentos Ativos": exclui apenas os finalizados.
+        const ativos = casos.filter((c) => c.status !== "finalizado");
+        if (!cancelled) setGroups(groupCasosByEspecialista(ativos));
       } catch {
         // best-effort
       } finally {
@@ -1171,6 +1157,17 @@ function ActiveServicesSection({ profile, navigate }) {
     };
   }, [uid]);
 
+  const openCaso = (especialistaId, casoId) => {
+    const params = casoId
+      ? `?caso=${encodeURIComponent(casoId)}`
+      : "";
+    navigate(
+      `/trabalhador/especialista/${encodeURIComponent(especialistaId)}${params}`
+    );
+  };
+
+  const totalCasos = groups.reduce((acc, g) => acc + g.casos.length, 0);
+
   return (
     <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
       <h2 className="text-lg font-bold text-blue-800 dark:text-blue-200 mb-4 flex items-center gap-2">
@@ -1178,54 +1175,72 @@ function ActiveServicesSection({ profile, navigate }) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-3-6.65" />
         </svg>
         Atendimentos Ativos
+        {totalCasos > 0 && (
+          <span className="ml-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+            ({totalCasos} caso{totalCasos === 1 ? "" : "s"})
+          </span>
+        )}
       </h2>
 
       {loading ? (
         <p className="text-sm text-slate-500 dark:text-slate-400 animate-pulse">
-          Carregando especialistas…
+          Carregando atendimentos…
         </p>
-      ) : specialists.length === 0 ? (
+      ) : groups.length === 0 ? (
         <p className="text-sm text-slate-500 dark:text-slate-400">
           Você ainda não tem atendimentos ativos. Quando um especialista aceitar
-          o seu pedido Ad Exitum, ele aparecerá aqui com uma página dedicada para
-          acompanhar o caso e enviar seus documentos.
+          o seu pedido, cada caso aparecerá aqui — agrupado por especialista —
+          com uma página dedicada para acompanhar e enviar documentos.
         </p>
       ) : (
-        <ul className="space-y-3">
-          {specialists.map((spec) => (
-            <li
-              key={spec.id}
-              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60"
-            >
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-slate-800 dark:text-slate-100 break-words">
-                  {spec.name}
-                </p>
-                {spec.specialtyId && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    ⚖️ {spec.specialtyId}
+        <div className="space-y-5">
+          {groups.map((g) => (
+            <div key={g.especialistaId}>
+              {/* Cabeçalho do especialista */}
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 break-words">
+                    {g.nomeDoEspecialista}
                   </p>
-                )}
-                <p className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold mt-0.5">
-                  ● Contato ativo
-                </p>
+                  {g.specialtyId && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      ⚖️ {g.specialtyId}
+                    </p>
+                  )}
+                </div>
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 shrink-0">
+                  {g.casos.length} caso{g.casos.length === 1 ? "" : "s"}
+                </span>
               </div>
-              <button
-                type="button"
-                onClick={() =>
-                  navigate(
-                    `/trabalhador/especialista/${encodeURIComponent(
-                      spec.apoiadorId
-                    )}`
-                  )
-                }
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition shrink-0"
-              >
-                Abrir atendimento →
-              </button>
-            </li>
+
+              {/* Casos individuais do especialista */}
+              <ul className="space-y-2">
+                {g.casos.map((c, idx) => (
+                  <li
+                    key={c.id}
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 break-words">
+                        {casoLabel(c, idx)}
+                      </p>
+                      <p className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold mt-0.5">
+                        ● {c.status === "pendente" ? "Pendente" : "Ativo"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openCaso(g.especialistaId, c.casoId || c.id)}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition shrink-0"
+                    >
+                      Abrir atendimento →
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </section>
   );

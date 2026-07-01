@@ -39,12 +39,17 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import { buildApiUrl } from "../utils/apiBase";
 import {
   getSpecialistIdFromConversationId,
   getWorkerIdFromConversationId,
 } from "../utils/chatId";
+import {
+  createCaso,
+  buildCasoIdFromRequest,
+  CASO_STATUS,
+} from "./casos";
 
 /* ──────────────────────────────────────────────────────────────
  *  Disponibilidade do trabalhador
@@ -392,13 +397,61 @@ export async function respondToApoiadorRequest(
   { accept, reply, revealEmail }
 ) {
   if (!requestId) throw new Error("requestId obrigatório");
-  await updateDoc(doc(db, "contactRequestsApoiador", requestId), {
+  const ref = doc(db, "contactRequestsApoiador", requestId);
+
+  // Lê o pedido ANTES de atualizar para, ao aceitar, derivar os dados do caso.
+  let reqData = null;
+  try {
+    const snap = await getDoc(ref);
+    reqData = snap.exists() ? snap.data() : null;
+  } catch {
+    reqData = null;
+  }
+
+  await updateDoc(ref, {
     status: accept ? "accepted" : "declined",
     reply: accept ? String(reply || "").slice(0, 2000) : null,
     revealEmail: Boolean(accept && revealEmail),
     respondedAt: new Date().toISOString(),
     readByApoiador: true,
   });
+
+  // Fase 1 (Casos): ao ACEITAR um pedido originado por um TRABALHADOR (ex.:
+  // Ad Exitum), cria/atualiza um documento na coleção top-level `casos`. Não
+  // se aplica a pedidos de EMPRESA (que possuem `fromCompanyId`), pois o
+  // modelo de caso é trabalhador × especialista. O casoId é determinístico a
+  // partir do requestId → aceitar duas vezes atualiza o mesmo caso.
+  if (accept && reqData && !reqData.fromCompanyId) {
+    try {
+      const trabalhadorId = String(reqData.fromUid || "");
+      const especialistaId = String(reqData.toApoiadorId || "");
+      const especialistaUid = String(
+        reqData.toApoiadorUid || auth.currentUser?.uid || ""
+      );
+      if (trabalhadorId && especialistaId) {
+        const nomeSolicitante = String(
+          reqData.fromCompanyName || reqData.fromName || "trabalhador"
+        ).trim();
+        await createCaso({
+          id: buildCasoIdFromRequest(requestId),
+          trabalhadorId,
+          especialistaId,
+          especialistaUid,
+          nomeDoEspecialista: String(reqData.toApoiadorName || "Especialista"),
+          specialtyId: String(reqData.specialtyId || ""),
+          empresaId: String(reqData.empresaId || ""),
+          nomeDoCaso: reqData.nomeDoCaso || `Atendimento – ${nomeSolicitante}`,
+          status: CASO_STATUS.ATIVO,
+          origem: reqData.kind === "adExitum" ? "adExitum" : "contato",
+          conversationId: String(reqData.conversationId || ""),
+          contactRequestId: String(requestId),
+        });
+      }
+    } catch (err) {
+      // Não bloqueia o aceite se a criação do caso falhar (best-effort).
+      console.warn("[casos] Falha ao criar caso no aceite do pedido:", err);
+    }
+  }
 }
 
 /* ──────────────────────────────────────────────────────────────

@@ -18,6 +18,10 @@
 // especialista), pois ambos conhecem o `especialistaId` e o `trabalhadorId`.
 
 const PARTICIPANT_SEPARATOR = "__u_";
+// Segmento que isola a conversa por CASO (atendimento). Um mesmo par
+// (trabalhador, especialista) pode ter vários casos, cada um com sua própria
+// thread de mensagens. Ex.: `spec_<esp>__u_<worker>__c_<casoId>`.
+const CASE_SEPARATOR = "__c_";
 
 /** Mantém apenas caracteres seguros para uso em chave/rota. */
 function clean(value) {
@@ -62,5 +66,38 @@ export function getSpecialistIdFromConversationId(conversationId) {
 export function getWorkerIdFromConversationId(conversationId) {
   const id = String(conversationId || "");
   const idx = id.indexOf(PARTICIPANT_SEPARATOR);
-  return idx === -1 ? "" : id.slice(idx + PARTICIPANT_SEPARATOR.length);
+  if (idx === -1) return "";
+  let rest = id.slice(idx + PARTICIPANT_SEPARATOR.length);
+  // Remove o segmento do caso, se presente, para não contaminar o UID.
+  const caseIdx = rest.indexOf(CASE_SEPARATOR);
+  if (caseIdx !== -1) rest = rest.slice(0, caseIdx);
+  return rest;
+}
+
+/**
+ * Monta um conversationId ESPECÍFICO de um caso, a partir do par
+ * (trabalhador, especialista) + o id do caso. Cada caso ganha assim uma
+ * thread de chat isolada. Se faltar o casoId, cai no id do par (compat.).
+ *
+ * @param {string} workerId     UID do trabalhador.
+ * @param {string} specialistId id do especialista (doc apoiadores/{id}).
+ * @param {string} casoId       id do caso.
+ * @returns {string} conversationId da conversa do caso.
+ */
+export function buildCaseConversationId(workerId, specialistId, casoId) {
+  const base = buildSpecialistConversationId(workerId, specialistId);
+  const caso = clean(casoId);
+  if (!base || !caso) return base;
+  return `${base}${CASE_SEPARATOR}${caso}`;
+}
+
+/**
+ * Extrai o id do caso de um conversationId (quando presente).
+ * @param {string} conversationId
+ * @returns {string} casoId, ou "" se a conversa não é vinculada a um caso.
+ */
+export function getCaseIdFromConversationId(conversationId) {
+  const id = String(conversationId || "");
+  const idx = id.indexOf(CASE_SEPARATOR);
+  return idx === -1 ? "" : id.slice(idx + CASE_SEPARATOR.length);
 }
