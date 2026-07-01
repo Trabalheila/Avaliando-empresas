@@ -34,6 +34,7 @@ import {
   deleteWorkerDocument,
   MAX_FILE_SIZE_MB,
   WORKER_DOC_MAX_BYTES,
+  DOC_CATEGORY_CLIENT,
   DOC_CATEGORY_PROCESS,
 } from "../services/workerDocuments";
 /* ════════════════════════════════════════════════
@@ -1223,6 +1224,8 @@ function WorkerDocumentsSection({ profile }) {
 function SpecialistDocsCard({ spec, uid, workerName }) {
   const conversationId = spec.conversationId;
 
+  const [expanded, setExpanded] = useState(false);
+  const [category, setCategory] = useState(DOC_CATEGORY_PROCESS);
   const [docs, setDocs] = useState([]);
   const [loadingDocs, setLoadingDocs] = useState(true);
   const [staged, setStaged] = useState([]); // { id, name, percent, error, meta }
@@ -1317,7 +1320,7 @@ function SpecialistDocsCard({ spec, uid, workerName }) {
         senderUid: uid,
         senderName: workerName,
         receiverUid: spec.receiverUid,
-        category: DOC_CATEGORY_PROCESS,
+        category,
       });
       setStaged([]);
       const existing = await listWorkerDocuments(conversationId).catch(() => []);
@@ -1351,158 +1354,251 @@ function SpecialistDocsCard({ spec, uid, workerName }) {
     }
   };
 
+  // Documentos filtrados pela categoria selecionada (docs antigos sem
+  // `category` contam como "processo" para compatibilidade).
+  const visibleDocs = docs.filter(
+    (d) => String(d.category || DOC_CATEGORY_PROCESS) === category
+  );
+
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-4">
-      {/* Cabeçalho: especialista + botão de envio */}
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-slate-800 dark:text-slate-100 break-words">
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+      {/* Cabeçalho recolhível: especialista + total + seta */}
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        className="w-full flex items-center justify-between gap-3 p-4 text-left transition min-h-[44px] hover:bg-slate-50 dark:hover:bg-slate-800/60"
+      >
+        <span className="min-w-0">
+          <span className="block text-sm font-bold text-slate-800 dark:text-slate-100 break-words">
             {spec.name}
-          </p>
+          </span>
           {spec.specialtyId && (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <span className="block text-xs text-slate-500 dark:text-slate-400">
               ⚖️ {spec.specialtyId}
+            </span>
+          )}
+          <span className="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            📎 {docs.length} documento(s) enviado(s)
+          </span>
+        </span>
+        <span
+          aria-hidden="true"
+          className={
+            "shrink-0 text-lg font-bold text-blue-600 dark:text-blue-300 transition-transform " +
+            (expanded ? "rotate-90" : "")
+          }
+        >
+          ›
+        </span>
+      </button>
+
+      {expanded && (
+        <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-800">
+          {/* Abas de categoria (mesmo padrão da versão mobile) */}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setCategory(DOC_CATEGORY_CLIENT)}
+              className={[
+                "px-3 py-2 rounded-xl text-xs font-bold border transition min-h-[40px]",
+                category === DOC_CATEGORY_CLIENT
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700",
+              ].join(" ")}
+            >
+              🪪 Documentos do Cliente
+            </button>
+            <button
+              type="button"
+              onClick={() => setCategory(DOC_CATEGORY_PROCESS)}
+              className={[
+                "px-3 py-2 rounded-xl text-xs font-bold border transition min-h-[40px]",
+                category === DOC_CATEGORY_PROCESS
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700",
+              ].join(" ")}
+            >
+              📁 Documentos para o Especialista
+            </button>
+          </div>
+
+          {/* Área de upload */}
+          <div className="mt-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,.pdf,audio/mpeg,video/mp4"
+              className="hidden"
+              onChange={handleFiles}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-200 text-xs font-bold hover:bg-blue-50 dark:hover:bg-blue-900/20 min-h-[44px]"
+            >
+              📎 Selecionar arquivos
+            </button>
+            <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+              Vários arquivos permitidos · até {MAX_FILE_SIZE_MB} MB cada.
+            </p>
+          </div>
+
+          {/* Barras de progresso (estilo Google Drive) */}
+          {staged.length > 0 && (
+            <>
+              <ul className="mt-3 space-y-3">
+                {staged.map((s) => (
+                  <li key={s.id}>
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-xs text-slate-600 dark:text-slate-300 truncate min-w-0">
+                        📎 {s.name}
+                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span
+                          className={
+                            "text-[11px] font-semibold " +
+                            (s.error
+                              ? "text-red-600 dark:text-red-400"
+                              : s.percent >= 100
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-blue-600 dark:text-blue-300")
+                          }
+                        >
+                          {s.error
+                            ? "Erro"
+                            : s.percent >= 100
+                            ? "Pronto ✓"
+                            : `${s.percent}%`}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeStaged(s.id)}
+                          className="text-slate-400 hover:text-red-500 text-sm leading-none"
+                          aria-label="Remover"
+                          title="Remover"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                      <div
+                        className={
+                          "h-full rounded-full transition-all duration-200 " +
+                          (s.error
+                            ? "bg-red-500"
+                            : s.percent >= 100
+                            ? "bg-emerald-500"
+                            : "bg-blue-600")
+                        }
+                        style={{ width: `${s.error ? 100 : s.percent}%` }}
+                      />
+                    </div>
+                    {s.error && (
+                      <p className="mt-1 text-[11px] text-red-600 dark:text-red-400">
+                        {s.error}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={!canSend}
+                className="mt-3 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
+              >
+                {sending
+                  ? "Enviando…"
+                  : anyUploading
+                  ? "Aguardando upload…"
+                  : `Enviar${readyStaged.length ? ` (${readyStaged.length})` : ""}`}
+              </button>
+            </>
+          )}
+
+          {uploadError && (
+            <p className="mt-2 text-xs text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+              {uploadError}
             </p>
           )}
+          {confirmMsg && (
+            <p className="mt-2 text-xs text-emerald-800 dark:text-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg px-3 py-2">
+              ✅ {confirmMsg}
+            </p>
+          )}
+
+          {/* Documentos já enviados nesta categoria */}
+          <div className="mt-4">
+            <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Enviados
+            </h3>
+            {loadingDocs ? (
+              <p className="mt-2 text-xs text-slate-400 dark:text-slate-500 animate-pulse">
+                Carregando documentos…
+              </p>
+            ) : visibleDocs.length === 0 ? (
+              <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+                Nenhum documento enviado nesta categoria ainda.
+              </p>
+            ) : (
+              <ul className="mt-2 space-y-1.5">
+                {visibleDocs.map((d) => (
+                  <li
+                    key={d.id}
+                    className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 px-3 py-2"
+                  >
+                    <span className="min-w-0 flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
+                      <span aria-hidden="true">📎</span>
+                      <span className="truncate">{d.name || "Documento"}</span>
+                    </span>
+                    <span className="shrink-0 flex items-center gap-3 text-xs font-semibold">
+                      <a
+                        href={d.url || "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        download={d.name}
+                        className="text-blue-700 dark:text-blue-300 hover:underline"
+                      >
+                        Visualizar
+                      </a>
+                      {confirmDeleteId === d.id ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(d)}
+                            disabled={deletingId === d.id}
+                            className="text-red-600 dark:text-red-400 hover:underline disabled:opacity-60"
+                          >
+                            {deletingId === d.id ? "Apagando…" : "Confirmar"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteId("")}
+                            className="text-slate-400 hover:underline"
+                          >
+                            Cancelar
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteId(d.id)}
+                          className="text-red-600 dark:text-red-400 hover:underline"
+                        >
+                          Apagar
+                        </button>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/*,.pdf,audio/mpeg,video/mp4"
-          className="hidden"
-          onChange={handleFiles}
-        />
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold min-h-[40px]"
-        >
-          ⬆️ Enviar Documentos
-        </button>
-      </div>
-
-      {/* Uploads em andamento (barra de progresso por arquivo) */}
-      {staged.length > 0 && (
-        <>
-          <ul className="mt-3 space-y-2">
-            {staged.map((s) => (
-              <li key={s.id} className="text-xs">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-slate-600 dark:text-slate-300">
-                    {s.name}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removeStaged(s.id)}
-                    className="shrink-0 text-slate-400 hover:text-red-500"
-                    aria-label="Remover"
-                  >
-                    ✕
-                  </button>
-                </div>
-                {s.error ? (
-                  <p className="text-red-600 dark:text-red-400">{s.error}</p>
-                ) : (
-                  <div className="mt-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                    <div
-                      className="h-full bg-blue-500 transition-all"
-                      style={{ width: `${s.percent}%` }}
-                    />
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={!canSend}
-            className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {sending
-              ? "Enviando…"
-              : anyUploading
-              ? "Carregando arquivos…"
-              : "Confirmar envio"}
-          </button>
-        </>
       )}
-
-      {uploadError && (
-        <p className="mt-2 text-xs text-red-600 dark:text-red-400">
-          {uploadError}
-        </p>
-      )}
-      {confirmMsg && (
-        <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
-          {confirmMsg}
-        </p>
-      )}
-
-      {/* Documentos já enviados */}
-      <div className="mt-3">
-        {loadingDocs ? (
-          <p className="text-xs text-slate-400 dark:text-slate-500 animate-pulse">
-            Carregando documentos…
-          </p>
-        ) : docs.length === 0 ? (
-          <p className="text-xs text-slate-400 dark:text-slate-500">
-            Nenhum documento enviado ainda.
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {docs.map((d) => (
-              <li
-                key={d.id}
-                className="flex items-center justify-between gap-2 rounded-lg bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 px-3 py-2"
-              >
-                <span className="min-w-0 flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
-                  <span aria-hidden="true">📎</span>
-                  <span className="truncate">{d.name || "Documento"}</span>
-                </span>
-                <span className="shrink-0 flex items-center gap-3 text-xs font-semibold">
-                  <a
-                    href={d.url || "#"}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-blue-600 dark:text-blue-300 hover:underline"
-                  >
-                    Visualizar
-                  </a>
-                  {confirmDeleteId === d.id ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(d)}
-                        disabled={deletingId === d.id}
-                        className="text-red-600 dark:text-red-400 hover:underline disabled:opacity-60"
-                      >
-                        {deletingId === d.id ? "Apagando…" : "Confirmar"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmDeleteId("")}
-                        className="text-slate-400 hover:underline"
-                      >
-                        Cancelar
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmDeleteId(d.id)}
-                      className="text-red-600 dark:text-red-400 hover:underline"
-                    >
-                      🗑️ Apagar
-                    </button>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
     </div>
   );
 }
