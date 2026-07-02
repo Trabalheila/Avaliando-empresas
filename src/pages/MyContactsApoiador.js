@@ -11,7 +11,7 @@ import {
 import { listConversationsForParticipant } from "../services/chat";
 import { isTestApoiador } from "../utils/testAccounts";
 import { buildSpecialistConversationId } from "../utils/chatId";
-import { listSpecialistCases } from "../services/specialistCases";
+import { listSpecialistCases, closeSpecialistCase } from "../services/specialistCases";
 
 /* ──────────────────────────────────────────────────────────────
  * Configurações por tipo de especialista (área de atuação).
@@ -859,6 +859,10 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
   const specialistName =
     profile?.name || profile?.nome || profile?.displayName || "Especialista";
 
+  // Caso selecionado para encerramento (abre o modal de confirmação).
+  const [closingCase, setClosingCase] = useState(null);
+  const [closingBusy, setClosingBusy] = useState(false);
+
   // Tipo de especialista — preferência: doc Firestore > localStorage.
   const specialistTipo =
     apoiadorDoc?.tipo ||
@@ -874,6 +878,23 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
     () => getCaseHistoryConfig(specialistTipo),
     [specialistTipo]
   );
+
+  // Saudação personalizada: "Dr.(a) Nome Sobrenome" a partir do perfil do
+  // especialista (doc do Firestore tem prioridade sobre o localStorage).
+  const specialistGreetingName = useMemo(() => {
+    const raw = String(
+      apoiadorDoc?.nome ||
+        apoiadorDoc?.name ||
+        apoiadorDoc?.displayName ||
+        specialistName ||
+        ""
+    ).trim();
+    if (!raw || raw.toLowerCase() === "especialista") return "";
+    const parts = raw.split(/\s+/).filter(Boolean);
+    const nome = parts[0];
+    const sobrenome = parts.length > 1 ? parts[parts.length - 1] : "";
+    return sobrenome ? `${nome} ${sobrenome}` : nome;
+  }, [apoiadorDoc, specialistName]);
 
   // O card "Histórico de casos" é específico de profissionais do Direito.
   // Só é renderizado quando a especialidade/role contém "advogado" ou
@@ -966,14 +987,29 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
         ]);
         if (cancelled) return;
         // Casos reais (clientes aceitos no chat) primeiro; mocks depois,
-        // sem duplicar ids já presentes nos casos reais.
-        const realIds = new Set(realCases.map((c) => c.id));
+        // sem duplicar ids já presentes nos casos reais. Casos com status
+        // "finalizado"/"encerrado" saem da lista de ativos e entram no
+        // histórico.
+        const isFinished = (s) => /finaliz|encerrad/i.test(String(s || ""));
+        const activeReal = realCases.filter((c) => !isFinished(c.status));
+        const closedReal = realCases
+          .filter((c) => isFinished(c.status))
+          .map((c) => ({
+            id: c.id,
+            clientAlias: c.clientAlias,
+            caseType: c.caseType,
+            finishedAt: c.finishedAt || c._updatedAt?.seconds
+              ? new Date((c._updatedAt?.seconds || 0) * 1000).toISOString()
+              : "",
+            result: "Encerrado",
+          }));
+        const realIds = new Set(activeReal.map((c) => c.id));
         const merged = [
-          ...realCases,
+          ...activeReal,
           ...mockCases.filter((c) => !realIds.has(c.id)),
         ];
         setActiveCases(merged);
-        setCaseHistory(history);
+        setCaseHistory([...closedReal, ...history]);
         setReviews(rev);
       } catch (err) {
         console.warn("Falha ao carregar dados do dashboard do especialista:", err);
@@ -1056,20 +1092,38 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
   // NOTE: O card "Pedidos Ad Exitum" foi removido do painel do especialista.
   // A aceitação de pedidos Ad Exitum agora é feita exclusivamente pelo chat
   // inicial com o trabalhador (ver PlatformChat / handleAcceptClient).
-
+  // Encerra um caso ativo: atualiza o status no Firestore e move o caso da
+  // lista de ativos para o histórico (otimista, sem recarregar tudo).
+  const handleCloseCase = useCallback(async () => {
+    if (!closingCase || !apoiadorId) return;
+    setClosingBusy(true);
+    try {
+      await closeSpecialistCase(apoiadorId, closingCase.id);
+      setActiveCases((prev) => prev.filter((c) => c.id !== closingCase.id));
+      setCaseHistory((prev) => [
+        {
+          id: closingCase.id,
+          clientAlias: closingCase.clientAlias,
+          caseType: closingCase.caseType,
+          finishedAt: new Date().toISOString(),
+          result: "Encerrado",
+        },
+        ...prev,
+      ]);
+      setClosingCase(null);
+    } catch (err) {
+      console.error("Falha ao encerrar caso:", err);
+      alert("Não foi possível encerrar o caso. Tente novamente.");
+    } finally {
+      setClosingBusy(false);
+    }
+  }, [closingCase, apoiadorId]);
   // Métricas derivadas para a seção Visão Geral.
   // Importante: hooks devem ser chamados antes de qualquer early return.
   const pendingCount = useMemo(
     () => items.filter((r) => (r.status || "pending") === "pending").length,
     [items]
   );
-  const finishedLast30 = useMemo(() => {
-    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    return caseHistory.filter((c) => {
-      const t = c.finishedAt ? new Date(c.finishedAt).getTime() : 0;
-      return t >= cutoff;
-    }).length;
-  }, [caseHistory]);
 
   if (!apoiadorId) {
     return (
@@ -1103,7 +1157,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
               Dashboard do Especialista · {specialistConfig.label}
             </p>
             <h1 className="tl-page-title mt-1">
-              Olá, {specialistName} 👋
+              Olá, {specialistGreetingName ? `Dr.(a) ${specialistGreetingName}` : "Especialista"} 👋
             </h1>
             <p className="tl-subtitle mt-1">
               Acompanhe seus clientes, pedidos de contato e reputação em um único lugar.
@@ -1258,8 +1312,8 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                       onClick={() => navigate("/especialista/pedidos-pendentes")}
                     />
                     <OverviewCard
-                      label="Finalizados (30 dias)"
-                      value={finishedLast30}
+                      label="Finalizados"
+                      value={caseHistory.length}
                       accent="emerald"
                       emoji="✅"
                     />
@@ -1338,6 +1392,13 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                           >
                             Ver detalhes
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => setClosingCase(c)}
+                            className="w-full mt-2 px-3 py-2 rounded-lg text-xs font-bold border border-red-300 dark:border-red-700 text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 min-h-[40px]"
+                          >
+                            🗑️ Encerrar caso
+                          </button>
                         </li>
                       ))}
                     </ul>
@@ -1387,17 +1448,28 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                                 </div>
                               </Td>
                               <Td className="text-right pr-5">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    navigate(
-                                      `/especialista/${encodeURIComponent(specialistTipo)}/caso/${encodeURIComponent(c.id)}`
-                                    )
-                                  }
-                                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"
-                                >
-                                  Ver detalhes
-                                </button>
+                                <div className="inline-flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      navigate(
+                                        `/especialista/${encodeURIComponent(specialistTipo)}/caso/${encodeURIComponent(c.id)}`
+                                      )
+                                    }
+                                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"
+                                  >
+                                    Ver detalhes
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setClosingCase(c)}
+                                    title="Encerrar caso"
+                                    aria-label="Encerrar caso"
+                                    className="px-2.5 py-1.5 rounded-lg text-xs font-bold border border-red-300 dark:border-red-700 text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30"
+                                  >
+                                    🗑️
+                                  </button>
+                                </div>
                               </Td>
                             </tr>
                           ))}
@@ -1889,6 +1961,48 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
           }
         })}
       </div>
+
+      {/* Modal de confirmação para encerrar um caso ativo. */}
+      {closingCase && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="close-case-title"
+        >
+          <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-5">
+            <h3
+              id="close-case-title"
+              className="text-base font-bold text-slate-800 dark:text-slate-100"
+            >
+              Encerrar caso
+            </h3>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              Tem certeza que deseja encerrar o caso de{" "}
+              <span className="font-semibold">{closingCase.clientAlias}</span>?
+              Ele sairá da lista de casos ativos e será movido para o histórico.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setClosingCase(null)}
+                disabled={closingBusy}
+                className="px-4 py-2 rounded-lg text-sm font-semibold border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleCloseCase}
+                disabled={closingBusy}
+                className="px-4 py-2 rounded-lg text-sm font-bold bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+              >
+                {closingBusy ? "Encerrando…" : "Encerrar caso"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

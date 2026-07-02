@@ -195,3 +195,31 @@ export async function getSpecialistCase(specialistId, caseId) {
     return null;
   }
 }
+
+/**
+ * Encerra (finaliza) um caso ativo do especialista. Atualiza o status do
+ * documento em /apoiadores/{specialistId}/cases/{caseId} para "finalizado",
+ * de modo que ele saia da lista de casos ativos e passe ao histórico.
+ *
+ * A permissão é garantida pelas regras do Firestore (apenas o próprio
+ * especialista dono do perfil pode atualizar seus casos).
+ *
+ * @param {string} specialistId  id do doc /apoiadores/{id}.
+ * @param {string} caseId        id do caso a encerrar.
+ * @returns {Promise<void>}
+ */
+export async function closeSpecialistCase(specialistId, caseId) {
+  if (!specialistId || !caseId) {
+    throw new Error("specialistId e caseId são obrigatórios.");
+  }
+  const ref = doc(db, "apoiadores", String(specialistId), "cases", String(caseId));
+  await setDoc(
+    ref,
+    {
+      status: "finalizado",
+      finishedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
