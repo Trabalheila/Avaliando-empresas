@@ -343,6 +343,11 @@ export default function PlatformChat({ theme, toggleTheme }) {
   const [adExitumAccepted, setAdExitumAccepted] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [accepting, setAccepting] = useState(false);
+  // O cliente já foi aceito nesta conversa (existe um caso ativo)? Nesse caso
+  // o botão "Aceitar cliente" não deve mais aparecer. `declined` guarda a
+  // recusa local (o especialista optou por não aceitar por ora).
+  const [clientAccepted, setClientAccepted] = useState(false);
+  const [declined, setDeclined] = useState(false);
   const listRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -361,6 +366,20 @@ export default function PlatformChat({ theme, toggleTheme }) {
     };
   }, [isAdExitum, effectiveConversationId, authUid, myId]);
 
+  // Recupera a recusa local ("não aceitar") desta conversa, para não exibir
+  // novamente o convite de aceitar o cliente neste device.
+  useEffect(() => {
+    if (!effectiveConversationId) return;
+    try {
+      const raw = localStorage.getItem(
+        `chatDeclined:${effectiveConversationId}`
+      );
+      setDeclined(raw === "1");
+    } catch {
+      setDeclined(false);
+    }
+  }, [effectiveConversationId]);
+
   // Auto-correção (especialista): ao abrir o chat, se JÁ existe um caso ativo
   // para esta conversa (ou seja, o especialista já aceitou o cliente antes),
   // sincroniza qualquer pedido Ad Exitum ainda "pending" para "accepted".
@@ -375,6 +394,9 @@ export default function PlatformChat({ theme, toggleTheme }) {
         if (!caseId) return;
         const existing = await getSpecialistCase(specialistDocId, caseId);
         if (cancelled || !existing) return;
+        // O caso já existe: este trabalhador já é cliente. Esconde o botão de
+        // aceitar (não deve reaparecer) e sincroniza o aceite Ad Exitum.
+        setClientAccepted(true);
         await acceptAdExitumForConversation({
           conversationId: effectiveConversationId,
           specialistUid: authUid,
@@ -389,8 +411,12 @@ export default function PlatformChat({ theme, toggleTheme }) {
   }, [iAmSpecialist, authUid, effectiveConversationId, specialistDocId]);
 
   // Pode anexar documentos? Premium sempre pode; no Ad Exitum, qualquer plano
-  // pode — desde que o especialista tenha aceitado o contato.
-  const canAttach = isPremium || (isAdExitum && adExitumAccepted);
+  // pode — desde que o especialista tenha aceitado o contato. O ESPECIALISTA
+  // pode sempre enviar documentos ao cliente pelo chat.
+  const canAttach = isPremium || iAmSpecialist || (isAdExitum && adExitumAccepted);
+  // Upload seguro no Firebase Storage (arquivos grandes) é usado no fluxo Ad
+  // Exitum e sempre que o especialista envia um documento ao cliente.
+  const useSecureUpload = isAdExitum || iAmSpecialist;
 
   // Carrega as mensagens. Com usuário autenticado, usa o Firestore em tempo
   // real (mesma conversa visível para trabalhador e especialista). Sem
@@ -561,8 +587,9 @@ export default function PlatformChat({ theme, toggleTheme }) {
 
     // Fluxo Ad Exitum: upload seguro no Firebase Storage (suporta arquivos
     // grandes, até 60 MB) — a troca de documentação acontece exclusivamente
-    // pela plataforma.
-    if (isAdExitum) {
+    // pela plataforma. Também é o caminho usado quando o especialista envia
+    // um documento ao cliente.
+    if (useSecureUpload) {
       if (file.size > ADEXITUM_MAX_FILE_BYTES) {
         setWarning("O arquivo excede o limite de 60 MB.");
         e.target.value = "";
@@ -737,6 +764,7 @@ export default function PlatformChat({ theme, toggleTheme }) {
         console.warn("[chat] Falha ao notificar o cliente sobre o aceite:", err);
       }
 
+      setClientAccepted(true);
       navigate(
         `/especialista/${encodeURIComponent(
           specialistType
@@ -753,6 +781,19 @@ export default function PlatformChat({ theme, toggleTheme }) {
     } finally {
       setAccepting(false);
     }
+  };
+
+  // Especialista recusa (por ora) aceitar este cliente: apenas oculta o convite
+  // nesta conversa/device. Não cria caso nem envia mensagem. É reversível
+  // apagando a marcação local, mas não reaparece sozinho.
+  const handleDeclineClient = () => {
+    if (!effectiveConversationId) return;
+    try {
+      localStorage.setItem(`chatDeclined:${effectiveConversationId}`, "1");
+    } catch {
+      /* silencioso */
+    }
+    setDeclined(true);
   };
 
   return (
@@ -790,22 +831,37 @@ export default function PlatformChat({ theme, toggleTheme }) {
 
         {/* Ação exclusiva do especialista: aceitar o cliente e transformar a
             conversa num caso ativo gerenciável. Visível somente quando o
-            usuário logado é o especialista desta conversa. No fluxo Ad Exitum,
-            somente enquanto o pedido ainda NÃO foi aceito (evita reaparecer). */}
-        {iAmSpecialist && useFirestore && !(isAdExitum && adExitumAccepted) && (
+            usuário logado é o especialista desta conversa, o cliente ainda NÃO
+            foi aceito e ele não recusou o convite. Aparece uma única vez: após
+            aceitar (vira cliente) ou recusar, não reaparece. */}
+        {iAmSpecialist &&
+          useFirestore &&
+          !clientAccepted &&
+          !declined &&
+          !(isAdExitum && adExitumAccepted) && (
           <div className="mb-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
             <span className="text-xs text-emerald-900 dark:text-emerald-100">
               Pronto para atender? Aceite este cliente para iniciar um caso ativo
               e acompanhar o atendimento.
             </span>
-            <button
-              type="button"
-              onClick={handleAcceptClient}
-              disabled={accepting}
-              className="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {accepting ? "Aceitando…" : "✓ Aceitar cliente"}
-            </button>
+            <div className="shrink-0 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleDeclineClient}
+                disabled={accepting}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                ✕ Não aceitar
+              </button>
+              <button
+                type="button"
+                onClick={handleAcceptClient}
+                disabled={accepting}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {accepting ? "Aceitando…" : "✓ Aceitar cliente"}
+              </button>
+            </div>
           </div>
         )}
 
@@ -873,7 +929,9 @@ export default function PlatformChat({ theme, toggleTheme }) {
             disabled={!canAttach || uploading}
             title={
               canAttach
-                ? "Anexar documento (até 60 MB)"
+                ? iAmSpecialist
+                  ? "Enviar documento ao cliente (até 60 MB)"
+                  : "Anexar documento (até 60 MB)"
                 : isAdExitum
                 ? "Liberado após o especialista aceitar o pedido"
                 : "Anexos disponíveis no Premium"

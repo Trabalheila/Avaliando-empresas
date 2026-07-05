@@ -58,10 +58,14 @@ export async function registerAdExitumCommission({
   processId = "",
   totalProcessValue,
   receivedValue,
+  feePercent = 0,
+  feeValue = 0,
   requestId = "",
 }) {
   const total = Number(totalProcessValue);
   const received = Number(receivedValue);
+  const percent = Number(feePercent) || 0;
+  const fee = Number(feeValue) || 0;
 
   if (!specialistUid) throw new Error("specialistUid obrigatório.");
   if (!Number.isFinite(total) || total <= 0) {
@@ -80,6 +84,8 @@ export async function registerAdExitumCommission({
     processId: String(processId || ""),
     totalProcessValue: total,
     receivedValue: received,
+    feePercent: percent,
+    feeValue: fee,
     commissionValue,
     paymentDate: new Date().toISOString(),
     status: "pending",

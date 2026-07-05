@@ -813,6 +813,53 @@ const RESOURCE_LINKS_FALLBACK = [
   { label: "Calendário", href: "https://calendar.google.com/", emoji: "📅", type: "tool" },
 ];
 
+// ── Estado local (por navegador) das "Mensagens recentes" ─────────────
+// Marcação de leitura e ocultação de conversas ficam no localStorage: não
+// alteramos o documento da conversa no Firestore (as regras não permitem
+// delete), apenas controlamos a visualização do especialista neste device.
+const CHAT_READ_KEY = "chatReadAt"; // { [conversationId]: ISO }
+const CHAT_HIDDEN_KEY = "chatHiddenConvs"; // [conversationId, ...]
+
+function readJson(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    const parsed = raw ? JSON.parse(raw) : fallback;
+    return parsed ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function getChatReadMap() {
+  const map = readJson(CHAT_READ_KEY, {});
+  return map && typeof map === "object" ? map : {};
+}
+
+function markConversationRead(conversationId) {
+  try {
+    const map = getChatReadMap();
+    map[conversationId] = new Date().toISOString();
+    localStorage.setItem(CHAT_READ_KEY, JSON.stringify(map));
+  } catch {
+    /* quota / modo privado: silencioso */
+  }
+}
+
+function getHiddenConversations() {
+  const list = readJson(CHAT_HIDDEN_KEY, []);
+  return Array.isArray(list) ? list : [];
+}
+
+function hideConversation(conversationId) {
+  try {
+    const set = new Set(getHiddenConversations());
+    set.add(conversationId);
+    localStorage.setItem(CHAT_HIDDEN_KEY, JSON.stringify([...set]));
+  } catch {
+    /* silencioso */
+  }
+}
+
 /**
  * MyContactsApoiador — página /apoiador/my-contacts
  * --------------------------------------------------------------
@@ -839,6 +886,10 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
   // os trabalhadores). Substitui a varredura antiga de localStorage, que só
   // enxergava as mensagens do próprio navegador.
   const [recentConversations, setRecentConversations] = useState([]);
+  // Conversas ocultadas pelo especialista (apagadas da lista neste device)
+  // e mapa de leitura — controlam o badge "Novo" e o botão de apagar.
+  const [hiddenConvs, setHiddenConvs] = useState(() => getHiddenConversations());
+  const [chatReadTick, setChatReadTick] = useState(0);
 
   // Perfil do apoiador no Firestore — usado para descobrir o `tipo`
   // (área de atuação) e adaptar dinamicamente o dashboard.
@@ -1218,19 +1269,47 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
         {/* Mensagens recentes (chats reais com trabalhadores, via Firestore) */}
         {(() => {
           const myUid = auth.currentUser?.uid || profile?.uid || profile?.id || "";
-          const convs = recentConversations.map((c) => {
-            const names = c.peerNames || {};
-            // Nome do interlocutor: o participante diferente de mim.
-            const peerUid =
-              (Array.isArray(c.participants)
-                ? c.participants.find((p) => p && p !== myUid)
-                : "") || c.workerId || "";
-            const peerName =
-              names[peerUid] ||
-              (peerUid ? `Trabalhador ${String(peerUid).slice(0, 6)}` : "Trabalhador");
-            const last = c.lastMessage || null;
-            return { id: c.id, peerName, last };
-          });
+          const readMap = getChatReadMap();
+          void chatReadTick; // força recomputo do badge após marcar como lida
+          const convs = recentConversations
+            .filter((c) => !hiddenConvs.includes(c.id))
+            .map((c) => {
+              const names = c.peerNames || {};
+              // Nome do interlocutor: o participante diferente de mim.
+              const peerUid =
+                (Array.isArray(c.participants)
+                  ? c.participants.find((p) => p && p !== myUid)
+                  : "") || c.workerId || "";
+              const peerName =
+                names[peerUid] ||
+                (peerUid ? `Trabalhador ${String(peerUid).slice(0, 6)}` : "Trabalhador");
+              const last = c.lastMessage || null;
+              // "Novo": última mensagem enviada pelo interlocutor e ainda não
+              // lida (sem marcação ou mais recente que a última leitura).
+              const readAt = readMap[c.id];
+              const isUnread =
+                Boolean(last) &&
+                last.senderUid &&
+                last.senderUid !== myUid &&
+                (!readAt || String(last.createdAt || "") > String(readAt));
+              return { id: c.id, peerName, last, isUnread };
+            });
+          const handleOpenConversation = (c) => {
+            markConversationRead(c.id);
+            setChatReadTick((t) => t + 1);
+            navigate(
+              `/chat/${encodeURIComponent(c.id)}?peer=${encodeURIComponent(
+                c.peerName
+              )}&peerRole=trabalhador`
+            );
+          };
+          const handleDeleteConversation = (id) => {
+            hideConversation(id);
+            setHiddenConvs((prev) =>
+              prev.includes(id) ? prev : [...prev, id]
+            );
+          };
+          const unreadCount = convs.filter((c) => c.isUnread).length;
           return (
             <section
               aria-labelledby="messages-title"
@@ -1242,6 +1321,11 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                   className="tl-section-title"
                 >
                   <span aria-hidden="true">💬</span> Mensagens recentes
+                  {unreadCount > 0 && (
+                    <span className="ml-2 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-red-600 text-white text-[11px] font-bold align-middle">
+                      {unreadCount}
+                    </span>
+                  )}
                 </h2>
                 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                   {convs.length} conversa{convs.length === 1 ? "" : "s"}
@@ -1259,21 +1343,41 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
                       className="py-2 flex items-center justify-between gap-3"
                     >
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
-                          {c.peerName}
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate flex items-center gap-2">
+                          <span className="truncate">{c.peerName}</span>
+                          {c.isUnread && (
+                            <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-[10px] font-bold uppercase tracking-wide">
+                              <span aria-hidden="true">✉️</span> Novo
+                            </span>
+                          )}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                           {c.last?.text ||
                             (c.last?.attachmentName ? `📎 ${c.last.attachmentName}` : "—")}
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/chat/${encodeURIComponent(c.id)}?peer=${encodeURIComponent(c.peerName)}&peerRole=trabalhador`)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"
-                      >
-                        Abrir
-                      </button>
+                      <div className="shrink-0 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenConversation(c)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          Abrir
+                        </button>
+                        {/* Apagar só é liberado após a mensagem ser lida
+                            (quando não há mais o marcador "Novo"). */}
+                        {!c.isUnread && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteConversation(c.id)}
+                            title="Apagar da lista"
+                            aria-label={`Apagar conversa com ${c.peerName}`}
+                            className="px-2.5 py-1.5 rounded-lg text-xs font-bold border border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300 dark:hover:bg-red-900/20"
+                          >
+                            🗑️
+                          </button>
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ul>

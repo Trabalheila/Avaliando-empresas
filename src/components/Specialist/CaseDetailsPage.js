@@ -507,6 +507,18 @@ function formatBRL(value) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+/** Formata os dígitos digitados como moeda pt-BR "1.000,00" (sem o símbolo
+ *  R$, que é exibido como prefixo fixo no input). Ex.: "100000" → "1.000,00". */
+function formatCurrencyInput(raw) {
+  const digits = String(raw).replace(/\D/g, "");
+  if (!digits) return "";
+  const number = Number(digits) / 100;
+  return number.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 /** Card de pagamento de comissão "Ad Exitum".
  *  Exclusivo de advogados: ao finalizar/entrar na fase de pagamento de um
  *  processo Ad Exitum, o especialista informa o valor total do processo e o
@@ -515,18 +527,28 @@ function formatBRL(value) {
 function CommissionPaymentCard({ caseId, data, apoiadorId }) {
   const [totalValue, setTotalValue] = useState("");
   const [receivedValue, setReceivedValue] = useState("");
+  const [feePercent, setFeePercent] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null); // { ok, msg }
 
   const total = parseAmount(totalValue);
   const received = parseAmount(receivedValue);
+  const percent = parseAmount(feePercent);
   const totalValid = Number.isFinite(total) && total > 0;
   const receivedValid = Number.isFinite(received) && received > 0;
+  const percentValid = Number.isFinite(percent) && percent > 0 && percent <= 100;
+  // Honorários do especialista = percentual informado sobre o valor da causa
+  // (Valor Total do Processo). É o valor que ele vai receber.
+  const feeAmount =
+    totalValid && percentValid
+      ? Math.round(total * (percent / 100) * 100) / 100
+      : 0;
   const commission = receivedValid ? computeCommission(received) : 0;
 
   const alreadyPaid = feedback?.ok === true;
-  const canPay = totalValid && receivedValid && !submitting && !alreadyPaid;
+  const canPay =
+    totalValid && receivedValid && percentValid && !submitting && !alreadyPaid;
 
   const workerId =
     data?.workerUid || data?.workerId || data?.clientUid || "";
@@ -554,6 +576,8 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
         processId,
         totalProcessValue: total,
         receivedValue: received,
+        feePercent: percent,
+        feeValue: feeAmount,
         requestId: data?.requestId || data?.contactRequestId || "",
       });
       setShowConfirm(false);
@@ -580,8 +604,9 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
         <span aria-hidden="true">💰</span> Pagamento de comissão (Ad Exitum)
       </h2>
       <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-        Informe o valor total do processo e o valor recebido pelo trabalhador.
-        A plataforma calcula automaticamente a comissão de{" "}
+        Informe o valor total do processo, o valor recebido pelo trabalhador e
+        o percentual que você cobrou do cliente. A plataforma calcula o seu
+        recebimento (honorários) sobre o valor da causa e a comissão de{" "}
         {Math.round(COMMISSION_RATE * 100)}% sobre o valor recebido.
       </p>
 
@@ -593,19 +618,24 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
           >
             Valor Total do Processo (R$)
           </label>
-          <input
-            id={`commission-total-${caseId}`}
-            type="text"
-            inputMode="decimal"
-            required
-            value={totalValue}
-            onChange={(e) => {
-              setTotalValue(e.target.value.replace(/[^\d.,]/g, ""));
-              setFeedback(null);
-            }}
-            placeholder="0,00"
-            className="mt-1 block w-full text-sm px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
-          />
+          <div className="relative mt-1">
+            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-slate-500 dark:text-slate-400">
+              R$
+            </span>
+            <input
+              id={`commission-total-${caseId}`}
+              type="text"
+              inputMode="numeric"
+              required
+              value={totalValue}
+              onChange={(e) => {
+                setTotalValue(formatCurrencyInput(e.target.value));
+                setFeedback(null);
+              }}
+              placeholder="1.000,00"
+              className="block w-full text-sm pl-10 pr-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+            />
+          </div>
         </div>
 
         <div>
@@ -615,18 +645,64 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
           >
             Valor Recebido pelo Trabalhador (R$)
           </label>
+          <div className="relative mt-1">
+            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-slate-500 dark:text-slate-400">
+              R$
+            </span>
+            <input
+              id={`commission-received-${caseId}`}
+              type="text"
+              inputMode="numeric"
+              required
+              value={receivedValue}
+              onChange={(e) => {
+                setReceivedValue(formatCurrencyInput(e.target.value));
+                setFeedback(null);
+              }}
+              placeholder="1.000,00"
+              className="block w-full text-sm pl-10 pr-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label
+            htmlFor={`commission-fee-percent-${caseId}`}
+            className="text-[11px] uppercase tracking-wide font-semibold text-slate-500 dark:text-slate-400"
+          >
+            Percentual cobrado do cliente (%)
+          </label>
+          <div className="relative mt-1">
+            <input
+              id={`commission-fee-percent-${caseId}`}
+              type="text"
+              inputMode="decimal"
+              required
+              value={feePercent}
+              onChange={(e) => {
+                setFeePercent(e.target.value.replace(/[^\d.,]/g, ""));
+                setFeedback(null);
+              }}
+              placeholder="Ex.: 30"
+              className="block w-full text-sm pl-3 pr-8 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+            />
+            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-slate-500 dark:text-slate-400">
+              %
+            </span>
+          </div>
+        </div>
+
+        <div>
+          <label className="text-[11px] uppercase tracking-wide font-semibold text-slate-500 dark:text-slate-400">
+            Seu recebimento (honorários)
+          </label>
           <input
-            id={`commission-received-${caseId}`}
             type="text"
-            inputMode="decimal"
-            required
-            value={receivedValue}
-            onChange={(e) => {
-              setReceivedValue(e.target.value.replace(/[^\d.,]/g, ""));
-              setFeedback(null);
-            }}
-            placeholder="0,00"
-            className="mt-1 block w-full text-sm px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+            readOnly
+            value={formatBRL(feeAmount)}
+            className="mt-1 block w-full text-sm px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200 font-bold cursor-default"
           />
         </div>
       </div>
@@ -686,6 +762,12 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
               Confirmar pagamento de comissão
             </h3>
             <div className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-200">
+              <div className="flex items-center justify-between gap-3">
+                <span>Seu recebimento (honorários)</span>
+                <strong className="text-emerald-700 dark:text-emerald-300">
+                  {formatBRL(feeAmount)}
+                </strong>
+              </div>
               <div className="flex items-center justify-between gap-3">
                 <span>Valor recebido pelo trabalhador</span>
                 <strong>{formatBRL(received)}</strong>
