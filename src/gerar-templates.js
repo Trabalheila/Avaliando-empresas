@@ -39,6 +39,18 @@ async function criarDocumentoWord(nomeArquivo, titulo, paragrafos) {
 
 const contratos = [
     {
+        arquivo: 'procuracao',
+        titulo: 'PROCURAÇÃO AD JUDICIA ET EXTRA',
+        texto: [
+            'OUTORGANTE: {{NOME_COMPLETO}}, {{ESTADO_CIVIL}}, {{PROFISSAO}}, inscrito(a) no CPF sob o nº {{CPF}} e RG nº {{RG}}, residente e domiciliado(a) na {{ENDERECO_COMPLETO}}, telefone {{TELEFONE}}, e-mail {{E-MAIL}}.',
+            'OUTORGADO(A): [Nome do Advogado ou Escritório], inscrito(a) na OAB sob o nº [Número], com escritório profissional na [Endereço do Escritório].',
+            'PODERES: Pelo presente instrumento particular de procuração, o(a) OUTORGANTE nomeia e constitui seu(sua) bastante procurador(a) o(a) advogado(a) acima qualificado(a), a quem confere os poderes da cláusula "ad judicia et extra", para o foro em geral, em qualquer Juízo, Instância ou Tribunal, podendo propor contra quem de direito as ações competentes e defendê-lo(a) nas contrárias, seguindo umas e outras até final decisão, usando os recursos legais e acompanhando-os.',
+            'Confere ainda os poderes especiais para receber citação, confessar, reconhecer a procedência do pedido, transigir, desistir, renunciar ao direito sobre o qual se funda a ação, receber e dar quitação, firmar compromisso, prestar declarações, assinar termos e requerimentos, bem como substabelecer esta a outrem, com ou sem reserva de iguais poderes, para o fiel cumprimento do presente mandato.',
+            '{{CIDADE_CLIENTE}}, [Data atual].',
+            '\n\n____________________________________\n{{NOME_COMPLETO}} (OUTORGANTE)'
+        ]
+    },
+    {
         arquivo: 'contrato_honorarios',
         titulo: 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS JURÍDICOS E HONORÁRIOS ADVOCATÍCIOS',
         texto: [

@@ -22,6 +22,7 @@ import { auth, db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import AppHeader from "../components/AppHeader";
 import { listAcceptedAdExitumForWorker } from "../services/contactRequests";
+import { getWorkerAdExitumSummary } from "../services/commissions";
 import { buildSpecialistConversationId, buildCaseConversationId } from "../utils/chatId";
 import { getCaso } from "../services/casos";
 import {
@@ -36,6 +37,13 @@ import {
 } from "../services/workerDocuments";
 
 const ACCEPT_TYPES = "image/*,.pdf,audio/mpeg,video/mp4";
+
+/** Formata um número como moeda pt-BR (R$ 1.000,00). */
+function formatBRL(value) {
+  const v = Number(value);
+  if (!Number.isFinite(v)) return "R$ 0,00";
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
 
 function readWorkerName() {
   let prof = {};
@@ -72,6 +80,9 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
   // A gravação do parecer será implementada em fase posterior; por ora a
   // estrutura já exibe a lista (ou o estado vazio).
   const [pareceres] = useState([]);
+  // Valores do processo (Ad Exitum) registrados pelo especialista: valor da
+  // causa, honorários do advogado e valor que o trabalhador receberá.
+  const [adExitumSummary, setAdExitumSummary] = useState(null);
 
   const [category, setCategory] = useState(DOC_CATEGORY_PROCESS);
   const [docs, setDocs] = useState([]); // documentos já enviados (todas categorias)
@@ -142,6 +153,13 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
         // Documentos já enviados.
         const existing = await listWorkerDocuments(conversationId).catch(() => []);
         if (!cancelled) setDocs(Array.isArray(existing) ? existing : []);
+
+        // Valores do processo (Ad Exitum) registrados pelo especialista.
+        const summary = await getWorkerAdExitumSummary(
+          uid,
+          match.toApoiadorId
+        ).catch(() => null);
+        if (!cancelled) setAdExitumSummary(summary);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -394,6 +412,47 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
                 💬 Solicitar Chat
               </button>
             </section>
+
+            {/* Valores do processo (Ad Exitum), registrados pelo especialista */}
+            {adExitumSummary && (
+              <section className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5">
+                <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  💰 Valores do processo
+                </h2>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Registrados por {spec.name} sobre o resultado do seu processo.
+                </p>
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-4">
+                    <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">
+                      Valor do processo
+                    </p>
+                    <p className="mt-1 text-lg font-extrabold text-slate-800 dark:text-slate-100">
+                      {formatBRL(adExitumSummary.totalProcessValue)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4">
+                    <p className="text-[11px] uppercase tracking-wide text-amber-700 dark:text-amber-300 font-semibold">
+                      Valor cobrado pelo advogado
+                      {Number(adExitumSummary.feePercent) > 0
+                        ? ` (${Number(adExitumSummary.feePercent)}%)`
+                        : ""}
+                    </p>
+                    <p className="mt-1 text-lg font-extrabold text-amber-800 dark:text-amber-200">
+                      {formatBRL(adExitumSummary.feeValue)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-4">
+                    <p className="text-[11px] uppercase tracking-wide text-emerald-700 dark:text-emerald-300 font-semibold">
+                      Você receberá
+                    </p>
+                    <p className="mt-1 text-lg font-extrabold text-emerald-800 dark:text-emerald-200">
+                      {formatBRL(adExitumSummary.receivedValue)}
+                    </p>
+                  </div>
+                </div>
+              </section>
+            )}
 
             {/* Informações e Pareceres do especialista */}
             <section className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5">

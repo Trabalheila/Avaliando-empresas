@@ -159,6 +159,16 @@ export function downloadContrato(client, fallbackName = "") {
   });
 }
 
+/** Procuração Ad Judicia et Extra (poderes gerais para o foro). */
+export function downloadProcuracao(client, fallbackName = "") {
+  return downloadLegalDocument({
+    templateFile: "procuracao.docx",
+    docLabel: "Procuração",
+    client,
+    fallbackName,
+  });
+}
+
 /** Declaração de Hipossuficiência Econômica. */
 export function downloadDeclaracao(client, fallbackName = "") {
   return downloadLegalDocument({

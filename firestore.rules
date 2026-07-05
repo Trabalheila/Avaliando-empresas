@@ -504,24 +504,29 @@ service cloud.firestore {
     //
     // SEGURANÇA: somente o especialista autenticado associado ao processo
     // pode criar o registro (specialistUid == auth.uid). Os valores precisam
-    // ser numéricos e positivos, e a comissão precisa bater com 10% do valor
-    // recebido (tolerância de 1 centavo para arredondamento). Registros são
-    // imutáveis pelo cliente — quitação/ajuste ficam a cargo do backend admin.
+    // ser numéricos e positivos, e a comissão precisa bater com 10% dos
+    // honorários do advogado (feeValue), com tolerância de 1 centavo para
+    // arredondamento. A leitura é liberada ao especialista e ao trabalhador
+    // vinculado (para exibir os valores no perfil do trabalhador). Registros
+    // são imutáveis pelo cliente — quitação/ajuste ficam a cargo do backend.
     match /commissions/{commissionId} {
       allow read: if request.auth != null
-        && resource.data.specialistUid == request.auth.uid;
+        && (resource.data.specialistUid == request.auth.uid
+            || resource.data.workerId == request.auth.uid);
       allow create: if request.auth != null
         && request.resource.data.specialistUid == request.auth.uid
         && request.resource.data.status == "pending"
         && request.resource.data.totalProcessValue is number
         && request.resource.data.totalProcessValue > 0
         && request.resource.data.receivedValue is number
-        && request.resource.data.receivedValue > 0
+        && request.resource.data.receivedValue >= 0
+        && request.resource.data.feeValue is number
+        && request.resource.data.feeValue > 0
         && request.resource.data.commissionValue is number
         && request.resource.data.commissionValue
-             >= request.resource.data.receivedValue * 0.1 - 0.01
+             >= request.resource.data.feeValue * 0.1 - 0.01
         && request.resource.data.commissionValue
-             <= request.resource.data.receivedValue * 0.1 + 0.01;
+             <= request.resource.data.feeValue * 0.1 + 0.01;
       allow update, delete: if false;
     }
   }

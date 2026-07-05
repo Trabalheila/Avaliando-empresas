@@ -17,11 +17,11 @@ import { db, auth } from "../../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { getSpecialistCase } from "../../services/specialistCases";
 import { listWorkerDocuments } from "../../services/workerDocuments";
-import { downloadPeticao } from "../../utils/peticaoDocument";
 import {
   downloadContrato,
   downloadDeclaracao,
   downloadTermoFatos,
+  downloadProcuracao,
 } from "../../utils/legalDocuments";
 import {
   getSpecialistIdFromConversationId,
@@ -526,29 +526,31 @@ function formatCurrencyInput(raw) {
  *  sobre o valor recebido e registra a intenção de pagamento no Firestore. */
 function CommissionPaymentCard({ caseId, data, apoiadorId }) {
   const [totalValue, setTotalValue] = useState("");
-  const [receivedValue, setReceivedValue] = useState("");
   const [feePercent, setFeePercent] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null); // { ok, msg }
 
   const total = parseAmount(totalValue);
-  const received = parseAmount(receivedValue);
   const percent = parseAmount(feePercent);
   const totalValid = Number.isFinite(total) && total > 0;
-  const receivedValid = Number.isFinite(received) && received > 0;
   const percentValid = Number.isFinite(percent) && percent > 0 && percent <= 100;
-  // Honorários do especialista = percentual informado sobre o valor da causa
-  // (Valor Total do Processo). É o valor que ele vai receber.
+  // Honorários do advogado = percentual informado sobre o valor da causa
+  // (Valor Total do Processo). É o valor que o especialista vai receber.
   const feeAmount =
     totalValid && percentValid
       ? Math.round(total * (percent / 100) * 100) / 100
       : 0;
-  const commission = receivedValid ? computeCommission(received) : 0;
+  // Valor que o trabalhador recebe = valor da causa − honorários do advogado.
+  const workerReceives =
+    totalValid && percentValid
+      ? Math.round((total - feeAmount) * 100) / 100
+      : 0;
+  // Comissão da plataforma = 10% sobre os honorários do advogado.
+  const commission = feeAmount > 0 ? computeCommission(feeAmount) : 0;
 
   const alreadyPaid = feedback?.ok === true;
-  const canPay =
-    totalValid && receivedValid && percentValid && !submitting && !alreadyPaid;
+  const canPay = totalValid && percentValid && !submitting && !alreadyPaid;
 
   const workerId =
     data?.workerUid || data?.workerId || data?.clientUid || "";
@@ -575,7 +577,7 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
         specialistUid,
         processId,
         totalProcessValue: total,
-        receivedValue: received,
+        receivedValue: workerReceives,
         feePercent: percent,
         feeValue: feeAmount,
         requestId: data?.requestId || data?.contactRequestId || "",
@@ -604,10 +606,10 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
         <span aria-hidden="true">💰</span> Pagamento de comissão (Ad Exitum)
       </h2>
       <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-        Informe o valor total do processo, o valor recebido pelo trabalhador e
-        o percentual que você cobrou do cliente. A plataforma calcula o seu
-        recebimento (honorários) sobre o valor da causa e a comissão de{" "}
-        {Math.round(COMMISSION_RATE * 100)}% sobre o valor recebido.
+        Informe o valor total do processo e o percentual que você cobrou do
+        cliente. A plataforma calcula automaticamente o seu recebimento
+        (honorários), o valor que o trabalhador recebe e a comissão de{" "}
+        {Math.round(COMMISSION_RATE * 100)}% sobre os seus honorários.
       </p>
 
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -645,24 +647,16 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
           >
             Valor Recebido pelo Trabalhador (R$)
           </label>
-          <div className="relative mt-1">
-            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-slate-500 dark:text-slate-400">
-              R$
-            </span>
-            <input
-              id={`commission-received-${caseId}`}
-              type="text"
-              inputMode="numeric"
-              required
-              value={receivedValue}
-              onChange={(e) => {
-                setReceivedValue(formatCurrencyInput(e.target.value));
-                setFeedback(null);
-              }}
-              placeholder="1.000,00"
-              className="block w-full text-sm pl-10 pr-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
-            />
-          </div>
+          <input
+            id={`commission-received-${caseId}`}
+            type="text"
+            readOnly
+            value={formatBRL(workerReceives)}
+            className="mt-1 block w-full text-sm px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 text-slate-800 dark:text-slate-100 font-bold cursor-default"
+          />
+          <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+            Calculado: valor da causa − honorários.
+          </p>
         </div>
       </div>
 
@@ -770,7 +764,7 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span>Valor recebido pelo trabalhador</span>
-                <strong>{formatBRL(received)}</strong>
+                <strong>{formatBRL(workerReceives)}</strong>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span>Comissão da Plataforma ({Math.round(COMMISSION_RATE * 100)}%)</span>
@@ -1072,7 +1066,7 @@ function PeticaoCard({ client, clientAlias }) {
   };
 
   const documentos = [
-    { key: "procuracao", label: "Baixar procuração (.docx)", fn: downloadPeticao },
+    { key: "procuracao", label: "Baixar procuração (.docx)", fn: downloadProcuracao },
     { key: "contrato", label: "Baixar contrato (.docx)", fn: downloadContrato },
     { key: "declaracao", label: "Baixar declaração (.docx)", fn: downloadDeclaracao },
     { key: "termo", label: "Baixar termo de fatos (.docx)", fn: downloadTermoFatos },
