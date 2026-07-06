@@ -5,14 +5,7 @@ import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import AppHeader from "../components/AppHeader";
-import LoginLinkedInButton from "../LoginLinkedInButton";
-import { FaGoogle } from "react-icons/fa";
-import { loginWithGoogleAndFinalize, signUpWithEmailPassword } from "../services/socialAuth";
-import {
-  setSelectedProfileType,
-  clearSelectedProfileType,
-} from "../services/profileType";
-import { getLinkedInRedirectUri } from "../utils/linkedinAuth";
+import { signUpWithEmailPassword } from "../services/socialAuth";
 import EssencialFreePopup from "../components/EssencialFreePopup";
 import { isAdmin } from "../utils/rbac";
 import { buildDeclarationText } from "../components/ConflictDeclarationGate";
@@ -60,6 +53,7 @@ const SEGMENTOS_PRESTADOR = [
   "Saúde ocupacional",
   "Benefícios corporativos",
   "Segurança do trabalho",
+  "Direito",
   "Treinamento técnico",
 ];
 
@@ -577,54 +571,6 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
     }
   }, [createdApoiadorId]);
 
-  const linkedInClientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID;
-  const linkedInRedirectUri = getLinkedInRedirectUri();
-
-  // Login social na própria página do Especialista. Reaproveita o serviço
-  // `loginWithGoogleAndFinalize`: recorrentes são finalizados na hora;
-  // novos seguem para a coleta de pseudônimo (?provider=google).
-  const handleGoogleClick = useCallback(async () => {
-    setError("");
-    setSelectedProfileType("specialist");
-    setSubmitting(true);
-    try {
-      const res = await loginWithGoogleAndFinalize({});
-      if (res?.requiresPseudonym) {
-        const s = res.session || {};
-        try {
-          const existing = JSON.parse(localStorage.getItem("userProfile") || "{}");
-          localStorage.setItem(
-            "userProfile",
-            JSON.stringify({
-              ...existing,
-              id: s.uid,
-              uid: s.uid,
-              name: "",
-              nomeReal: s.displayName || existing.nomeReal || "",
-              fullName: s.displayName || existing.fullName || "",
-              email: s.email || existing.email || "",
-              picture: s.picture || existing.picture || "",
-              avatar: s.picture || existing.avatar || "",
-              loginProvider: "google",
-              profileTypeChosen: "specialist",
-            })
-          );
-        } catch {
-          /* storage indisponível */
-        }
-        navigate("/pseudonym?provider=google");
-      } else {
-        clearSelectedProfileType();
-        navigate("/");
-      }
-    } catch (err) {
-      console.error("[apoiadorCadastro] Google login falhou:", err);
-      setError("Não foi possível entrar com o Google agora. Tente novamente.");
-    } finally {
-      setSubmitting(false);
-    }
-  }, [navigate]);
-
   /* ═══ Tela de sucesso ═══ */
   if (success) {
     return (
@@ -720,40 +666,6 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
 
           {tipo && (
             <>
-              {/* Login social — LinkedIn primeiro (reforça a credibilidade profissional).
-                  Aparece somente depois que a profissão foi selecionada, para que o
-                  perfil já nasça com a especialidade definida. */}
-              <div className="mb-6 rounded-2xl border border-blue-100 dark:border-slate-700 bg-blue-50/60 dark:bg-slate-900/40 p-4">
-                <p className="text-center text-sm font-bold text-slate-700 dark:text-slate-200">
-                  Conecte seu perfil profissional
-                </p>
-                <div className="mt-3 flex flex-col sm:flex-row items-stretch gap-2">
-                  <div
-                    className="flex-1"
-                    onClickCapture={(e) => {
-                      e.preventDefault();
-                      setSelectedProfileType("specialist");
-                    }}
-                  >
-                    <LoginLinkedInButton
-                      clientId={linkedInClientId}
-                      redirectUri={linkedInRedirectUri}
-                      onLoginSuccess={() => {}}
-                      onLoginFailure={(err) => setError(err?.message || String(err))}
-                      disabled={submitting}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleGoogleClick}
-                    disabled={submitting}
-                    className="flex-1 inline-flex items-center justify-center gap-2 h-[42px] rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100 font-semibold shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-60"
-                  >
-                    <FaGoogle className="text-base" /> Continuar com Google
-                  </button>
-                </div>
-              </div>
-
               {/* ── Campos comuns (2 colunas no desktop) ── */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
