@@ -6,6 +6,7 @@ import {
   listAcceptedAdExitumForWorker,
 } from "../services/contactRequests";
 import { listConversationsForParticipant } from "../services/chat";
+import { listNotificationsForUser, markNotificationRead } from "../services/notifications";
 import { db, auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
@@ -92,7 +93,7 @@ export default function NotificationsBell() {
     }
     setLoading(true);
     try {
-      const [worker, apoiador, consultas, adExitumAccepted, conversations] =
+      const [worker, apoiador, consultas, adExitumAccepted, conversations, activity] =
         await Promise.all([
           uid ? listIncomingRequests(uid, 30) : Promise.resolve([]),
           apoiadorId
@@ -122,6 +123,10 @@ export default function NotificationsBell() {
           // usuário é participante e a última mensagem veio do OUTRO lado).
           authUid
             ? listConversationsForParticipant(authUid, 30)
+            : Promise.resolve([]),
+          // Atividades nos comentários do usuário (reações/respostas).
+          authUid || uid
+            ? listNotificationsForUser(authUid || uid, 30)
             : Promise.resolve([]),
         ]);
 
@@ -166,6 +171,15 @@ export default function NotificationsBell() {
             String(r.lastMessage?.createdAt || "") >
             String(seenMsg[r.id] || ""),
         })),
+        ...activity.map((r) => ({
+          ...r,
+          _kind: "activity",
+          createdAt:
+            r.createdAt?.toDate?.()?.toISOString?.() ||
+            r.createdAt ||
+            "",
+          _unread: r.read === false,
+        })),
       ].sort((a, b) =>
         String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
       );
@@ -194,7 +208,7 @@ export default function NotificationsBell() {
 
   const unreadCount = items.filter((r) => {
     if (r._kind === "consulta") return r.status === "pending" && r.readByApoiador === false;
-    if (r._kind === "adExitumAccepted" || r._kind === "message") return Boolean(r._unread);
+    if (r._kind === "adExitumAccepted" || r._kind === "message" || r._kind === "activity") return Boolean(r._unread);
     if (r.status !== "pending") return false;
     return r._kind === "apoiador" ? !r.readByApoiador : !r.readByWorker;
   }).length;
@@ -221,6 +235,19 @@ export default function NotificationsBell() {
   /* Navega para o destino do item e marca como lido (estado local). */
   const handleItemClick = (r) => {
     setOpen(false);
+    if (r._kind === "activity") {
+      // Marca como lida no Firestore e localmente, depois navega ao destino.
+      markNotificationRead(r.id).catch(() => {});
+      setItems((prev) =>
+        prev.map((it) =>
+          it._kind === "activity" && it.id === r.id
+            ? { ...it, _unread: false, read: true }
+            : it
+        )
+      );
+      if (r.link) navigate(r.link);
+      return;
+    }
     if (r._kind === "message") {
       const seen = readSeenMap(SEEN_MSG_KEY);
       seen[r.id] = r.lastMessage?.createdAt || new Date().toISOString();
@@ -345,6 +372,19 @@ export default function NotificationsBell() {
                         ? `: ${r.lastMessage.text}`
                         : ""
                     }`;
+                  } else if (r._kind === "activity") {
+                    unread = Boolean(r._unread);
+                    const isReply = r.type === "reply";
+                    title = unread
+                      ? isReply
+                        ? "💬 Responderam seu comentário"
+                        : "👍 Reação no seu comentário"
+                      : isReply
+                      ? "Resposta ao seu comentário"
+                      : "Reação no seu comentário";
+                    desc =
+                      r.message ||
+                      "Toque para ver a atividade no seu comentário.";
                   } else if (r._kind === "adExitumAccepted") {
                     unread = Boolean(r._unread);
                     title = unread

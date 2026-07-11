@@ -28,7 +28,52 @@ const COMPANY_DOMAINS = {
   "Amazon": "amazon.com",
   "Microsoft": "microsoft.com",
   "Meta": "meta.com",
+  "Magazine Luiza": "magazineluiza.com.br",
+  "Magalu": "magazineluiza.com.br",
+  "Casas Bahia": "casasbahia.com.br",
+  "Americanas": "americanas.com.br",
+  "Renner": "lojasrenner.com.br",
+  "Riachuelo": "riachuelo.com.br",
+  "JBS": "jbs.com.br",
+  "BRF": "brf-global.com",
+  "Stone": "stone.com.br",
+  "PagBank": "pagbank.com.br",
+  "PagSeguro": "pagseguro.uol.com.br",
+  "XP Inc": "xpi.com.br",
+  "Santander": "santander.com.br",
+  "Itaú": "itau.com.br",
+  "TOTVS": "totvs.com",
+  "Vivo": "vivo.com.br",
+  "Claro": "claro.com.br",
+  "TIM": "tim.com.br",
+  "Oi": "oi.com.br",
+  "Raia Drogasil": "raiadrogasil.com.br",
+  "Drogasil": "drogasil.com.br",
+  "Assaí": "assai.com.br",
+  "Carrefour": "carrefour.com.br",
+  "GPA": "gpabr.com",
+  "Cielo": "cielo.com.br",
+  "99": "99app.com",
+  "Uber": "uber.com",
+  "Rappi": "rappi.com.br",
+  "Loggi": "loggi.com",
+  "Movida": "movida.com.br",
+  "Azul": "voeazul.com.br",
+  "Gol": "voegol.com.br",
+  "Latam": "latamairlines.com",
 };
+
+function getMappedDomain(companyName) {
+  if (!companyName) return "";
+  // Correspondência exata primeiro (mantém retrocompatibilidade).
+  if (COMPANY_DOMAINS[companyName]) return COMPANY_DOMAINS[companyName];
+  // Correspondência normalizada (case/acentos-insensível).
+  const target = normalizeCompanyKey(companyName);
+  for (const [name, domain] of Object.entries(COMPANY_DOMAINS)) {
+    if (normalizeCompanyKey(name) === target) return domain;
+  }
+  return "";
+}
 
 const COMPANY_LOGO_OVERRIDES = [
   {
@@ -91,7 +136,7 @@ function buildDomainCandidates(companyName, websiteDomain, mappedDomain) {
   if (websiteDomain) out.push(websiteDomain);
   if (mappedDomain) out.push(mappedDomain);
 
-  const normalizedName = (companyName || "")
+  let normalizedName = (companyName || "")
     .toString()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -100,30 +145,50 @@ function buildDomainCandidates(companyName, websiteDomain, mappedDomain) {
     .replace(/\s+/g, " ")
     .trim();
 
-  // Heuristica simples para aumentar cobertura quando nao ha website no cadastro.
-  if (normalizedName) {
-    const compact = normalizedName.replace(/\s+/g, "");
-    if (compact.length >= 3) {
-      out.push(`${compact}.com.br`);
-      out.push(`${compact}.com`);
-      out.push(`${compact}.net`);
+  // Remove sufixos/termos societários comuns que raramente fazem parte do
+  // domínio (ex.: "Padaria Central Ltda" -> "padariacentral").
+  const STOPWORDS = new Set([
+    "ltda", "sa", "s a", "me", "epp", "mei", "eireli", "cia", "cia.",
+    "grupo", "group", "holding", "holdings", "participacoes", "participacao",
+    "comercio", "industria", "industrias", "servicos", "servico", "solucoes",
+    "solucao", "tecnologia", "tech", "do", "da", "de", "e", "brasil",
+    "brazil", "nacional", "empresa", "companhia",
+  ]);
+  const tokens = normalizedName.split(" ").filter((t) => t && !STOPWORDS.has(t));
+  const cleanedName = tokens.join(" ").trim() || normalizedName;
+
+  const tlds = ["com.br", "com", "net", "app", "co"];
+
+  const pushDomainsFor = (base) => {
+    if (!base || base.length < 3) return;
+    for (const tld of tlds) {
+      out.push(`${base}.${tld}`);
+    }
+  };
+
+  // Heuristica: nome inteiro compactado + primeiro token relevante.
+  if (cleanedName) {
+    pushDomainsFor(cleanedName.replace(/\s+/g, ""));
+
+    const firstToken = tokens[0] || cleanedName.split(" ")[0];
+    if (firstToken && firstToken !== cleanedName.replace(/\s+/g, "")) {
+      pushDomainsFor(firstToken);
     }
 
-    const firstToken = normalizedName.split(" ")[0];
-    if (firstToken && firstToken.length >= 3 && firstToken !== compact) {
-      out.push(`${firstToken}.com.br`);
-      out.push(`${firstToken}.com`);
+    // Duas primeiras palavras juntas (ex.: "aplus engenharia" -> "aplusengenharia").
+    if (tokens.length >= 2) {
+      pushDomainsFor(`${tokens[0]}${tokens[1]}`);
     }
   }
 
-  return [...new Set(out)].slice(0, 4);
+  return [...new Set(out)].slice(0, 6);
 }
 
 export function getCompanyLogoCandidates(companyName, options = {}) {
   const size = options.size || 128;
   const localLogoOverride = getCompanyLogoOverride(companyName);
   const websiteDomain = normalizeUrlToDomain(options.website);
-  const mappedDomain = COMPANY_DOMAINS[companyName];
+  const mappedDomain = getMappedDomain(companyName);
   const domains = buildDomainCandidates(companyName, websiteDomain, mappedDomain);
 
   const candidates = [];

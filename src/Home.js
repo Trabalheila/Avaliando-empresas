@@ -26,6 +26,7 @@ import { buildApiUrl } from "./utils/apiBase";
 import { resolveUserVerificationDetail } from "./utils/verificationLevel";
 import { evaluationHasPotentialPersonalName } from "./utils/personNameDetection";
 import ReferralBanner from "./components/ReferralBanner";
+import LawyerOfferModal from "./components/LawyerOfferModal";
 import {
   getSelectedProfileType,
   ensureSelectedProfileType,
@@ -394,6 +395,9 @@ function Home({ theme, toggleTheme }) {
   const [error, setError] = useState(null);
   const [showResponsibilityModal, setShowResponsibilityModal] = useState(false);
   const [responsibilityAccepted, setResponsibilityAccepted] = useState(false);
+  // Popup de oferta de advogado após avaliação com nota geral abaixo de 2.0.
+  const [showLawyerOfferModal, setShowLawyerOfferModal] = useState(false);
+  const [lawyerOfferCompany, setLawyerOfferCompany] = useState("");
   const [pendingEvaluationData, setPendingEvaluationData] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   // Lazy registration: modal de convite exibido após o usuário enviar
@@ -1606,10 +1610,21 @@ function Home({ theme, toggleTheme }) {
       : "Avaliação enviada com sucesso! Obrigado por sua contribuição.";
     setEmailVerificationToast({ type: "success", message: successMessage });
     localStorage.removeItem(REVIEW_DRAFT_STORAGE_KEY);
+
+    // Avaliação muito negativa (nota geral < 2.0): oferece ajuda jurídica.
+    // O popup assume o controle da navegação (aparece uma única vez por
+    // submissão). Caso contrário, redireciona normalmente para a empresa.
+    const overallAverage = getCompanyAverageValue(evaluationData);
+    if (typeof overallAverage === "number" && overallAverage < 2.0) {
+      setLawyerOfferCompany(evaluationData.company || "");
+      setShowLawyerOfferModal(true);
+      return;
+    }
+
     setTimeout(() => {
       navigate(`/empresa?name=${encodeURIComponent(evaluationData.company)}`);
     }, 1500);
-  }, [navigate, REVIEW_DRAFT_STORAGE_KEY]);
+  }, [navigate, REVIEW_DRAFT_STORAGE_KEY, getCompanyAverageValue]);
 
   // Roda as validações e abre o modal de Termo de Responsabilidade.
   // Compartilhado entre o clique inicial em "Enviar Avaliação" (quando o
@@ -2559,6 +2574,21 @@ function Home({ theme, toggleTheme }) {
     <>
       {/* Banner de lançamento removido */}
       <ReferralBanner hasReferred={Boolean(userProfile?.referralRewardClaimed)} />
+
+      <LawyerOfferModal
+        open={showLawyerOfferModal}
+        companyName={lawyerOfferCompany}
+        onAccept={() => {
+          setShowLawyerOfferModal(false);
+          navigate("/trabalhador/encontrar-especialista?especialidade=advogado");
+        }}
+        onDecline={() => {
+          setShowLawyerOfferModal(false);
+          if (lawyerOfferCompany) {
+            navigate(`/empresa?name=${encodeURIComponent(lawyerOfferCompany)}`);
+          }
+        }}
+      />
 
       {showResponsibilityModal && (
         <div

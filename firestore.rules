@@ -111,6 +111,23 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Notificações de atividade (reações/respostas a comentários).
+    // - Criação: qualquer usuário autenticado pode notificar OUTRO usuário,
+    //   desde que o destinatário (toUid) seja informado e o doc nasça não-lido.
+    // - Leitura/atualização: apenas o destinatário (marcar como lido).
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null
+                  && resource.data.toUid == request.auth.uid;
+      allow create: if request.auth != null
+                    && request.resource.data.toUid is string
+                    && request.resource.data.toUid.size() > 0
+                    && request.resource.data.read == false;
+      allow update: if request.auth != null
+                    && resource.data.toUid == request.auth.uid
+                    && request.resource.data.toUid == resource.data.toUid;
+      allow delete: if false;
+    }
+
     // Reações em comentários gerais (CompanyDetails).
     match /commentReactions/{reactionId} {
       allow read: if true;

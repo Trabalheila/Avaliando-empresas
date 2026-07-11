@@ -93,6 +93,35 @@ function hasTextValue(value) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+// Todos os campos de comentário que uma avaliação pode conter. Usado para
+// contabilizar o total de comentários (um usuário pode comentar em vários
+// critérios), evitando subestimar o conteúdo existente na empresa.
+const ALL_COMMENT_KEYS = [
+  "commentRating",
+  "commentSalario",
+  "commentBeneficios",
+  "commentCultura",
+  "commentOportunidades",
+  "commentInovacao",
+  "commentLideranca",
+  "commentDiversidade",
+  "commentAmbiente",
+  "commentDiscriminacao",
+  "commentCargaHoraria",
+  "commentCrescimento",
+  "commentEquilibrio",
+  "commentReconhecimento",
+  "commentComunicacao",
+  "commentEtica",
+  "commentDesenvolvimento",
+  "commentSaudeBemEstar",
+  "commentImpactoSocial",
+  "commentReputacao",
+  "commentEstimacaoOrganizacao",
+  "generalComment",
+  "commentGeral",
+];
+
 async function fetchWikidataLabels(ids) {
   if (!ids.length) return {};
   const url = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${ids.join("|")}&format=json&props=labels&languages=pt|en&origin=*`;
@@ -443,6 +472,7 @@ function CompanyDetails({ theme, toggleTheme }) {
   }, [company]);
   const [itemCommentCounts, setItemCommentCounts] = React.useState({});
   const [companyReviewCount, setCompanyReviewCount] = React.useState(0);
+  const [companyCommentTotal, setCompanyCommentTotal] = React.useState(0);
   const [companyAverages, setCompanyAverages] = React.useState({});
 
 
@@ -527,6 +557,7 @@ function CompanyDetails({ theme, toggleTheme }) {
         .replace(/-+$/g, "");
       if (!companySlug) {
         setItemCommentCounts({});
+        setCompanyCommentTotal(0);
         return;
       }
 
@@ -573,6 +604,7 @@ function CompanyDetails({ theme, toggleTheme }) {
           redesSociais: 0,
         };
 
+        let commentTotal = 0;
         for (const review of reviews || []) {
           if (hasTextValue(review?.commentComunicacao)) nextCounts.comunicacao += 1;
           if (hasTextValue(review?.commentEtica)) nextCounts.etica += 1;
@@ -588,6 +620,11 @@ function CompanyDetails({ theme, toggleTheme }) {
           if (hasTextValue(review?.commentDiversidade)) nextCounts.diversidade += 1;
           if (hasTextValue(review?.commentRating)) nextCounts.rating += 1;
 
+          // Total de comentários preenchidos por esta avaliação (todos os critérios).
+          for (const commentKey of ALL_COMMENT_KEYS) {
+            if (hasTextValue(review?.[commentKey])) commentTotal += 1;
+          }
+
           for (const metricKey of metricKeys) {
             totals[metricKey] += Number(review?.[metricKey]) || 0;
           }
@@ -598,6 +635,7 @@ function CompanyDetails({ theme, toggleTheme }) {
         }
 
         setItemCommentCounts(nextCounts);
+        setCompanyCommentTotal(commentTotal);
         const reviewCount = (reviews || []).length;
         setCompanyReviewCount(reviewCount);
         setCompanyAverages(
@@ -612,6 +650,7 @@ function CompanyDetails({ theme, toggleTheme }) {
         if (!alive) return;
         setItemCommentCounts({});
         setCompanyReviewCount(0);
+        setCompanyCommentTotal(0);
         setCompanyAverages({});
       }
     };
@@ -2210,7 +2249,12 @@ function CompanyDetails({ theme, toggleTheme }) {
               <p className={`text-lg font-bold ${getScoreColor(average)}`}>
                 {average === "--" ? "--" : `${average} / 5`}
               </p>
-              <p className="text-xs text-gray-500">{evaluationCount} avaliação{evaluationCount === 1 ? "" : "es"}</p>
+              <p className="text-xs text-gray-500">
+                {evaluationCount} avaliação{evaluationCount === 1 ? "" : "es"}
+                {companyCommentTotal > 0
+                  ? ` · ${companyCommentTotal} comentário${companyCommentTotal === 1 ? "" : "s"}`
+                  : ""}
+              </p>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">

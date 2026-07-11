@@ -8,6 +8,7 @@ import {
   reactToReview,
   listUserReactionsForReviews,
 } from "../services/reviews";
+import { getCompanyLogoCandidates } from "../utils/getCompanyLogo";
 
 function normalizeCompanyName(value) {
   return (value || "")
@@ -109,6 +110,22 @@ export default function CompanyPage() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const holdTimerRef = useRef(null);
+
+  // Fallback robusto de logo: tenta várias fontes (logo cadastrada, Clearbit,
+  // favicons, backend) até uma carregar; se todas falharem, mostra a inicial.
+  const [logoIndex, setLogoIndex] = useState(0);
+  const logoCandidates = useMemo(
+    () =>
+      company?.name
+        ? getCompanyLogoCandidates(company.name, { size: 128, logoUrl: company.logoUrl || undefined })
+        : [],
+    [company?.name, company?.logoUrl]
+  );
+  const companyLogoUrl = logoCandidates[logoIndex] || null;
+
+  useEffect(() => {
+    setLogoIndex(0);
+  }, [company?.name, company?.logoUrl]);
 
   // garante um uid (anônimo) para reagir
   useEffect(() => {
@@ -291,11 +308,12 @@ export default function CompanyPage() {
         <div className="mt-6 bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center">
-              {company?.logoUrl ? (
+              {companyLogoUrl ? (
                 <img
-                  src={company.logoUrl}
-                  alt={company.name}
+                  src={companyLogoUrl}
+                  alt={company?.name || slug}
                   className="w-full h-full object-contain p-1"
+                  onError={() => setLogoIndex((prev) => prev + 1)}
                 />
               ) : (
                 <span className="font-black text-slate-600">

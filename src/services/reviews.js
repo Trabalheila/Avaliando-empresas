@@ -16,6 +16,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { buildApiUrl } from "../utils/apiBase";
+import { createNotification } from "./notifications";
 
 export function slugifyCompany(name) {
   return (name ?? "")
@@ -309,6 +310,30 @@ export async function reactToReview({ reviewId, uid, reaction }) {
   await updateDoc(reviewRef, {
     [`reactions.${reaction}`]: increment(1),
   });
+
+  // Notifica o autor da avaliação sobre a nova reação (best-effort).
+  try {
+    const reviewSnap = await getDoc(reviewRef);
+    if (reviewSnap.exists()) {
+      const review = reviewSnap.data() || {};
+      const authorUid = (review.uid || "").toString().trim();
+      if (authorUid && authorUid !== uid) {
+        const companyName = review.company || review.companyName || "";
+        await createNotification({
+          toUid: authorUid,
+          fromUid: uid,
+          type: "reaction",
+          reviewId,
+          companySlug: review.companySlug || "",
+          companyName,
+          message: `Alguém reagiu à sua avaliação${companyName ? ` sobre ${companyName}` : ""}.`,
+          link: companyName ? `/empresa?name=${encodeURIComponent(companyName)}` : "",
+        });
+      }
+    }
+  } catch {
+    /* best-effort: falha na notificação não afeta a reação */
+  }
 
   return { alreadyReacted: false, reaction };
 }

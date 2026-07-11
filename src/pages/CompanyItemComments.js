@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import { deleteOwnReview, isReviewOwnedByCurrentUser, listReviewsByCompanySlug, slugifyCompany, updateOwnReview } from "../services/reviews";
+import { createNotification } from "../services/notifications";
 import { db } from "../firebase";
 import { collection, deleteDoc, doc, getDoc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
 import { getStoredProfileId } from "../utils/profileIdentity";
@@ -411,9 +412,14 @@ function CompanyItemComments({ theme, toggleTheme }) {
         const commentKeys = Array.isArray(itemConfig.commentKeys) ? itemConfig.commentKeys : [];
         const filtered = (reviews || [])
           .map((review) => {
+            // Reúne TODOS os comentários preenchidos deste item (alguns itens
+            // agrupam mais de um campo, ex.: salário + benefícios). Antes, o
+            // uso de .find() descartava todos menos o primeiro comentário.
             const selectedComment = commentKeys
               .map((key) => review?.[key])
-              .find((value) => typeof value === "string" && value.trim());
+              .filter((value) => typeof value === "string" && value.trim())
+              .map((value) => value.trim())
+              .join("\n\n");
 
             if (!selectedComment) return null;
 
@@ -1117,6 +1123,31 @@ function CompanyItemComments({ theme, toggleTheme }) {
     syncEntryThreadToFirestore(entryId, nextThread);
     setEntryReplyTarget(null);
     setEntryReplyText("");
+
+    // Notifica o autor da avaliação sobre a resposta ao seu comentário.
+    // entryId corresponde ao id da review; buscamos o uid do autor.
+    (async () => {
+      try {
+        const reviewSnap = await getDoc(doc(db, "reviews", entryId));
+        if (!reviewSnap.exists()) return;
+        const review = reviewSnap.data() || {};
+        const authorUid = (review.uid || "").toString().trim();
+        if (!authorUid) return;
+        const targetCompanyName = review.company || review.companyName || companyName || "";
+        await createNotification({
+          toUid: authorUid,
+          type: "reply",
+          reviewId: entryId,
+          companySlug: review.companySlug || slugifyCompany(targetCompanyName),
+          companyName: targetCompanyName,
+          itemKey,
+          message: `${reply.author} respondeu ao seu comentário${targetCompanyName ? ` sobre ${targetCompanyName}` : ""}.`,
+          link: `/empresa/comentarios-item?name=${encodeURIComponent(targetCompanyName)}&item=${itemKey}#review-${entryId}`,
+        });
+      } catch {
+        /* best-effort */
+      }
+    })();
   };
 
   const renderEntryThreadReplies = (entryId, items) => {
