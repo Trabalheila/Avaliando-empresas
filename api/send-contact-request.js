@@ -97,6 +97,41 @@ async function tryResolveEmail(collectionName, docId, tag) {
   }
 }
 
+// Resolve, no SERVIDOR, o autor de uma avaliação a partir do `reviewId`.
+// Fluxo: reviews/{reviewId} (coleção pública) → uid do autor → users/{uid}.email.
+// Isso garante que apenas o autor REAL daquela avaliação possa ser notificado
+// por e-mail e que o endereço nunca precise trafegar pelo cliente.
+// Retorna { email, pseudonym } — email é null para autores anônimos/sem conta.
+async function resolveReviewAuthor(reviewId, tag) {
+  try {
+    const serviceAccount = getServiceAccount();
+    if (!serviceAccount) return { email: null, pseudonym: "" };
+
+    const admin = await import("firebase-admin");
+    if (!admin.apps?.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+    }
+    const reviewSnap = await admin.firestore().doc(`reviews/${reviewId}`).get();
+    if (!reviewSnap.exists) return { email: null, pseudonym: "" };
+
+    const review = reviewSnap.data() || {};
+    const uid = String(review.uid || "").trim();
+    const pseudonym = String(review.pseudonym || "").trim();
+    if (!uid) return { email: null, pseudonym };
+
+    const userSnap = await admin.firestore().doc(`users/${uid}`).get();
+    const email = userSnap.exists
+      ? String(userSnap.data()?.email || "").trim().toLowerCase()
+      : "";
+    return { email: email || null, pseudonym };
+  } catch (err) {
+    console.warn(`[${tag}] resolveReviewAuthor falhou:`, err?.message || err);
+    return { email: null, pseudonym: "" };
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
@@ -120,6 +155,112 @@ export default async function handler(req, res) {
   const resendKey = process.env.RESEND_API_KEY;
   const fromAddress = process.env.EMAIL_FROM_ADDRESS;
   const appBaseUrl = (process.env.APP_BASE_URL || "").replace(/\/+$/, "");
+
+  // ── Fluxo Atividade (reação/resposta em avaliação) ────────────────
+  // Notifica por e-mail o AUTOR de uma avaliação quando seu comentário recebe
+  // uma reação ou resposta. Disparado logo após a criação da notificação
+  // in-app (ver src/services/notifications.js). O e-mail é resolvido no
+  // servidor a partir do `reviewId`, de modo que o endereço nunca trafega pelo
+  // cliente e apenas o autor real daquela avaliação pode ser notificado.
+  if (type === "activity") {
+    const tag = "send-contact-request:activity";
+    const reviewId = String(body.reviewId || "").trim();
+    const activityType =
+      String(body.activityType || "").toLowerCase() === "reply"
+        ? "reply"
+        : "reaction";
+    const companyName = String(body.companyName || "").trim();
+    const itemLabel = String(body.itemLabel || "").trim();
+
+    // Só aceita caminho relativo do próprio app no link (previne open redirect).
+    const rawLink = String(body.link || "").trim();
+    const safePath = rawLink.startsWith("/") ? rawLink : "/";
+    const link = `${appBaseUrl || ""}${safePath}`;
+
+    if (!reviewId) {
+      return res.status(400).json({ ok: false, error: "reviewId obrigatório." });
+    }
+    if (!resendKey || !fromAddress) {
+      return res
+        .status(200)
+        .json({ ok: true, emailed: false, reason: "email_disabled" });
+    }
+
+    const { email: authorEmail, pseudonym } = await resolveReviewAuthor(
+      reviewId,
+      tag
+    );
+    // Autor anônimo (sem conta/e-mail) ou não encontrado: ignora silenciosamente.
+    if (!authorEmail) {
+      return res
+        .status(200)
+        .json({ ok: true, emailed: false, reason: "email_unknown" });
+    }
+
+    const activityWord = activityType === "reply" ? "resposta" : "reação";
+    const subject = "Nova atividade em seu comentário no Trabalhei Lá";
+    const greeting = pseudonym ? `Olá, ${escapeHtml(pseudonym)}!` : "Olá!";
+    const criterionPart = itemLabel
+      ? ` sobre <strong>${escapeHtml(itemLabel)}</strong>`
+      : "";
+    const companyPart = companyName
+      ? ` na empresa <strong>${escapeHtml(companyName)}</strong>`
+      : "";
+    const html = `
+    <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#0f172a;">
+      <h2 style="color:#1d4ed8;">Nova atividade no seu comentário</h2>
+      <p>${greeting}</p>
+      <p>Seu comentário${criterionPart}${companyPart} recebeu uma nova
+      <strong>${activityWord}</strong> no Trabalhei Lá.</p>
+      <p style="text-align:center;margin:24px 0;">
+        <a href="${link}"
+           style="background:#1d4ed8;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold;">
+          Ver comentário
+        </a>
+      </p>
+      <p style="font-size:12px;color:#94a3b8;">
+        Você está recebendo este e-mail porque publicou uma avaliação no
+        Trabalhei Lá. Sua identidade permanece anônima para os demais usuários.
+      </p>
+    </div>
+  `;
+    const text = [
+      "Nova atividade no seu comentário no Trabalhei Lá",
+      "",
+      `${pseudonym ? `Olá, ${pseudonym}!` : "Olá!"}`,
+      "",
+      `Seu comentário${itemLabel ? ` sobre ${itemLabel}` : ""}${
+        companyName ? ` na empresa ${companyName}` : ""
+      } recebeu uma nova ${activityWord}.`,
+      "",
+      `Acesse para ver: ${link}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    try {
+      const resend = new Resend(resendKey);
+      const { error } = await resend.emails.send({
+        from: fromAddress,
+        to: authorEmail,
+        subject,
+        html,
+        text,
+      });
+      if (error) {
+        console.error(`[${tag}] Resend erro:`, error);
+        return res
+          .status(200)
+          .json({ ok: true, emailed: false, reason: "send_failed" });
+      }
+      return res.status(200).json({ ok: true, emailed: true });
+    } catch (err) {
+      console.error(`[${tag}] erro inesperado:`, err?.message || err);
+      return res
+        .status(200)
+        .json({ ok: true, emailed: false, reason: "exception" });
+    }
+  }
 
   // ── Fluxo Ad Exitum ───────────────────────────────────────────────
   // Notifica o especialista (coleção `apoiadores`) de que um trabalhador

@@ -10,6 +10,7 @@ import {
   updateDoc,
   serverTimestamp,
 } from "firebase/firestore";
+import { sendActivityEmailNotification } from "./email";
 
 /**
  * Serviço de notificações de atividade (reações e respostas a comentários).
@@ -23,6 +24,7 @@ import {
  *     companySlug,
  *     companyName,
  *     itemKey,      // critério (opcional)
+ *     itemLabel,    // rótulo do critério (opcional, usado no e-mail)
  *     message,      // texto exibido na notificação
  *     link,         // destino ao clicar
  *     read,         // boolean
@@ -50,6 +52,7 @@ export async function createNotification({
   companySlug = "",
   companyName = "",
   itemKey = "",
+  itemLabel = "",
   message = "",
   link = "",
 } = {}) {
@@ -74,6 +77,21 @@ export async function createNotification({
       read: false,
       createdAt: serverTimestamp(),
     });
+
+    // Dispara também a notificação por E-MAIL logo após criar a in-app, no
+    // mesmo fluxo. É assíncrono/best-effort: o backend resolve o e-mail do
+    // autor a partir do reviewId (server-side), então o endereço nunca é
+    // exposto ao cliente. Autores anônimos simplesmente não recebem e-mail.
+    if (reviewId) {
+      sendActivityEmailNotification({
+        reviewId,
+        activityType: type,
+        companyName,
+        itemLabel,
+        link,
+      });
+    }
+
     return { created: true };
   } catch (err) {
     // Best-effort: notificação nunca deve interromper a ação do usuário.

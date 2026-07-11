@@ -1144,6 +1144,7 @@ function CompanyItemComments({ theme, toggleTheme }) {
           companySlug: review.companySlug || slugifyCompany(targetCompanyName),
           companyName: targetCompanyName,
           itemKey,
+          itemLabel: itemConfig?.label || "",
           message: `${reply.author} respondeu ao seu comentário${targetCompanyName ? ` sobre ${targetCompanyName}` : ""}.`,
           link: `/empresa/comentarios-item?name=${encodeURIComponent(targetCompanyName)}&item=${itemKey}#review-${entryId}`,
         });
