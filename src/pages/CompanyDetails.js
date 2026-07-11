@@ -578,6 +578,8 @@ function CompanyDetails({ theme, toggleTheme }) {
           reconhecimento: 0,
           equilibrio: 0,
           diversidade: 0,
+          cargaHoraria: 0,
+          crescimento: 0,
           rating: 0,
         };
 
@@ -594,6 +596,8 @@ function CompanyDetails({ theme, toggleTheme }) {
           "reconhecimento",
           "equilibrio",
           "diversidade",
+          "cargaHoraria",
+          "crescimento",
           "rating",
         ];
         const totals = Object.fromEntries(metricKeys.map((key) => [key, 0]));
@@ -618,6 +622,8 @@ function CompanyDetails({ theme, toggleTheme }) {
           if (hasTextValue(review?.commentReconhecimento)) nextCounts.reconhecimento += 1;
           if (hasTextValue(review?.commentEquilibrio)) nextCounts.equilibrio += 1;
           if (hasTextValue(review?.commentDiversidade)) nextCounts.diversidade += 1;
+          if (hasTextValue(review?.commentCargaHoraria)) nextCounts.cargaHoraria += 1;
+          if (hasTextValue(review?.commentCrescimento)) nextCounts.crescimento += 1;
           if (hasTextValue(review?.commentRating)) nextCounts.rating += 1;
 
           // Total de comentários preenchidos por esta avaliação (todos os critérios).
@@ -1681,7 +1687,9 @@ function CompanyDetails({ theme, toggleTheme }) {
     { key: "lideranca", label: "Acessibilidade e respeito da liderança" },
     { key: "estimacaoOrganizacao", label: "Condições de trabalho" },
     { key: "ambiente", label: "Estímulo ao respeito" },
-    { key: "diversidade", label: "sofreu discriminação?" },
+    { key: "diversidade", label: "Diversidade e Inclusão" },
+    { key: "cargaHoraria", label: "Carga Horária / Jornada de Trabalho" },
+    { key: "crescimento", label: "Oportunidades de Desenvolvimento / Crescimento" },
     { key: "rating", label: "Segurança e integridade" },
     { key: "saudeBemEstar", label: "Preocupação com o bem estar" },
     { key: "equilibrio", label: "Rotatividade" },
@@ -2290,22 +2298,27 @@ function CompanyDetails({ theme, toggleTheme }) {
 
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
           {scoreFields.map((field) => {
-            const value = companyReviewCount > 0
+            const rawValue = companyReviewCount > 0
               ? companyAverages[field.key]
               : company[field.key];
-            if (typeof value !== "number" || value <= 0) return null;
+            const hasScore = typeof rawValue === "number" && rawValue > 0;
+            const hasComments = (itemCommentCounts[field.key] || 0) > 0;
+            // Exibe o critério se ele tem nota OU comentários — assim todos os
+            // critérios avaliados/comentados por um usuário ficam visíveis.
+            if (!hasScore && !hasComments) return null;
+            const value = hasScore ? rawValue : 0;
             return (
               <div key={field.key} className="bg-gray-50 dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-semibold text-gray-700 dark:text-slate-100">{field.label}</p>
                   <span className={`px-2 py-1 rounded-full text-xs font-bold ${getScoreColor(value)}`}>
-                    {value.toFixed(1)}
+                    {hasScore ? value.toFixed(1) : "—"}
                   </span>
                 </div>
                 <div className="h-2 bg-gray-200 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div
                     className={`${getScoreColor(value)} h-full rounded-full`}
-                    style={{ width: `${Math.min(100, (value / 5) * 100)}%` }}
+                    style={{ width: `${hasScore ? Math.min(100, (value / 5) * 100) : 0}%` }}
                   />
                 </div>
                 <button
