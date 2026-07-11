@@ -361,6 +361,9 @@ function CompanyDetails({ theme, toggleTheme }) {
       emp.reconhecimento,
       emp.equilibrio,
       emp.diversidade,
+      emp.cargaHoraria,
+      emp.crescimento,
+      emp.discriminacao,
       emp.rating,
     ].filter((v) => typeof v === "number" && !isNaN(v) && v > 0);
     if (values.length === 0) return "--";
@@ -580,6 +583,7 @@ function CompanyDetails({ theme, toggleTheme }) {
           diversidade: 0,
           cargaHoraria: 0,
           crescimento: 0,
+          discriminacao: 0,
           rating: 0,
         };
 
@@ -598,6 +602,7 @@ function CompanyDetails({ theme, toggleTheme }) {
           "diversidade",
           "cargaHoraria",
           "crescimento",
+          "discriminacao",
           "rating",
         ];
         const totals = Object.fromEntries(metricKeys.map((key) => [key, 0]));
@@ -624,6 +629,7 @@ function CompanyDetails({ theme, toggleTheme }) {
           if (hasTextValue(review?.commentDiversidade)) nextCounts.diversidade += 1;
           if (hasTextValue(review?.commentCargaHoraria)) nextCounts.cargaHoraria += 1;
           if (hasTextValue(review?.commentCrescimento)) nextCounts.crescimento += 1;
+          if (hasTextValue(review?.commentDiscriminacao)) nextCounts.discriminacao += 1;
           if (hasTextValue(review?.commentRating)) nextCounts.rating += 1;
 
           // Total de comentários preenchidos por esta avaliação (todos os critérios).
@@ -1687,6 +1693,7 @@ function CompanyDetails({ theme, toggleTheme }) {
     { key: "lideranca", label: "Acessibilidade e respeito da liderança" },
     { key: "estimacaoOrganizacao", label: "Condições de trabalho" },
     { key: "ambiente", label: "Estímulo ao respeito" },
+    { key: "discriminacao", label: "Sofreu discriminação?" },
     { key: "diversidade", label: "Diversidade e Inclusão" },
     { key: "cargaHoraria", label: "Carga Horária / Jornada de Trabalho" },
     { key: "crescimento", label: "Oportunidades de Desenvolvimento / Crescimento" },

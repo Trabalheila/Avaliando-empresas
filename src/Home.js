@@ -46,6 +46,7 @@ const METRIC_KEYS = [
   "inovacao", "lideranca", "diversidade", "ambiente", "equilibrio",
   "reconhecimento", "comunicacao", "etica", "desenvolvimento",
   "saudeBemEstar", "impactoSocial", "reputacao", "estimacaoOrganizacao",
+  "discriminacao",
 ];
 
 const LINKEDIN_OAUTH_RESULT_KEY = "linkedin_oauth_result";
@@ -313,7 +314,7 @@ function Home({ theme, toggleTheme }) {
   const [commentLideranca, setCommentLideranca] = useState("");
   const [diversidade, setDiversidade] = useState(0);
   const [commentDiversidade, setCommentDiversidade] = useState("");
-  const [discriminacao, setDiscriminacao] = useState("");
+  const [discriminacao, setDiscriminacao] = useState(0);
   const [commentDiscriminacao, setCommentDiscriminacao] = useState("");
   const [cargaHoraria, setCargaHoraria] = useState(0);
   const [commentCargaHoraria, setCommentCargaHoraria] = useState("");
@@ -670,6 +671,7 @@ function Home({ theme, toggleTheme }) {
       emp.inovacao, emp.lideranca, emp.diversidade, emp.ambiente, emp.equilibrio,
       emp.reconhecimento, emp.comunicacao, emp.etica, emp.desenvolvimento,
       emp.saudeBemEstar, emp.impactoSocial, emp.reputacao, emp.estimacaoOrganizacao,
+      emp.discriminacao,
     ].filter(val => typeof val === 'number' && !isNaN(val) && val > 0); 
 
     if (ratings.length === 0) return null;
@@ -861,7 +863,7 @@ function Home({ theme, toggleTheme }) {
       if (typeof draft?.commentLideranca === "string") setCommentLideranca(draft.commentLideranca);
       if (typeof draft?.diversidade === "number") setDiversidade(draft.diversidade);
       if (typeof draft?.commentDiversidade === "string") setCommentDiversidade(draft.commentDiversidade);
-      if (typeof draft?.discriminacao === "string") setDiscriminacao(draft.discriminacao);
+      if (typeof draft?.discriminacao === "number") setDiscriminacao(draft.discriminacao);
       if (typeof draft?.commentDiscriminacao === "string") setCommentDiscriminacao(draft.commentDiscriminacao);
       if (typeof draft?.cargaHoraria === "number") setCargaHoraria(draft.cargaHoraria);
       if (typeof draft?.commentCargaHoraria === "string") setCommentCargaHoraria(draft.commentCargaHoraria);
@@ -1039,7 +1041,7 @@ function Home({ theme, toggleTheme }) {
       setCommentLideranca("");
       setDiversidade(0);
       setCommentDiversidade("");
-      setDiscriminacao("");
+      setDiscriminacao(0);
       setCommentDiscriminacao("");
       setCargaHoraria(0);
       setCommentCargaHoraria("");
@@ -1777,18 +1779,13 @@ function Home({ theme, toggleTheme }) {
       return;
     }
 
-    if (discriminacao === "sim" && !commentDiscriminacao.trim()) {
-      setError("Você indicou que sofreu discriminação. Por favor, descreva a situação no comentário.");
-      return;
-    }
-
     // Lazy registration: pseudônimo é opcional. Se ausente, a avaliação fica
     // como "Anônimo" e o usuário é convidado a criar o pseudônimo depois.
     setError(null);
     setResponsibilityAccepted(false);
     setPendingEvaluationData(buildEvaluationData());
     setShowResponsibilityModal(true);
-  }, [company, userProfile, entrySource, contractType, workModel, discriminacao, commentDiscriminacao, buildEvaluationData, selectionProcessOnly, spClarity, spCommunication, spResponseTime, spDiscriminationFelt, spDiscriminationComment, spEvidenceFiles, selectedCompanyData]);
+  }, [company, userProfile, entrySource, contractType, workModel, buildEvaluationData, selectionProcessOnly, spClarity, spCommunication, spResponseTime, spDiscriminationFelt, spDiscriminationComment, spEvidenceFiles, selectedCompanyData]);
 
   const handleSubmit = useCallback((e) => {
     e.preventDefault();
