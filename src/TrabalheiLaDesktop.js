@@ -13,6 +13,7 @@ import {
 } from "react-icons/fi";
 import LoginLinkedInButton from "./LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
+import EvaluationConfirmModal from "./components/EvaluationConfirmModal";
 import RestrictableTextarea from "./components/RestrictableTextarea";
 import WorkPeriodPicker from "./components/WorkPeriodPicker";
 import SelectionProcessReviewForm from "./components/SelectionProcessReviewForm";
@@ -190,6 +191,8 @@ function TrabalheiLaDesktop({
   const headerRef = React.useRef(null);
   const [headerSpacerHeight, setHeaderSpacerHeight] = React.useState(0);
   const [showPaymentInfo, setShowPaymentInfo] = React.useState(false);
+  const [showConfirmModal, setShowConfirmModal] = React.useState(false);
+  const [showValidation, setShowValidation] = React.useState(false);
   const hasCompletedProfile = Boolean((userPseudonym || "").toString().trim());
 
   // Garante que ao carregar a Home o perfil padrão ("worker") esteja
@@ -373,6 +376,36 @@ function TrabalheiLaDesktop({
     { restrictKey: "reconhecimento", label: t('Reconhecimento'), value: reconhecimento, set: setReconhecimento, comment: commentReconhecimento, setComment: setCommentReconhecimento, icon: <FiAward className="text-amber-700" />, iconBg: "from-amber-50 to-orange-100 border-amber-200" },
     { restrictKey: "desenvolvimento", label: t('Planos de cargos e salários'), value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento, icon: <FiTrendingUp className="text-red-600" />, iconBg: "from-red-50 to-rose-100 border-red-200" },
   ];
+
+  // Um critério é considerado preenchido quando possui nota (>= 1 estrela) ou,
+  // no caso do campo sim/não, quando uma opção foi selecionada.
+  const isCampoFilled = (campo) =>
+    campo.type === "yesno" ? Boolean(campo.value) : Number(campo.value) >= 1;
+
+  const missingCampos = campos.filter((c) => !isCampoFilled(c));
+
+  // Intercepta o submit: valida todos os critérios obrigatórios e, quando ok,
+  // abre o modal de confirmação antes de repassar para o handleSubmit original.
+  const handleValidatedSubmit = (e) => {
+    e.preventDefault();
+    if (!selectionProcessOnly && missingCampos.length > 0) {
+      setShowValidation(true);
+      setError(
+        `Preencha todos os critérios obrigatórios antes de enviar. Faltam: ${missingCampos
+          .map((c) => c.label)
+          .join(", ")}.`
+      );
+      return;
+    }
+    setShowValidation(false);
+    setError(null);
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmSend = () => {
+    setShowConfirmModal(false);
+    handleSubmit({ preventDefault: () => {} });
+  };
 
   const companyNote = selectedCompanyData ? calcularMedia(selectedCompanyData) : "--";
   const isCompanyUnrated = companyNote === "--";
@@ -919,7 +952,7 @@ function TrabalheiLaDesktop({
                   </div>
                 </div>
               )}
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleValidatedSubmit} className="space-y-4">
 
                 <div>
                   <label className="font-semibold text-slate-700 dark:text-slate-200 mb-2 block">Selecione a Empresa</label>
@@ -1175,7 +1208,11 @@ function TrabalheiLaDesktop({
                   />
                 ) : (
                   campos.map((campo, idx) => (
-                  <div key={idx} ref={el => criterionRefs.current[idx] = el} data-criterion-idx={idx} className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+                  <div key={idx} ref={el => criterionRefs.current[idx] = el} data-criterion-idx={idx} className={`flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 dark:bg-slate-800 p-4 rounded-xl border ${
+                    showValidation && !isCampoFilled(campo)
+                      ? "border-red-500 ring-2 ring-red-400"
+                      : "border-gray-200 dark:border-slate-700"
+                  }`}>
                     <label className="w-full md:w-1/3 text-slate-700 dark:text-slate-100 font-semibold flex items-center gap-2 mb-2 md:mb-0">
                       <span className={`w-9 h-9 rounded-xl border bg-gradient-to-br ${campo.iconBg} flex items-center justify-center shadow-sm`}>
                         {campo.icon}
@@ -1498,6 +1535,11 @@ function TrabalheiLaDesktop({
         open={showPaymentInfo}
         onClose={() => setShowPaymentInfo(false)}
         audience="both"
+      />
+      <EvaluationConfirmModal
+        open={showConfirmModal}
+        onConfirm={handleConfirmSend}
+        onReview={() => setShowConfirmModal(false)}
       />
     </div>
   );

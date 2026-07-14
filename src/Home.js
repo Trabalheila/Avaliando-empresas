@@ -1613,11 +1613,12 @@ function Home({ theme, toggleTheme }) {
     setEmailVerificationToast({ type: "success", message: successMessage });
     localStorage.removeItem(REVIEW_DRAFT_STORAGE_KEY);
 
-    // Avaliação muito negativa (nota geral < 2.0): oferece ajuda jurídica.
-    // O popup assume o controle da navegação (aparece uma única vez por
-    // submissão). Caso contrário, redireciona normalmente para a empresa.
+    // Avaliação com nota geral abaixo de 3.0: oferece ajuda de profissionais
+    // especializados. O popup assume o controle da navegação (aparece uma
+    // única vez por submissão). Caso contrário, redireciona normalmente para
+    // a empresa.
     const overallAverage = getCompanyAverageValue(evaluationData);
-    if (typeof overallAverage === "number" && overallAverage < 2.0) {
+    if (typeof overallAverage === "number" && overallAverage < 3.0) {
       setLawyerOfferCompany(evaluationData.company || "");
       setShowLawyerOfferModal(true);
       return;
@@ -2577,7 +2578,7 @@ function Home({ theme, toggleTheme }) {
         companyName={lawyerOfferCompany}
         onAccept={() => {
           setShowLawyerOfferModal(false);
-          navigate("/trabalhador/encontrar-especialista?especialidade=advogado");
+          navigate("/trabalhador/encontrar-especialista");
         }}
         onDecline={() => {
           setShowLawyerOfferModal(false);

@@ -14,6 +14,7 @@ import {
 import Select from "react-select";
 import LoginLinkedInButton from "./LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
+import EvaluationConfirmModal from "./components/EvaluationConfirmModal";
 import RestrictableTextarea from "./components/RestrictableTextarea";
 import WorkPeriodPicker from "./components/WorkPeriodPicker";
 import SelectionProcessReviewForm from "./components/SelectionProcessReviewForm";
@@ -503,6 +504,36 @@ function TrabalheiLaMobile({
     { restrictKey: "desenvolvimento", label: t("Planos de cargos e salários"), icon: <FiTrendingUp className="text-fuchsia-700" />, iconBg: "from-fuchsia-50 to-pink-100 border-fuchsia-200", value: desenvolvimento, set: setDesenvolvimento, comment: commentDesenvolvimento, setComment: setCommentDesenvolvimento },
   ];
 
+  // Um critério é considerado preenchido quando possui nota (>= 1 estrela) ou,
+  // no caso do campo sim/não, quando uma opção foi selecionada.
+  const isCampoFilled = (campo) =>
+    campo.type === "yesno" ? Boolean(campo.value) : Number(campo.value) >= 1;
+
+  const missingCampos = campos.filter((c) => !isCampoFilled(c));
+
+  // Intercepta o submit: valida todos os critérios obrigatórios e, quando ok,
+  // abre o modal de confirmação antes de repassar para o handleSubmit original.
+  const handleValidatedSubmit = (e) => {
+    e.preventDefault();
+    if (!selectionProcessOnly && missingCampos.length > 0) {
+      setShowValidation(true);
+      setError(
+        `Preencha todos os critérios obrigatórios antes de enviar. Faltam: ${missingCampos
+          .map((c) => c.label)
+          .join(", ")}.`
+      );
+      return;
+    }
+    setShowValidation(false);
+    setError(null);
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmSend = () => {
+    setShowConfirmModal(false);
+    handleSubmit({ preventDefault: () => {} });
+  };
+
   // Progress bar: IntersectionObserver para critérios
   const criterionRefs = React.useRef([]);
   const [visibleCriterionIdx, setVisibleCriterionIdx] = React.useState(-1);
@@ -572,6 +603,8 @@ function TrabalheiLaMobile({
   // atual do header (paridade com Desktop), evitando sobreposição visual.
   const stickyProgressTop = headerSpacerHeight + 8;
   const [showPaymentInfo, setShowPaymentInfo] = React.useState(false);
+  const [showConfirmModal, setShowConfirmModal] = React.useState(false);
+  const [showValidation, setShowValidation] = React.useState(false);
 
   // Garante perfil padrão ("worker") em sessionStorage no boot da Home.
   React.useEffect(() => {
@@ -1082,7 +1115,7 @@ function TrabalheiLaMobile({
               </div>
             </div>
           )}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleValidatedSubmit} className="space-y-5">
             <div>
               <label className="font-semibold text-slate-700 dark:text-blue-200 mb-2 block text-sm">Selecione a Empresa</label>
               <Select
@@ -1396,7 +1429,11 @@ function TrabalheiLaMobile({
                 />
               ) : (
                 campos.map((campo, idx) => (
-                <div key={idx} ref={el => criterionRefs.current[idx] = el} data-criterion-idx={idx} className="bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border border-gray-200 dark:border-slate-700">
+                <div key={idx} ref={el => criterionRefs.current[idx] = el} data-criterion-idx={idx} className={`bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border ${
+                  showValidation && !isCampoFilled(campo)
+                    ? "border-red-500 ring-2 ring-red-400"
+                    : "border-gray-200 dark:border-slate-700"
+                }`}>
                   <label className="text-slate-700 dark:text-blue-200 font-semibold flex items-center gap-2 text-sm">
                     <span className={`w-9 h-9 rounded-xl border bg-gradient-to-br ${campo.iconBg} flex items-center justify-center shadow-sm`}>
                       {campo.icon}
@@ -1590,6 +1627,11 @@ function TrabalheiLaMobile({
         open={showPaymentInfo}
         onClose={() => setShowPaymentInfo(false)}
         audience="both"
+      />
+      <EvaluationConfirmModal
+        open={showConfirmModal}
+        onConfirm={handleConfirmSend}
+        onReview={() => setShowConfirmModal(false)}
       />
     </div>
   );

@@ -1,28 +1,27 @@
 import React from "react";
 
 /**
- * Popup exibido ao trabalhador logo após submeter uma avaliação com nota
- * geral abaixo de 3.0. Oferece encaminhamento para a busca de profissionais
- * especializados (página "encontrar especialista").
+ * Modal de confirmação exibido logo após o trabalhador clicar em "Enviar
+ * Avaliação" (com todos os critérios já preenchidos) e antes de a avaliação
+ * ser efetivamente submetida.
  *
  * Props:
  *  - open: boolean — controla a visibilidade.
- *  - companyName: string — nome da empresa avaliada (usado na mensagem).
- *  - onAccept: () => void — usuário clicou "Quero buscar ajuda".
- *  - onDecline: () => void — usuário clicou "Não, obrigado".
+ *  - onConfirm: () => void — usuário clicou "Confirmar envio".
+ *  - onReview: () => void — usuário clicou "Revisar avaliação".
  */
-export default function LawyerOfferModal({ open, companyName, onAccept, onDecline }) {
+export default function EvaluationConfirmModal({ open, onConfirm, onReview }) {
   if (!open) return null;
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Oferta de ajuda jurídica"
+      aria-label="Confirmação de envio da avaliação"
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 90,
+        zIndex: 95,
         backgroundColor: "rgba(15, 23, 42, 0.6)",
         display: "flex",
         alignItems: "center",
@@ -41,23 +40,20 @@ export default function LawyerOfferModal({ open, companyName, onAccept, onDeclin
           padding: "22px 22px 18px 22px",
         }}
       >
-        <div style={{ fontSize: 34, lineHeight: 1, marginBottom: 8 }} aria-hidden="true">
-          ⚖️
-        </div>
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#1e3a8a" }}>
-          Precisa de ajuda?
+          Confirmar envio da avaliação
         </h2>
 
         <p style={{ marginTop: 12, marginBottom: 0, lineHeight: 1.5, fontSize: 14, color: "#334155" }}>
-          Identificamos que sua experiência{companyName ? ` na ${companyName}` : " nesta empresa"} foi
-          difícil. Você sabia que pode buscar ajuda de profissionais especializados
-          em direitos trabalhistas e saúde ocupacional? Estamos aqui para te ajudar.
+          Sua avaliação será registrada. A nota desta empresa só será
+          contabilizada publicamente caso seu perfil seja verificado, garantindo
+          que as avaliações sejam justas e confiáveis.
         </p>
 
         <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
           <button
             type="button"
-            onClick={onAccept}
+            onClick={onConfirm}
             style={{
               border: "none",
               borderRadius: 12,
@@ -69,11 +65,11 @@ export default function LawyerOfferModal({ open, companyName, onAccept, onDeclin
               cursor: "pointer",
             }}
           >
-            Quero buscar ajuda
+            Confirmar envio
           </button>
           <button
             type="button"
-            onClick={onDecline}
+            onClick={onReview}
             style={{
               border: "1px solid #cbd5e1",
               borderRadius: 12,
@@ -85,7 +81,7 @@ export default function LawyerOfferModal({ open, companyName, onAccept, onDeclin
               cursor: "pointer",
             }}
           >
-            Não, obrigado
+            Revisar avaliação
           </button>
         </div>
       </div>
