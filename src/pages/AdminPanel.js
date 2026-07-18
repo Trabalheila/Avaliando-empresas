@@ -121,6 +121,37 @@ function getAdminUid() {
   }
 }
 
+/* Formata data/hora (aceita ISO string ou Timestamp do Firestore). */
+function formatDateTime(value) {
+  if (!value) return "—";
+  try {
+    const d = value?.toDate ? value.toDate() : new Date(value);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "—";
+  }
+}
+
+/* Rótulos amigáveis para o status do pedido de contato ao especialista. */
+const CONTACT_STATUS_LABEL = {
+  pending: "Aguardando resposta",
+  accepted: "Respondido",
+  declined: "Encerrado",
+};
+
+const CONTACT_STATUS_BADGE = {
+  pending: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200",
+  accepted: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+  declined: "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
+};
+
 /* ════════════════════════════════════════════════
    AdminPanel
    ════════════════════════════════════════════════ */
@@ -134,7 +165,7 @@ function AdminPanel({ theme, toggleTheme }) {
   }, [admin, navigate]);
 
   /* ── Abas ── */
-  const TABS = ["Comentários", "Avaliações", "Especialistas", "Restritos", "Verificações", "Planos", "Crescimento"];
+  const TABS = ["Comentários", "Avaliações", "Especialistas", "Visitas a Especialistas", "Restritos", "Verificações", "Planos", "Crescimento"];
   const [activeTab, setActiveTab] = useState("Comentários");
 
   /* Permite linkar diretamente para uma aba via ?tab=apoiadores|verif|restritos|comentarios|avaliacoes */
@@ -143,6 +174,7 @@ function AdminPanel({ theme, toggleTheme }) {
     const t = String(params.get("tab") || "").toLowerCase();
     const map = {
       apoiadores: "Especialistas",
+      visitas: "Visitas a Especialistas",
       verif: "Verificações",
       verificacoes: "Verificações",
       restritos: "Restritos",
@@ -183,6 +215,14 @@ function AdminPanel({ theme, toggleTheme }) {
   const [apoiadoresStatusFilter, setApoiadoresStatusFilter] = useState("pendente");
   const [apoiadorBusyId, setApoiadorBusyId] = useState(null);
   const [apoiadorToast, setApoiadorToast] = useState(null);
+
+  /* ── Tentativas de contato recebidas por especialista ── */
+  const [expandedContactsId, setExpandedContactsId] = useState(null);
+  const [contactsByApoiador, setContactsByApoiador] = useState({});
+  const [contactsLoadingId, setContactsLoadingId] = useState(null);
+
+  /* ── Ordenação da aba "Visitas a Especialistas" ── */
+  const [visitasSort, setVisitasSort] = useState({ key: "visitas", dir: "desc" });
 
   /* ── Estado da aba Restritos ── */
   const [restrictedItems, setRestrictedItems] = useState([]);
@@ -582,7 +622,42 @@ function AdminPanel({ theme, toggleTheme }) {
     setApoiadorBusyId(null);
   }, []);
 
-  /* ── Apagar comentários em massa ── */
+  /* ── Carregar tentativas de contato recebidas por um especialista ── */
+  const loadApoiadorContacts = useCallback(async (a) => {
+    const id = a.id;
+    setContactsLoadingId(id);
+    try {
+      const adminUid = getAdminUid();
+      const res = await fetch(buildApiUrl("/api/admin?op=apoiador-contacts"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: adminUid,
+          apoiadorId: id,
+          apoiadorUid: String(a.uid || a.authUid || a.userId || ""),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Falha ao carregar contatos.");
+      setContactsByApoiador((prev) => ({ ...prev, [id]: Array.isArray(data.items) ? data.items : [] }));
+    } catch (err) {
+      console.error("Erro ao carregar contatos do especialista:", err);
+      setContactsByApoiador((prev) => ({ ...prev, [id]: [] }));
+    }
+    setContactsLoadingId(null);
+  }, []);
+
+  /* ── Abrir/fechar a lista de contatos de um especialista ── */
+  const toggleApoiadorContacts = useCallback(
+    (a) => {
+      setExpandedContactsId((prev) => {
+        if (prev === a.id) return null;
+        if (!contactsByApoiador[a.id]) loadApoiadorContacts(a);
+        return a.id;
+      });
+    },
+    [contactsByApoiador, loadApoiadorContacts]
+  );
   const deleteBulkComments = useCallback(async (ids) => {
     setDeleting(true);
     const failed = [];
@@ -773,6 +848,55 @@ function AdminPanel({ theme, toggleTheme }) {
     prestador: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
   };
   const TIPO_LABEL = { consultor: "Consultor", advogado: "Advogado", prestador: "Prestador" };
+
+  /* ── Dados da aba "Visitas a Especialistas" ── */
+  const visitasRows = useMemo(() => {
+    return apoiadores.map((a) => {
+      const visitas = Number(a.visualizacoes || 0);
+      const contatos = Number(a.cliquesContato || 0);
+      const conversao = visitas > 0 ? (contatos / visitas) * 100 : 0;
+      return {
+        id: a.id,
+        nome: a.nome || a.razaoSocial || "Sem nome",
+        especialidade: a.especialidade || TIPO_LABEL[a.tipo] || a.tipo || "—",
+        visitas,
+        contatos,
+        conversao,
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apoiadores]);
+
+  const visitasSorted = useMemo(() => {
+    const { key, dir } = visitasSort;
+    const arr = [...visitasRows];
+    arr.sort((a, b) => {
+      let cmp;
+      if (key === "nome" || key === "especialidade") {
+        cmp = String(a[key]).localeCompare(String(b[key]), "pt-BR");
+      } else {
+        cmp = (a[key] || 0) - (b[key] || 0);
+      }
+      return dir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [visitasRows, visitasSort]);
+
+  const visitasResumo = useMemo(() => {
+    const totalVisitas = visitasRows.reduce((s, r) => s + r.visitas, 0);
+    const totalContatos = visitasRows.reduce((s, r) => s + r.contatos, 0);
+    const comContato = visitasRows.filter((r) => r.contatos > 0).length;
+    const taxaGeral = totalVisitas > 0 ? (totalContatos / totalVisitas) * 100 : 0;
+    return { totalVisitas, totalContatos, comContato, taxaGeral };
+  }, [visitasRows]);
+
+  const toggleVisitasSort = useCallback((key) => {
+    setVisitasSort((prev) =>
+      prev.key === key
+        ? { key, dir: prev.dir === "asc" ? "desc" : "asc" }
+        : { key, dir: key === "nome" || key === "especialidade" ? "asc" : "desc" }
+    );
+  }, []);
 
   if (!admin) return null;
 
@@ -1802,11 +1926,184 @@ function AdminPanel({ theme, toggleTheme }) {
                               </button>
                             </>
                           )}
+                          <button
+                            type="button"
+                            onClick={() => toggleApoiadorContacts(a)}
+                            className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition"
+                            title="Ver tentativas de contato recebidas"
+                          >
+                            {expandedContactsId === a.id ? "Ocultar contatos" : "Ver contatos"}
+                          </button>
                         </div>
                       </div>
+
+                      {/* Lista de tentativas de contato recebidas */}
+                      {expandedContactsId === a.id && (
+                        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
+                            Tentativas de contato recebidas
+                          </h4>
+                          {contactsLoadingId === a.id ? (
+                            <p className="text-sm text-slate-500">Carregando contatos…</p>
+                          ) : (contactsByApoiador[a.id] || []).length === 0 ? (
+                            <p className="text-sm text-slate-500">Nenhum contato recebido ainda.</p>
+                          ) : (
+                            <div className="space-y-3">
+                              {(contactsByApoiador[a.id] || []).map((c) => {
+                                const statusKey = String(c.status || "pending");
+                                return (
+                                  <div
+                                    key={c.id}
+                                    className="p-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                                  >
+                                    <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                                          {c.fromPseudonym ||
+                                            c.fromName ||
+                                            c.fromCompanyName ||
+                                            "Anônimo"}
+                                        </span>
+                                        <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                                          {formatDateTime(c.createdAt || c.createdAtServer)}
+                                        </span>
+                                      </div>
+                                      <span
+                                        className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                                          CONTACT_STATUS_BADGE[statusKey] ||
+                                          CONTACT_STATUS_BADGE.pending
+                                        }`}
+                                      >
+                                        {CONTACT_STATUS_LABEL[statusKey] || statusKey}
+                                      </span>
+                                    </div>
+                                    <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words">
+                                      {c.message || "—"}
+                                    </p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* ═══ ABA Visitas a Especialistas ═══ */}
+        {activeTab === "Visitas a Especialistas" && (
+          <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
+            <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-200 mb-1">
+              Visitas a Especialistas
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
+              Monitoramento de acessos aos perfis e contatos recebidos por cada especialista da rede.
+            </p>
+
+            {/* Cards de resumo */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+              <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                <p className="text-[11px] uppercase font-semibold tracking-wider text-blue-700 dark:text-blue-300">
+                  Total de visitas
+                </p>
+                <p className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">
+                  {visitasResumo.totalVisitas.toLocaleString("pt-BR")}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Somatório de acessos a todos os perfis
+                </p>
+              </div>
+              <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                <p className="text-[11px] uppercase font-semibold tracking-wider text-emerald-700 dark:text-emerald-300">
+                  Especialistas contatados
+                </p>
+                <p className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">
+                  {visitasResumo.comContato.toLocaleString("pt-BR")}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Receberam ao menos um contato
+                </p>
+              </div>
+              <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                <p className="text-[11px] uppercase font-semibold tracking-wider text-amber-700 dark:text-amber-300">
+                  Taxa de conversão geral
+                </p>
+                <p className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">
+                  {visitasResumo.taxaGeral.toFixed(1)}%
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Contatos ÷ visitas da rede
+                </p>
+              </div>
+            </div>
+
+            {apoiadoresLoading ? (
+              <p className="text-sm text-slate-500">Carregando especialistas…</p>
+            ) : visitasSorted.length === 0 ? (
+              <p className="text-sm text-slate-500">Nenhum especialista cadastrado.</p>
+            ) : (
+              <div className="overflow-x-auto -mx-4 sm:mx-0">
+                <table className="w-full text-sm min-w-[640px]">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
+                      {[
+                        { key: "nome", label: "Especialista", align: "text-left" },
+                        { key: "especialidade", label: "Especialidade", align: "text-left" },
+                        { key: "visitas", label: "Visitas ao perfil", align: "text-right" },
+                        { key: "contatos", label: "Contatos recebidos", align: "text-right" },
+                        { key: "conversao", label: "Taxa de conversão", align: "text-right" },
+                      ].map((col) => (
+                        <th key={col.key} className={`py-2 px-3 ${col.align}`}>
+                          <button
+                            type="button"
+                            onClick={() => toggleVisitasSort(col.key)}
+                            className={`inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-[11px] hover:text-slate-700 dark:hover:text-slate-200 transition ${
+                              visitasSort.key === col.key ? "text-slate-700 dark:text-slate-200" : ""
+                            }`}
+                          >
+                            {col.label}
+                            <span className="text-[9px]">
+                              {visitasSort.key === col.key
+                                ? visitasSort.dir === "asc"
+                                  ? "▲"
+                                  : "▼"
+                                : "↕"}
+                            </span>
+                          </button>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visitasSorted.map((r) => (
+                      <tr
+                        key={r.id}
+                        className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition"
+                      >
+                        <td className="py-2.5 px-3 font-semibold text-slate-700 dark:text-slate-200">
+                          {r.nome}
+                        </td>
+                        <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">
+                          {r.especialidade}
+                        </td>
+                        <td className="py-2.5 px-3 text-right tabular-nums text-slate-700 dark:text-slate-200">
+                          {r.visitas.toLocaleString("pt-BR")}
+                        </td>
+                        <td className="py-2.5 px-3 text-right tabular-nums text-slate-700 dark:text-slate-200">
+                          {r.contatos.toLocaleString("pt-BR")}
+                        </td>
+                        <td className="py-2.5 px-3 text-right tabular-nums font-semibold text-slate-700 dark:text-slate-200">
+                          {r.conversao.toFixed(1)}%
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </section>

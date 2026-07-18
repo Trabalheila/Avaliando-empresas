@@ -717,6 +717,72 @@ async function handleRegisterConsultationTransaction(req, res) {
   }
 }
 
+/* ────────────────────────────────────────────────
+   op=apoiador-contacts
+   Lista as tentativas de contato (contactRequestsApoiador)
+   recebidas por um especialista específico. Somente ADMIN.
+   ──────────────────────────────────────────────── */
+async function handleApoiadorContacts(req, res) {
+  const { uid, apoiadorId, apoiadorUid } = req.body || {};
+  if (!requireAdminUid(uid)) {
+    return res.status(403).json({ error: "Acesso restrito ao administrador." });
+  }
+  if (!apoiadorId && !apoiadorUid) {
+    return res.status(400).json({ error: "apoiadorId ou apoiadorUid é obrigatório." });
+  }
+  try {
+    const { db } = await ensureAdmin();
+    const byId = new Map();
+    const pushDocs = (snap) => {
+      snap.docs.forEach((d) => {
+        if (!byId.has(d.id)) byId.set(d.id, { id: d.id, ...(d.data() || {}) });
+      });
+    };
+
+    if (apoiadorId) {
+      const s1 = await db
+        .collection("contactRequestsApoiador")
+        .where("toApoiadorId", "==", String(apoiadorId))
+        .limit(200)
+        .get();
+      pushDocs(s1);
+    }
+    if (apoiadorUid && apoiadorUid !== apoiadorId) {
+      const s2 = await db
+        .collection("contactRequestsApoiador")
+        .where("toApoiadorUid", "==", String(apoiadorUid))
+        .limit(200)
+        .get();
+      pushDocs(s2);
+    }
+
+    const items = Array.from(byId.values())
+      .map((d) => ({
+        id: d.id,
+        fromPseudonym: d.fromPseudonym || d.fromName || d.fromCompanyName || "",
+        message: d.message || "",
+        status: d.status || "pending",
+        reply: d.reply || null,
+        createdAt:
+          typeof d.createdAt === "string"
+            ? d.createdAt
+            : d.createdAt?.toDate?.()?.toISOString?.() ||
+              d.createdAtServer?.toDate?.()?.toISOString?.() ||
+              null,
+        respondedAt:
+          typeof d.respondedAt === "string"
+            ? d.respondedAt
+            : d.respondedAt?.toDate?.()?.toISOString?.() || null,
+      }))
+      .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+
+    return res.status(200).json({ items });
+  } catch (err) {
+    console.error("[admin/apoiador-contacts] erro:", err);
+    return res.status(500).json({ error: err?.message || "Erro ao listar contatos." });
+  }
+}
+
 export default async function handler(req, res) {
   const op = String(req.query?.op || "").toLowerCase();
 
@@ -746,6 +812,7 @@ export default async function handler(req, res) {
     return handleRegisterConsultationTransaction(req, res);
   if (op === "verify-review-linkedin")
     return handleVerifyReviewLinkedIn(req, res);
+  if (op === "apoiador-contacts") return handleApoiadorContacts(req, res);
 
   return res.status(400).json({
     error:
