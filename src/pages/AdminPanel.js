@@ -221,6 +221,9 @@ function AdminPanel({ theme, toggleTheme }) {
   const [contactsByApoiador, setContactsByApoiador] = useState({});
   const [contactsLoadingId, setContactsLoadingId] = useState(null);
 
+  /* ── Contagem de mensagens recebidas por especialista (aba Visitas) ── */
+  const [mensagensCounts, setMensagensCounts] = useState(null);
+
   /* ── Ordenação da aba "Visitas a Especialistas" ── */
   const [visitasSort, setVisitasSort] = useState({ key: "visitas", dir: "desc" });
 
@@ -658,6 +661,30 @@ function AdminPanel({ theme, toggleTheme }) {
     },
     [contactsByApoiador, loadApoiadorContacts]
   );
+
+  /* ── Carregar contagem de mensagens recebidas (aba Visitas) ── */
+  const loadMensagensCounts = useCallback(async () => {
+    try {
+      const adminUid = getAdminUid();
+      const res = await fetch(buildApiUrl("/api/admin?op=apoiador-contacts-counts"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid: adminUid }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Falha ao carregar contagem de mensagens.");
+      setMensagensCounts({ byId: data.byId || {}, byUid: data.byUid || {} });
+    } catch (err) {
+      console.error("Erro ao carregar contagem de mensagens:", err);
+      setMensagensCounts({ byId: {}, byUid: {} });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (admin && activeTab === "Visitas a Especialistas" && mensagensCounts === null) {
+      loadMensagensCounts();
+    }
+  }, [admin, activeTab, mensagensCounts, loadMensagensCounts]);
   const deleteBulkComments = useCallback(async (ids) => {
     setDeleting(true);
     const failed = [];
@@ -855,17 +882,22 @@ function AdminPanel({ theme, toggleTheme }) {
       const visitas = Number(a.visualizacoes || 0);
       const contatos = Number(a.cliquesContato || 0);
       const conversao = visitas > 0 ? (contatos / visitas) * 100 : 0;
+      const uid = String(a.uid || a.authUid || a.userId || "");
+      const mensagens =
+        (mensagensCounts?.byId?.[a.id] || 0) +
+        (uid && uid !== a.id ? mensagensCounts?.byUid?.[uid] || 0 : 0);
       return {
         id: a.id,
         nome: a.nome || a.razaoSocial || "Sem nome",
         especialidade: a.especialidade || TIPO_LABEL[a.tipo] || a.tipo || "—",
         visitas,
         contatos,
+        mensagens,
         conversao,
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apoiadores]);
+  }, [apoiadores, mensagensCounts]);
 
   const visitasSorted = useMemo(() => {
     const { key, dir } = visitasSort;
@@ -2056,6 +2088,7 @@ function AdminPanel({ theme, toggleTheme }) {
                         { key: "especialidade", label: "Especialidade", align: "text-left" },
                         { key: "visitas", label: "Visitas ao perfil", align: "text-right" },
                         { key: "contatos", label: "Contatos recebidos", align: "text-right" },
+                        { key: "mensagens", label: "Mensagens recebidas", align: "text-right" },
                         { key: "conversao", label: "Taxa de conversão", align: "text-right" },
                       ].map((col) => (
                         <th key={col.key} className={`py-2 px-3 ${col.align}`}>
@@ -2096,6 +2129,9 @@ function AdminPanel({ theme, toggleTheme }) {
                         </td>
                         <td className="py-2.5 px-3 text-right tabular-nums text-slate-700 dark:text-slate-200">
                           {r.contatos.toLocaleString("pt-BR")}
+                        </td>
+                        <td className="py-2.5 px-3 text-right tabular-nums text-slate-700 dark:text-slate-200">
+                          {mensagensCounts === null ? "…" : r.mensagens.toLocaleString("pt-BR")}
                         </td>
                         <td className="py-2.5 px-3 text-right tabular-nums font-semibold text-slate-700 dark:text-slate-200">
                           {r.conversao.toFixed(1)}%

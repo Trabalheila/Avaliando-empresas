@@ -783,6 +783,36 @@ async function handleApoiadorContacts(req, res) {
   }
 }
 
+/* ────────────────────────────────────────────────
+   op=apoiador-contacts-counts
+   Retorna a quantidade de mensagens (contactRequestsApoiador)
+   recebidas por especialista, agrupadas por `toApoiadorId` e
+   por `toApoiadorUid`. Somente ADMIN.
+   ──────────────────────────────────────────────── */
+async function handleApoiadorContactsCounts(req, res) {
+  const { uid } = req.body || {};
+  if (!requireAdminUid(uid)) {
+    return res.status(403).json({ error: "Acesso restrito ao administrador." });
+  }
+  try {
+    const { db } = await ensureAdmin();
+    const snap = await db.collection("contactRequestsApoiador").limit(5000).get();
+    const byId = {};
+    const byUid = {};
+    snap.docs.forEach((d) => {
+      const data = d.data() || {};
+      const id = String(data.toApoiadorId || "");
+      const auid = String(data.toApoiadorUid || "");
+      if (id) byId[id] = (byId[id] || 0) + 1;
+      if (auid) byUid[auid] = (byUid[auid] || 0) + 1;
+    });
+    return res.status(200).json({ byId, byUid, total: snap.size });
+  } catch (err) {
+    console.error("[admin/apoiador-contacts-counts] erro:", err);
+    return res.status(500).json({ error: err?.message || "Erro ao contar contatos." });
+  }
+}
+
 export default async function handler(req, res) {
   const op = String(req.query?.op || "").toLowerCase();
 
@@ -813,7 +843,7 @@ export default async function handler(req, res) {
   if (op === "verify-review-linkedin")
     return handleVerifyReviewLinkedIn(req, res);
   if (op === "apoiador-contacts") return handleApoiadorContacts(req, res);
-
+  if (op === "apoiador-contacts-counts") return handleApoiadorContactsCounts(req, res);
   return res.status(400).json({
     error:
       "Parâmetro 'op' inválido. Ops válidas: delete, reviews, users, update-plan, growth-stats, update-user-status, restricted, moderate-segment, verify-request, verify-confirm, verify-resend, verify-list, verify-decision, register-consultation-transaction, verify-review-linkedin.",
