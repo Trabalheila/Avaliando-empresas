@@ -17,6 +17,7 @@
 import { Resend } from "resend";
 import { handleSendReceipt } from "./_sendReceipt.js";
 import { getServiceAccount } from "./_firebaseAdmin.js";
+import { notifySpecialistWhatsApp } from "./_whatsapp.js";
 
 function escapeHtml(value) {
   return String(value || "")
@@ -93,6 +94,30 @@ async function tryResolveEmail(collectionName, docId, tag) {
     return String(snap.data()?.email || "").trim().toLowerCase() || null;
   } catch (err) {
     console.warn(`[${tag}] resolveEmail falhou:`, err?.message || err);
+    return null;
+  }
+}
+
+// Resolve, no SERVIDOR, o WhatsApp/telefone cadastrado de um especialista
+// (coleção `apoiadores`). Retorna a string do número ou null. Usado para
+// disparar a notificação de novo contato pelo WhatsApp Cloud API.
+async function tryResolveApoiadorWhatsApp(docId, tag) {
+  try {
+    const serviceAccount = getServiceAccount();
+    if (!serviceAccount) return null;
+
+    const admin = await import("firebase-admin");
+    if (!admin.apps?.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+    }
+    const snap = await admin.firestore().doc(`apoiadores/${docId}`).get();
+    if (!snap.exists) return null;
+    const d = snap.data() || {};
+    return String(d.whatsapp || d.telefone || "").trim() || null;
+  } catch (err) {
+    console.warn(`[${tag}] resolveWhatsApp falhou:`, err?.message || err);
     return null;
   }
 }
@@ -277,6 +302,21 @@ export default async function handler(req, res) {
         .status(400)
         .json({ ok: false, error: "toApoiadorId obrigatório." });
     }
+
+    // Notificação por WhatsApp (best-effort, independe da config de e-mail).
+    try {
+      const wa = await tryResolveApoiadorWhatsApp(toApoiadorId, tag);
+      if (wa) {
+        await notifySpecialistWhatsApp({
+          to: wa,
+          specialistName: toApoiadorName,
+          fromName: fromCompanyName || "Um trabalhador",
+        });
+      }
+    } catch (err) {
+      console.warn(`[${tag}] WhatsApp falhou:`, err?.message || err);
+    }
+
     if (!resendKey || !fromAddress) {
       return res
         .status(200)
@@ -372,6 +412,21 @@ export default async function handler(req, res) {
         .status(400)
         .json({ ok: false, error: "Parâmetros obrigatórios ausentes." });
     }
+
+    // Notificação por WhatsApp (best-effort, independe da config de e-mail).
+    try {
+      const wa = await tryResolveApoiadorWhatsApp(toApoiadorId, tag);
+      if (wa) {
+        await notifySpecialistWhatsApp({
+          to: wa,
+          specialistName: toApoiadorName,
+          fromName: fromCompanyName || "Uma empresa",
+        });
+      }
+    } catch (err) {
+      console.warn(`[${tag}] WhatsApp falhou:`, err?.message || err);
+    }
+
     if (!resendKey || !fromAddress) {
       return res
         .status(200)
