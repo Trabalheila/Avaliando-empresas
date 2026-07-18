@@ -1,9 +1,11 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   listIncomingRequests,
   listIncomingApoiadorRequests,
   listAcceptedAdExitumForWorker,
+  markRequestRead,
+  markApoiadorRequestRead,
 } from "../services/contactRequests";
 import { listConversationsForParticipant } from "../services/chat";
 import { listNotificationsForUser, markNotificationRead } from "../services/notifications";
@@ -205,6 +207,85 @@ export default function NotificationsBell() {
     }, 60000);
     return () => clearInterval(id);
   }, [uid, apoiadorId, authUid, load]);
+
+  /* Marca as notificações já exibidas como vistas, para não voltarem a
+     aparecer como "novas" a cada login. O estado de leitura é persistido
+     no Firestore (pedidos/atividades) ou no localStorage (mensagens e
+     Ad Exitum), conforme cada tipo. */
+  const markVisibleSeen = useCallback((list) => {
+    if (!Array.isArray(list) || list.length === 0) return;
+
+    const seenMsg = readSeenMap(SEEN_MSG_KEY);
+    const seenAe = readSeenList(SEEN_AE_KEY);
+    let seenMsgChanged = false;
+    let seenAeChanged = false;
+    const activityIds = [];
+    const workerIds = [];
+    const apoiadorIds = [];
+
+    list.forEach((it) => {
+      if (it._kind === "activity" && it.read === false) {
+        activityIds.push(it.id);
+      } else if (it._kind === "message" && it._unread) {
+        seenMsg[it.id] = it.lastMessage?.createdAt || new Date().toISOString();
+        seenMsgChanged = true;
+      } else if (it._kind === "adExitumAccepted" && it._unread) {
+        if (!seenAe.includes(it.id)) {
+          seenAe.push(it.id);
+          seenAeChanged = true;
+        }
+      } else if (it._kind === "worker" && it.status === "pending" && !it.readByWorker) {
+        workerIds.push(it.id);
+      } else if (it._kind === "apoiador" && it.status === "pending" && !it.readByApoiador) {
+        apoiadorIds.push(it.id);
+      }
+    });
+
+    if (seenMsgChanged) writeSeen(SEEN_MSG_KEY, seenMsg);
+    if (seenAeChanged) writeSeen(SEEN_AE_KEY, seenAe);
+    activityIds.forEach((id) => markNotificationRead(id).catch(() => {}));
+    workerIds.forEach((id) => markRequestRead(id).catch(() => {}));
+    apoiadorIds.forEach((id) => markApoiadorRequestRead(id).catch(() => {}));
+
+    if (
+      activityIds.length ||
+      workerIds.length ||
+      apoiadorIds.length ||
+      seenMsgChanged ||
+      seenAeChanged
+    ) {
+      setItems((prev) =>
+        prev.map((it) => {
+          if (it._kind === "activity" && activityIds.includes(it.id)) {
+            return { ...it, read: true, _unread: false };
+          }
+          if (it._kind === "message" && it._unread) return { ...it, _unread: false };
+          if (it._kind === "adExitumAccepted" && it._unread) return { ...it, _unread: false };
+          if (it._kind === "worker" && workerIds.includes(it.id)) {
+            return { ...it, readByWorker: true };
+          }
+          if (it._kind === "apoiador" && apoiadorIds.includes(it.id)) {
+            return { ...it, readByApoiador: true };
+          }
+          return it;
+        })
+      );
+    }
+  }, []);
+
+  /* Ao abrir o sininho (após carregar), marca as notificações visíveis como
+     vistas — uma única vez por abertura. */
+  const markedForOpenRef = useRef(false);
+  useEffect(() => {
+    if (!open) {
+      markedForOpenRef.current = false;
+      return;
+    }
+    if (!loading && !markedForOpenRef.current && items.length > 0) {
+      markedForOpenRef.current = true;
+      markVisibleSeen(items);
+    }
+  }, [open, loading, items, markVisibleSeen]);
 
   const unreadCount = items.filter((r) => {
     if (r._kind === "consulta") return r.status === "pending" && r.readByApoiador === false;
