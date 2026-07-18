@@ -43,8 +43,21 @@ export function isWhatsAppConfigured() {
 /**
  * Envia uma mensagem de template pelo WhatsApp Cloud API.
  * Best-effort: nunca lança — retorna { sent, reason?, id? }.
+ *
+ * @param {object}   args
+ * @param {string}   args.to             telefone destino (será normalizado)
+ * @param {string}   [args.templateName] nome do template (default via env)
+ * @param {string}   [args.languageCode] idioma do template (default via env)
+ * @param {string[]} [args.bodyParams]   parâmetros de texto do corpo ({{1}}, {{2}}…)
+ * @param {string}   [args.buttonUrlParam] sufixo dinâmico do botão de URL (index 0)
  */
-export async function sendWhatsAppTemplate({ to, templateName, languageCode, bodyParams } = {}) {
+export async function sendWhatsAppTemplate({
+  to,
+  templateName,
+  languageCode,
+  bodyParams,
+  buttonUrlParam,
+} = {}) {
   const token = (process.env.WHATSAPP_TOKEN || "").trim();
   const phoneNumberId = (process.env.WHATSAPP_PHONE_NUMBER_ID || "").trim();
   if (!token || !phoneNumberId) {
@@ -66,6 +79,16 @@ export async function sendWhatsAppTemplate({ to, templateName, languageCode, bod
         type: "text",
         text: String(p ?? "").slice(0, 300),
       })),
+    });
+  }
+  // Botão de URL dinâmica (index 0): o valor é anexado ao final da URL
+  // definida no template (ex.: .../my-contacts?req={{1}}).
+  if (buttonUrlParam) {
+    components.push({
+      type: "button",
+      sub_type: "url",
+      index: "0",
+      parameters: [{ type: "text", text: String(buttonUrlParam).slice(0, 300) }],
     });
   }
 
@@ -111,13 +134,33 @@ export async function sendWhatsAppTemplate({ to, templateName, languageCode, bod
 /**
  * Conveniência: notifica um especialista, no WhatsApp cadastrado, de que
  * recebeu um novo contato/pedido na plataforma.
+ *
+ * Template esperado (corpo com 3 variáveis + botão de URL dinâmica):
+ *   {{1}} = nome do especialista
+ *   {{2}} = quem entrou em contato
+ *   {{3}} = trecho da mensagem recebida
+ *   botão URL: .../apoiador/my-contacts?req={{1}}  → sufixo = requestId
  */
-export async function notifySpecialistWhatsApp({ to, specialistName, fromName } = {}) {
+export async function notifySpecialistWhatsApp({
+  to,
+  specialistName,
+  fromName,
+  messageSnippet,
+  urlSuffix,
+} = {}) {
+  // Corpos de template não aceitam quebras de linha nem espaços em excesso.
+  const snippet =
+    String(messageSnippet || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 120) || "—";
   return sendWhatsAppTemplate({
     to,
     bodyParams: [
       String(specialistName || "Especialista"),
       String(fromName || "um contato"),
+      snippet,
     ],
+    buttonUrlParam: String(urlSuffix || "novo-contato"),
   });
 }

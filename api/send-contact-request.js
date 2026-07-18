@@ -311,6 +311,8 @@ export default async function handler(req, res) {
           to: wa,
           specialistName: toApoiadorName,
           fromName: fromCompanyName || "Um trabalhador",
+          messageSnippet: message,
+          urlSuffix: requestId,
         });
       }
     } catch (err) {
@@ -421,6 +423,8 @@ export default async function handler(req, res) {
           to: wa,
           specialistName: toApoiadorName,
           fromName: fromCompanyName || "Uma empresa",
+          messageSnippet: message,
+          urlSuffix: requestId,
         });
       }
     } catch (err) {
