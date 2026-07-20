@@ -1179,47 +1179,6 @@ function TrabalheiLaMobile({
                   </p>
                   {cnpjError && <p className="text-sm text-red-600">{cnpjError}</p>}
 
-                  {isUserAdmin && (
-                    <div className="rounded-xl border border-dashed border-blue-200 dark:border-slate-700 p-3 bg-blue-50/60 dark:bg-slate-800/60 mt-2">
-                      <p className="text-xs font-semibold text-blue-900 dark:text-blue-200 mb-2">
-                        Sem CNPJ? Cadastro manual (apenas admin)
-                      </p>
-                      <div className="space-y-2">
-                        <input
-                          type="text"
-                          value={manualCompanyName}
-                          onChange={(e) => setManualCompanyName(e.target.value)}
-                          placeholder="Nome da empresa"
-                          className="w-full p-2 border border-blue-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-sm"
-                        />
-                        <input
-                          type="text"
-                          value={manualRazaoSocial}
-                          onChange={(e) => setManualRazaoSocial(e.target.value)}
-                          placeholder="Razão social (opcional)"
-                          className="w-full p-2 border border-blue-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-sm"
-                        />
-                        <select
-                          value={manualSegment}
-                          onChange={(e) => setManualSegment(e.target.value)}
-                          className="w-full p-2 border border-blue-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-sm"
-                        >
-                          <option value="">Selecione o segmento (divisão CNAE)</option>
-                          {(cnaeSegmentOptions || []).map((opt) => (
-                            <option key={opt.code} value={opt.code}>{opt.label}</option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={handleAddCompanyWithoutCnpj}
-                          className="w-full px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition"
-                        >
-                          Preparar cadastro sem CNPJ
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
                   <button
                     type="button"
                     onClick={handleAddNewCompany}
