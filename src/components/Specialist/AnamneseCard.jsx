@@ -131,6 +131,53 @@ export default function AnamneseCard({
     }
   };
 
+  // Baixa a anamnese como documento Word (.doc) — HTML compatível com Word e
+  // Google Docs, gerado a partir dos campos atuais (não exige nada salvo).
+  const handleDownload = () => {
+    setError("");
+    if (selected.length === 0) {
+      setError("Selecione ao menos uma doença ocupacional para baixar a anamnese.");
+      return;
+    }
+    const esc = (s) =>
+      String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\n/g, "<br>");
+    const doencasHtml = selectedDiseases
+      .map((d) => `<li>${esc(d.label)} (CID-10: ${esc(d.code)})</li>`)
+      .join("");
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Anamnese</title></head>
+      <body style="font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+        <h1 style="color:#1d4ed8;">Anamnese Psicológica Ocupacional</h1>
+        <p><strong>Paciente:</strong> ${esc(patientData.nome)}<br>
+        <strong>Data:</strong> ${esc(todayBR())}${
+          patientData.profissao ? `<br><strong>Profissão:</strong> ${esc(patientData.profissao)}` : ""
+        }${patientData.cidade ? `<br><strong>Cidade:</strong> ${esc(patientData.cidade)}` : ""}</p>
+        <h2>Doenças ocupacionais identificadas (CID-10)</h2>
+        <ul>${doencasHtml}</ul>
+        <h2>Queixas principais</h2>
+        <p>${esc(queixas)}</p>
+        <h2>Histórico ocupacional</h2>
+        <p>${esc(histOcupacional)}</p>
+        <h2>Histórico clínico</h2>
+        <p>${esc(histClinico)}</p>
+        <h2>Observações</h2>
+        <p>${esc(observacoes)}</p>
+      </body></html>`;
+    const blob = new Blob([html], { type: "application/msword" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const safeName = String(patientData.nome || "paciente").replace(/[^\w.-]+/g, "_");
+    a.href = url;
+    a.download = `Anamnese_${safeName}.doc`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <section className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-4 sm:p-5">
       <h2 className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -245,14 +292,23 @@ export default function AnamneseCard({
             />
           </div>
 
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold disabled:opacity-60"
-          >
-            {saving ? "Salvando…" : "💾 Salvar anamnese"}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold disabled:opacity-60"
+            >
+              {saving ? "Salvando…" : "💾 Salvar anamnese"}
+            </button>
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
+            >
+              ⬇️ Baixar anamnese (.doc)
+            </button>
+          </div>
         </div>
       )}
 
