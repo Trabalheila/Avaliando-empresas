@@ -1603,13 +1603,13 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
                 existingAnamnese={realCase?.anamnese || null}
               />
             )}
-            {(tipo === "advogado" || isRealCase) && (
+            {tipo === "advogado" && (
               <PeticaoCard
                 client={clientProfile}
                 clientAlias={data.client}
               />
             )}
-            {(tipo === "advogado" || isRealCase) && (
+            {tipo === "advogado" && (
               <CommissionPaymentCard
                 caseId={caseId}
                 data={data}
