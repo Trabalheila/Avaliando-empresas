@@ -546,7 +546,8 @@ function TrabalheiLaDesktop({
                 whiteSpace: 'nowrap',
               }}
             >
-              TRABALHEI LÁ
+              <span>TRABALHEI </span>
+              <span style={{ color: '#FFC107' }}>LÁ</span>
             </h1>
 
             {/* Avatar + pseudônimo (canto direito) ou botão Entrar */}

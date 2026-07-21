@@ -674,7 +674,8 @@ function TrabalheiLaMobile({
               textOverflow: 'ellipsis',
             }}
           >
-            TRABALHEI LÁ
+            <span>TRABALHEI </span>
+            <span style={{ color: '#FFC107' }}>LÁ</span>
           </span>
           <button
             type="button"
