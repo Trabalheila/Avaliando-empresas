@@ -171,7 +171,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
 
   return (
     <nav className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-blue-100 dark:border-slate-700 shadow-sm" style={{ height: 'auto' }}>
-      <div className="max-w-6xl mx-auto px-4 py-2 sm:py-0 sm:h-16" style={{ display: "flex", flexDirection: "row", alignItems: "center", width: "100%", justifyContent: "space-between" }}>
+      <div className="max-w-6xl mx-auto px-3.5 py-2 sm:py-0 sm:h-16" style={{ display: "flex", flexDirection: "row", alignItems: "center", width: "100%", justifyContent: "space-between" }}>
         {/* ── Zona esquerda: Voltar ── */}
         <div className="flex items-center gap-3" style={{ flex: "0 1 auto" /* paddingLeft: 16 removido */ }}>
           {showBack && (
