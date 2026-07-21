@@ -906,7 +906,7 @@ export default function PlatformChat({ theme, toggleTheme }) {
 
         <div
           ref={listRef}
-          className="flex-1 min-h-[300px] bg-white/60 dark:bg-slate-900/60 rounded-2xl border border-blue-100 dark:border-slate-700 p-3 overflow-y-auto space-y-2"
+          className="flex-1 min-h-[300px] h-full bg-white/60 dark:bg-slate-900/60 rounded-2xl border border-blue-100 dark:border-slate-700 p-3 overflow-y-auto space-y-2"
         >
           {renderItems.map((m) => (
             <Bubble key={m.id} msg={m} isMine={m.from === myId} />
@@ -922,7 +922,7 @@ export default function PlatformChat({ theme, toggleTheme }) {
           </p>
         )}
 
-        <form onSubmit={handleSend} className="mt-3 flex items-end gap-2">
+        <form onSubmit={handleSend} className="mt-3 flex items-center gap-2">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -936,7 +936,7 @@ export default function PlatformChat({ theme, toggleTheme }) {
                 ? "Liberado após o especialista aceitar o pedido"
                 : "Anexos disponíveis no Premium"
             }
-            className="shrink-0 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="shrink-0 w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-[22px] leading-none hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {uploading ? "⏳" : "📎"}
           </button>
@@ -961,12 +961,12 @@ export default function PlatformChat({ theme, toggleTheme }) {
                 ? "Limite do Plano Essencial atingido."
                 : "Escreva sua mensagem (Enter envia, Shift+Enter quebra linha)"
             }
-            className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100 resize-none disabled:opacity-60"
+            className="flex-1 w-full min-h-[48px] px-3 py-[10px] rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-[15px] text-slate-800 dark:text-slate-100 resize-none disabled:opacity-60"
           />
           <button
             type="submit"
             disabled={hitLimit || !draft.trim()}
-            className="shrink-0 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold disabled:opacity-60 disabled:cursor-not-allowed"
+            className="shrink-0 min-h-[48px] px-4 py-[10px] rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold disabled:opacity-60 disabled:cursor-not-allowed"
           >
             Enviar
           </button>
