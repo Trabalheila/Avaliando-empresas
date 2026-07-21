@@ -223,3 +223,32 @@ export async function closeSpecialistCase(specialistId, caseId) {
     { merge: true }
   );
 }
+
+/**
+ * Salva (ou atualiza) a anamnese do paciente vinculada ao caso, em
+ * /apoiadores/{specialistId}/cases/{caseId} no campo `anamnese`.
+ *
+ * A permissão é garantida pelas regras do Firestore (apenas o próprio
+ * especialista dono do perfil pode gravar em seus casos).
+ *
+ * @param {string} specialistId  id do doc /apoiadores/{id}.
+ * @param {string} caseId        id do caso.
+ * @param {object} anamnese      dados da anamnese (doenças, queixas, etc.).
+ * @returns {Promise<void>}
+ */
+export async function saveCaseAnamnese(specialistId, caseId, anamnese) {
+  if (!specialistId || !caseId) {
+    throw new Error("specialistId e caseId são obrigatórios.");
+  }
+  const ref = doc(db, "apoiadores", String(specialistId), "cases", String(caseId));
+  await setDoc(
+    ref,
+    {
+      anamnese: { ...(anamnese || {}), updatedAt: new Date().toISOString() },
+      anamneseUpdatedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+

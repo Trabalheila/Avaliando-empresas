@@ -11,7 +11,6 @@ const PREMIUM_WORKER_DISCOUNT_PCT = 0.1;
 // `valor_consulta_customizado` (ou `precoConsulta` legado).
 const ESSENCIAL_CHAT_PRICE = 45;
 const ESSENCIAL_VIDEO_PRICE = 75;
-const PREMIUM_DEFAULT_PRICE = 150;
 
 function normalizePlan(v) {
   const s = String(v || "").toLowerCase().trim();
@@ -45,17 +44,13 @@ function calculateConsultationPrice(professionalData, isUserPremium, modalidade)
 // qualquer outro caso (Essencial, plano em branco, novo cadastro) cai no
 // tabelado por modalidade — evita o bug de "preco fixo 150" quando o doc
 // do especialista ainda não tem `plano_tipo` definido.
+// Preço base (sem desconto do usuário) por MODALIDADE. Na consulta avulsa o
+// valor é tabelado pela modalidade escolhida — Chat (Texto) R$ 45 e Vídeo R$ 75,
+// ambos com 30 min de duração — independentemente do plano do especialista
+// (evita o bug de "preço fixo 150"). O desconto Premium do usuário é aplicado
+// em `calculateConsultationPrice`.
 function getBaseSpecialistPrice(professionalData, modalidade) {
-  if (!professionalData) return 0;
-  const plan = normalizePlan(professionalData.plan);
   const mod = normalizeModalidade(modalidade);
-  if (plan === "premium") {
-    return (
-      Number(professionalData.valorConsultaCustomizado) ||
-      Number(professionalData.precoConsulta) ||
-      PREMIUM_DEFAULT_PRICE
-    );
-  }
   return mod === "video" ? ESSENCIAL_VIDEO_PRICE : ESSENCIAL_CHAT_PRICE;
 }
 
@@ -435,8 +430,8 @@ export default function ConsultaAvulsaPage({ theme, toggleTheme }) {
               </legend>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {[
-                  { value: "chat", emoji: "\uD83D\uDCAC", label: "Atendimento por Chat (Texto)" },
-                  { value: "video", emoji: "\uD83C\uDFA5", label: "Atendimento por Vídeo" },
+                  { value: "chat", emoji: "\uD83D\uDCAC", label: "Atendimento por Chat (Texto)", price: ESSENCIAL_CHAT_PRICE },
+                  { value: "video", emoji: "\uD83C\uDFA5", label: "Atendimento por Vídeo", price: ESSENCIAL_VIDEO_PRICE },
                 ].map((opt) => {
                   const checked = modalidade === opt.value;
                   return (
@@ -456,9 +451,14 @@ export default function ConsultaAvulsaPage({ theme, toggleTheme }) {
                         checked={checked}
                         onChange={() => setModalidade(opt.value)}
                       />
-                      <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                        <span aria-hidden="true" className="mr-1">{opt.emoji}</span>
-                        {opt.label}
+                      <span className="flex flex-col">
+                        <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                          <span aria-hidden="true" className="mr-1">{opt.emoji}</span>
+                          {opt.label}
+                        </span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          {formatBRL(opt.price)} · 30 min de duração
+                        </span>
                       </span>
                     </label>
                   );
@@ -491,7 +491,7 @@ export default function ConsultaAvulsaPage({ theme, toggleTheme }) {
               <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Valor da consulta
                 <span className="ml-2 normal-case font-medium text-slate-400 dark:text-slate-500">
-                  ({modalidade === "video" ? "Vídeo" : "Chat"})
+                  ({modalidade === "video" ? "Vídeo" : "Chat"} · 30 min)
                 </span>
               </p>
               {discountAmount > 0 ? (

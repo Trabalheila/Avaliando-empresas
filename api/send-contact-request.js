@@ -636,6 +636,94 @@ export default async function handler(req, res) {
     }
   }
 
+  // ── Fluxo Especialista Interessado ───────────────────────────────
+  // Um especialista (ex.: psicólogo) demonstra interesse em atender um
+  // trabalhador identificado por suas avaliações. Notifica o trabalhador por
+  // e-mail (Resend), informando o interesse e o link do perfil do especialista.
+  if (type === "especialista-interesse") {
+    const tag = "send-contact-request:especialistaInteresse";
+    const toUid = String(body.toUid || "").trim();
+    const toPseudonym = String(body.toPseudonym || "").trim();
+    const specialistName = String(body.specialistName || "").trim();
+    const specialistId = String(body.specialistId || "").trim();
+
+    if (!toUid) {
+      return res.status(400).json({ ok: false, error: "toUid obrigatório." });
+    }
+    if (!resendKey || !fromAddress) {
+      return res
+        .status(200)
+        .json({ ok: true, emailed: false, reason: "email_disabled" });
+    }
+
+    const workerEmail = await tryResolveEmail("users", toUid, tag);
+    if (!workerEmail) {
+      return res
+        .status(200)
+        .json({ ok: true, emailed: false, reason: "email_unknown" });
+    }
+
+    const profileLink = specialistId
+      ? `${appBaseUrl || ""}/apoiadores/perfil/${encodeURIComponent(specialistId)}`
+      : `${appBaseUrl || ""}/apoiadores`;
+    const subject = "Um especialista tem interesse em te atender no Trabalhei Lá";
+    const html = `
+    <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#0f172a;">
+      <h2 style="color:#7e22ce;">Um especialista quer te ajudar</h2>
+      <p>${toPseudonym ? `Olá, ${escapeHtml(toPseudonym)}!` : "Olá!"}</p>
+      <p>${
+        specialistName
+          ? `<strong>${escapeHtml(specialistName)}</strong>`
+          : "Um especialista"
+      } demonstrou interesse em atender o seu caso a partir das avaliações que
+      você publicou no Trabalhei Lá. O atendimento e a troca de mensagens
+      acontecem com segurança, dentro da plataforma.</p>
+      <p style="text-align:center;margin:24px 0;">
+        <a href="${profileLink}"
+           style="background:#7e22ce;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold;">
+          Ver perfil do especialista
+        </a>
+      </p>
+      <p style="font-size:12px;color:#94a3b8;">
+        Sua identidade real permanece privada. Você decide se deseja iniciar a
+        conversa. É possível ignorar este contato a qualquer momento.
+      </p>
+    </div>
+  `;
+    const text = [
+      "Um especialista tem interesse em te atender no Trabalhei Lá",
+      "",
+      specialistName ? `Especialista: ${specialistName}` : "Um especialista",
+      "",
+      `Ver perfil do especialista: ${profileLink}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    try {
+      const resend = new Resend(resendKey);
+      const { error } = await resend.emails.send({
+        from: fromAddress,
+        to: workerEmail,
+        subject,
+        html,
+        text,
+      });
+      if (error) {
+        console.error(`[${tag}] Resend erro:`, error);
+        return res
+          .status(200)
+          .json({ ok: true, emailed: false, reason: "send_failed" });
+      }
+      return res.status(200).json({ ok: true, emailed: true });
+    } catch (err) {
+      console.error(`[${tag}] erro inesperado:`, err?.message || err);
+      return res
+        .status(200)
+        .json({ ok: true, emailed: false, reason: "exception" });
+    }
+  }
+
   // ── Fluxo Trabalhador (default) ───────────────────────────────────
   const tag = "send-contact-request:worker";
   const toUid = String(body.toUid || "").trim();

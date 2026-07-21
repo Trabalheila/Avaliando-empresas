@@ -320,6 +320,19 @@ service cloud.firestore {
         allow read, create, update: if isCaseOwner();
         allow delete: if false;
       }
+
+      // Documentos enviados pelo especialista, organizados por caso.
+      // Apenas o próprio especialista dono do perfil pode ler/gravar.
+      match /documentos/{documentoId} {
+        function isDocOwner() {
+          return request.auth != null
+            && (request.auth.uid == apoiadorId
+                || request.auth.uid ==
+                   get(/databases/$(database)/documents/apoiadores/$(apoiadorId)).data.uid);
+        }
+        allow read, create, delete: if isDocOwner();
+        allow update: if false;
+      }
     }
 
     // Profissionais de Apoio (userType = 'supportProfessional').

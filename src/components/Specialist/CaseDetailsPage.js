@@ -17,6 +17,7 @@ import { db, auth } from "../../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { getSpecialistCase } from "../../services/specialistCases";
 import { listWorkerDocuments } from "../../services/workerDocuments";
+import AnamneseCard from "./AnamneseCard";
 import {
   downloadContrato,
   downloadDeclaracao,
@@ -1445,6 +1446,13 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
   const isRealCase = Boolean(realCase);
   const tipoLabel = TIPO_LABELS[tipo] || TIPO_LABELS.outro;
 
+  // Id do especialista dono do caso (derivado do caseId, igual ao effect de
+  // carregamento) — usado para salvar a anamnese no caminho correto.
+  const specialistIdForCase = useMemo(() => {
+    const convId = String(caseId || "").replace(/^case_/, "");
+    return getSpecialistIdFromConversationId(convId) || apoiadorId;
+  }, [caseId, apoiadorId]);
+
   // Popup de documentos: "cliente" (documentos gerais do trabalhador) ou
   // "processo" (documentos específicos deste caso). null = fechado.
   const [docsModal, setDocsModal] = useState(null);
@@ -1586,6 +1594,15 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
                 "Documentos do Cliente" / "Documentos do Processo" (botões no
                 topo), evitando sobrecarregar a tela principal. */}
             <ClientPersonalDataCard client={clientProfile} />
+            {tipo === "psicologo" && (
+              <AnamneseCard
+                specialistId={specialistIdForCase}
+                caseId={caseId}
+                patientName={data.client}
+                clientProfile={clientProfile}
+                existingAnamnese={realCase?.anamnese || null}
+              />
+            )}
             {(tipo === "advogado" || isRealCase) && (
               <PeticaoCard
                 client={clientProfile}

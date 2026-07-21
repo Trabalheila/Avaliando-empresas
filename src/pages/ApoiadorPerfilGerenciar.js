@@ -6,6 +6,7 @@ import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage
 import { signInAnonymously } from "firebase/auth";
 import { db, storage, auth } from "../firebase";
 import AppHeader from "../components/AppHeader";
+import SpecialistPanel from "../components/Specialist/SpecialistPanel";
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5MB
 
@@ -672,37 +673,11 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
 
             {/* Painel completo — seções desbloqueadas (Premium ou Ad Exitum) */}
             {premiumUnlocked && (
-              <div className="rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-900/10 p-4 space-y-3">
-                <p className="text-sm font-extrabold text-purple-800 dark:text-purple-200">
-                  Painel completo do especialista
-                </p>
-                <div className="grid sm:grid-cols-2 gap-3">
-                  {[
-                    { titulo: "Minhas Mensagens", desc: "Converse com trabalhadores que solicitaram atendimento." },
-                    { titulo: "Meus Documentos", desc: "Envie e organize documentos dos seus casos." },
-                    { titulo: "Minhas Estatísticas Detalhadas", desc: "Acompanhe visualizações, conversões e avaliações." },
-                    { titulo: "Gerenciamento de Agenda", desc: "Defina horários e organize seus compromissos." },
-                    { titulo: "Configurações de Notificações", desc: "Escolha como e quando deseja ser avisado." },
-                  ].map((sec) => (
-                    <div
-                      key={sec.titulo}
-                      className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-800/50 p-3"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                          {sec.titulo}
-                        </p>
-                        <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-                          Em breve
-                        </span>
-                      </div>
-                      <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                        {sec.desc}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <SpecialistPanel
+                apoiadorId={apoiadorId}
+                apoiadorNome={profile?.nome || profile?.name || ""}
+                tipo={tipo}
+              />
             )}
 
             {/* Feedback */}

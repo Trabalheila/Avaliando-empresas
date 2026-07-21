@@ -62,6 +62,13 @@ service firebase.storage {
       allow write: if isSignedIn() && underMb(60);
     }
 
+    // Documentos do especialista organizados por caso (Painel completo →
+    // "Meus Documentos"). Privados: apenas usuários autenticados, até 20 MB.
+    match /specialistDocs/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && underMb(20);
+    }
+
     // Demais caminhos: bloqueados por padrão.
     match /{allPaths=**} {
       allow read, write: if false;
