@@ -109,18 +109,18 @@ export default function AgendarAdExitumPage({ theme, toggleTheme }) {
             diretamente com o profissional.
           </p>
 
-          <div className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-4">
+          <div className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-6">
             <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
               R$ 0,00 — Pagamento Ad Exitum
             </p>
-            <p className="mt-1 text-[15px] font-normal leading-[1.6] text-slate-500 dark:text-slate-400">
+            <p className="mt-1 text-[18px] font-normal leading-[1.8] text-slate-500 dark:text-slate-400">
               Sem cobrança para agendar. Combine os detalhes dos honorários de
               êxito diretamente com o especialista pelo chat.
             </p>
           </div>
 
-          <div className="mt-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4">
-            <p className="text-[15px] font-normal leading-[1.6] text-blue-800 dark:text-blue-200">
+          <div className="mt-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-6">
+            <p className="text-[18px] font-normal leading-[1.8] text-blue-800 dark:text-blue-200">
               <span aria-hidden="true">🔔</span> Ao iniciar a conversa, enviamos
               um pedido ao especialista (na plataforma e por e-mail) perguntando
               se ele aceita atender o seu caso Ad Exitum. A{" "}

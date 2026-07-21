@@ -297,6 +297,58 @@ function SpecialistCard({ specialist, workerIsPremium, workerId, onPontualClick 
     }
   };
 
+  // Valor da consulta indefinido (nulo/vazio/não preenchido): especialista sem
+  // preço pontual, sem preço de consulta especializada e sem Ad Exitum. Nesse
+  // caso não há valor a exibir — o card mostra "Valor a combinar" e oferece um
+  // botão direto de "Iniciar conversa" (o valor é combinado no próprio chat).
+  const valorIndefinido = !isAdExitum && !hasPontualPrice && especializadaPrice <= 0;
+
+  // Conversa 1:1 (trabalhador × especialista): mesmo destino usado no fluxo do
+  // trabalhador Premium ("Consulta com acompanhamento").
+  const conversationId = buildSpecialistConversationId(workerId, specialist.id);
+  const chatHref = `/chat/${encodeURIComponent(
+    conversationId
+  )}?peer=${encodeURIComponent(
+    specialist.nome || "Especialista"
+  )}&peerRole=especialista&specialistType=${encodeURIComponent(
+    normalizeTipo(specialist.tipo) || "outro"
+  )}`;
+
+  // Best-effort: ao iniciar a conversa, notifica o especialista de que um
+  // trabalhador entrou em contato — por e-mail (Resend) e, se houver telefone
+  // cadastrado, por WhatsApp. Nunca bloqueia a navegação para o chat.
+  const notifySpecialistNewContact = () => {
+    try {
+      const profile =
+        JSON.parse(localStorage.getItem("userProfile") || "{}") || {};
+      const workerName =
+        profile.nome || profile.name || profile.displayName || "Um trabalhador";
+      fetch("/api/send-contact-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        keepalive: true,
+        body: JSON.stringify({
+          type: "iniciar-conversa",
+          toApoiadorId: specialist.id,
+          toApoiadorName: specialist.nome || "",
+          conversationId,
+          fromCompanyName: workerName,
+          message:
+            "Um trabalhador iniciou uma conversa com você no Trabalhei Lá. Acesse o chat para responder.",
+        }),
+      }).catch(() => {
+        /* best-effort: falha de notificação não impede o chat */
+      });
+    } catch {
+      /* silencioso */
+    }
+  };
+
+  const handleIniciarConversa = () => {
+    notifySpecialistNewContact();
+    navigate(chatHref);
+  };
+
   let scheduleHint = "";
   if (planType === "Essencial") {
     // Essencial: a consulta pontual tem preço fixo da plataforma — esse valor
@@ -446,9 +498,9 @@ function SpecialistCard({ specialist, workerIsPremium, workerId, onPontualClick 
            R$ 0,00 <span className="text-[11px] font-semibold underline decoration-dotted">(Ad Exitum)</span>
          </p>
        ) : (
-         // Premium, sem Ad Exitum, sem preço especializado
+         // Premium, sem Ad Exitum, sem preço especializado → valor indefinido.
          <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
-           Sob consulta
+           Valor a combinar
          </p>
        )
      ) : (
@@ -558,6 +610,22 @@ function SpecialistCard({ specialist, workerIsPremium, workerId, onPontualClick 
         <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 text-center">
           Pagamento Ad Exitum: você só paga honorários se o caso for ganho.
         </p>
+      ) : valorIndefinido ? (
+        // Valor indefinido: não há consulta com preço para "agendar". Oferecemos
+        // o contato direto — abre o chat com o especialista (mesmo destino do
+        // fluxo Premium) e dispara a notificação de novo contato.
+        <>
+          <button
+            type="button"
+            onClick={handleIniciarConversa}
+            className="mt-2 w-full px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
+          >
+            💬 Iniciar conversa
+          </button>
+          <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 text-center">
+            Valor a combinar diretamente com o especialista pelo chat.
+          </p>
+        </>
       ) : (
         <>
           <button

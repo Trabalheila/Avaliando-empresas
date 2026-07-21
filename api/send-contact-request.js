@@ -403,6 +403,130 @@ export default async function handler(req, res) {
     }
   }
 
+  // ── Fluxo Iniciar Conversa ───────────────────────────────────────
+  // Notifica o especialista (coleção `apoiadores`) de que um trabalhador
+  // iniciou uma conversa pelo chat — usado quando o valor da consulta está
+  // indefinido ("Valor a combinar"). Envia e-mail (Resend) para o endereço
+  // cadastrado e, se houver telefone/WhatsApp, dispara a notificação por
+  // WhatsApp Cloud API. Best-effort: nunca bloqueia o fluxo do chat.
+  if (type === "iniciar-conversa") {
+    const tag = "send-contact-request:iniciarConversa";
+    const toApoiadorId = String(body.toApoiadorId || "").trim();
+    const toApoiadorName = String(body.toApoiadorName || "").trim();
+    const conversationId = String(body.conversationId || "").trim();
+
+    if (!toApoiadorId) {
+      return res
+        .status(400)
+        .json({ ok: false, error: "toApoiadorId obrigatório." });
+    }
+
+    // Notificação por telefone/WhatsApp (best-effort, independe do e-mail).
+    // Reutiliza o serviço WhatsApp Cloud API já configurado no projeto.
+    // Placeholder para SMS: caso deseje adicionar um provedor de SMS (ex.:
+    // Twilio) como fallback quando o WhatsApp não estiver configurado,
+    // implemente aqui usando o telefone resolvido em `tryResolveApoiadorWhatsApp`.
+    try {
+      const wa = await tryResolveApoiadorWhatsApp(toApoiadorId, tag);
+      if (wa) {
+        await notifySpecialistWhatsApp({
+          to: wa,
+          specialistName: toApoiadorName,
+          fromName: fromCompanyName || "Um trabalhador",
+          messageSnippet: message,
+          urlSuffix: requestId,
+        });
+      }
+      // else: sem telefone/WhatsApp cadastrado — nada a enviar por telefone.
+    } catch (err) {
+      console.warn(`[${tag}] WhatsApp falhou:`, err?.message || err);
+    }
+
+    if (!resendKey || !fromAddress) {
+      return res
+        .status(200)
+        .json({ ok: true, emailed: false, reason: "email_disabled" });
+    }
+
+    const apoiadorEmail =
+      (await tryResolveEmail("apoiadores", toApoiadorId, tag)) ||
+      String(body.toEmail || "").trim().toLowerCase() ||
+      null;
+    if (!apoiadorEmail) {
+      return res
+        .status(200)
+        .json({ ok: true, emailed: false, reason: "email_unknown" });
+    }
+
+    const subject = "Um trabalhador iniciou contato no Trabalhei Lá";
+    const link = `${appBaseUrl || ""}/apoiador/my-contacts`;
+    const html = `
+    <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#0f172a;">
+      <h2 style="color:#1d4ed8;">Novo contato de um trabalhador</h2>
+      <p>${toApoiadorName ? `Olá, ${escapeHtml(toApoiadorName)}!` : "Olá!"}</p>
+      <p>${
+        fromCompanyName
+          ? `<strong>${escapeHtml(fromCompanyName)}</strong>`
+          : "Um trabalhador"
+      } iniciou uma conversa com você pelo chat do Trabalhei Lá. O valor da
+      consulta ficou como <strong>"a combinar"</strong> — alinhe os detalhes
+      diretamente pelo chat.</p>
+      ${
+        message
+          ? `<blockquote style="border-left:4px solid #93c5fd;padding:8px 12px;background:#eff6ff;color:#1e3a8a;">${escapeHtml(
+              message
+            ).replace(/\n/g, "<br>")}</blockquote>`
+          : ""
+      }
+      <p style="text-align:center;margin:24px 0;">
+        <a href="${link}"
+           style="background:#1d4ed8;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold;">
+          Abrir conversa
+        </a>
+      </p>
+      <p style="font-size:12px;color:#94a3b8;">
+        ${
+          conversationId ? `Conversa: ${escapeHtml(conversationId)}. ` : ""
+        }Você está recebendo este e-mail porque é um especialista cadastrado no
+        Trabalhei Lá.
+      </p>
+    </div>
+  `;
+    const text = [
+      "Novo contato de um trabalhador no Trabalhei Lá",
+      "",
+      fromCompanyName ? `De: ${fromCompanyName}` : "Um trabalhador",
+      message ? `Mensagem: ${message}` : null,
+      "",
+      `Abra a conversa: ${link}`,
+    ]
+      .filter((l) => l !== null)
+      .join("\n");
+
+    try {
+      const resend = new Resend(resendKey);
+      const { error } = await resend.emails.send({
+        from: fromAddress,
+        to: apoiadorEmail,
+        subject,
+        html,
+        text,
+      });
+      if (error) {
+        console.error(`[${tag}] Resend erro:`, error);
+        return res
+          .status(200)
+          .json({ ok: true, emailed: false, reason: "send_failed" });
+      }
+      return res.status(200).json({ ok: true, emailed: true });
+    } catch (err) {
+      console.error(`[${tag}] erro inesperado:`, err?.message || err);
+      return res
+        .status(200)
+        .json({ ok: true, emailed: false, reason: "exception" });
+    }
+  }
+
   // ── Fluxo Apoiador ────────────────────────────────────────────────
   if (type === "apoiador") {
     const tag = "send-contact-request:apoiador";
