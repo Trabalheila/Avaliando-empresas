@@ -21,7 +21,7 @@
  *     receivedValue      number  (valor recebido pelo trabalhador, em R$)
  *     feePercent         number  (percentual cobrado do cliente, em %)
  *     feeValue           number  (honorários do advogado, em R$)
- *     commissionValue    number  (10% sobre feeValue, em R$)
+ *     commissionValue    number  (comissão progressiva sobre feeValue, em R$)
  *     paymentDate        ISO string
  *     status             "pending"
  *     createdAtServer    serverTimestamp
@@ -49,6 +49,40 @@ export function computeCommission(receivedValue) {
   if (!Number.isFinite(v) || v <= 0) return 0;
   // Arredonda para centavos para evitar dízimas de ponto flutuante.
   return Math.round(v * COMMISSION_RATE * 100) / 100;
+}
+
+/**
+ * Calcula a comissão progressiva da plataforma sobre os honorários do
+ * advogado (processos Ad Exitum), por faixas:
+ *   • até R$ 5.000,00              → 12,5% sobre os honorários
+ *   • R$ 5.000,01 a R$ 10.000,00   → 6,25% sobre os honorários
+ *   • acima de R$ 10.000,00        → valor fixo de R$ 750,00
+ *
+ * @param {number} feeValue Honorários do advogado, em R$.
+ * @returns {{ value: number, label: string }} valor da comissão (em R$,
+ *   arredondado a centavos) e rótulo da faixa aplicada.
+ */
+export function computeAdExitumCommission(feeValue) {
+  const v = Number(feeValue);
+  if (!Number.isFinite(v) || v <= 0) {
+    return { value: 0, label: "" };
+  }
+  if (v <= 5000) {
+    return {
+      value: Math.round(v * 0.125 * 100) / 100,
+      label: "até R$ 5.000 — 12,5%",
+    };
+  }
+  if (v <= 10000) {
+    return {
+      value: Math.round(v * 0.0625 * 100) / 100,
+      label: "R$ 5.000,01 a R$ 10.000 — 6,25%",
+    };
+  }
+  return {
+    value: 750,
+    label: "acima de R$ 10.000 — valor fixo de R$ 750",
+  };
 }
 
 /**
@@ -82,7 +116,7 @@ export async function registerAdExitumCommission({
     throw new Error("Valor recebido pelo trabalhador inválido.");
   }
 
-  const commissionValue = computeCommission(fee > 0 ? fee : received);
+  const commissionValue = computeAdExitumCommission(fee > 0 ? fee : received).value;
 
   const payload = {
     workerId: String(workerId || ""),

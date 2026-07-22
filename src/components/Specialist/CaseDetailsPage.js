@@ -29,8 +29,7 @@ import {
   getWorkerIdFromConversationId,
 } from "../../utils/chatId";
 import {
-  COMMISSION_RATE,
-  computeCommission,
+  computeAdExitumCommission,
   registerAdExitumCommission,
 } from "../../services/commissions";
 import {
@@ -529,6 +528,7 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
   const [totalValue, setTotalValue] = useState("");
   const [feePercent, setFeePercent] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showFeesInfo, setShowFeesInfo] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null); // { ok, msg }
 
@@ -547,8 +547,10 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
     totalValid && percentValid
       ? Math.round((total - feeAmount) * 100) / 100
       : 0;
-  // Comissão da plataforma = 10% sobre os honorários do advogado.
-  const commission = feeAmount > 0 ? computeCommission(feeAmount) : 0;
+  // Comissão da plataforma = faixa progressiva sobre os honorários do advogado.
+  const commissionInfo =
+    feeAmount > 0 ? computeAdExitumCommission(feeAmount) : { value: 0, label: "" };
+  const commission = commissionInfo.value;
 
   const alreadyPaid = feedback?.ok === true;
   const canPay = totalValid && percentValid && !submitting && !alreadyPaid;
@@ -603,14 +605,30 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-amber-100 dark:border-slate-700 p-5">
-      <h2 className="text-base md:text-lg font-bold text-amber-800 dark:text-amber-200 flex items-center gap-2">
-        <span aria-hidden="true">💰</span> Pagamento de comissão (Ad Exitum)
-      </h2>
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="text-base md:text-lg font-bold text-amber-800 dark:text-amber-200 flex items-center gap-2">
+          <span aria-hidden="true">💰</span> Pagamento de comissão (Ad Exitum)
+        </h2>
+        <button
+          type="button"
+          onClick={() => setShowFeesInfo(true)}
+          className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-amber-200 dark:border-slate-600 text-[11px] sm:text-xs font-semibold text-amber-700 dark:text-amber-200 hover:bg-amber-50 dark:hover:bg-slate-800 transition"
+          aria-label="Como a plataforma cobra?"
+        >
+          <span
+            aria-hidden="true"
+            className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-current text-[10px] leading-none font-bold"
+          >
+            ?
+          </span>
+          <span className="hidden sm:inline">Como a plataforma cobra?</span>
+        </button>
+      </div>
       <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
         Informe o valor total do processo e o percentual que você cobrou do
         cliente. A plataforma calcula automaticamente o seu recebimento
-        (honorários), o valor que o trabalhador recebe e a comissão de{" "}
-        {Math.round(COMMISSION_RATE * 100)}% sobre os seus honorários.
+        (honorários), o valor que o trabalhador recebe e a comissão da
+        plataforma sobre os seus honorários.
       </p>
 
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -704,7 +722,7 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
 
       <div className="mt-3">
         <label className="text-[11px] uppercase tracking-wide font-semibold text-slate-500 dark:text-slate-400">
-          Comissão da Plataforma ({Math.round(COMMISSION_RATE * 100)}%)
+          Comissão da Plataforma
         </label>
         <input
           type="text"
@@ -712,6 +730,11 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
           value={formatBRL(commission)}
           className="mt-1 block w-full text-sm px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 text-slate-800 dark:text-slate-100 font-bold cursor-default"
         />
+        {commissionInfo.label && (
+          <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+            Faixa aplicada: {commissionInfo.label}
+          </p>
+        )}
       </div>
 
       {feedback && (
@@ -768,7 +791,7 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
                 <strong>{formatBRL(workerReceives)}</strong>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span>Comissão da Plataforma ({Math.round(COMMISSION_RATE * 100)}%)</span>
+                <span>Comissão da Plataforma</span>
                 <strong className="text-amber-700 dark:text-amber-300">
                   {formatBRL(commission)}
                 </strong>
@@ -794,6 +817,86 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
                 className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold disabled:opacity-60"
               >
                 {submitting ? "Registrando…" : "Confirmar pagamento"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showFeesInfo && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:px-4"
+          onClick={() => setShowFeesInfo(false)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-xl max-w-lg w-full p-6 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-extrabold text-slate-800 dark:text-slate-100">
+              Tabela de Comissões — Trabalhei Lá
+            </h3>
+
+            <h4 className="mt-4 text-sm font-bold text-slate-700 dark:text-slate-200">
+              Processos Ad Exitum (honorários de êxito):
+            </h4>
+            <div className="mt-2 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+              <table className="w-full text-xs sm:text-sm border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+                    <th className="text-left font-semibold px-3 py-2">
+                      Faixa de honorários
+                    </th>
+                    <th className="text-left font-semibold px-3 py-2">
+                      Comissão da plataforma
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="text-slate-600 dark:text-slate-300">
+                  <tr className="border-t border-slate-200 dark:border-slate-700">
+                    <td className="px-3 py-2">Até R$ 5.000,00</td>
+                    <td className="px-3 py-2">12,5% sobre os honorários</td>
+                  </tr>
+                  <tr className="border-t border-slate-200 dark:border-slate-700">
+                    <td className="px-3 py-2">R$ 5.000,01 a R$ 10.000,00</td>
+                    <td className="px-3 py-2">6,25% sobre os honorários</td>
+                  </tr>
+                  <tr className="border-t border-slate-200 dark:border-slate-700">
+                    <td className="px-3 py-2">Acima de R$ 10.000,00</td>
+                    <td className="px-3 py-2">Valor fixo de R$ 750,00</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4 className="mt-4 text-sm font-bold text-slate-700 dark:text-slate-200">
+              Consultas avulsas:
+            </h4>
+            <ul className="mt-2 space-y-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300 list-disc pl-5">
+              <li>
+                Atendimento por chat (30 min): R$ 45,00 — plataforma retém 12,5%
+                = R$ 5,63
+              </li>
+              <li>
+                Atendimento por vídeo (30 min): R$ 75,00 — plataforma retém 12,5%
+                = R$ 9,38
+              </li>
+            </ul>
+
+            <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
+              A cobrança é realizada automaticamente pela plataforma no momento
+              da confirmação do pagamento. O especialista recebe o valor líquido
+              diretamente.
+            </p>
+
+            <div className="mt-5 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowFeesInfo(false)}
+                className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold"
+              >
+                Entendi
               </button>
             </div>
           </div>
