@@ -34,6 +34,9 @@
     { "source": "/api/payments/webhook", "destination": "/api/payments?op=webhook" },
     { "source": "/api/payments/mp-webhook", "destination": "/api/payments?op=webhook" },
     { "source": "/api/payments/release-funds", "destination": "/api/payments?op=release-funds" },
+    { "source": "/api/criar-pagamento-comissao", "destination": "/api/payments?op=commission-checkout" },
+    { "source": "/api/criar-pagamento-repasse", "destination": "/api/payments?op=repasse-checkout" },
+    { "source": "/api/confirmar-pagamento", "destination": "/api/payments?op=confirm-payment" },
     { "source": "/(.*)", "destination": "/" }
   ],
   "headers": [

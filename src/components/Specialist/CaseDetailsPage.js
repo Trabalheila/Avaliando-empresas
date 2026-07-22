@@ -33,6 +33,33 @@ import {
   registerAdExitumCommission,
 } from "../../services/commissions";
 import {
+  saveProcessDetails,
+  addHistoryEntry,
+  listHistory,
+  addPrivateNote,
+  listPrivateNotes,
+  updatePrivateNote,
+  deletePrivateNote,
+  saveChecklist,
+  addDeadline,
+  listDeadlines,
+  setDeadlineStatus,
+  deleteDeadline,
+  uploadCaseDocument,
+  listCaseDocuments,
+  setDocumentVisibility,
+  deleteCaseDocument,
+  getCaseDoc,
+} from "../../services/caseManagement";
+import {
+  calcularVerbasRescisorias,
+  gerarPeticaoInicial,
+  formatBRL as formatBRLUtil,
+  TIPOS_RESCISAO,
+  DEFAULT_CHECKLIST_ITEMS,
+  PROCESS_STATUS_OPTIONS,
+} from "../../utils/laborCalculations";
+import {
   buildVideoCallLink,
   ESSENCIAL_VIDEO_MAX_MINUTES,
   ESSENCIAL_VIDEO_LIMIT_PER_MONTH,
@@ -524,13 +551,38 @@ function formatCurrencyInput(raw) {
  *  processo Ad Exitum, o especialista informa o valor total do processo e o
  *  valor recebido pelo trabalhador. A plataforma calcula a comissão de 10%
  *  sobre o valor recebido e registra a intenção de pagamento no Firestore. */
-function CommissionPaymentCard({ caseId, data, apoiadorId }) {
+function CommissionPaymentCard({ caseId, data, apoiadorId, specialistId }) {
   const [totalValue, setTotalValue] = useState("");
   const [feePercent, setFeePercent] = useState("");
-  const [showConfirm, setShowConfirm] = useState(false);
   const [showFeesInfo, setShowFeesInfo] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null); // { ok, msg }
+  // Fluxo de pagamentos sequencial (Etapa 1 comissão -> Etapa 2 repasse).
+  const [showPayments, setShowPayments] = useState(false);
+  const [commissionStatus, setCommissionStatus] = useState("pendente");
+  const [repasseStatus, setRepasseStatus] = useState("pendente");
+  const [installmentMode, setInstallmentMode] = useState("avista"); // avista | parcelado
+  const [installments, setInstallments] = useState(2);
+  const effectiveSpecialistId = specialistId || apoiadorId;
+
+  // Carrega o status de pagamento persistido no doc do caso.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!effectiveSpecialistId || !caseId) return;
+      try {
+        const c = await getCaseDoc(effectiveSpecialistId, caseId);
+        if (cancelled || !c) return;
+        setCommissionStatus(c.commissionStatus || "pendente");
+        setRepasseStatus(c.repasseStatus || "pendente");
+      } catch {
+        /* silencioso */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveSpecialistId, caseId]);
 
   const total = parseAmount(totalValue);
   const percent = parseAmount(feePercent);
@@ -559,12 +611,84 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
     data?.workerUid || data?.workerId || data?.clientUid || "";
   const processId = data?.processNumber || caseId || "";
 
+  // Etapa 1 — Comissão: registra a intenção (best-effort) e cria o checkout
+  // no Mercado Pago, redirecionando para o init_point.
+  const handlePayCommission = async () => {
+    if (!(commission > 0) || !effectiveSpecialistId) return;
+    setSubmitting(true);
+    setFeedback(null);
+    try {
+      const specialistUid = auth.currentUser?.uid || "";
+      // Mantém a coleção `commissions` populada (usada no perfil do trabalhador).
+      try {
+        await registerAdExitumCommission({
+          workerId,
+          specialistId: apoiadorId,
+          specialistUid,
+          processId,
+          totalProcessValue: total,
+          receivedValue: workerReceives,
+          feePercent: percent,
+          feeValue: feeAmount,
+          requestId: data?.requestId || data?.contactRequestId || "",
+        });
+      } catch {
+        /* best-effort — segue para o pagamento */
+      }
+      const resp = await fetch(buildApiUrl("/api/criar-pagamento-comissao"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          caseId,
+          commissionValue: commission,
+          specialistId: effectiveSpecialistId,
+        }),
+      });
+      const payload = await resp.json().catch(() => ({}));
+      if (!resp.ok || !payload?.init_point) {
+        throw new Error(payload?.error || "Não foi possível iniciar o pagamento da comissão.");
+      }
+      window.location.assign(payload.init_point);
+    } catch (err) {
+      setFeedback({ ok: false, msg: err?.message || "Falha ao iniciar o pagamento." });
+      setSubmitting(false);
+    }
+  };
+
+  // Etapa 2 — Repasse: só habilitada após a comissão paga (validado também no
+  // backend). Suporta à vista ou parcelado (até 12x).
+  const handlePayRepasse = async () => {
+    if (!(workerReceives > 0) || !effectiveSpecialistId) return;
+    if (commissionStatus !== "pago") return;
+    setSubmitting(true);
+    setFeedback(null);
+    try {
+      const resp = await fetch(buildApiUrl("/api/criar-pagamento-repasse"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          caseId,
+          specialistId: effectiveSpecialistId,
+          amount: workerReceives,
+          installments: installmentMode === "parcelado" ? installments : 1,
+        }),
+      });
+      const payload = await resp.json().catch(() => ({}));
+      if (!resp.ok || !payload?.init_point) {
+        throw new Error(payload?.error || "Não foi possível iniciar o repasse.");
+      }
+      window.location.assign(payload.init_point);
+    } catch (err) {
+      setFeedback({ ok: false, msg: err?.message || "Falha ao iniciar o repasse." });
+      setSubmitting(false);
+    }
+  };
+
   const handleConfirm = async () => {
     // Segurança: apenas o especialista autenticado associado ao processo pode
     // registrar a comissão. O uid vai no documento e é validado pelas rules.
     const specialistUid = auth.currentUser?.uid || "";
     if (!specialistUid) {
-      setShowConfirm(false);
       setFeedback({
         ok: false,
         msg: "Sessão expirada. Faça login novamente como especialista.",
@@ -585,7 +709,6 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
         feeValue: feeAmount,
         requestId: data?.requestId || data?.contactRequestId || "",
       });
-      setShowConfirm(false);
       setFeedback({
         ok: true,
         msg: `Comissão registrada com sucesso (${formatBRL(
@@ -593,7 +716,6 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
         )}). Status: pendente de pagamento.`,
       });
     } catch (err) {
-      setShowConfirm(false);
       setFeedback({
         ok: false,
         msg: err?.message || "Não foi possível registrar a comissão.",
@@ -602,6 +724,9 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
       setSubmitting(false);
     }
   };
+  // Mantido para compat: registro direto da comissão (não usado no fluxo de
+  // pagamentos atual, que passa pelo Mercado Pago).
+  void handleConfirm;
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-amber-100 dark:border-slate-700 p-5">
@@ -753,7 +878,7 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
 
       <button
         type="button"
-        onClick={() => setShowConfirm(true)}
+        onClick={() => setShowPayments(true)}
         disabled={!canPay}
         className={
           "mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition " +
@@ -762,61 +887,177 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
             : "bg-slate-300 text-slate-500 cursor-not-allowed dark:bg-slate-700 dark:text-slate-400")
         }
       >
-        Pagar Comissão à Plataforma
+        Fazer Pagamentos
       </button>
 
-      {showConfirm && (
+      {showPayments && (
         <div
           role="dialog"
           aria-modal="true"
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:px-4"
-          onClick={() => !submitting && setShowConfirm(false)}
+          onClick={() => !submitting && setShowPayments(false)}
         >
           <div
-            className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-xl max-w-md w-full p-6 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain"
+            className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-xl max-w-lg w-full p-6 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-lg font-extrabold text-slate-800 dark:text-slate-100">
-              Confirmar pagamento de comissão
+              Pagamentos do Caso
             </h3>
-            <div className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-200">
-              <div className="flex items-center justify-between gap-3">
-                <span>Seu recebimento (honorários)</span>
-                <strong className="text-emerald-700 dark:text-emerald-300">
-                  {formatBRL(feeAmount)}
-                </strong>
+
+            {/* ── Etapa 1 — Comissão da Plataforma ── */}
+            <div className="mt-4 rounded-xl border border-amber-200 dark:border-amber-800 p-4">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="text-sm font-extrabold text-amber-800 dark:text-amber-200">
+                  Etapa 1 — Comissão da Plataforma
+                </h4>
+                {commissionStatus === "pago" && (
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                    ✓ Paga
+                  </span>
+                )}
               </div>
-              <div className="flex items-center justify-between gap-3">
-                <span>Valor recebido pelo trabalhador</span>
-                <strong>{formatBRL(workerReceives)}</strong>
+              <div className="mt-3 space-y-1.5 text-sm text-slate-700 dark:text-slate-200">
+                <div className="flex items-center justify-between gap-3">
+                  <span>Valor do processo</span>
+                  <strong>{formatBRL(total)}</strong>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span>Faixa aplicada</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {commissionInfo.label || "—"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span>Comissão da plataforma</span>
+                  <strong className="text-amber-700 dark:text-amber-300">
+                    {formatBRL(commission)}
+                  </strong>
+                </div>
               </div>
-              <div className="flex items-center justify-between gap-3">
-                <span>Comissão da Plataforma</span>
-                <strong className="text-amber-700 dark:text-amber-300">
-                  {formatBRL(commission)}
-                </strong>
-              </div>
-            </div>
-            <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-              Ao confirmar, registramos a intenção de pagamento da comissão. O
-              status ficará como <strong>pendente</strong> até a quitação.
-            </p>
-            <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setShowConfirm(false)}
+                onClick={handlePayCommission}
+                disabled={submitting || commissionStatus === "pago" || !(commission > 0)}
+                className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold disabled:opacity-60"
+              >
+                {commissionStatus === "pago"
+                  ? "Comissão paga"
+                  : submitting
+                    ? "Redirecionando…"
+                    : "Confirmar e pagar comissão"}
+              </button>
+            </div>
+
+            {/* ── Etapa 2 — Repasse ao Trabalhador ── */}
+            <div
+              className={
+                "mt-4 rounded-xl border p-4 relative " +
+                (commissionStatus === "pago"
+                  ? "border-emerald-200 dark:border-emerald-800"
+                  : "border-slate-200 dark:border-slate-700")
+              }
+            >
+              <h4 className="text-sm font-extrabold text-slate-800 dark:text-slate-100">
+                Etapa 2 — Repasse ao Trabalhador
+              </h4>
+
+              {commissionStatus !== "pago" ? (
+                <div className="mt-3 flex flex-col items-center justify-center text-center py-6 text-slate-500 dark:text-slate-400">
+                  <span className="text-2xl" aria-hidden="true">🔒</span>
+                  <p className="mt-2 text-xs">
+                    Disponível após confirmação do pagamento da comissão
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="mt-3">
+                    <label className="text-[11px] uppercase tracking-wide font-semibold text-slate-500 dark:text-slate-400">
+                      Valor líquido a repassar
+                    </label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={formatBRL(workerReceives)}
+                      className="mt-1 block w-full text-sm px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200 font-bold cursor-default"
+                    />
+                  </div>
+                  <div className="mt-3 flex gap-4 text-sm">
+                    <label className="inline-flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="repasse-mode"
+                        checked={installmentMode === "avista"}
+                        onChange={() => setInstallmentMode("avista")}
+                      />
+                      À vista
+                    </label>
+                    <label className="inline-flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="repasse-mode"
+                        checked={installmentMode === "parcelado"}
+                        onChange={() => setInstallmentMode("parcelado")}
+                      />
+                      Parcelado
+                    </label>
+                  </div>
+                  {installmentMode === "parcelado" && (
+                    <div className="mt-3 grid grid-cols-2 gap-3 items-end">
+                      <div>
+                        <label className="text-[11px] uppercase tracking-wide font-semibold text-slate-500 dark:text-slate-400">
+                          Nº de parcelas (máx. 12)
+                        </label>
+                        <input
+                          type="number"
+                          min={2}
+                          max={12}
+                          value={installments}
+                          onChange={(e) =>
+                            setInstallments(Math.max(2, Math.min(12, Number(e.target.value) || 2)))
+                          }
+                          className="mt-1 block w-full text-sm px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                        />
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 pb-2">
+                        {installments}x de{" "}
+                        {formatBRL(
+                          Math.round((workerReceives / installments) * 100) / 100
+                        )}
+                      </p>
+                    </div>
+                  )}
+                  {repasseStatus === "pago" && (
+                    <p className="mt-3 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                      ✓ Repasse já confirmado.
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handlePayRepasse}
+                    disabled={submitting || !(workerReceives > 0)}
+                    className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold disabled:opacity-60"
+                  >
+                    {submitting ? "Redirecionando…" : "Registrar repasse"}
+                  </button>
+                </>
+              )}
+            </div>
+
+            {feedback && !feedback.ok && (
+              <p className="mt-3 text-sm font-semibold text-red-600 dark:text-red-400">
+                ⚠️ {feedback.msg}
+              </p>
+            )}
+
+            <div className="mt-5 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowPayments(false)}
                 disabled={submitting}
                 className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-bold disabled:opacity-60"
               >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirm}
-                disabled={submitting}
-                className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold disabled:opacity-60"
-              >
-                {submitting ? "Registrando…" : "Confirmar pagamento"}
+                Fechar
               </button>
             </div>
           </div>
@@ -903,6 +1144,709 @@ function CommissionPaymentCard({ caseId, data, apoiadorId }) {
         </div>
       )}
     </div>
+  );
+}
+
+/** Formata data/hora do Firestore Timestamp ou ISO em pt-BR curto. */
+function formatDateTime(ts) {
+  try {
+    const d = ts?.toDate ? ts.toDate() : ts ? new Date(ts) : null;
+    if (!d || Number.isNaN(d.getTime())) return "";
+    return d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  } catch {
+    return "";
+  }
+}
+
+/** Card "Detalhes do Processo": editável pelo advogado, leitura para o
+ *  trabalhador. Salva no Firestore e notifica o trabalhador por e-mail. */
+function ProcessDetailsCard({ specialistId, caseId, realCase, specialistName }) {
+  const initial = realCase?.processDetails || {};
+  const [form, setForm] = useState({
+    processNumber: initial.processNumber || realCase?.processNumber || "",
+    court: initial.court || realCase?.court || "",
+    status: initial.status || realCase?.status || PROCESS_STATUS_OPTIONS[0],
+    processValue: initial.processValue ? String(initial.processValue) : "",
+    nextActionText: initial.nextActionText || realCase?.nextAction || "",
+    nextActionDate: initial.nextActionDate || "",
+  });
+  const [history, setHistory] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!specialistId || !caseId) return;
+      try {
+        const h = await listHistory(specialistId, caseId);
+        if (!cancelled) setHistory(h);
+      } catch {
+        /* silencioso */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [specialistId, caseId]);
+
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const handleSave = async () => {
+    if (!specialistId || !caseId) return;
+    setSaving(true);
+    setMsg(null);
+    try {
+      const details = {
+        ...form,
+        processValue: Number(String(form.processValue).replace(/\./g, "").replace(",", ".")) || 0,
+      };
+      await saveProcessDetails(specialistId, caseId, details);
+      await addHistoryEntry(
+        specialistId,
+        caseId,
+        `Detalhes do processo atualizados. Status: ${details.status || "—"}.`
+      );
+      // Notifica o trabalhador (best-effort, não bloqueia o salvamento).
+      try {
+        const workerUid = realCase?.workerUid || realCase?.userId || "";
+        if (workerUid) {
+          await fetch(buildApiUrl("/api/send-contact-request"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "case-update",
+              workerUid,
+              specialistId,
+              processStatus: details.status,
+              specialistName,
+            }),
+          });
+        }
+      } catch {
+        /* silencioso */
+      }
+      const h = await listHistory(specialistId, caseId);
+      setHistory(h);
+      setMsg({ ok: true, text: "Detalhes salvos e trabalhador notificado." });
+    } catch (err) {
+      setMsg({ ok: false, text: err?.message || "Falha ao salvar." });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inputCls =
+    "mt-1 block w-full text-sm px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100";
+  const labelCls =
+    "text-[11px] uppercase tracking-wide font-semibold text-slate-500 dark:text-slate-400";
+
+  return (
+    <InfoCard>
+      <h2 className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+        <span aria-hidden="true">⚖️</span> Detalhes do Processo
+      </h2>
+      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+        Visível para você e para o trabalhador. Apenas você pode editar.
+      </p>
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className={labelCls}>Número do Processo</label>
+          <input className={inputCls} value={form.processNumber} onChange={set("processNumber")} placeholder="0000000-00.0000.0.00.0000" />
+        </div>
+        <div>
+          <label className={labelCls}>Instância / Vara</label>
+          <input className={inputCls} value={form.court} onChange={set("court")} placeholder="1ª Vara do Trabalho de..." />
+        </div>
+        <div>
+          <label className={labelCls}>Status do processo</label>
+          <select className={inputCls} value={form.status} onChange={set("status")}>
+            {PROCESS_STATUS_OPTIONS.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={labelCls}>Valor do processo (R$)</label>
+          <input className={inputCls} inputMode="decimal" value={form.processValue} onChange={set("processValue")} placeholder="0,00" />
+        </div>
+        <div>
+          <label className={labelCls}>Próxima ação / Prazo</label>
+          <input className={inputCls} value={form.nextActionText} onChange={set("nextActionText")} placeholder="Ex.: Protocolar réplica" />
+        </div>
+        <div>
+          <label className={labelCls}>Data do prazo</label>
+          <input type="date" className={inputCls} value={form.nextActionDate} onChange={set("nextActionDate")} />
+        </div>
+      </div>
+
+      {msg && (
+        <p className={"mt-3 text-sm font-semibold " + (msg.ok ? "text-emerald-700 dark:text-emerald-300" : "text-red-600 dark:text-red-400")}>
+          {msg.ok ? "✅ " : "⚠️ "}{msg.text}
+        </p>
+      )}
+
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={saving}
+        className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold disabled:opacity-60"
+      >
+        {saving ? "Salvando…" : "Salvar detalhes"}
+      </button>
+
+      {history.length > 0 && (
+        <div className="mt-5">
+          <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">
+            Histórico de atualizações
+          </h3>
+          <ol className="mt-2 space-y-2">
+            {history.map((h) => (
+              <li key={h.id} className="flex gap-3 text-sm">
+                <span className="shrink-0 text-xs font-semibold text-blue-700 dark:text-blue-300 w-28">
+                  {formatDateTime(h.createdAt)}
+                </span>
+                <span className="text-slate-700 dark:text-slate-200">{h.text}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </InfoCard>
+  );
+}
+
+/** Card "Minhas Anotações": notas privadas do advogado (nunca visíveis ao
+ *  trabalhador — garantido pelas regras do Firestore). */
+function PrivateNotesCard({ specialistId, caseId }) {
+  const [draft, setDraft] = useState("");
+  const [notes, setNotes] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(null); // { id, text }
+
+  const reload = async () => {
+    if (!specialistId || !caseId) return;
+    try {
+      setNotes(await listPrivateNotes(specialistId, caseId));
+    } catch {
+      /* silencioso */
+    }
+  };
+  useEffect(() => {
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [specialistId, caseId]);
+
+  const handleAdd = async () => {
+    if (!draft.trim()) return;
+    setBusy(true);
+    try {
+      await addPrivateNote(specialistId, caseId, draft.trim());
+      setDraft("");
+      await reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editing) return;
+    setBusy(true);
+    try {
+      await updatePrivateNote(specialistId, caseId, editing.id, editing.text);
+      setEditing(null);
+      await reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    setBusy(true);
+    try {
+      await deletePrivateNote(specialistId, caseId, id);
+      await reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <InfoCard>
+      <h2 className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+        <span aria-hidden="true">🔐</span> Minhas Anotações
+      </h2>
+      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+        Visível apenas para você. O trabalhador nunca tem acesso a estas notas.
+      </p>
+      <textarea
+        rows={3}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        placeholder="Registre aqui informações importantes, estratégias, lembretes e observações sobre o caso…"
+        className="mt-3 w-full p-3 text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+      />
+      <button
+        type="button"
+        onClick={handleAdd}
+        disabled={busy || !draft.trim()}
+        className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-800 text-white text-sm font-bold disabled:opacity-60"
+      >
+        Salvar anotação
+      </button>
+
+      <ul className="mt-4 space-y-3">
+        {notes.map((n) => (
+          <li key={n.id} className="rounded-lg border border-slate-200 dark:border-slate-700 p-3">
+            {editing?.id === n.id ? (
+              <>
+                <textarea
+                  rows={3}
+                  value={editing.text}
+                  onChange={(e) => setEditing({ ...editing, text: e.target.value })}
+                  className="w-full p-2 text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                />
+                <div className="mt-2 flex gap-2">
+                  <button type="button" onClick={handleSaveEdit} disabled={busy} className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Salvar</button>
+                  <button type="button" onClick={() => setEditing(null)} className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-xs font-bold">Cancelar</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line">{n.text}</p>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <span className="text-[11px] text-slate-400 dark:text-slate-500">{formatDateTime(n.createdAt)}</span>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setEditing({ id: n.id, text: n.text })} className="text-xs font-semibold text-blue-700 dark:text-blue-300 hover:underline">Editar</button>
+                    <button type="button" onClick={() => handleDelete(n.id)} className="text-xs font-semibold text-red-600 dark:text-red-400 hover:underline">Excluir</button>
+                  </div>
+                </div>
+              </>
+            )}
+          </li>
+        ))}
+      </ul>
+    </InfoCard>
+  );
+}
+
+/** Calculadora de verbas rescisórias. */
+function LaborCalculatorCard({ specialistId, caseId, onSavedToHistory }) {
+  const [f, setF] = useState({ admissao: "", demissao: "", salario: "", tipoRescisao: "sem_justa_causa" });
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+  const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
+
+  const handleCalc = () => {
+    setSaved(false);
+    const r = calcularVerbasRescisorias(f);
+    if (!r.ok) {
+      setError(r.error || "Verifique os dados.");
+      setResult(null);
+      return;
+    }
+    setError("");
+    setResult(r);
+  };
+
+  const handleSaveHistory = async () => {
+    if (!result) return;
+    const linhas = result.itens
+      .filter((it) => it.value > 0)
+      .map((it) => `${it.label}: ${formatBRLUtil(it.value)}`)
+      .join(" · ");
+    await addHistoryEntry(
+      specialistId,
+      caseId,
+      `Cálculo de verbas rescisórias — Total: ${formatBRLUtil(result.total)}. ${linhas}`,
+      { kind: "calculo_verbas" }
+    );
+    setSaved(true);
+    if (typeof onSavedToHistory === "function") onSavedToHistory();
+  };
+
+  const inputCls =
+    "mt-1 block w-full text-sm px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100";
+  const labelCls =
+    "text-[11px] uppercase tracking-wide font-semibold text-slate-500 dark:text-slate-400";
+
+  return (
+    <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+      <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100">
+        🧮 Calculadora de Verbas Trabalhistas
+      </h3>
+      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className={labelCls}>Data de admissão</label>
+          <input type="date" className={inputCls} value={f.admissao} onChange={set("admissao")} />
+        </div>
+        <div>
+          <label className={labelCls}>Data de demissão</label>
+          <input type="date" className={inputCls} value={f.demissao} onChange={set("demissao")} />
+        </div>
+        <div>
+          <label className={labelCls}>Último salário (R$)</label>
+          <input inputMode="decimal" className={inputCls} value={f.salario} onChange={set("salario")} placeholder="0,00" />
+        </div>
+        <div>
+          <label className={labelCls}>Tipo de rescisão</label>
+          <select className={inputCls} value={f.tipoRescisao} onChange={set("tipoRescisao")}>
+            {TIPOS_RESCISAO.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
+      <button type="button" onClick={handleCalc} className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold">
+        Calcular
+      </button>
+
+      {result && (
+        <div className="mt-4">
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+            {result.itens.map((it) => (
+              <li key={it.key} className="py-1.5 flex items-center justify-between gap-3">
+                <span className="text-slate-600 dark:text-slate-300">{it.label}</span>
+                <strong className="text-slate-800 dark:text-slate-100">{formatBRLUtil(it.value)}</strong>
+              </li>
+            ))}
+            <li className="py-2 flex items-center justify-between gap-3">
+              <span className="font-bold text-slate-800 dark:text-slate-100">Total estimado</span>
+              <strong className="text-emerald-700 dark:text-emerald-300">{formatBRLUtil(result.total)}</strong>
+            </li>
+          </ul>
+          <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">
+            Estimativa simplificada. Confira conforme a CCT/ACT e verbas variáveis.
+          </p>
+          <button type="button" onClick={handleSaveHistory} disabled={saved} className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-800 text-white text-sm font-bold disabled:opacity-60">
+            {saved ? "Adicionado ✓" : "Adicionar ao histórico do caso"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Gerador de petição inicial (texto editável + copiar). */
+function PeticaoGeneratorCard({ realCase, clientProfile }) {
+  const [text, setText] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const handleGenerate = () => {
+    const details = realCase?.processDetails || {};
+    setText(
+      gerarPeticaoInicial({
+        autorNome: clientProfile?.fullName || realCase?.clientAlias || "",
+        autorCpf: clientProfile?.cpf || "",
+        autorEndereco: clientProfile?.address || "",
+        reclamada: realCase?.companyName || "",
+        vara: details.court || realCase?.court || "",
+        valorCausa: details.processValue || "",
+      })
+    );
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* fallback silencioso */
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+      <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100">
+        📝 Gerador de Petição Inicial
+      </h3>
+      <button type="button" onClick={handleGenerate} className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold">
+        Gerar rascunho
+      </button>
+      {text && (
+        <>
+          <textarea
+            rows={12}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="mt-3 w-full p-3 text-xs font-mono rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+          />
+          <button type="button" onClick={handleCopy} className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-800 text-white text-sm font-bold">
+            {copied ? "Copiado!" : "Copiar texto"}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Checklist do processo com barra de progresso. */
+function ChecklistCard({ specialistId, caseId, realCase }) {
+  const [items, setItems] = useState(() => {
+    const existing = realCase?.checklist;
+    if (Array.isArray(existing) && existing.length) return existing;
+    return DEFAULT_CHECKLIST_ITEMS.map((label, i) => ({ id: `chk_${i}`, label, done: false, custom: false }));
+  });
+  const [newItem, setNewItem] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const persist = async (next) => {
+    setItems(next);
+    setSaving(true);
+    try {
+      await saveChecklist(specialistId, caseId, next);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggle = (id) => persist(items.map((it) => (it.id === id ? { ...it, done: !it.done } : it)));
+  const remove = (id) => persist(items.filter((it) => it.id !== id));
+  const add = () => {
+    if (!newItem.trim()) return;
+    persist([...items, { id: `chk_custom_${Date.now()}`, label: newItem.trim(), done: false, custom: true }]);
+    setNewItem("");
+  };
+
+  const done = items.filter((i) => i.done).length;
+  const pct = items.length ? Math.round((done / items.length) * 100) : 0;
+
+  return (
+    <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100">✅ Checklist do Processo</h3>
+        <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{pct}%</span>
+      </div>
+      <div className="mt-2 h-2 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+        <div className="h-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+      </div>
+      <ul className="mt-3 space-y-1.5">
+        {items.map((it) => (
+          <li key={it.id} className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={it.done} onChange={() => toggle(it.id)} className="h-4 w-4" />
+            <span className={"flex-1 " + (it.done ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-slate-200")}>{it.label}</span>
+            {it.custom && (
+              <button type="button" onClick={() => remove(it.id)} className="text-xs text-red-600 dark:text-red-400 hover:underline">remover</button>
+            )}
+          </li>
+        ))}
+      </ul>
+      <div className="mt-3 flex gap-2">
+        <input
+          value={newItem}
+          onChange={(e) => setNewItem(e.target.value)}
+          placeholder="Adicionar item personalizado"
+          className="flex-1 text-sm px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+        />
+        <button type="button" onClick={add} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold">Adicionar</button>
+      </div>
+      {saving && <p className="mt-2 text-[11px] text-slate-400">Salvando…</p>}
+    </div>
+  );
+}
+
+/** Documentos do caso: upload ao Storage + controle de visibilidade. */
+function CaseDocumentsCard({ specialistId, caseId }) {
+  const [docs, setDocs] = useState([]);
+  const [desc, setDesc] = useState("");
+  const [visible, setVisible] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const fileRef = React.useRef(null);
+
+  const reload = async () => {
+    try {
+      setDocs(await listCaseDocuments(specialistId, caseId));
+    } catch {
+      /* silencioso */
+    }
+  };
+  useEffect(() => {
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [specialistId, caseId]);
+
+  const handleUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBusy(true);
+    setError("");
+    try {
+      await uploadCaseDocument(specialistId, caseId, file, { description: desc, visibleToWorker: visible });
+      setDesc("");
+      setVisible(false);
+      if (fileRef.current) fileRef.current.value = "";
+      await reload();
+    } catch (err) {
+      setError(err?.message || "Falha no upload.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleVisibility = async (d) => {
+    await setDocumentVisibility(specialistId, caseId, d.id, !d.visibleToWorker);
+    await reload();
+  };
+  const handleDelete = async (d) => {
+    await deleteCaseDocument(specialistId, caseId, d);
+    await reload();
+  };
+
+  return (
+    <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+      <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100">📁 Documentos do Caso</h3>
+      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">PDF, DOC/DOCX ou imagem (até 25 MB).</p>
+      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <input
+          value={desc}
+          onChange={(e) => setDesc(e.target.value)}
+          placeholder="Descrição do documento"
+          className="text-sm px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+        />
+        <label className="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+          <input type="checkbox" checked={visible} onChange={(e) => setVisible(e.target.checked)} />
+          Visível ao trabalhador
+        </label>
+      </div>
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".pdf,.doc,.docx,image/png,image/jpeg,image/webp"
+        onChange={handleUpload}
+        disabled={busy}
+        className="mt-3 block w-full text-sm text-slate-600 dark:text-slate-300 file:mr-3 file:px-4 file:py-2 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:text-sm file:font-bold"
+      />
+      {busy && <p className="mt-2 text-[11px] text-slate-400">Enviando…</p>}
+      {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
+
+      <ul className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
+        {docs.map((d) => (
+          <li key={d.id} className="py-2 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <a href={d.url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-blue-700 dark:text-blue-300 hover:underline truncate block">
+                {d.name}
+              </a>
+              <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                {d.description ? `${d.description} · ` : ""}{formatDateTime(d.createdAt)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button type="button" onClick={() => toggleVisibility(d)} className={"text-[11px] font-bold px-2 py-1 rounded-full " + (d.visibleToWorker ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400")}>
+                {d.visibleToWorker ? "Visível" : "Privado"}
+              </button>
+              <button type="button" onClick={() => handleDelete(d)} className="text-xs text-red-600 dark:text-red-400 hover:underline">excluir</button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Agenda de prazos com badge de alerta (≤ 3 dias). */
+function DeadlinesCard({ specialistId, caseId }) {
+  const [list, setList] = useState([]);
+  const [form, setForm] = useState({ description: "", dueDate: "" });
+  const [busy, setBusy] = useState(false);
+
+  const reload = async () => {
+    try {
+      setList(await listDeadlines(specialistId, caseId));
+    } catch {
+      /* silencioso */
+    }
+  };
+  useEffect(() => {
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [specialistId, caseId]);
+
+  const add = async () => {
+    if (!form.description.trim() || !form.dueDate) return;
+    setBusy(true);
+    try {
+      await addDeadline(specialistId, caseId, form);
+      setForm({ description: "", dueDate: "" });
+      await reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+  const toggle = async (d) => {
+    await setDeadlineStatus(specialistId, caseId, d.id, d.status === "concluido" ? "pendente" : "concluido");
+    await reload();
+  };
+  const remove = async (d) => {
+    await deleteDeadline(specialistId, caseId, d.id);
+    await reload();
+  };
+
+  const daysUntil = (dueDate) => {
+    const d = new Date(dueDate);
+    if (Number.isNaN(d.getTime())) return null;
+    return Math.ceil((d - new Date()) / (1000 * 60 * 60 * 24));
+  };
+
+  const inputCls =
+    "text-sm px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100";
+
+  return (
+    <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+      <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100">📅 Agenda de Prazos</h3>
+      <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+        Um lembrete por e-mail é enviado ao advogado 3 dias antes de cada prazo.
+      </p>
+      <div className="mt-3 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2">
+        <input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} placeholder="Descrição do prazo" className={inputCls} />
+        <input type="date" value={form.dueDate} onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))} className={inputCls} />
+        <button type="button" onClick={add} disabled={busy} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold disabled:opacity-60">Adicionar</button>
+      </div>
+      <ul className="mt-4 space-y-2">
+        {list.map((d) => {
+          const days = daysUntil(d.dueDate);
+          const urgent = d.status !== "concluido" && days !== null && days <= 3;
+          return (
+            <li key={d.id} className="flex items-center justify-between gap-3 text-sm">
+              <div className="flex items-center gap-2 min-w-0">
+                <input type="checkbox" checked={d.status === "concluido"} onChange={() => toggle(d)} className="h-4 w-4" />
+                <span className={d.status === "concluido" ? "line-through text-slate-400" : "text-slate-700 dark:text-slate-200"}>{d.description}</span>
+                {urgent && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                    {days <= 0 ? "Vencido" : `${days}d`}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs text-slate-500 dark:text-slate-400">{new Date(d.dueDate).toLocaleDateString("pt-BR")}</span>
+                <button type="button" onClick={() => remove(d)} className="text-xs text-red-600 dark:text-red-400 hover:underline">excluir</button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/** Seção "Ferramentas do Caso" — agrupa as ferramentas de produtividade. */
+function CaseToolsCard({ specialistId, caseId, realCase, clientProfile }) {
+  return (
+    <InfoCard>
+      <h2 className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+        <span aria-hidden="true">🛠️</span> Ferramentas do Caso
+      </h2>
+      <div className="mt-4 space-y-4">
+        <LaborCalculatorCard specialistId={specialistId} caseId={caseId} />
+        <PeticaoGeneratorCard realCase={realCase} clientProfile={clientProfile} />
+        <ChecklistCard specialistId={specialistId} caseId={caseId} realCase={realCase} />
+        <CaseDocumentsCard specialistId={specialistId} caseId={caseId} />
+        <DeadlinesCard specialistId={specialistId} caseId={caseId} />
+      </div>
+    </InfoCard>
   );
 }
 
@@ -1707,6 +2651,28 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
               />
             )}
             {tipo === "advogado" && (
+              <ProcessDetailsCard
+                specialistId={specialistIdForCase}
+                caseId={caseId}
+                realCase={realCase}
+                specialistName={specialistName}
+              />
+            )}
+            {tipo === "advogado" && (
+              <PrivateNotesCard
+                specialistId={specialistIdForCase}
+                caseId={caseId}
+              />
+            )}
+            {tipo === "advogado" && (
+              <CaseToolsCard
+                specialistId={specialistIdForCase}
+                caseId={caseId}
+                realCase={realCase}
+                clientProfile={clientProfile}
+              />
+            )}
+            {tipo === "advogado" && (
               <PeticaoCard
                 client={clientProfile}
                 clientAlias={data.client}
@@ -1717,6 +2683,7 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
                 caseId={caseId}
                 data={data}
                 apoiadorId={apoiadorId}
+                specialistId={specialistIdForCase}
               />
             )}
             <ReceiptUploadCard

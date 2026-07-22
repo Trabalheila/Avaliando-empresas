@@ -54,7 +54,10 @@ export default async function handler(req, res) {
     if (op === "mp-checkout" || op === "mercado-pago-checkout") return await handleMpCheckout(req, res);
     if (op === "webhook" || op === "mp-webhook") return await handleWebhook(req, res);
     if (op === "release-funds") return await handleReleaseFunds(req, res);
-    return res.status(404).json({ error: "op invalido. Use create-charge | mp-checkout | webhook | release-funds." });
+    if (op === "commission-checkout") return await handleCommissionCheckout(req, res);
+    if (op === "repasse-checkout") return await handleRepasseCheckout(req, res);
+    if (op === "confirm-payment") return await handleConfirmPayment(req, res);
+    return res.status(404).json({ error: "op invalido. Use create-charge | mp-checkout | webhook | release-funds | commission-checkout | repasse-checkout | confirm-payment." });
   } catch (err) {
     console.error(`[payments:${op}] erro:`, err);
     return res.status(500).json({ error: err.message || "Erro interno." });
@@ -510,4 +513,251 @@ async function releaseMercadoPagoPayment(paymentId) {
     throw new Error(`MP release ${resp.status}: ${data?.message || ""}`);
   }
   return true;
+}
+
+// =========================================================================
+// PAGAMENTOS DO CASO (Ad Exitum) — Comissão da plataforma + Repasse.
+// Fluxo sequencial bloqueante: a Etapa 2 (repasse) só é liberada quando a
+// Etapa 1 (comissão) estiver com status "pago", validado no BACKEND.
+//
+// Estado persistido no doc do caso:
+//   apoiadores/{specialistId}/cases/{caseId}
+//     commissionValue, commissionStatus ('pendente'|'pago'),
+//     commissionPreferenceId, commissionPaidAt
+//     repasseAmount, repasseInstallments, repasseStatus ('pendente'|'pago'),
+//     repassePreferenceId, repassePaidAt
+// =========================================================================
+
+function appBaseUrl() {
+  return (process.env.APP_BASE_URL || "").replace(/\/+$/, "");
+}
+
+function caseDocRef(db, specialistId, caseId) {
+  return db
+    .collection("apoiadores")
+    .doc(String(specialistId))
+    .collection("cases")
+    .doc(String(caseId));
+}
+
+/** Cria uma preferência de Checkout Pro (retorna init_point). */
+async function createMercadoPagoPreference({
+  title,
+  amount,
+  externalReference,
+  backUrls,
+  maxInstallments = 1,
+}) {
+  const accessToken = getMercadoPagoAccessToken();
+  const body = {
+    items: [
+      {
+        title: String(title || "Pagamento").slice(0, 240),
+        quantity: 1,
+        unit_price: Number(amount),
+        currency_id: "BRL",
+      },
+    ],
+    external_reference: externalReference,
+    back_urls: backUrls,
+    auto_return: "approved",
+    payment_methods: {
+      installments: Math.max(1, Math.min(12, Number(maxInstallments) || 1)),
+    },
+    notification_url: `${appBaseUrl()}/api/payments/mp-webhook`,
+  };
+  const resp = await fetch("https://api.mercadopago.com/checkout/preferences", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      "X-Idempotency-Key": `pref-${externalReference}-${Date.now()}`,
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    throw new Error(`MercadoPago preferences ${resp.status}: ${data?.message || JSON.stringify(data)}`);
+  }
+  return { id: data.id, init_point: data.init_point, sandbox_init_point: data.sandbox_init_point };
+}
+
+// Etapa 1 — Comissão da plataforma.
+async function handleCommissionCheckout(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  const { caseId, commissionValue, specialistId } = req.body || {};
+  if (!caseId || !specialistId) {
+    return res.status(400).json({ error: "caseId e specialistId obrigatórios." });
+  }
+  const value = Number(commissionValue);
+  if (!(value > 0)) {
+    return res.status(400).json({ error: "commissionValue inválido." });
+  }
+
+  const { db, FieldValue } = await getAdminResources();
+  const ref = caseDocRef(db, specialistId, caseId);
+  const snap = await ref.get();
+  if (!snap.exists) return res.status(404).json({ error: "Caso não encontrado." });
+  const caseData = snap.data() || {};
+  if (caseData.commissionStatus === "pago") {
+    return res.status(409).json({ error: "Comissão já paga.", commissionStatus: "pago" });
+  }
+
+  const externalReference = `comissao:${specialistId}:${caseId}`;
+  const returnBase = `${appBaseUrl()}`;
+  const pref = await createMercadoPagoPreference({
+    title: `Comissão da plataforma — Caso ${caseId}`,
+    amount: Math.round(value * 100) / 100,
+    externalReference,
+    backUrls: {
+      success: `${returnBase}/pagamento-confirmado?tipo=comissao&caseId=${encodeURIComponent(caseId)}&specialistId=${encodeURIComponent(specialistId)}`,
+      pending: `${returnBase}/pagamento-confirmado?tipo=comissao&caseId=${encodeURIComponent(caseId)}&specialistId=${encodeURIComponent(specialistId)}`,
+      failure: `${returnBase}/pagamento-cancelado`,
+    },
+    maxInstallments: 1,
+  });
+
+  await ref.set(
+    {
+      commissionValue: Math.round(value * 100) / 100,
+      commissionStatus: "pendente",
+      commissionPreferenceId: String(pref.id),
+      updated_at: FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  return res.status(200).json({ ok: true, init_point: pref.init_point, preferenceId: pref.id });
+}
+
+// Etapa 2 — Repasse ao trabalhador (bloqueada até comissão paga).
+async function handleRepasseCheckout(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  const { caseId, specialistId, amount, installments } = req.body || {};
+  if (!caseId || !specialistId) {
+    return res.status(400).json({ error: "caseId e specialistId obrigatórios." });
+  }
+  const value = Number(amount);
+  if (!(value > 0)) return res.status(400).json({ error: "amount inválido." });
+  const parcelas = Math.max(1, Math.min(12, Number(installments) || 1));
+
+  const { db, FieldValue } = await getAdminResources();
+  const ref = caseDocRef(db, specialistId, caseId);
+  const snap = await ref.get();
+  if (!snap.exists) return res.status(404).json({ error: "Caso não encontrado." });
+  const caseData = snap.data() || {};
+
+  // REGRA DE NEGÓCIO CRÍTICA (validada no backend): o repasse só pode ser
+  // criado se a comissão da plataforma já estiver confirmada como "pago".
+  if (caseData.commissionStatus !== "pago") {
+    return res.status(403).json({
+      error: "A Etapa 2 só é liberada após a confirmação do pagamento da comissão.",
+      code: "COMMISSION_NOT_PAID",
+    });
+  }
+
+  const externalReference = `repasse:${specialistId}:${caseId}`;
+  const returnBase = `${appBaseUrl()}`;
+  const pref = await createMercadoPagoPreference({
+    title: `Repasse ao trabalhador — Caso ${caseId}`,
+    amount: Math.round(value * 100) / 100,
+    externalReference,
+    backUrls: {
+      success: `${returnBase}/pagamento-confirmado?tipo=repasse&caseId=${encodeURIComponent(caseId)}&specialistId=${encodeURIComponent(specialistId)}`,
+      pending: `${returnBase}/pagamento-confirmado?tipo=repasse&caseId=${encodeURIComponent(caseId)}&specialistId=${encodeURIComponent(specialistId)}`,
+      failure: `${returnBase}/pagamento-cancelado`,
+    },
+    maxInstallments: parcelas,
+  });
+
+  await ref.set(
+    {
+      repasseAmount: Math.round(value * 100) / 100,
+      repasseInstallments: parcelas,
+      repasseStatus: "pendente",
+      repassePreferenceId: String(pref.id),
+      updated_at: FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  // Para parcelamentos, registra cada parcela no histórico do caso.
+  if (parcelas > 1) {
+    const perParcela = Math.round((value / parcelas) * 100) / 100;
+    const batch = db.batch();
+    for (let i = 1; i <= parcelas; i++) {
+      const hRef = ref.collection("history").doc();
+      batch.set(hRef, {
+        text: `Repasse — Parcela ${i} de ${parcelas} (${perParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}) — pendente`,
+        kind: "repasse_parcela",
+        parcela: i,
+        totalParcelas: parcelas,
+        status: "pendente",
+        createdBy: "system",
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    }
+    await batch.commit();
+  }
+
+  return res.status(200).json({ ok: true, init_point: pref.init_point, preferenceId: pref.id });
+}
+
+// Confirmação server-side: busca o pagamento REAL no Mercado Pago e só marca
+// como "pago" quando o próprio MP retornar status "approved". Nunca confia em
+// status vindo do cliente.
+async function handleConfirmPayment(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  const { caseId, specialistId, tipo, paymentId } = req.body || {};
+  if (!caseId || !specialistId || !tipo) {
+    return res.status(400).json({ error: "caseId, specialistId e tipo obrigatórios." });
+  }
+
+  let approved = false;
+  if (paymentId) {
+    try {
+      const payment = await fetchMercadoPagoPayment(String(paymentId));
+      approved = payment && String(payment.status).toLowerCase() === "approved";
+    } catch (err) {
+      console.error("[confirm-payment] falha ao consultar MP:", err);
+      return res.status(502).json({ error: "Falha ao consultar o pagamento no Mercado Pago." });
+    }
+  }
+
+  const { db, FieldValue } = await getAdminResources();
+  const ref = caseDocRef(db, specialistId, caseId);
+  const snap = await ref.get();
+  if (!snap.exists) return res.status(404).json({ error: "Caso não encontrado." });
+
+  if (!approved) {
+    return res.status(200).json({ ok: true, status: "pendente", approved: false });
+  }
+
+  if (tipo === "comissao") {
+    await ref.set(
+      { commissionStatus: "pago", commissionPaidAt: FieldValue.serverTimestamp(), updated_at: FieldValue.serverTimestamp() },
+      { merge: true }
+    );
+    await ref.collection("history").add({
+      text: "Comissão da plataforma paga.",
+      kind: "comissao",
+      status: "pago",
+      createdBy: "system",
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  } else if (tipo === "repasse") {
+    await ref.set(
+      { repasseStatus: "pago", repassePaidAt: FieldValue.serverTimestamp(), updated_at: FieldValue.serverTimestamp() },
+      { merge: true }
+    );
+    await ref.collection("history").add({
+      text: "Repasse ao trabalhador confirmado.",
+      kind: "repasse",
+      status: "pago",
+      createdBy: "system",
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  }
+
+  return res.status(200).json({ ok: true, status: "pago", approved: true });
 }

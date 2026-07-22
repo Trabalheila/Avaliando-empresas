@@ -64,6 +64,8 @@ import PagamentoConsultaPage from './pages/PagamentoConsultaPage';
 import ConsultaConfirmacaoPage from './pages/ConsultaConfirmacaoPage';
 import AgendarAdExitumPage from './pages/AgendarAdExitumPage';
 import SelecionarConsultaPage from './pages/SelecionarConsultaPage';
+import PagamentoConfirmado from './pages/PagamentoConfirmado';
+import PagamentoCancelado from './pages/PagamentoCancelado';
 import ConsultaEspecializadaDetalhesPage from './pages/ConsultaEspecializadaDetalhesPage';
 import migrateApoiadoresToUsers from './scripts/migrateApoiadoresToUsers';
 
@@ -268,6 +270,8 @@ function App() {
       <Route path="/consulta-avulsa" element={<RequireAuth><ConsultaAvulsaPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/pagamento-consulta" element={<RequireAuth><PagamentoConsultaPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/consulta/confirmacao" element={<RequireAuth><ConsultaConfirmacaoPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/pagamento-confirmado" element={<RequireAuth><PagamentoConfirmado theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/pagamento-cancelado" element={<RequireAuth><PagamentoCancelado theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/agendar-ad-exitum/:specialistId" element={<RequireAuth><AgendarAdExitumPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/selecionar-consulta/:specialistId" element={<RequireAuth><SelecionarConsultaPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/consulta-especializada-detalhes/:specialistId" element={<RequireAuth><ConsultaEspecializadaDetalhesPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />

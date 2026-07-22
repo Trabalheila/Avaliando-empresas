@@ -181,6 +181,60 @@ export default async function handler(req, res) {
   const fromAddress = process.env.EMAIL_FROM_ADDRESS;
   const appBaseUrl = (process.env.APP_BASE_URL || "").replace(/\/+$/, "");
 
+  // ── Fluxo Atualização do Processo (painel do advogado) ────────────
+  // Notifica o trabalhador quando o advogado salva os "Detalhes do Processo".
+  // O e-mail é resolvido no servidor a partir do workerUid (users/{uid}.email),
+  // nunca trafega pelo cliente. Link direto para os casos do trabalhador.
+  if (type === "case-update") {
+    const tag = "send-contact-request:case-update";
+    const workerUid = String(body.workerUid || "").trim();
+    const specialistId = String(body.specialistId || "").trim();
+    const processStatus = String(body.processStatus || "").slice(0, 80);
+    const specialistName = String(body.specialistName || "seu especialista").slice(0, 120);
+    if (!workerUid) {
+      return res.status(400).json({ ok: false, error: "workerUid obrigatório." });
+    }
+    if (!resendKey || !fromAddress) {
+      return res.status(200).json({ ok: true, emailed: false, reason: "email_disabled" });
+    }
+    const workerEmail = await tryResolveEmail("users", workerUid, tag);
+    if (!workerEmail) {
+      return res.status(200).json({ ok: true, emailed: false, reason: "email_unknown" });
+    }
+    const caseLink = specialistId
+      ? `${appBaseUrl}/trabalhador/especialista/${encodeURIComponent(specialistId)}/casos`
+      : `${appBaseUrl}/minha-conta`;
+    try {
+      const resend = new Resend(resendKey);
+      const { error } = await resend.emails.send({
+        from: fromAddress,
+        to: workerEmail,
+        subject: "Atualização no seu processo — Trabalhei Lá",
+        html: `
+          <div style="font-family:Arial,sans-serif;color:#1e293b;max-width:560px;">
+            <h2 style="color:#1d4ed8;">Seu processo foi atualizado</h2>
+            <p>${escapeHtml(specialistName)} atualizou os detalhes do seu processo no Trabalhei Lá.</p>
+            ${processStatus ? `<p><strong>Status atual:</strong> ${escapeHtml(processStatus)}</p>` : ""}
+            <p style="margin:20px 0;">
+              <a href="${escapeHtml(caseLink)}" style="background:#1d4ed8;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold;">
+                Ver meu processo
+              </a>
+            </p>
+            <p style="font-size:12px;color:#64748b;">Você recebeu este e-mail porque possui um caso ativo com um especialista na plataforma.</p>
+          </div>
+        `,
+      });
+      if (error) {
+        console.warn(`[${tag}] resend erro:`, error);
+        return res.status(200).json({ ok: true, emailed: false, reason: "resend_error" });
+      }
+      return res.status(200).json({ ok: true, emailed: true });
+    } catch (err) {
+      console.warn(`[${tag}] falha:`, err?.message || err);
+      return res.status(200).json({ ok: true, emailed: false, reason: "exception" });
+    }
+  }
+
   // ── Fluxo Atividade (reação/resposta em avaliação) ────────────────
   // Notifica por e-mail o AUTOR de uma avaliação quando seu comentário recebe
   // uma reação ou resposta. Disparado logo após a criação da notificação

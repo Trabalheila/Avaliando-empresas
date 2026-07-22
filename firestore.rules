@@ -317,8 +317,47 @@ service cloud.firestore {
                 || request.auth.uid ==
                    get(/databases/$(database)/documents/apoiadores/$(apoiadorId)).data.uid);
         }
-        allow read, create, update: if isCaseOwner();
+        // Trabalhador vinculado ao caso (workerUid no doc do caso). Usa get()
+        // para funcionar tanto no doc quanto nas subcoleções.
+        function isCaseWorker() {
+          return request.auth != null
+            && request.auth.uid ==
+               get(/databases/$(database)/documents/apoiadores/$(apoiadorId)/cases/$(caseId)).data.workerUid;
+        }
+        // O trabalhador vinculado pode LER o caso (detalhes do processo,
+        // checklist), mas só o especialista dono cria/edita.
+        allow read: if isCaseOwner()
+          || (request.auth != null && resource.data.workerUid == request.auth.uid);
+        allow create, update: if isCaseOwner();
         allow delete: if false;
+
+        // Notas privadas do advogado — NUNCA acessíveis ao trabalhador.
+        // Apenas o especialista dono do perfil lê/escreve.
+        match /privateNotes/{noteId} {
+          allow read, write: if isCaseOwner();
+        }
+
+        // Histórico de atualizações: advogado registra; trabalhador só lê.
+        // Imutável após criado (não permite update/delete pelo cliente).
+        match /history/{historyId} {
+          allow read: if isCaseOwner() || isCaseWorker();
+          allow create: if isCaseOwner();
+          allow update, delete: if false;
+        }
+
+        // Agenda de prazos: advogado gerencia; trabalhador só lê.
+        match /deadlines/{deadlineId} {
+          allow read: if isCaseOwner() || isCaseWorker();
+          allow write: if isCaseOwner();
+        }
+
+        // Documentos do caso: advogado gerencia. O trabalhador só lê os que
+        // foram explicitamente marcados como visíveis para ele.
+        match /caseDocuments/{docId} {
+          allow read: if isCaseOwner()
+            || (isCaseWorker() && resource.data.visibleToWorker == true);
+          allow write: if isCaseOwner();
+        }
       }
 
       // Documentos enviados pelo especialista, organizados por caso.
