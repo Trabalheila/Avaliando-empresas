@@ -56,18 +56,6 @@ import {
 // Helpers locais
 // ─────────────────────────────────────────────────────────────────────
 
-function pseudonymFromName(name = "") {
-  const first = (name || "")
-    .toString()
-    .trim()
-    .split(/\s+/)[0] || "";
-  return first
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9]/g, "")
-    .slice(0, 18);
-}
-
 function isValidEmail(v) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((v || "").trim());
 }
@@ -102,9 +90,11 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
     }
   }, [location?.search]);
 
-  // Form (3 campos do fluxo manual).
+  // Form (fluxo manual).
   const [pseudonym, setPseudonym] = useState("");
   const [email, setEmail] = useState("");
+  const [company, setCompany] = useState("");
+  const [role, setRole] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -194,9 +184,8 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
             ? stored.linkedinExperiences
             : null,
         });
-        setPseudonym((prev) =>
-          prev || pseudonymFromName(stored.nomeReal || stored.fullName || "")
-        );
+        // Ponto 1: o pseudônimo NUNCA é pré-preenchido com o nome real
+        // vindo do Google/LinkedIn — o campo permanece vazio.
         setEmail((prev) => prev || stored.email || "");
         setSocialAwaitingPseudonym(true);
       }
@@ -319,7 +308,21 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
           chosenPseudonym: pseudo,
           emailValue: signed.email,
           providerLabel: "email",
-          extra: {},
+          // Ponto 5/6: empresa e cargo do cadastro MANUAL entram como uma
+          // experiência NÃO verificada (verified: false).
+          extra:
+            company.trim() && role.trim()
+              ? {
+                  experiences: [
+                    {
+                      company: company.trim(),
+                      role: role.trim(),
+                      source: "manual",
+                      verified: false,
+                    },
+                  ],
+                }
+              : {},
         });
       } catch (err) {
         console.error("[choosePseudonym] Submit manual falhou:", err);
@@ -328,7 +331,7 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
         setSubmitting(false);
       }
     },
-    [pseudonym, email, password, confirmPassword, finalizeProfile, markFunnelStarted]
+    [pseudonym, email, company, role, password, confirmPassword, finalizeProfile, markFunnelStarted]
   );
 
   // ─── Finaliza pseudônimo após login social ───
@@ -397,7 +400,7 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
             fullName: s.displayName || "",
           },
         });
-        setPseudonym((prev) => prev || pseudonymFromName(s.displayName || ""));
+        // Ponto 1: não pré-preenche o pseudônimo com o nome do Google.
         setEmail((prev) => prev || s.email || "");
         setSocialAwaitingPseudonym(true);
       } else {
@@ -519,6 +522,35 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
                   className="mt-1 w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">
+                    Empresa <span className="font-normal text-slate-400">(opcional)</span>
+                  </span>
+                  <input
+                    type="text"
+                    autoComplete="organization"
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                    placeholder="Onde você trabalhou"
+                    className="mt-1 w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </label>
+                <label className="block">
+                  <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">
+                    Cargo / Função <span className="font-normal text-slate-400">(opcional)</span>
+                  </span>
+                  <input
+                    type="text"
+                    autoComplete="organization-title"
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    placeholder="Seu cargo"
+                    className="mt-1 w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </label>
+              </div>
 
               <label className="block">
                 <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">Senha</span>
@@ -674,6 +706,30 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
                   Selo de Perfil Verificado ativado pelo LinkedIn.
                 </p>
               )}
+
+              {/* Ponto 3: preview das experiências importadas — apenas empresa
+                  e cargo, sem qualquer outro dado do perfil. */}
+              {Array.isArray(socialContext?.linkedinExperiences) &&
+                socialContext.linkedinExperiences.length > 0 && (
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-3">
+                    <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                      Experiências detectadas
+                    </p>
+                    <ul className="mt-2 space-y-1.5">
+                      {socialContext.linkedinExperiences.map((exp, idx) => {
+                        const empresa = exp?.company || exp?.companyName || exp?.organization || "";
+                        const cargo = exp?.role || exp?.title || exp?.position || "";
+                        if (!empresa && !cargo) return null;
+                        return (
+                          <li key={idx} className="text-sm text-slate-700 dark:text-slate-200">
+                            <span className="font-semibold">{cargo || "—"}</span>
+                            {empresa ? <span className="text-slate-500 dark:text-slate-400"> · {empresa}</span> : null}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
 
               {error && (
                 <p role="alert" className="text-sm font-semibold text-rose-600 dark:text-rose-400">

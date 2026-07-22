@@ -212,8 +212,8 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
             className="px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 text-sm inline-flex items-center gap-1.5"
             aria-label="Alternar tema"
           >
-            {theme === "dark" ? "🌙" : "☀️"}
-            <span className="appHeaderThemeLabel hidden sm:inline">{theme === "dark" ? "Tema Escuro" : "Tema Claro"}</span>
+            {theme === "dark" ? "☀️" : "🌙"}
+            <span className="appHeaderThemeLabel hidden sm:inline">{theme === "dark" ? "Modo Claro" : "Modo Escuro"}</span>
           </button>
           <style>{`
             @media (max-width: 480px) {

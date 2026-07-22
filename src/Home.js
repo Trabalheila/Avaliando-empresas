@@ -1627,21 +1627,12 @@ function Home({ theme, toggleTheme }) {
       return;
     }
 
-    // Avaliação com nota geral abaixo de 3.0: oferece ajuda de profissionais
-    // especializados. O popup assume o controle da navegação (aparece uma
-    // única vez por submissão). Caso contrário, redireciona normalmente para
-    // a empresa.
-    const overallAverage = getCompanyAverageValue(evaluationData);
-    if (typeof overallAverage === "number" && overallAverage < 3.0) {
-      setLawyerOfferCompany(evaluationData.company || "");
-      setShowLawyerOfferModal(true);
-      return;
-    }
-
-    setTimeout(() => {
-      navigate(`/empresa?name=${encodeURIComponent(evaluationData.company)}`);
-    }, 1500);
-  }, [navigate, REVIEW_DRAFT_STORAGE_KEY, getCompanyAverageValue]);
+    // Ao final de QUALQUER avaliação, oferece ajuda de profissionais
+    // especializados — independentemente da nota dada à empresa. O popup
+    // assume o controle da navegação (sempre redireciona para /minha-conta).
+    setLawyerOfferCompany(evaluationData.company || "");
+    setShowLawyerOfferModal(true);
+  }, [navigate, REVIEW_DRAFT_STORAGE_KEY]);
 
   // Roda as validações e abre o modal de Termo de Responsabilidade.
   // Compartilhado entre o clique inicial em "Enviar Avaliação" (quando o
@@ -2599,13 +2590,11 @@ function Home({ theme, toggleTheme }) {
         companyName={lawyerOfferCompany}
         onAccept={() => {
           setShowLawyerOfferModal(false);
-          navigate("/trabalhador/encontrar-especialista");
+          navigate("/minha-conta");
         }}
         onDecline={() => {
           setShowLawyerOfferModal(false);
-          if (lawyerOfferCompany) {
-            navigate(`/empresa?name=${encodeURIComponent(lawyerOfferCompany)}`);
-          }
+          navigate("/minha-conta");
         }}
       />
 

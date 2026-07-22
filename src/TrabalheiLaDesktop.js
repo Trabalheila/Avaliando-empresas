@@ -533,7 +533,7 @@ function TrabalheiLaDesktop({
                 className="px-3 py-1.5 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 text-sm whitespace-nowrap"
                 aria-label="Alternar tema"
               >
-                {theme === "dark" ? "🌙 Tema" : "☀️ Tema"}
+                {theme === "dark" ? "☀️ Modo Claro" : "🌙 Modo Escuro"}
               </button>
             </div>
 

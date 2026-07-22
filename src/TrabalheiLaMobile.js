@@ -689,7 +689,7 @@ function TrabalheiLaMobile({
             style={{ width: 24, height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, fontSize: '1rem', lineHeight: 1 }}
             aria-label="Alternar tema claro/escuro"
           >
-            {theme === "dark" ? "🌙" : "☀️"}
+            {theme === "dark" ? "☀️" : "🌙"}
           </button>
           {!isAuthenticated && (
             <button

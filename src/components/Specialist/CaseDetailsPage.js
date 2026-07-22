@@ -551,7 +551,7 @@ function formatCurrencyInput(raw) {
  *  processo Ad Exitum, o especialista informa o valor total do processo e o
  *  valor recebido pelo trabalhador. A plataforma calcula a comissão de 10%
  *  sobre o valor recebido e registra a intenção de pagamento no Firestore. */
-function CommissionPaymentCard({ caseId, data, apoiadorId, specialistId }) {
+function CommissionPaymentCard({ caseId, data, apoiadorId, specialistId, specialistName }) {
   const [totalValue, setTotalValue] = useState("");
   const [feePercent, setFeePercent] = useState("");
   const [showFeesInfo, setShowFeesInfo] = useState(false);
@@ -642,6 +642,7 @@ function CommissionPaymentCard({ caseId, data, apoiadorId, specialistId }) {
           caseId,
           commissionValue: commission,
           specialistId: effectiveSpecialistId,
+          specialistName,
         }),
       });
       const payload = await resp.json().catch(() => ({}));
@@ -2684,6 +2685,7 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
                 data={data}
                 apoiadorId={apoiadorId}
                 specialistId={specialistIdForCase}
+                specialistName={specialistName}
               />
             )}
             <ReceiptUploadCard

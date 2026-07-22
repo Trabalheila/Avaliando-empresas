@@ -529,7 +529,7 @@ async function releaseMercadoPagoPayment(paymentId) {
 // =========================================================================
 
 function appBaseUrl() {
-  return (process.env.APP_BASE_URL || "").replace(/\/+$/, "");
+  return (process.env.APP_BASE_URL || "https://www.trabalheila.com.br").replace(/\/+$/, "");
 }
 
 function caseDocRef(db, specialistId, caseId) {
@@ -562,6 +562,8 @@ async function createMercadoPagoPreference({
     back_urls: backUrls,
     auto_return: "approved",
     payment_methods: {
+      // Nao exclui nenhum tipo — garante PIX, cartao e boleto disponiveis.
+      excluded_payment_types: [],
       installments: Math.max(1, Math.min(12, Number(maxInstallments) || 1)),
     },
     notification_url: `${appBaseUrl()}/api/payments/mp-webhook`,
@@ -585,7 +587,7 @@ async function createMercadoPagoPreference({
 // Etapa 1 — Comissão da plataforma.
 async function handleCommissionCheckout(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
-  const { caseId, commissionValue, specialistId } = req.body || {};
+  const { caseId, commissionValue, specialistId, specialistName } = req.body || {};
   if (!caseId || !specialistId) {
     return res.status(400).json({ error: "caseId e specialistId obrigatórios." });
   }
@@ -593,6 +595,7 @@ async function handleCommissionCheckout(req, res) {
   if (!(value > 0)) {
     return res.status(400).json({ error: "commissionValue inválido." });
   }
+  const advogadoNome = String(specialistName || "").trim();
 
   const { db, FieldValue } = await getAdminResources();
   const ref = caseDocRef(db, specialistId, caseId);
@@ -606,7 +609,9 @@ async function handleCommissionCheckout(req, res) {
   const externalReference = `comissao:${specialistId}:${caseId}`;
   const returnBase = `${appBaseUrl()}`;
   const pref = await createMercadoPagoPreference({
-    title: `Comissão da plataforma — Caso ${caseId}`,
+    title: advogadoNome
+      ? `Comissão da Plataforma — ${advogadoNome}`
+      : "Comissão da Plataforma — Trabalhei Lá",
     amount: Math.round(value * 100) / 100,
     externalReference,
     backUrls: {
@@ -659,7 +664,7 @@ async function handleRepasseCheckout(req, res) {
   const externalReference = `repasse:${specialistId}:${caseId}`;
   const returnBase = `${appBaseUrl()}`;
   const pref = await createMercadoPagoPreference({
-    title: `Repasse ao trabalhador — Caso ${caseId}`,
+    title: "Repasse ao Trabalhador — Trabalhei Lá",
     amount: Math.round(value * 100) / 100,
     externalReference,
     backUrls: {

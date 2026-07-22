@@ -7,11 +7,10 @@ import React from "react";
  *
  * Props:
  *  - open: boolean — controla a visibilidade.
- *  - companyName: string — nome da empresa avaliada (usado na mensagem).
  *  - onAccept: () => void — usuário clicou "Quero buscar ajuda".
  *  - onDecline: () => void — usuário clicou "Não, obrigado".
  */
-export default function LawyerOfferModal({ open, companyName, onAccept, onDecline }) {
+export default function LawyerOfferModal({ open, onAccept, onDecline }) {
   if (!open) return null;
 
   return (
@@ -49,9 +48,9 @@ export default function LawyerOfferModal({ open, companyName, onAccept, onDeclin
         </h2>
 
         <p style={{ marginTop: 12, marginBottom: 0, lineHeight: 1.5, fontSize: 14, color: "#334155" }}>
-          Identificamos que sua experiência{companyName ? ` na ${companyName}` : " nesta empresa"} foi
-          difícil. Você sabia que pode buscar ajuda de profissionais especializados
-          em direitos trabalhistas e saúde ocupacional? Estamos aqui para te ajudar.
+          Você sabia que pode contar com profissionais especializados em direitos
+          trabalhistas e saúde ocupacional? Se precisar de orientação, estamos aqui
+          para te ajudar a dar o próximo passo.
         </p>
 
         <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
