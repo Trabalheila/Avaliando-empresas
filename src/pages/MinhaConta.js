@@ -19,6 +19,7 @@ import { resolveProfileId } from "../utils/profileIdentity";
 import { findUnifiedProfile } from "../services/users";
 import AppHeader from "../components/AppHeader";
 import WorkerProfessionalContactSettings from "../components/WorkerProfessionalContactSettings";
+import WorkerCasesSection from "../components/Worker/WorkerCasesSection";
 import ConsultaAvulsaModal from "../components/ConsultaAvulsaModal";
 import ConsultaAvulsaIntroModal from "../components/ConsultaAvulsaIntroModal";
 import VerifyIdentitySection from "../components/VerifyIdentitySection";
@@ -571,6 +572,9 @@ export default function MinhaConta({ theme, toggleTheme }) {
       <AppHeader theme={theme} toggleTheme={toggleTheme} title="Minha Conta" />
 
       <div className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+
+        {/* ══════ Meus Casos (somente leitura) ══════ */}
+        <WorkerCasesSection workerUid={authUid} />
 
         {/* ══════ Dados do Perfil ══════ */}
         <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">

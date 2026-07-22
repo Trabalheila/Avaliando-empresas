@@ -16,7 +16,7 @@
 
 import { Resend } from "resend";
 import { handleSendReceipt } from "./_sendReceipt.js";
-import { getServiceAccount } from "./_firebaseAdmin.js";
+import { getServiceAccount, getAdminResources } from "./_firebaseAdmin.js";
 import { notifySpecialistWhatsApp } from "./_whatsapp.js";
 
 function escapeHtml(value) {
@@ -157,6 +157,143 @@ async function resolveReviewAuthor(reviewId, tag) {
   }
 }
 
+// ── CRON: lembrete de prazos (Agenda de Prazos do painel do advogado) ──
+// Executado diariamente pela Vercel (ver "crons" em vercel.json). Busca todos
+// os prazos com status "pendente", reminderSent=false e data limite igual a
+// hoje + 3 dias, e envia um e-mail de lembrete ao advogado via Resend. Após o
+// envio, marca reminderSent=true para não repetir.
+//
+// Proteção: exige o header Authorization: Bearer <CRON_SECRET>. A Vercel envia
+// esse header automaticamente quando a variável CRON_SECRET está configurada.
+async function handleCronPrazos(req, res) {
+  const cronSecret = (process.env.CRON_SECRET || "").trim();
+  if (cronSecret) {
+    const authHeader = String(req.headers?.authorization || "");
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      return res.status(401).json({ ok: false, error: "Não autorizado." });
+    }
+  }
+
+  const resendKey = process.env.RESEND_API_KEY;
+  const fromAddress = process.env.EMAIL_FROM_ADDRESS;
+  const appBaseUrl = (process.env.APP_BASE_URL || "").replace(/\/+$/, "");
+
+  // Data alvo = hoje + 3 dias, no fuso de Brasília (yyyy-mm-dd).
+  const target = (() => {
+    const now = new Date();
+    // Ajusta para America/Sao_Paulo (UTC-3) antes de somar os 3 dias.
+    const brasilia = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+    brasilia.setUTCDate(brasilia.getUTCDate() + 3);
+    return brasilia.toISOString().slice(0, 10);
+  })();
+
+  let db;
+  let FieldValue;
+  try {
+    ({ db, FieldValue } = await getAdminResources());
+  } catch (err) {
+    console.error("[cron-prazos] admin indisponível:", err?.message || err);
+    return res.status(500).json({ ok: false, error: "Admin SDK indisponível." });
+  }
+
+  let processed = 0;
+  let sent = 0;
+  try {
+    // collectionGroup cobre todos os apoiadores/*/cases/*/deadlines.
+    const snap = await db
+      .collectionGroup("deadlines")
+      .where("dueDate", "==", target)
+      .get();
+
+    const resend = resendKey && fromAddress ? new Resend(resendKey) : null;
+
+    for (const docSnap of snap.docs) {
+      const d = docSnap.data() || {};
+      if (d.status !== "pendente" || d.reminderSent === true) continue;
+      processed += 1;
+
+      // Deriva specialistId e caseId a partir do caminho do documento:
+      // apoiadores/{specialistId}/cases/{caseId}/deadlines/{id}
+      const caseRef = docSnap.ref.parent.parent;
+      const caseId = caseRef?.id || "";
+      const specialistId = caseRef?.parent?.parent?.id || "";
+
+      // Resolve o e-mail do advogado: apoiadores/{specialistId}.email → fallback
+      // users/{createdBy}.email.
+      let advEmail = "";
+      let advName = "advogado(a)";
+      try {
+        if (specialistId) {
+          const apoiadorSnap = await db.doc(`apoiadores/${specialistId}`).get();
+          if (apoiadorSnap.exists) {
+            const a = apoiadorSnap.data() || {};
+            advEmail = String(a.email || "").trim().toLowerCase();
+            advName = String(a.nomeCompleto || a.nome || a.name || advName);
+          }
+        }
+        if (!advEmail && d.createdBy) {
+          const uSnap = await db.doc(`users/${d.createdBy}`).get();
+          if (uSnap.exists) advEmail = String(uSnap.data()?.email || "").trim().toLowerCase();
+        }
+      } catch (err) {
+        console.warn("[cron-prazos] resolveEmail falhou:", err?.message || err);
+      }
+
+      if (!resend || !advEmail) {
+        // Sem provedor de e-mail ou destinatário: não marca como enviado para
+        // permitir nova tentativa em execução futura.
+        continue;
+      }
+
+      const caseLink = `${appBaseUrl}/especialista/advogado/caso/${encodeURIComponent(caseId)}`;
+      const prazoFmt = (() => {
+        try {
+          const [y, m, dd] = String(d.dueDate).split("-");
+          return `${dd}/${m}/${y}`;
+        } catch {
+          return String(d.dueDate);
+        }
+      })();
+
+      try {
+        const { error } = await resend.emails.send({
+          from: fromAddress,
+          to: advEmail,
+          subject: "Lembrete de prazo — Trabalhei Lá",
+          html: `
+            <div style="font-family:Arial,sans-serif;color:#1e293b;max-width:560px;">
+              <h2 style="color:#b45309;">⏰ Prazo se aproximando</h2>
+              <p>Olá, ${escapeHtml(advName)}. Um prazo do seu caso vence em <strong>3 dias</strong>.</p>
+              <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:16px;">
+                <p style="margin:0 0 6px;"><strong>Prazo:</strong> ${escapeHtml(d.description || "—")}</p>
+                <p style="margin:0;"><strong>Data limite:</strong> ${escapeHtml(prazoFmt)}</p>
+              </div>
+              <p style="margin:20px 0;">
+                <a href="${escapeHtml(caseLink)}" style="background:#b45309;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold;">
+                  Abrir o caso
+                </a>
+              </p>
+            </div>
+          `,
+        });
+        if (error) {
+          console.warn("[cron-prazos] resend erro:", error);
+          continue;
+        }
+        await docSnap.ref.update({ reminderSent: true, reminderSentAt: FieldValue.serverTimestamp() });
+        sent += 1;
+      } catch (err) {
+        console.warn("[cron-prazos] envio falhou:", err?.message || err);
+      }
+    }
+  } catch (err) {
+    console.error("[cron-prazos] falha na consulta:", err?.message || err);
+    return res.status(500).json({ ok: false, error: err?.message || "Erro na consulta." });
+  }
+
+  return res.status(200).json({ ok: true, target, processed, sent });
+}
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
@@ -164,6 +301,13 @@ export default async function handler(req, res) {
   // (mantém a contagem de Serverless Functions dentro do limite da Vercel).
   if (String(req.query?.op || "").toLowerCase() === "receipt") {
     return handleSendReceipt(req, res);
+  }
+
+  // Rota consolidada do CRON de prazos: /api/cron-prazos →
+  // /api/send-contact-request?op=cron-prazos (evita criar uma nova Serverless
+  // Function e estourar o limite da Vercel).
+  if (String(req.query?.op || "").toLowerCase() === "cron-prazos") {
+    return handleCronPrazos(req, res);
   }
 
   if (req.method !== "POST") {

@@ -1016,6 +1016,7 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apoiadorId]);
 
   useEffect(() => {
