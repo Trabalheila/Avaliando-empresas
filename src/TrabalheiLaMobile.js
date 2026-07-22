@@ -224,9 +224,12 @@ function TrabalheiLaMobile({
   getBadgeColor: getBadgeColorProp,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
   handleCaptchaConfirmed,
+  requestFindHelpRedirect,
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  // Sinaliza que o próximo envio foi acionado por "Enviar e Buscar Ajuda".
+  const findHelpAfterSubmitRef = React.useRef(false);
   const COMMENT_GUIDANCE_TEXT = "Descreva comportamentos e situações. Evite citar nomes de pessoas.";
   const COMMENT_WARNING_TEXT = "Identificamos possível citação de nome. Considere substituir por descrição do comportamento ou situação.";
 
@@ -531,6 +534,8 @@ function TrabalheiLaMobile({
 
   const handleConfirmSend = () => {
     setShowConfirmModal(false);
+    requestFindHelpRedirect?.(findHelpAfterSubmitRef.current);
+    findHelpAfterSubmitRef.current = false;
     handleSubmit({ preventDefault: () => {} });
   };
 
@@ -1448,6 +1453,7 @@ function TrabalheiLaMobile({
               }
             `}</style>
             <button type="submit"
+              onClick={() => { findHelpAfterSubmitRef.current = false; }}
               className={`w-full py-3 rounded-xl font-bold text-white transition-all ${
                 isAuthenticated ? "bg-blue-600 hover:bg-blue-700" : "bg-blue-600"
               }`}
@@ -1467,6 +1473,14 @@ function TrabalheiLaMobile({
               ) : (
                 "Faça login para avaliar"
               )}
+            </button>
+            <button type="submit"
+              onClick={() => { findHelpAfterSubmitRef.current = true; }}
+              className="w-full py-3 rounded-xl font-bold transition-all"
+              style={{ backgroundColor: '#FFC107', color: '#1f2937' }}
+              disabled={!isAuthenticated || isLoading}
+            >
+              Enviar e Buscar Ajuda
             </button>
             {((commentRating && containsPossiblePersonName(commentRating)) ||
               (generalComment && containsPossiblePersonName(generalComment)) ||

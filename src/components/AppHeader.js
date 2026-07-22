@@ -171,9 +171,9 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
 
   return (
     <nav className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-blue-100 dark:border-slate-700 shadow-sm" style={{ height: 'auto' }}>
-      <div className="max-w-6xl mx-auto px-3.5 py-2 sm:py-2 sm:min-h-[64px]" style={{ display: "flex", flexDirection: "row", alignItems: "center", width: "100%", justifyContent: "space-between" }}>
+      <div className="max-w-6xl mx-auto px-3.5 py-2 min-h-[64px]" style={{ display: "flex", flexDirection: "row", alignItems: "center", width: "100%", justifyContent: "space-between" }}>
         {/* ── Zona esquerda: Voltar ── */}
-        <div className="flex items-center gap-3" style={{ flex: "0 1 auto" /* paddingLeft: 16 removido */ }}>
+        <div className="flex items-center gap-3" style={{ flex: "0 1 auto", paddingLeft: 24 }}>
           {showBack && (
             <button
               type="button"
@@ -200,12 +200,12 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
             <span style={{ color: "#FFC107" }}>LÁ</span>
           </button>
           {title && (
-            <span className="text-center w-full text-sm sm:text-base md:text-lg font-bold text-slate-500 dark:text-slate-400 mt-0.5 pb-2">{title}</span>
+            <span className="text-center w-full text-sm sm:text-base md:text-lg font-bold text-slate-500 dark:text-slate-400 mt-2 pb-2">{title}</span>
           )}
         </div>
 
         {/* ── Zona direita: Tema + Avatar ── */}
-        <div className="flex items-center" style={{ flex: "0 1 auto", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 /* paddingRight: 16 removido */ }}>
+        <div className="flex items-center" style={{ flex: "0 1 auto", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, paddingRight: 24 }}>
           <button
             type="button"
             onClick={toggleTheme}

@@ -138,10 +138,13 @@ function TrabalheiLaDesktop({
   handleCompanyInputChange,
   showCaptcha, setShowCaptcha, captchaConfirmed, setCaptchaConfirmed,
   handleCaptchaConfirmed,
+  requestFindHelpRedirect,
 }) {
 
   const { t } = useTranslation();
   const navigate = useNavigate();
+  // Sinaliza que o próximo envio foi acionado por "Enviar e Buscar Ajuda".
+  const findHelpAfterSubmitRef = React.useRef(false);
   const COMMENT_GUIDANCE_TEXT = "Descreva comportamentos e situações. Evite citar nomes de pessoas.";
   const COMMENT_WARNING_TEXT = "Identificamos possível citação de nome. Considere substituir por descrição do comportamento ou situação.";
 
@@ -404,6 +407,8 @@ function TrabalheiLaDesktop({
 
   const handleConfirmSend = () => {
     setShowConfirmModal(false);
+    requestFindHelpRedirect?.(findHelpAfterSubmitRef.current);
+    findHelpAfterSubmitRef.current = false;
     handleSubmit({ preventDefault: () => {} });
   };
 
@@ -1226,29 +1231,40 @@ function TrabalheiLaDesktop({
                       50% { box-shadow: 0 0 20px rgba(59,130,246,0.8), 0 0 40px rgba(59,130,246,0.3); }
                     }
                   `}</style>
-                  <button type="submit"
-                    className={`px-8 py-3 rounded-full font-extrabold text-white transition-all ${
-                      isAuthenticated
-                        ? "bg-gradient-to-r from-blue-600 to-blue-800 hover:shadow-xl hover:scale-105"
-                        : "bg-blue-600"
-                    }`}
-                    style={!isAuthenticated ? { animation: 'ctaGlow 2s ease-in-out infinite' } : undefined}
-                    disabled={!isAuthenticated || isLoading}
-                  >
-                    {isLoading ? (
-                      <span className="inline-flex items-center justify-center gap-2">
-                        <span
-                          aria-hidden="true"
-                          className="inline-block h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin"
-                        />
-                        <span>Enviando</span>
-                      </span>
-                    ) : isAuthenticated ? (
-                      "Enviar Avaliação"
-                    ) : (
-                      "Faça login para avaliar"
-                    )}
-                  </button>
+                  <div className="flex flex-col sm:flex-row sm:justify-center sm:items-center gap-3">
+                    <button type="submit"
+                      onClick={() => { findHelpAfterSubmitRef.current = false; }}
+                      className={`px-8 py-3 rounded-full font-extrabold text-white transition-all ${
+                        isAuthenticated
+                          ? "bg-gradient-to-r from-blue-600 to-blue-800 hover:shadow-xl hover:scale-105"
+                          : "bg-blue-600"
+                      }`}
+                      style={!isAuthenticated ? { animation: 'ctaGlow 2s ease-in-out infinite' } : undefined}
+                      disabled={!isAuthenticated || isLoading}
+                    >
+                      {isLoading ? (
+                        <span className="inline-flex items-center justify-center gap-2">
+                          <span
+                            aria-hidden="true"
+                            className="inline-block h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin"
+                          />
+                          <span>Enviando</span>
+                        </span>
+                      ) : isAuthenticated ? (
+                        "Enviar Avaliação"
+                      ) : (
+                        "Faça login para avaliar"
+                      )}
+                    </button>
+                    <button type="submit"
+                      onClick={() => { findHelpAfterSubmitRef.current = true; }}
+                      className="px-8 py-3 rounded-full font-extrabold transition-all hover:shadow-xl hover:scale-105"
+                      style={{ backgroundColor: '#FFC107', color: '#1f2937' }}
+                      disabled={!isAuthenticated || isLoading}
+                    >
+                      Enviar e Buscar Ajuda
+                    </button>
+                  </div>
                   {((commentRating && containsPossiblePersonName(commentRating)) ||
                     (generalComment && containsPossiblePersonName(generalComment)) ||
                     Object.values(campos).some(c => c.comment && containsPossiblePersonName(c.comment))) && (

@@ -529,16 +529,20 @@ service cloud.firestore {
     // Comissões "Ad Exitum" devidas à plataforma.
     //
     // Registradas pelo especialista (advogado) ao informar o valor total do
-    // processo e o valor recebido pelo trabalhador. A comissão (10% sobre o
-    // valor recebido) fica como `status: "pending"` até a quitação.
+    // processo e o valor recebido pelo trabalhador. A comissão é progressiva
+    // sobre os honorários do advogado (feeValue) e fica como
+    // `status: "pending"` até a quitação:
+    //   • até R$ 5.000,00            → 12,5% sobre os honorários
+    //   • R$ 5.000,01 a R$ 10.000,00 → 6,25% sobre os honorários
+    //   • acima de R$ 10.000,00      → valor fixo de R$ 750,00
     //
     // SEGURANÇA: somente o especialista autenticado associado ao processo
     // pode criar o registro (specialistUid == auth.uid). Os valores precisam
-    // ser numéricos e positivos, e a comissão precisa bater com 10% dos
-    // honorários do advogado (feeValue), com tolerância de 1 centavo para
-    // arredondamento. A leitura é liberada ao especialista e ao trabalhador
-    // vinculado (para exibir os valores no perfil do trabalhador). Registros
-    // são imutáveis pelo cliente — quitação/ajuste ficam a cargo do backend.
+    // ser numéricos e positivos, e a comissão precisa bater com a faixa
+    // aplicável, com tolerância de 1 centavo para arredondamento. A leitura é
+    // liberada ao especialista e ao trabalhador vinculado (para exibir os
+    // valores no perfil do trabalhador). Registros são imutáveis pelo cliente
+    // — quitação/ajuste ficam a cargo do backend.
     match /commissions/{commissionId} {
       allow read: if request.auth != null
         && (resource.data.specialistUid == request.auth.uid
@@ -553,10 +557,22 @@ service cloud.firestore {
         && request.resource.data.feeValue is number
         && request.resource.data.feeValue > 0
         && request.resource.data.commissionValue is number
-        && request.resource.data.commissionValue
-             >= request.resource.data.feeValue * 0.1 - 0.01
-        && request.resource.data.commissionValue
-             <= request.resource.data.feeValue * 0.1 + 0.01;
+        && (
+          (request.resource.data.feeValue <= 5000
+            && request.resource.data.commissionValue
+                 >= request.resource.data.feeValue * 0.125 - 0.01
+            && request.resource.data.commissionValue
+                 <= request.resource.data.feeValue * 0.125 + 0.01)
+          || (request.resource.data.feeValue > 5000
+            && request.resource.data.feeValue <= 10000
+            && request.resource.data.commissionValue
+                 >= request.resource.data.feeValue * 0.0625 - 0.01
+            && request.resource.data.commissionValue
+                 <= request.resource.data.feeValue * 0.0625 + 0.01)
+          || (request.resource.data.feeValue > 10000
+            && request.resource.data.commissionValue >= 749.99
+            && request.resource.data.commissionValue <= 750.01)
+        );
       allow update, delete: if false;
     }
   }

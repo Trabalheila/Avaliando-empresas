@@ -434,6 +434,10 @@ function Home({ theme, toggleTheme }) {
   // Sinaliza que o usuário clicou em "Enviar Avaliação" e está aguardando
   // o captcha — após confirmá-lo, o fluxo deve continuar automaticamente.
   const pendingSubmitAfterCaptchaRef = React.useRef(false);
+  // Sinaliza que o envio foi iniciado pelo botão "Enviar e Buscar Ajuda":
+  // após o sucesso, redireciona para a listagem de especialistas em vez de
+  // seguir o fluxo padrão (empresa / oferta de advogado).
+  const redirectToEspecialistasRef = React.useRef(false);
   const [userProfile, setUserProfile] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("userProfile") || "{}");
@@ -1613,6 +1617,16 @@ function Home({ theme, toggleTheme }) {
     setEmailVerificationToast({ type: "success", message: successMessage });
     localStorage.removeItem(REVIEW_DRAFT_STORAGE_KEY);
 
+    // Envio disparado pelo botão "Enviar e Buscar Ajuda": após o sucesso,
+    // redireciona para a listagem de especialistas, ignorando o fluxo padrão.
+    if (redirectToEspecialistasRef.current) {
+      redirectToEspecialistasRef.current = false;
+      setTimeout(() => {
+        navigate("/especialistas?origem=avaliacao");
+      }, 1500);
+      return;
+    }
+
     // Avaliação com nota geral abaixo de 3.0: oferece ajuda de profissionais
     // especializados. O popup assume o controle da navegação (aparece uma
     // única vez por submissão). Caso contrário, redireciona normalmente para
@@ -1902,6 +1916,12 @@ function Home({ theme, toggleTheme }) {
     navigate(`/empresa?name=${encodeURIComponent(company.value)}`);
   }, [company, navigate]);
 
+  // Marca (ou limpa) a intenção de redirecionar para os especialistas após o
+  // envio da avaliação. Acionado pelos botões "Enviar e Buscar Ajuda" /
+  // "Enviar Avaliação" nos formulários (desktop e mobile).
+  const requestFindHelpRedirect = useCallback((value = true) => {
+    redirectToEspecialistasRef.current = Boolean(value);
+  }, []);
   const linkedInClientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID;
   const linkedInRedirectUri = getLinkedInRedirectUri();
 
@@ -2566,6 +2586,7 @@ function Home({ theme, toggleTheme }) {
     getMedalColor, getMedalEmoji, getBadgeColor, safeCompanyOptions,
     handleCompanyInputChange,
     handleSaibaMais,
+    requestFindHelpRedirect,
   };
 
   return (
