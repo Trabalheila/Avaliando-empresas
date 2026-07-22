@@ -1622,7 +1622,7 @@ function Home({ theme, toggleTheme }) {
     if (redirectToEspecialistasRef.current) {
       redirectToEspecialistasRef.current = false;
       setTimeout(() => {
-        navigate("/especialistas?origem=avaliacao");
+        navigate("/apoiadores?origem=avaliacao");
       }, 1500);
       return;
     }
