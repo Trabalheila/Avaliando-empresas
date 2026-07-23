@@ -17,6 +17,9 @@ import { ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebas
 import { getUserRole, isPremium, isAdmin } from "../utils/rbac";
 import { resolveProfileId } from "../utils/profileIdentity";
 import { findUnifiedProfile } from "../services/users";
+import LoginLinkedInButton from "../LoginLinkedInButton";
+import { getLinkedInRedirectUri } from "../utils/linkedinAuth";
+import { buildApiUrl } from "../utils/apiBase";
 import AppHeader from "../components/AppHeader";
 import WorkerProfessionalContactSettings from "../components/WorkerProfessionalContactSettings";
 import WorkerCasesSection from "../components/Worker/WorkerCasesSection";
@@ -107,9 +110,23 @@ function getPlanColor(profile) {
   return "text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700";
 }
 
+// Determina se o perfil já está conectado/validado pelo LinkedIn. Cobre os
+// diferentes campos que o fluxo social grava ao longo do tempo.
+function isLinkedInConnected(p) {
+  if (!p) return false;
+  if (p.loginProvider === "linkedin") return true;
+  if (p.verification_provider === "linkedin") return true;
+  if (p.verifiedProfileBadgeSource === "linkedin") return true;
+  if (Array.isArray(p.linkedinExperiences) && p.linkedinExperiences.length > 0) return true;
+  if (Array.isArray(p.linkedAccounts) && p.linkedAccounts.some((a) => a?.provider === "linkedin")) return true;
+  return false;
+}
+
 export default function MinhaConta({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const linkedInClientId = process.env.REACT_APP_LINKEDIN_CLIENT_ID;
+  const linkedInRedirectUri = getLinkedInRedirectUri();
   const [profile, setProfile] = useState(null);
   const [reviews, setReviews] = useState([]);
   // `authResolved` = onAuthStateChanged ja respondeu pelo menos uma vez.
@@ -126,6 +143,7 @@ export default function MinhaConta({ theme, toggleTheme }) {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [avatarError, setAvatarError] = useState("");
+  const [linkedInError, setLinkedInError] = useState("");
   const avatarInputRef = useRef(null);
 
   // Carregar dados
@@ -355,6 +373,39 @@ export default function MinhaConta({ theme, toggleTheme }) {
     const avgRating = ratings.length ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : "—";
     return { totalCompanies, avgRating, totalReviews: reviews.length };
   }, [reviews]);
+
+  // Ao conectar o LinkedIn, re-dispara a verificação das avaliações JÁ
+  // existentes (best-effort). O endpoint compara a empresa avaliada com o
+  // histórico profissional do LinkedIn e marca `isVerifiedLinkedIn=true` nas
+  // reviews correspondentes. Roda uma vez por sessão para não repetir.
+  useEffect(() => {
+    if (!isLinkedInConnected(profile)) return;
+    if (!Array.isArray(reviews) || reviews.length === 0) return;
+    const uid = auth.currentUser?.uid || profile?.uid || profile?.id || "";
+    if (!uid) return;
+    const flagKey = `linkedin_reviews_reverified_${uid}`;
+    try {
+      if (sessionStorage.getItem(flagKey)) return;
+      sessionStorage.setItem(flagKey, "1");
+    } catch {
+      /* ignore storage failures */
+    }
+    reviews.forEach((review) => {
+      if (!review?.id || review?.isVerifiedLinkedIn) return;
+      try {
+        fetch(buildApiUrl("/api/verify-review-linkedin"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reviewId: review.id, uid }),
+          keepalive: true,
+        }).catch(() => {
+          /* best-effort */
+        });
+      } catch {
+        /* ignore */
+      }
+    });
+  }, [profile, reviews]);
 
   // Avatar
   const avatarDisplay = useMemo(() => {
@@ -726,6 +777,64 @@ export default function MinhaConta({ theme, toggleTheme }) {
               <strong> consulta com acompanhamento</strong> e a escolha
               avançada de profissionais são exclusivas do Plano Premium.
             </p>
+          )}
+        </section>
+
+        {/* ══════ Validar avaliações com o LinkedIn ══════ */}
+        <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-100 dark:border-slate-700">
+          <h2 className="text-lg font-bold text-blue-800 dark:text-blue-200 mb-2 flex items-center gap-2">
+            <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5 text-[#0A66C2]" aria-hidden="true">
+              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z" />
+            </svg>
+            Validar avaliações com o LinkedIn
+          </h2>
+          <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+            Conecte sua conta do LinkedIn para dar mais credibilidade às suas
+            avaliações. Quando o nome de uma empresa avaliada corresponder a uma
+            experiência do seu perfil, a avaliação recebe o selo{" "}
+            <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+              ✓ Profissional Verificado via LinkedIn
+            </span>
+            . Seus dados do LinkedIn permanecem privados — apenas o selo é exibido.
+          </p>
+
+          {isLinkedInConnected(safeProfile) ? (
+            <div className="flex items-center gap-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 px-4 py-3">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5 text-[#0A66C2] shrink-0" aria-hidden="true">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z" />
+              </svg>
+              <div>
+                <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                  LinkedIn conectado
+                </p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                  Suas avaliações são validadas automaticamente pelo seu histórico profissional.
+                </p>
+              </div>
+            </div>
+          ) : !linkedInClientId ? (
+            <p className="text-sm text-amber-600 dark:text-amber-400">
+              A integração com o LinkedIn não está configurada no momento.
+            </p>
+          ) : (
+            <div className="max-w-xs">
+              <LoginLinkedInButton
+                clientId={linkedInClientId}
+                redirectUri={linkedInRedirectUri}
+                onLoginSuccess={({ code } = {}) => {
+                  // O fluxo padrão retorna à Home (/?linkedin_code=...), onde a
+                  // conexão é finalizada. Se, por algum caminho de popup, o code
+                  // chegar aqui, encaminhamos para a Home concluir.
+                  if (code) navigate(`/?linkedin_code=${encodeURIComponent(code)}`);
+                }}
+                onLoginFailure={(err) =>
+                  setLinkedInError(err?.message || "Falha ao conectar com o LinkedIn.")
+                }
+              />
+              {linkedInError && (
+                <p className="text-red-600 text-xs mt-2">{linkedInError}</p>
+              )}
+            </div>
           )}
         </section>
 
