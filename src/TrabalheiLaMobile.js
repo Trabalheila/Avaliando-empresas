@@ -1474,14 +1474,6 @@ function TrabalheiLaMobile({
                 "Faça login para avaliar"
               )}
             </button>
-            <button type="submit"
-              onClick={() => { findHelpAfterSubmitRef.current = true; }}
-              className="w-full py-3 rounded-xl font-bold transition-all"
-              style={{ backgroundColor: '#FFC107', color: '#1f2937' }}
-              disabled={!isAuthenticated || isLoading}
-            >
-              Enviar e Buscar Ajuda
-            </button>
             {((commentRating && containsPossiblePersonName(commentRating)) ||
               (generalComment && containsPossiblePersonName(generalComment)) ||
               Object.values(campos).some(c => c.comment && containsPossiblePersonName(c.comment))) && (

@@ -1231,7 +1231,7 @@ function TrabalheiLaDesktop({
                       50% { box-shadow: 0 0 20px rgba(59,130,246,0.8), 0 0 40px rgba(59,130,246,0.3); }
                     }
                   `}</style>
-                  <div className="flex flex-col sm:flex-row sm:justify-center sm:items-center gap-3">
+                  <div className="flex flex-col items-center sm:flex-row sm:justify-center gap-3">
                     <button type="submit"
                       onClick={() => { findHelpAfterSubmitRef.current = false; }}
                       className={`px-8 py-3 rounded-full font-extrabold text-white transition-all ${
@@ -1255,14 +1255,6 @@ function TrabalheiLaDesktop({
                       ) : (
                         "Faça login para avaliar"
                       )}
-                    </button>
-                    <button type="submit"
-                      onClick={() => { findHelpAfterSubmitRef.current = true; }}
-                      className="px-8 py-3 rounded-full font-extrabold transition-all hover:shadow-xl hover:scale-105"
-                      style={{ backgroundColor: '#FFC107', color: '#1f2937' }}
-                      disabled={!isAuthenticated || isLoading}
-                    >
-                      Enviar e Buscar Ajuda
                     </button>
                   </div>
                   {((commentRating && containsPossiblePersonName(commentRating)) ||
