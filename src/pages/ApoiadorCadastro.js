@@ -153,6 +153,9 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
   const [credentialPortfolioUrl, setCredentialPortfolioUrl] = useState("");
   const [credentialCertifications, setCredentialCertifications] = useState("");
   const [credentialProof, setCredentialProof] = useState(null); // { name, size, type, url(base64) }
+  // Guarda o File original do comprovante para upload no Storage (evita
+  // embutir base64 grande no documento Firestore — estoura o limite de 1MB).
+  const [credentialProofFile, setCredentialProofFile] = useState(null);
 
   /* ── UI ── */
   const [submitting, setSubmitting] = useState(false);
@@ -301,6 +304,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
       return;
     }
     setError("");
+    setCredentialProofFile(f);
     const reader = new FileReader();
     reader.onload = () =>
       setCredentialProof({ name: f.name, size: f.size, type: f.type, url: reader.result });
@@ -429,15 +433,53 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
         }
       }
 
+      // Documentos: sobem para o Storage (privado) e guardam apenas a URL.
+      // Embutir base64 no documento Firestore estourava o limite de 1MB por
+      // documento — causa de o cadastro de especialistas com anexos (ex.:
+      // diploma/OAB) falhar silenciosamente com "invalid-argument".
       const docsData = [];
       for (const f of arquivos) {
-        const reader = new FileReader();
-        const base64 = await new Promise((resolve, reject) => {
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(f);
-        });
-        docsData.push({ nome: f.name, tamanho: f.size, tipo: f.type, url: base64 });
+        let url = null;
+        try {
+          const safeName = (f.name || "doc").replace(/[^\w.-]+/g, "_");
+          const path = `apoiadorDocs/${id}/${Date.now()}-${safeName}`;
+          const dRef = storageRef(storage, path);
+          await uploadBytes(dRef, f, { contentType: f.type || "application/octet-stream" });
+          url = await getDownloadURL(dRef);
+        } catch (docErr) {
+          console.warn("[apoiadorCadastro] falha no Storage do documento; usando base64", docErr);
+          url = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(f);
+          });
+        }
+        docsData.push({ nome: f.name, tamanho: f.size, tipo: f.type, url });
+      }
+
+      // Comprovante de credencial (diploma/OAB): também vai ao Storage
+      // (privado) para não estourar o limite de 1MB do documento Firestore.
+      let credentialProofData = null;
+      if (credentialProofFile) {
+        let proofUrl = credentialProof?.url || null;
+        try {
+          const safeName = (credentialProofFile.name || "comprovante").replace(/[^\w.-]+/g, "_");
+          const path = `apoiadorDocs/${id}/credential-${Date.now()}-${safeName}`;
+          const cRef = storageRef(storage, path);
+          await uploadBytes(cRef, credentialProofFile, {
+            contentType: credentialProofFile.type || "application/octet-stream",
+          });
+          proofUrl = await getDownloadURL(cRef);
+        } catch (proofErr) {
+          console.warn("[apoiadorCadastro] falha no Storage do comprovante; usando base64", proofErr);
+        }
+        credentialProofData = {
+          name: credentialProofFile.name,
+          size: credentialProofFile.size,
+          type: credentialProofFile.type,
+          url: proofUrl,
+        };
       }
 
       const baseData = {
@@ -481,7 +523,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
           stateOrRegion: REGULATED_PROFESSIONS.has(tipo) ? credentialStateOrRegion.trim() : "",
           portfolioUrl: !REGULATED_PROFESSIONS.has(tipo) ? credentialPortfolioUrl.trim() : "",
           certifications: !REGULATED_PROFESSIONS.has(tipo) ? credentialCertifications.trim() : "",
-          proof: credentialProof, // { name, size, type, url(base64) } | null
+          proof: credentialProofData, // { name, size, type, url } | null
         },
         verificationStatus: "pending",
         // Flags atualizadas pela equipe de análise:
@@ -548,11 +590,19 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
 
       setSuccess(true);
     } catch (err) {
-      console.error("Erro ao salvar cadastro:", err);
+      // Log detalhado para diagnóstico: o Firestore/Storage costuma expor a
+      // causa real em err.code / err.message (ex.: "invalid-argument" quando o
+      // documento excede 1MB, ou "permission-denied" por regra de segurança).
+      console.error("[apoiadorCadastro] Erro ao salvar cadastro:", {
+        code: err?.code,
+        message: err?.message,
+        name: err?.name,
+        error: err,
+      });
       setError("Ocorreu um erro ao enviar o cadastro. Tente novamente.");
     }
     setSubmitting(false);
-  }, [tipo, nome, email, password, confirmPassword, telefone, whatsapp, descricao, foto, fotoFile, arquivos, allTermosAceitos, conflictDeclarationAccepted, cnpj, segmentos, site, portfolio, nichos, adExitum, servesWorker, servesEmployer, ramoEspecializacao, ramosDireito, credentialNumber, credentialStateOrRegion, credentialPortfolioUrl, credentialCertifications, credentialProof]);
+  }, [tipo, nome, email, password, confirmPassword, telefone, whatsapp, descricao, foto, fotoFile, arquivos, allTermosAceitos, conflictDeclarationAccepted, cnpj, segmentos, site, portfolio, nichos, adExitum, servesWorker, servesEmployer, ramoEspecializacao, ramosDireito, credentialNumber, credentialStateOrRegion, credentialPortfolioUrl, credentialCertifications, credentialProof, credentialProofFile]);
 
   /* Fecha o WelcomeModal e marca welcomeModalShown=true no Firestore.
      O proprio WelcomeModal ja persiste o flag; aqui apenas garantimos

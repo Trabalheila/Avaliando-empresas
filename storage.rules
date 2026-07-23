@@ -41,6 +41,15 @@ service firebase.storage {
       allow write: if isSignedIn() && underMb(10);
     }
 
+    // Documentos/comprovantes do cadastro de especialista (diploma, carteira
+    // do conselho, anexos de verificação). PRIVADOS: só usuários autenticados
+    // leem/escrevem. Guardados no Storage (URL apenas) para não estourar o
+    // limite de 1MB por documento do Firestore. Até 10 MB por arquivo.
+    match /apoiadorDocs/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && underMb(10);
+    }
+
     // Logos de empresas (exibidos publicamente no perfil da empresa).
     match /companyLogos/{allPaths=**} {
       allow read: if true;
