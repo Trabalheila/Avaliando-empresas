@@ -294,6 +294,138 @@ async function handleCronPrazos(req, res) {
   return res.status(200).json({ ok: true, target, processed, sent });
 }
 
+/**
+ * Envia uma notificação push (FCM) ao ESPECIALISTA quando um trabalhador
+ * envia uma nova mensagem numa consulta ativa. Consolidado aqui (via
+ * ?op=notify-message) para não criar uma nova Serverless Function.
+ *
+ * Resolve, pelo Admin SDK:
+ *   • o especialista da conversa (conversations/{id}.specialistDocId);
+ *   • o token FCM em apoiadores/{specialistDocId}.fcmToken;
+ *   • o pseudônimo do trabalhador (peerNames[senderUid] ou users/{uid}).
+ * Best-effort: nunca lança; retorna sempre 200 com `sent: boolean`.
+ */
+async function handleNotifyNewMessage(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ ok: false, error: "Método não permitido" });
+  }
+
+  const body = req.body || {};
+  const conversationId = String(body.conversationId || "").trim();
+  const senderUid = String(body.senderUid || "").trim();
+  if (!conversationId || !senderUid) {
+    return res
+      .status(400)
+      .json({ ok: false, error: "conversationId e senderUid são obrigatórios." });
+  }
+
+  let db;
+  let FieldValue;
+  try {
+    ({ db, FieldValue } = await getAdminResources());
+  } catch (err) {
+    console.warn("[notify-message] Admin SDK indisponível:", err?.message);
+    return res.status(200).json({ ok: true, sent: false, reason: "admin_unavailable" });
+  }
+
+  try {
+    const convSnap = await db.collection("conversations").doc(conversationId).get();
+    if (!convSnap.exists) {
+      return res.status(200).json({ ok: true, sent: false, reason: "conversation_not_found" });
+    }
+    const conv = convSnap.data() || {};
+
+    const participants = Array.isArray(conv.participants) ? conv.participants : [];
+    if (!participants.includes(senderUid)) {
+      return res.status(200).json({ ok: true, sent: false, reason: "not_a_participant" });
+    }
+
+    // Só notificamos quando quem enviou NÃO é o próprio especialista.
+    const specialistUid = String(conv.specialistId || "");
+    if (senderUid === specialistUid) {
+      return res.status(200).json({ ok: true, sent: false, reason: "sender_is_specialist" });
+    }
+
+    // Token FCM do especialista (via specialistDocId; fallback por uid).
+    let specialistDocId = String(conv.specialistDocId || "");
+    let fcmToken = "";
+    if (specialistDocId) {
+      const apoiadorSnap = await db.collection("apoiadores").doc(specialistDocId).get();
+      if (apoiadorSnap.exists) fcmToken = String(apoiadorSnap.data()?.fcmToken || "");
+    }
+    if (!fcmToken && specialistUid) {
+      const q = await db
+        .collection("apoiadores")
+        .where("uid", "==", specialistUid)
+        .limit(1)
+        .get();
+      if (!q.empty) {
+        specialistDocId = q.docs[0].id;
+        fcmToken = String(q.docs[0].data()?.fcmToken || "");
+      }
+    }
+    if (!fcmToken) {
+      return res.status(200).json({ ok: true, sent: false, reason: "no_fcm_token" });
+    }
+
+    // Pseudônimo do trabalhador remetente.
+    let pseudonym = String((conv.peerNames || {})[senderUid] || "").trim();
+    if (!pseudonym) {
+      const userSnap = await db.collection("users").doc(senderUid).get();
+      if (userSnap.exists) {
+        const u = userSnap.data() || {};
+        pseudonym = String(u.pseudonimo || u.pseudonym || u.name || "").trim();
+      }
+    }
+    if (!pseudonym) pseudonym = "um cliente";
+
+    const appBaseUrl = (process.env.APP_BASE_URL || "").replace(/\/+$/, "");
+    const deepLink = `${appBaseUrl}/chat/${encodeURIComponent(
+      conversationId
+    )}?peer=${encodeURIComponent(pseudonym)}&peerRole=trabalhador`;
+
+    const { getMessaging } = await import("firebase-admin/messaging");
+    try {
+      await getMessaging().send({
+        token: fcmToken,
+        notification: {
+          title: "Nova mensagem",
+          body: `Você tem uma nova mensagem de ${pseudonym}`,
+        },
+        data: { conversationId, url: deepLink },
+        webpush: {
+          fcmOptions: { link: deepLink },
+          notification: { icon: "/logo192.png" },
+        },
+      });
+    } catch (err) {
+      // Token inválido/expirado: remove do perfil para não repetir o erro.
+      const code = err?.errorInfo?.code || err?.code || "";
+      if (
+        specialistDocId &&
+        (code === "messaging/registration-token-not-registered" ||
+          code === "messaging/invalid-registration-token")
+      ) {
+        try {
+          await db
+            .collection("apoiadores")
+            .doc(specialistDocId)
+            .update({ fcmToken: FieldValue.delete() });
+        } catch {
+          /* ignore */
+        }
+      }
+      console.warn("[notify-message] Falha ao enviar FCM:", code || err?.message);
+      return res.status(200).json({ ok: true, sent: false, reason: "fcm_error" });
+    }
+
+    return res.status(200).json({ ok: true, sent: true });
+  } catch (err) {
+    console.error("[notify-message] Erro:", err?.message || err);
+    return res.status(500).json({ ok: false, error: "Erro interno." });
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
@@ -308,6 +440,13 @@ export default async function handler(req, res) {
   // Function e estourar o limite da Vercel).
   if (String(req.query?.op || "").toLowerCase() === "cron-prazos") {
     return handleCronPrazos(req, res);
+  }
+
+  // Rota consolidada de notificação push (FCM) de nova mensagem:
+  // /api/notify-new-message → /api/send-contact-request?op=notify-message
+  // (mantém a contagem de Serverless Functions dentro do limite da Vercel).
+  if (String(req.query?.op || "").toLowerCase() === "notify-message") {
+    return handleNotifyNewMessage(req, res);
   }
 
   if (req.method !== "POST") {
