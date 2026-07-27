@@ -30,6 +30,7 @@ import {
   ensureConversation,
   sendChatMessage,
   subscribeToMessages,
+  markConversationRead,
 } from "../../services/chat";
 import {
   buildSpecialistConversationId,
@@ -472,6 +473,14 @@ export default function PlatformChat({ theme, toggleTheme }) {
     }
   }, [messages]);
 
+  // Especialista visualizou a conversa: zera o marcador de mensagens não
+  // lidas (`hasUnreadMessages: false`) para remover o badge no painel. Roda
+  // ao abrir a conversa e sempre que novas mensagens chegam com o chat aberto.
+  useEffect(() => {
+    if (!iAmSpecialist || !useFirestore || !effectiveConversationId) return;
+    markConversationRead(effectiveConversationId);
+  }, [iAmSpecialist, useFirestore, effectiveConversationId, messages.length]);
+
   // Mensagens preparadas para render: anexos consecutivos do mesmo remetente
   // (mesma ação de envio) são agrupados num único balão.
   const renderItems = useMemo(() => groupMessages(messages), [messages]);
@@ -528,6 +537,7 @@ export default function PlatformChat({ theme, toggleTheme }) {
             senderUid: authUid,
             senderName: myName,
             text,
+            senderRole: iAmSpecialist ? "especialista" : "trabalhador",
           });
           setDraft("");
           setWarning("");
@@ -632,6 +642,7 @@ export default function PlatformChat({ theme, toggleTheme }) {
               senderName: myName,
               text: "",
               attachment,
+              senderRole: iAmSpecialist ? "especialista" : "trabalhador",
             });
           } else {
             const next = [
@@ -674,6 +685,7 @@ export default function PlatformChat({ theme, toggleTheme }) {
           senderName: myName,
           text: "",
           attachment,
+          senderRole: iAmSpecialist ? "especialista" : "trabalhador",
         }).catch((err) => {
           console.warn("Falha ao enviar anexo:", err);
           setWarning("Não foi possível enviar o arquivo. Tente novamente.");
@@ -759,6 +771,7 @@ export default function PlatformChat({ theme, toggleTheme }) {
           text:
             "✅ Aceitei o seu caso. A partir de agora vamos dar andamento ao " +
             "seu atendimento por aqui.",
+          senderRole: "especialista",
         });
       } catch (err) {
         console.warn("[chat] Falha ao notificar o cliente sobre o aceite:", err);

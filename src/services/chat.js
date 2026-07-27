@@ -40,6 +40,7 @@ import {
   getSpecialistIdFromConversationId,
   getWorkerIdFromConversationId,
 } from "../utils/chatId";
+import { buildApiUrl } from "../utils/apiBase";
 
 /** Resolve o UID de Auth do especialista a partir do doc apoiadores/{id}. */
 async function resolveSpecialistUid(specialistDocId) {
@@ -178,6 +179,18 @@ export async function ensureConversation({
 
 /**
  * Envia uma mensagem para a conversa e atualiza o resumo (lastMessage).
+ *
+ * @param {object} args
+ * @param {string} args.conversationId
+ * @param {string} args.senderUid
+ * @param {string} args.senderName
+ * @param {string} [args.text]
+ * @param {object} [args.attachment]
+ * @param {"trabalhador"|"especialista"} [args.senderRole]
+ *        Papel de quem envia. Quando o TRABALHADOR envia, marcamos
+ *        `hasUnreadMessages: true` na conversa (para o badge e o push do
+ *        especialista). Quando o ESPECIALISTA envia, ele está ativo na
+ *        conversa, então zeramos o marcador.
  * @returns {Promise<void>}
  */
 export async function sendChatMessage({
@@ -186,6 +199,7 @@ export async function sendChatMessage({
   senderName,
   text,
   attachment,
+  senderRole,
 }) {
   if (!conversationId || !senderUid) {
     throw new Error("conversationId e senderUid são obrigatórios.");
@@ -213,9 +227,15 @@ export async function sendChatMessage({
     message
   );
 
+  // Determina o estado de "não lida" a partir do papel do remetente. Só
+  // escrevemos o campo quando conhecemos o papel, para não sobrescrever o
+  // marcador em fluxos legados que não o informam.
+  const workerSent = senderRole === "trabalhador";
+  const specialistSent = senderRole === "especialista";
+
   // Atualiza o resumo da conversa para a lista "Mensagens recentes".
   try {
-    await updateDoc(doc(db, "conversations", conversationId), {
+    const summary = {
       updatedAt: serverTimestamp(),
       lastMessage: {
         text: message.text,
@@ -223,9 +243,51 @@ export async function sendChatMessage({
         attachmentName: message.attachment ? message.attachment.name : "",
         createdAt,
       },
-    });
+    };
+    if (workerSent) summary.hasUnreadMessages = true;
+    else if (specialistSent) summary.hasUnreadMessages = false;
+    await updateDoc(doc(db, "conversations", conversationId), summary);
   } catch (err) {
     console.warn("Falha ao atualizar o resumo da conversa:", err);
+  }
+
+  // Quando o TRABALHADOR envia, dispara (best-effort) a notificação push
+  // para o especialista. Falhas aqui nunca bloqueiam o envio da mensagem.
+  if (workerSent) {
+    notifySpecialistNewMessage(conversationId, senderUid);
+  }
+}
+
+/**
+ * Dispara o endpoint que envia a notificação push (FCM) ao especialista.
+ * Best-effort: erros são apenas logados. O backend resolve o token FCM do
+ * especialista e o pseudônimo do trabalhador a partir da conversa.
+ */
+function notifySpecialistNewMessage(conversationId, senderUid) {
+  try {
+    fetch(buildApiUrl("/api/notify-new-message"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversationId, senderUid }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    /* silencioso — a mensagem já foi entregue via Firestore */
+  }
+}
+
+/**
+ * Marca a conversa como lida pelo especialista (zera `hasUnreadMessages`).
+ * Best-effort: não lança em caso de falha.
+ */
+export async function markConversationRead(conversationId) {
+  if (!conversationId) return;
+  try {
+    await updateDoc(doc(db, "conversations", conversationId), {
+      hasUnreadMessages: false,
+    });
+  } catch (err) {
+    console.warn("Falha ao marcar a conversa como lida:", err);
   }
 }
 
@@ -276,4 +338,39 @@ export async function listConversationsForParticipant(uid, max = 20) {
     console.warn("Falha ao listar conversas do participante:", err);
     return [];
   }
+}
+
+/**
+ * Assina EM TEMPO REAL as conversas em que `uid` é participante. Usado pela
+ * dashboard do especialista para exibir o badge de mensagens não lidas
+ * (`hasUnreadMessages`) assim que o trabalhador envia uma nova mensagem.
+ *
+ * @param {string} uid  UID do especialista (Auth).
+ * @param {(convs: object[]) => void} callback  recebe a lista ordenada.
+ * @param {number} [max]
+ * @returns {() => void} função para cancelar a assinatura.
+ */
+export function subscribeToConversationsForParticipant(uid, callback, max = 50) {
+  if (!uid) return () => {};
+  const q = query(
+    collection(db, "conversations"),
+    where("participants", "array-contains", uid),
+    fbLimit(max)
+  );
+  return onSnapshot(
+    q,
+    (snap) => {
+      const list = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .sort((a, b) =>
+          String(b.lastMessage?.createdAt || b.updatedAt || "").localeCompare(
+            String(a.lastMessage?.createdAt || a.updatedAt || "")
+          )
+        );
+      callback(list);
+    },
+    (err) => {
+      console.warn("Falha ao escutar conversas do participante:", err);
+    }
+  );
 }

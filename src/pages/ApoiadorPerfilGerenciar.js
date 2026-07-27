@@ -7,6 +7,10 @@ import { signInAnonymously } from "firebase/auth";
 import { db, storage, auth } from "../firebase";
 import AppHeader from "../components/AppHeader";
 import SpecialistPanel from "../components/Specialist/SpecialistPanel";
+import {
+  registerSpecialistPush,
+  subscribeForegroundMessages,
+} from "../services/pushNotifications";
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5MB
 
@@ -132,6 +136,20 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
     return () => {
       cancelled = true;
     };
+  }, [apoiadorId]);
+
+  // Registra o token FCM do especialista e assina as notificações em primeiro
+  // plano. Roda quando o especialista está autenticado no seu painel — o
+  // token é salvo em apoiadores/{apoiadorId}.fcmToken para que o backend
+  // possa enviar o push "Você tem uma nova mensagem de …".
+  useEffect(() => {
+    if (!apoiadorId || !auth.currentUser) return undefined;
+    let unsub = () => {};
+    registerSpecialistPush({ apoiadorId }).catch(() => {});
+    subscribeForegroundMessages().then((fn) => {
+      unsub = fn || (() => {});
+    });
+    return () => unsub();
   }, [apoiadorId]);
 
   const handleFotoChange = useCallback((e) => {

@@ -34,7 +34,7 @@ import {
   getDownloadURL,
 } from "firebase/storage";
 import { db, storage } from "../../firebase";
-import { listConversationsForParticipant } from "../../services/chat";
+import { subscribeToConversationsForParticipant } from "../../services/chat";
 import { buildApiUrl } from "../../utils/apiBase";
 import {
   PROBLEM_CATEGORIES,
@@ -96,18 +96,20 @@ function MinhasMensagens({ apoiadorId }) {
   const [convs, setConvs] = useState([]);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      const list = await listConversationsForParticipant(apoiadorId, 50);
-      if (!cancelled) {
+    if (!apoiadorId) return undefined;
+    setLoading(true);
+    // Assinatura em TEMPO REAL: quando o trabalhador envia uma mensagem, a
+    // conversa recebe `hasUnreadMessages: true` no Firestore e o badge
+    // aparece aqui imediatamente, sem recarregar a página.
+    const unsub = subscribeToConversationsForParticipant(
+      apoiadorId,
+      (list) => {
         setConvs(Array.isArray(list) ? list : []);
         setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+      },
+      50
+    );
+    return () => unsub();
   }, [apoiadorId]);
 
   if (loading) {
@@ -127,6 +129,7 @@ function MinhasMensagens({ apoiadorId }) {
         const peerId = (c.participants || []).find((p) => p !== apoiadorId);
         const peerName = peerNames[peerId] || c.clientAlias || "Trabalhador";
         const last = c.lastMessage?.text || "Abrir conversa";
+        const unread = c.hasUnreadMessages === true;
         return (
           <li key={c.id}>
             <Link
@@ -135,17 +138,46 @@ function MinhasMensagens({ apoiadorId }) {
               )}&peerRole=trabalhador`}
               className="flex items-center justify-between gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
             >
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
-                  {peerName}
-                </span>
-                <span className="block text-xs text-slate-500 dark:text-slate-400 truncate">
-                  {last}
+              <span className="min-w-0 flex items-center gap-2">
+                {unread && (
+                  <span
+                    className="shrink-0 inline-block w-2.5 h-2.5 rounded-full bg-red-500"
+                    aria-label="Mensagem não lida"
+                    title="Mensagem não lida"
+                  />
+                )}
+                <span className="min-w-0">
+                  <span
+                    className={[
+                      "block text-sm truncate",
+                      unread
+                        ? "font-extrabold text-slate-900 dark:text-white"
+                        : "font-semibold text-slate-800 dark:text-slate-100",
+                    ].join(" ")}
+                  >
+                    {peerName}
+                  </span>
+                  <span
+                    className={[
+                      "block text-xs truncate",
+                      unread
+                        ? "text-slate-700 dark:text-slate-200 font-medium"
+                        : "text-slate-500 dark:text-slate-400",
+                    ].join(" ")}
+                  >
+                    {last}
+                  </span>
                 </span>
               </span>
-              <span className="shrink-0 text-blue-600 dark:text-blue-300 text-sm font-bold">
-                💬
-              </span>
+              {unread ? (
+                <span className="shrink-0 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold">
+                  novo
+                </span>
+              ) : (
+                <span className="shrink-0 text-blue-600 dark:text-blue-300 text-sm font-bold">
+                  💬
+                </span>
+              )}
             </Link>
           </li>
         );

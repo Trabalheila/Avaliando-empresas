@@ -10,6 +10,10 @@ import {
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAnalytics, isSupported } from "firebase/analytics";
+import {
+  getMessaging,
+  isSupported as isMessagingSupported,
+} from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -20,6 +24,12 @@ const firebaseConfig = {
   appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:338684255438:web:88a03cf43a04adfe23449f",
   measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID || "G-3H8CY15WLE",
 };
+
+// Reexportado para que o Service Worker do FCM (public/firebase-messaging-sw.js)
+// possa ser inicializado com a mesma configuração — os valores são passados a
+// ele via query string no momento do registro (chaves de cliente não são
+// segredos).
+export { firebaseConfig };
 
 const requiredKeys = [
   "apiKey",
@@ -110,3 +120,14 @@ export async function ensureAuthReady() {
 export const analyticsPromise = isSupported().then((yes) =>
   yes ? getAnalytics(app) : null
 );
+
+// Firebase Cloud Messaging (FCM) — usado para enviar notificações push ao
+// especialista quando ele recebe uma nova mensagem de um cliente.
+//
+// `getMessaging` só funciona em contextos com suporte a Service Worker e à
+// API Notification. Em navegadores/WebViews sem suporte, `isMessagingSupported()`
+// resolve `false` — por isso o messaging é carregado de forma preguiçosa e
+// GUARDADA, resolvendo para `null` quando indisponível (nunca lança).
+export const messagingPromise = isMessagingSupported()
+  .then((yes) => (yes ? getMessaging(app) : null))
+  .catch(() => null);
