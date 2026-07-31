@@ -281,10 +281,60 @@ export default function Login({ theme, toggleTheme }) {
     } catch { /* ignore */ }
   }
 
+  // Salva o e-mail retornado pelo provedor social (Google/LinkedIn) no
+  // documento do usuário no Firestore APENAS quando o campo ainda não existe.
+  // Nunca sobrescreve um e-mail já preenchido. Necessário para o backend
+  // (resolveEmail em api/send-contact-request.js) conseguir notificar por
+  // e-mail — especialmente o documento do especialista/apoiador.
+  async function backfillProviderEmail(user, providerLabel) {
+    if (providerLabel !== "google" && providerLabel !== "linkedin") return;
+    const uid = user?.uid;
+    const providerEmail = String(user?.email || "").trim().toLowerCase();
+    if (!uid || !providerEmail) return;
+    try {
+      // users/{uid}: grava o e-mail só se ainda não houver um salvo.
+      const userRef = doc(db, "users", String(uid));
+      const userSnap = await getDoc(userRef);
+      const existingUserEmail = userSnap.exists()
+        ? String(userSnap.data()?.email || "").trim()
+        : "";
+      if (!existingUserEmail) {
+        await setDoc(
+          userRef,
+          { uid, email: providerEmail, loginProvider: providerLabel, updatedAt: serverTimestamp() },
+          { merge: true }
+        );
+      }
+    } catch (err) {
+      console.warn("[login] backfill de e-mail em users falhou:", err?.message || err);
+    }
+    try {
+      // apoiadores (se o usuário for especialista): garante o e-mail no doc
+      // do especialista, que é o lido pelo resolveEmail do backend. Só grava
+      // quando o campo estiver vazio.
+      const apSnap = await getDocs(
+        query(collection(db, "apoiadores"), where("uid", "==", uid), limit(1))
+      );
+      if (!apSnap.empty) {
+        const apDoc = apSnap.docs[0];
+        const existingApEmail = String(apDoc.data()?.email || "").trim();
+        if (!existingApEmail) {
+          await setDoc(
+            doc(db, "apoiadores", apDoc.id),
+            { email: providerEmail, updatedAt: serverTimestamp() },
+            { merge: true }
+          );
+        }
+      }
+    } catch (err) {
+      console.warn("[login] backfill de e-mail em apoiadores falhou:", err?.message || err);
+    }
+  }
+
   async function finishLogin(user, providerLabel) {
     persistUserProfile(user, providerLabel);
     await enrichProfileFromFirestore(user);
-
+    await backfillProviderEmail(user, providerLabel);
     // Exceção específica: o usuário caio.cad@gmail.com vai sempre direto para a
     // página principal (`/`), com prioridade sobre qualquer outro redirect
     // (redirectAfterLogin / location.state / perfil).

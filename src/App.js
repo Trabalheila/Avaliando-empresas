@@ -32,6 +32,7 @@ import Apoiadores from './pages/Apoiadores';
 import ApoiadorPerfil from './pages/ApoiadorPerfil';
 import WorkerProfile from './pages/WorkerProfile';
 import MinhaConta from './pages/MinhaConta';
+import MeusDados from './pages/MeusDados';
 import WorkerSpecialistDocs from './pages/WorkerSpecialistDocs';
 import TrabalhadorCasosEspecialista from './pages/TrabalhadorCasosEspecialista';
 import MyContacts from './pages/MyContacts';
@@ -257,6 +258,7 @@ function App() {
       <Route path="/excluir-dados" element={<RequireAuth><DeleteData theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/perfil/:profileId" element={<WorkerProfile theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/minha-conta" element={<RequireAuth><MinhaConta theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/meus-dados" element={<RequireAuth><MeusDados theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/trabalhador/especialista/:apoiadorId/casos" element={<RequireAuth><TrabalhadorCasosEspecialista theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/trabalhador/especialista/:apoiadorId" element={<RequireAuth><WorkerSpecialistDocs theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/my-contacts" element={<RequireAuth><MyContacts theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
