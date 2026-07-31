@@ -105,6 +105,12 @@ export async function registerSpecialistPush({ apoiadorId }) {
       fcmToken: token,
       fcmTokenUpdatedAt: serverTimestamp(),
     });
+    console.log(
+      "[push] Token FCM salvo em apoiadores/%s: %s…(%d chars)",
+      String(apoiadorId),
+      token.slice(0, 12),
+      token.length
+    );
     return token;
   } catch (err) {
     console.warn("[push] Falha ao obter/salvar o token FCM:", err);

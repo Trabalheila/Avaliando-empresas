@@ -79,19 +79,50 @@ function evidenceTextBlock(evidence) {
 }
 
 async function tryResolveEmail(collectionName, docId, tag) {
+  const fullPath = `${collectionName}/${docId}`;
+  console.log(`[${tag}] resolveEmail: consultando Firestore`, {
+    collectionPath: fullPath,
+    docId,
+  });
   try {
     const serviceAccount = getServiceAccount();
-    if (!serviceAccount) return null;
-
-    const admin = await import("firebase-admin");
-    if (!admin.apps?.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
+    if (!serviceAccount) {
+      console.warn(
+        `[${tag}] resolveEmail: FIREBASE_SERVICE_ACCOUNT ausente/inválida.`
+      );
+      return null;
     }
-    const snap = await admin.firestore().doc(`${collectionName}/${docId}`).get();
-    if (!snap.exists) return null;
-    return String(snap.data()?.email || "").trim().toLowerCase() || null;
+
+    // Usa o helper compartilhado de init do Admin SDK (firebase-admin/app +
+    // firebase-admin/firestore). O antigo `import("firebase-admin")` +
+    // `admin.credential.cert` falhava com "Cannot read properties of
+    // undefined (reading 'cert')" porque o import dinâmico ESM devolve o
+    // namespace do módulo (credential fica em admin.default).
+    const { db } = await getAdminResources();
+    const snap = await db.doc(fullPath).get();
+
+    if (!snap.exists) {
+      console.warn(`[${tag}] resolveEmail: documento NÃO existe:`, fullPath);
+      return null;
+    }
+    const data = snap.data();
+    if (!data) {
+      console.warn(
+        `[${tag}] resolveEmail: doc.data() retornou undefined:`,
+        fullPath
+      );
+      return null;
+    }
+    console.log(`[${tag}] resolveEmail: doc.data() =`, data);
+
+    if (data.email === undefined) {
+      console.warn(
+        `[${tag}] resolveEmail: campo "email" ausente no documento. Campos existentes:`,
+        Object.keys(data)
+      );
+      return null;
+    }
+    return String(data.email || "").trim().toLowerCase() || null;
   } catch (err) {
     console.warn(`[${tag}] resolveEmail falhou:`, err?.message || err);
     return null;
@@ -102,20 +133,47 @@ async function tryResolveEmail(collectionName, docId, tag) {
 // (coleção `apoiadores`). Retorna a string do número ou null. Usado para
 // disparar a notificação de novo contato pelo WhatsApp Cloud API.
 async function tryResolveApoiadorWhatsApp(docId, tag) {
+  const fullPath = `apoiadores/${docId}`;
+  console.log(`[${tag}] resolveWhatsApp: consultando Firestore`, {
+    collectionPath: fullPath,
+    docId,
+  });
   try {
     const serviceAccount = getServiceAccount();
-    if (!serviceAccount) return null;
-
-    const admin = await import("firebase-admin");
-    if (!admin.apps?.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
+    if (!serviceAccount) {
+      console.warn(
+        `[${tag}] resolveWhatsApp: FIREBASE_SERVICE_ACCOUNT ausente/inválida.`
+      );
+      return null;
     }
-    const snap = await admin.firestore().doc(`apoiadores/${docId}`).get();
-    if (!snap.exists) return null;
-    const d = snap.data() || {};
-    return String(d.whatsapp || d.telefone || "").trim() || null;
+
+    // Usa o helper compartilhado de init do Admin SDK (ver nota em
+    // tryResolveEmail sobre o erro de `cert`).
+    const { db } = await getAdminResources();
+    const snap = await db.doc(fullPath).get();
+
+    if (!snap.exists) {
+      console.warn(`[${tag}] resolveWhatsApp: documento NÃO existe:`, fullPath);
+      return null;
+    }
+    const data = snap.data();
+    if (!data) {
+      console.warn(
+        `[${tag}] resolveWhatsApp: doc.data() retornou undefined:`,
+        fullPath
+      );
+      return null;
+    }
+    console.log(`[${tag}] resolveWhatsApp: doc.data() =`, data);
+
+    if (data.whatsapp === undefined && data.telefone === undefined) {
+      console.warn(
+        `[${tag}] resolveWhatsApp: campos "whatsapp"/"telefone" ausentes. Campos existentes:`,
+        Object.keys(data)
+      );
+      return null;
+    }
+    return String(data.whatsapp || data.telefone || "").trim() || null;
   } catch (err) {
     console.warn(`[${tag}] resolveWhatsApp falhou:`, err?.message || err);
     return null;
@@ -132,13 +190,13 @@ async function resolveReviewAuthor(reviewId, tag) {
     const serviceAccount = getServiceAccount();
     if (!serviceAccount) return { email: null, pseudonym: "" };
 
-    const admin = await import("firebase-admin");
-    if (!admin.apps?.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-    }
-    const reviewSnap = await admin.firestore().doc(`reviews/${reviewId}`).get();
+    // Usa o helper compartilhado de init do Admin SDK. O antigo
+    // `import("firebase-admin")` + `admin.credential.cert` falhava com
+    // "Cannot read properties of undefined (reading 'cert')" porque o import
+    // dinâmico ESM devolve o namespace do módulo (credential fica em
+    // admin.default).
+    const { db } = await getAdminResources();
+    const reviewSnap = await db.doc(`reviews/${reviewId}`).get();
     if (!reviewSnap.exists) return { email: null, pseudonym: "" };
 
     const review = reviewSnap.data() || {};
@@ -146,7 +204,7 @@ async function resolveReviewAuthor(reviewId, tag) {
     const pseudonym = String(review.pseudonym || "").trim();
     if (!uid) return { email: null, pseudonym };
 
-    const userSnap = await admin.firestore().doc(`users/${uid}`).get();
+    const userSnap = await db.doc(`users/${uid}`).get();
     const email = userSnap.exists
       ? String(userSnap.data()?.email || "").trim().toLowerCase()
       : "";
@@ -310,14 +368,37 @@ async function handleNotifyNewMessage(req, res) {
     return res.status(405).json({ ok: false, error: "Método não permitido" });
   }
 
+  // ── Diagnóstico: confirma que o endpoint foi de fato chamado ──────────
   const body = req.body || {};
   const conversationId = String(body.conversationId || "").trim();
   const senderUid = String(body.senderUid || "").trim();
+  console.log("[notify-message] endpoint chamado", {
+    method: req.method,
+    conversationId: conversationId || "(vazio)",
+    senderUid: senderUid || "(vazio)",
+  });
+
   if (!conversationId || !senderUid) {
     return res
       .status(400)
       .json({ ok: false, error: "conversationId e senderUid são obrigatórios." });
   }
+
+  // ── Diagnóstico: confirma que a FIREBASE_SERVICE_ACCOUNT foi lida ─────
+  const serviceAccount = getServiceAccount();
+  if (!serviceAccount) {
+    const msg =
+      "FIREBASE_SERVICE_ACCOUNT ausente ou inválida no ambiente da Vercel.";
+    console.error("[notify-message]", msg);
+    return res.status(500).json({ ok: false, error: msg });
+  }
+  console.log(
+    "[notify-message] FIREBASE_SERVICE_ACCOUNT OK (project_id:",
+    serviceAccount.project_id || "(sem project_id)",
+    "client_email:",
+    serviceAccount.client_email || "(sem client_email)",
+    ")"
+  );
 
   let db;
   let FieldValue;
@@ -365,8 +446,16 @@ async function handleNotifyNewMessage(req, res) {
       }
     }
     if (!fcmToken) {
+      console.warn(
+        "[notify-message] Token FCM do especialista NÃO encontrado no Firestore.",
+        { specialistDocId: specialistDocId || "(vazio)", specialistUid: specialistUid || "(vazio)" }
+      );
       return res.status(200).json({ ok: true, sent: false, reason: "no_fcm_token" });
     }
+    console.log("[notify-message] Token FCM encontrado", {
+      specialistDocId: specialistDocId || "(fallback por uid)",
+      fcmTokenPreview: `${fcmToken.slice(0, 12)}…(${fcmToken.length} chars)`,
+    });
 
     // Pseudônimo do trabalhador remetente.
     let pseudonym = String((conv.peerNames || {})[senderUid] || "").trim();
@@ -379,10 +468,23 @@ async function handleNotifyNewMessage(req, res) {
     }
     if (!pseudonym) pseudonym = "um cliente";
 
-    const appBaseUrl = (process.env.APP_BASE_URL || "").replace(/\/+$/, "");
+    // Base pública do app. Fallback para o domínio de produção quando
+    // APP_BASE_URL não estiver configurada — o FCM EXIGE uma URL HTTPS
+    // absoluta em webpush.fcmOptions.link; uma URL relativa faz o
+    // getMessaging().send() lançar messaging/invalid-argument.
+    const appBaseUrl = (
+      process.env.APP_BASE_URL || "https://www.trabalheila.com.br"
+    ).replace(/\/+$/, "");
     const deepLink = `${appBaseUrl}/chat/${encodeURIComponent(
       conversationId
     )}?peer=${encodeURIComponent(pseudonym)}&peerRole=trabalhador`;
+    const linkIsHttps = /^https:\/\//i.test(deepLink);
+    if (!linkIsHttps) {
+      console.warn(
+        "[notify-message] deepLink não é HTTPS; será omitido de webpush.fcmOptions.link:",
+        deepLink
+      );
+    }
 
     const { getMessaging } = await import("firebase-admin/messaging");
     try {
@@ -394,10 +496,12 @@ async function handleNotifyNewMessage(req, res) {
         },
         data: { conversationId, url: deepLink },
         webpush: {
-          fcmOptions: { link: deepLink },
+          // Só inclui o link quando for HTTPS absoluto (exigência do FCM).
+          ...(linkIsHttps ? { fcmOptions: { link: deepLink } } : {}),
           notification: { icon: "/logo192.png" },
         },
       });
+      console.log("[notify-message] FCM enviado com sucesso ao especialista.");
     } catch (err) {
       // Token inválido/expirado: remove do perfil para não repetir o erro.
       const code = err?.errorInfo?.code || err?.code || "";

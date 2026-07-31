@@ -17,6 +17,12 @@ let adminResourcesPromise;
  */
 export function getServiceAccount() {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
+  // Diagnóstico: confirma que a variável está chegando ao runtime, sem
+  // vazar a chave privada (apenas os 20 primeiros caracteres).
+  console.log(
+    "[firebase-admin] FIREBASE_SERVICE_ACCOUNT (primeiros 20 chars):",
+    raw ? String(raw).slice(0, 20) : "(ausente)"
+  );
   if (!raw || !String(raw).trim()) return null;
   try {
     const parsed = JSON.parse(raw);
