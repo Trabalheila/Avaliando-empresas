@@ -24,7 +24,7 @@ import {
   GithubAuthProvider,
   OAuthProvider,
 } from "firebase/auth";
-import { collection, getDocs, limit, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, where } from "firebase/firestore";
 import { auth, db, googleProvider } from "../firebase";
 // Usa o LoginLinkedInButton "robusto" (suporta callback {code,state} e tem
 // onLoginFailure/disabled). O de src/components/ entrega só {profile} e quebra
