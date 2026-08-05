@@ -216,6 +216,7 @@ export async function uploadWorkerDocument({
       senderUid,
       senderName,
       text: "",
+      recipientUid: receiverUid,
       attachment: {
         name: meta.name,
         size: meta.size,
@@ -378,6 +379,7 @@ export async function commitWorkerDocuments({
       conversationId,
       senderUid,
       senderName,
+      recipientUid: receiverUid,
       text: summary,
     });
   } catch (err) {

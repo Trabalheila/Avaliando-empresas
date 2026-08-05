@@ -368,14 +368,24 @@ async function handleNotifyNewMessage(req, res) {
     return res.status(405).json({ ok: false, error: "Método não permitido" });
   }
 
-  // ── Diagnóstico: confirma que o endpoint foi de fato chamado ──────────
+  const tag = "notify-message";
+
+  // Parâmetros: id da conversa, id do remetente e (opcional) id do
+  // destinatário. `kind` distingue "mensagem" de "documento".
   const body = req.body || {};
   const conversationId = String(body.conversationId || "").trim();
   const senderUid = String(body.senderUid || "").trim();
+  let recipientUid = String(body.recipientUid || body.receiverUid || "").trim();
+  const kindRaw = String(body.kind || "").toLowerCase();
+  const kind =
+    kindRaw === "documento" || kindRaw === "document" ? "documento" : "mensagem";
+
   console.log("[notify-message] endpoint chamado", {
     method: req.method,
     conversationId: conversationId || "(vazio)",
     senderUid: senderUid || "(vazio)",
+    recipientUid: recipientUid || "(vazio)",
+    kind,
   });
 
   if (!conversationId || !senderUid) {
@@ -392,13 +402,6 @@ async function handleNotifyNewMessage(req, res) {
     console.error("[notify-message]", msg);
     return res.status(500).json({ ok: false, error: msg });
   }
-  console.log(
-    "[notify-message] FIREBASE_SERVICE_ACCOUNT OK (project_id:",
-    serviceAccount.project_id || "(sem project_id)",
-    "client_email:",
-    serviceAccount.client_email || "(sem client_email)",
-    ")"
-  );
 
   let db;
   let FieldValue;
@@ -416,114 +419,206 @@ async function handleNotifyNewMessage(req, res) {
     }
     const conv = convSnap.data() || {};
 
-    const participants = Array.isArray(conv.participants) ? conv.participants : [];
+    const participants = Array.isArray(conv.participants)
+      ? conv.participants.map((p) => String(p))
+      : [];
     if (!participants.includes(senderUid)) {
       return res.status(200).json({ ok: true, sent: false, reason: "not_a_participant" });
     }
 
-    // Só notificamos quando quem enviou NÃO é o próprio especialista.
     const specialistUid = String(conv.specialistId || "");
-    if (senderUid === specialistUid) {
-      return res.status(200).json({ ok: true, sent: false, reason: "sender_is_specialist" });
-    }
-
-    // Token FCM do especialista (via specialistDocId; fallback por uid).
     let specialistDocId = String(conv.specialistDocId || "");
-    let fcmToken = "";
-    if (specialistDocId) {
-      const apoiadorSnap = await db.collection("apoiadores").doc(specialistDocId).get();
-      if (apoiadorSnap.exists) fcmToken = String(apoiadorSnap.data()?.fcmToken || "");
-    }
-    if (!fcmToken && specialistUid) {
-      const q = await db
-        .collection("apoiadores")
-        .where("uid", "==", specialistUid)
-        .limit(1)
-        .get();
-      if (!q.empty) {
-        specialistDocId = q.docs[0].id;
-        fcmToken = String(q.docs[0].data()?.fcmToken || "");
-      }
-    }
-    if (!fcmToken) {
-      console.warn(
-        "[notify-message] Token FCM do especialista NÃO encontrado no Firestore.",
-        { specialistDocId: specialistDocId || "(vazio)", specialistUid: specialistUid || "(vazio)" }
-      );
-      return res.status(200).json({ ok: true, sent: false, reason: "no_fcm_token" });
-    }
-    console.log("[notify-message] Token FCM encontrado", {
-      specialistDocId: specialistDocId || "(fallback por uid)",
-      fcmTokenPreview: `${fcmToken.slice(0, 12)}…(${fcmToken.length} chars)`,
-    });
 
-    // Pseudônimo do trabalhador remetente.
-    let pseudonym = String((conv.peerNames || {})[senderUid] || "").trim();
-    if (!pseudonym) {
-      const userSnap = await db.collection("users").doc(senderUid).get();
-      if (userSnap.exists) {
-        const u = userSnap.data() || {};
-        pseudonym = String(u.pseudonimo || u.pseudonym || u.name || "").trim();
+    // Destinatário: usa o informado pelo cliente; se ausente, deriva como o
+    // participante que NÃO é o remetente.
+    if (!recipientUid) {
+      recipientUid = participants.find((p) => p && p !== senderUid) || "";
+    }
+    if (!recipientUid) {
+      return res.status(200).json({ ok: true, sent: false, reason: "no_recipient" });
+    }
+
+    // Nome do remetente para exibir no e-mail (nunca expõe o e-mail).
+    let senderName = String((conv.peerNames || {})[senderUid] || "").trim();
+    if (!senderName) {
+      try {
+        const uSnap = await db.collection("users").doc(senderUid).get();
+        if (uSnap.exists) {
+          const u = uSnap.data() || {};
+          senderName = String(
+            u.pseudonimo || u.pseudonym || u.name || u.nome || ""
+          ).trim();
+        }
+      } catch {
+        /* ignore */
       }
     }
-    if (!pseudonym) pseudonym = "um cliente";
+    if (!senderName) senderName = "um contato";
+
+    // Descobre se o destinatário é o ESPECIALISTA (coleção `apoiadores`) ou o
+    // TRABALHADOR (coleção `users`) e resolve o e-mail na coleção certa.
+    const recipientIsSpecialist =
+      Boolean(specialistUid) && recipientUid === specialistUid;
+    // Papel do PEER (remetente) na visão do destinatário — usado no deep link.
+    const peerRoleForLink = recipientIsSpecialist ? "trabalhador" : "especialista";
+
+    let recipientEmail = null;
+    if (recipientIsSpecialist) {
+      if (!specialistDocId) {
+        try {
+          const q = await db
+            .collection("apoiadores")
+            .where("uid", "==", recipientUid)
+            .limit(1)
+            .get();
+          if (!q.empty) specialistDocId = q.docs[0].id;
+        } catch {
+          /* ignore */
+        }
+      }
+      if (specialistDocId) {
+        recipientEmail = await tryResolveEmail("apoiadores", specialistDocId, tag);
+      }
+    } else {
+      recipientEmail = await tryResolveEmail("users", recipientUid, tag);
+    }
 
     // Base pública do app. Fallback para o domínio de produção quando
     // APP_BASE_URL não estiver configurada — o FCM EXIGE uma URL HTTPS
-    // absoluta em webpush.fcmOptions.link; uma URL relativa faz o
-    // getMessaging().send() lançar messaging/invalid-argument.
+    // absoluta em webpush.fcmOptions.link.
     const appBaseUrl = (
       process.env.APP_BASE_URL || "https://www.trabalheila.com.br"
     ).replace(/\/+$/, "");
     const deepLink = `${appBaseUrl}/chat/${encodeURIComponent(
       conversationId
-    )}?peer=${encodeURIComponent(pseudonym)}&peerRole=trabalhador`;
+    )}?peer=${encodeURIComponent(senderName)}&peerRole=${peerRoleForLink}`;
     const linkIsHttps = /^https:\/\//i.test(deepLink);
-    if (!linkIsHttps) {
-      console.warn(
-        "[notify-message] deepLink não é HTTPS; será omitido de webpush.fcmOptions.link:",
-        deepLink
-      );
+
+    // ── Notificação por E-MAIL (canal principal, ambos os sentidos) ──────
+    const resendKey = process.env.RESEND_API_KEY;
+    const fromAddress = process.env.EMAIL_FROM_ADDRESS;
+    let emailed = false;
+    if (resendKey && fromAddress && recipientEmail) {
+      const subject =
+        kind === "documento"
+          ? "Novo documento na sua conversa — Trabalhei Lá"
+          : "Nova mensagem na sua conversa — Trabalhei Lá";
+      const oQue = kind === "documento" ? "um documento" : "uma mensagem";
+      const html = `
+    <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#0f172a;">
+      <h2 style="color:#1d4ed8;">Você tem ${
+        kind === "documento" ? "um novo documento" : "uma nova mensagem"
+      }</h2>
+      <p><strong>${escapeHtml(senderName)}</strong> enviou ${oQue} na sua
+      conversa no Trabalhei Lá.</p>
+      <p style="text-align:center;margin:24px 0;">
+        <a href="${escapeHtml(deepLink)}"
+           style="background:#1d4ed8;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold;">
+          Abrir conversa
+        </a>
+      </p>
+      <p style="font-size:12px;color:#94a3b8;">
+        Você está recebendo este e-mail porque participa desta conversa no
+        Trabalhei Lá.
+      </p>
+    </div>
+  `;
+      const text = [
+        kind === "documento"
+          ? "Você tem um novo documento no Trabalhei Lá"
+          : "Você tem uma nova mensagem no Trabalhei Lá",
+        "",
+        `${senderName} enviou ${oQue} na sua conversa.`,
+        "",
+        `Abra a conversa: ${deepLink}`,
+      ].join("\n");
+      try {
+        const resend = new Resend(resendKey);
+        const { error } = await resend.emails.send({
+          from: fromAddress,
+          to: recipientEmail,
+          subject,
+          html,
+          text,
+        });
+        if (error) {
+          console.warn("[notify-message] Resend erro:", error);
+        } else {
+          emailed = true;
+        }
+      } catch (err) {
+        console.warn(
+          "[notify-message] Falha ao enviar e-mail:",
+          err?.message || err
+        );
+      }
+    } else {
+      console.log("[notify-message] E-mail não enviado", {
+        hasResendKey: Boolean(resendKey),
+        hasFrom: Boolean(fromAddress),
+        hasRecipientEmail: Boolean(recipientEmail),
+        recipientIsSpecialist,
+      });
     }
 
-    const { getMessaging } = await import("firebase-admin/messaging");
-    try {
-      await getMessaging().send({
-        token: fcmToken,
-        notification: {
-          title: "Nova mensagem",
-          body: `Você tem uma nova mensagem de ${pseudonym}`,
-        },
-        data: { conversationId, url: deepLink },
-        webpush: {
-          // Só inclui o link quando for HTTPS absoluto (exigência do FCM).
-          ...(linkIsHttps ? { fcmOptions: { link: deepLink } } : {}),
-          notification: { icon: "/logo192.png" },
-        },
-      });
-      console.log("[notify-message] FCM enviado com sucesso ao especialista.");
-    } catch (err) {
-      // Token inválido/expirado: remove do perfil para não repetir o erro.
-      const code = err?.errorInfo?.code || err?.code || "";
-      if (
-        specialistDocId &&
-        (code === "messaging/registration-token-not-registered" ||
-          code === "messaging/invalid-registration-token")
-      ) {
-        try {
-          await db
-            .collection("apoiadores")
-            .doc(specialistDocId)
-            .update({ fcmToken: FieldValue.delete() });
-        } catch {
-          /* ignore */
+    // ── Notificação PUSH (FCM) ao especialista — best-effort, mantida ────
+    let pushed = false;
+    if (recipientIsSpecialist) {
+      let fcmToken = "";
+      if (specialistDocId) {
+        const apoiadorSnap = await db
+          .collection("apoiadores")
+          .doc(specialistDocId)
+          .get();
+        if (apoiadorSnap.exists) {
+          fcmToken = String(apoiadorSnap.data()?.fcmToken || "");
         }
       }
-      console.warn("[notify-message] Falha ao enviar FCM:", code || err?.message);
-      return res.status(200).json({ ok: true, sent: false, reason: "fcm_error" });
+      if (fcmToken) {
+        try {
+          const { getMessaging } = await import("firebase-admin/messaging");
+          await getMessaging().send({
+            token: fcmToken,
+            notification: {
+              title: kind === "documento" ? "Novo documento" : "Nova mensagem",
+              body:
+                kind === "documento"
+                  ? `${senderName} enviou um documento`
+                  : `Você tem uma nova mensagem de ${senderName}`,
+            },
+            data: { conversationId, url: deepLink },
+            webpush: {
+              ...(linkIsHttps ? { fcmOptions: { link: deepLink } } : {}),
+              notification: { icon: "/logo192.png" },
+            },
+          });
+          pushed = true;
+        } catch (err) {
+          // Token inválido/expirado: remove do perfil para não repetir o erro.
+          const code = err?.errorInfo?.code || err?.code || "";
+          if (
+            specialistDocId &&
+            (code === "messaging/registration-token-not-registered" ||
+              code === "messaging/invalid-registration-token")
+          ) {
+            try {
+              await db
+                .collection("apoiadores")
+                .doc(specialistDocId)
+                .update({ fcmToken: FieldValue.delete() });
+            } catch {
+              /* ignore */
+            }
+          }
+          console.warn(
+            "[notify-message] Falha ao enviar FCM:",
+            code || err?.message
+          );
+        }
+      }
     }
 
-    return res.status(200).json({ ok: true, sent: true });
+    return res.status(200).json({ ok: true, emailed, pushed });
   } catch (err) {
     console.error("[notify-message] Erro:", err?.message || err);
     return res.status(500).json({ ok: false, error: "Erro interno." });

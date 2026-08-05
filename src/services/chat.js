@@ -186,6 +186,9 @@ export async function ensureConversation({
  * @param {string} args.senderName
  * @param {string} [args.text]
  * @param {object} [args.attachment]
+ * @param {string} [args.recipientUid]
+ *        UID do destinatário (Auth). Opcional: quando ausente, o backend
+ *        deriva o destinatário a partir dos `participants` da conversa.
  * @param {"trabalhador"|"especialista"} [args.senderRole]
  *        Papel de quem envia. Quando o TRABALHADOR envia, marcamos
  *        `hasUnreadMessages: true` na conversa (para o badge e o push do
@@ -199,6 +202,7 @@ export async function sendChatMessage({
   senderName,
   text,
   attachment,
+  recipientUid,
   senderRole,
 }) {
   if (!conversationId || !senderUid) {
@@ -251,24 +255,40 @@ export async function sendChatMessage({
     console.warn("Falha ao atualizar o resumo da conversa:", err);
   }
 
-  // Quando o TRABALHADOR envia, dispara (best-effort) a notificação push
-  // para o especialista. Falhas aqui nunca bloqueiam o envio da mensagem.
-  if (workerSent) {
-    notifySpecialistNewMessage(conversationId, senderUid);
-  }
+  // Dispara (best-effort) a notificação de nova mensagem/documento para o
+  // DESTINATÁRIO — em QUALQUER direção (trabalhador → especialista e
+  // especialista → trabalhador). Falhas aqui nunca bloqueiam o envio.
+  notifyNewMessage({
+    conversationId,
+    senderUid,
+    recipientUid,
+    kind: message.attachment ? "documento" : "mensagem",
+  });
 }
 
 /**
- * Dispara o endpoint que envia a notificação push (FCM) ao especialista.
- * Best-effort: erros são apenas logados. O backend resolve o token FCM do
- * especialista e o pseudônimo do trabalhador a partir da conversa.
+ * Dispara o endpoint que notifica o DESTINATÁRIO sobre uma nova mensagem ou
+ * documento na conversa (e-mail + push best-effort). Erros são apenas
+ * logados: a mensagem já foi entregue via Firestore. O backend resolve o
+ * e-mail do destinatário e o nome do remetente a partir da conversa.
+ *
+ * @param {object} args
+ * @param {string} args.conversationId
+ * @param {string} args.senderUid
+ * @param {string} [args.recipientUid]
+ * @param {"mensagem"|"documento"} [args.kind]
  */
-function notifySpecialistNewMessage(conversationId, senderUid) {
+function notifyNewMessage({ conversationId, senderUid, recipientUid, kind }) {
   try {
     fetch(buildApiUrl("/api/notify-new-message"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversationId, senderUid }),
+      body: JSON.stringify({
+        conversationId,
+        senderUid,
+        recipientUid: recipientUid || "",
+        kind: kind || "mensagem",
+      }),
       keepalive: true,
     }).catch(() => {});
   } catch {
