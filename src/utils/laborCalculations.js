@@ -39,23 +39,63 @@ function diffDays(startISO, endISO) {
   return Math.floor((b - a) / (1000 * 60 * 60 * 24));
 }
 
-/** Meses trabalhados no ano da rescisão para 13º e férias proporcionais.
- *  Fração ≥ 15 dias conta como mês cheio (regra prática CLT). */
-function proportionalMonths(startISO, endISO) {
-  const start = new Date(startISO);
-  const end = new Date(endISO);
+/** Converte "yyyy-mm-dd" em Date no fuso local (evita deslocamento por UTC). */
+function parseISODateLocal(iso) {
+  if (!iso) return new Date(NaN);
+  const [y, m, d] = String(iso).split("-").map(Number);
+  if (!y || !m || !d) return new Date(NaN);
+  return new Date(y, m - 1, d);
+}
+
+/** Anos completos de serviço entre admissão e demissão. */
+function completeYearsOfService(startISO, endISO) {
+  const s = parseISODateLocal(startISO);
+  const e = parseISODateLocal(endISO);
+  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return 0;
+  let years = e.getFullYear() - s.getFullYear();
+  const antesDoAniversario =
+    e.getMonth() < s.getMonth() ||
+    (e.getMonth() === s.getMonth() && e.getDate() < s.getDate());
+  if (antesDoAniversario) years -= 1;
+  return Math.max(0, years);
+}
+
+/** Meses completos (regra dos 15 dias) entre duas datas, incluindo o dia final. */
+function completeMonthsWithRule(startISO, endISO) {
+  const start = parseISODateLocal(startISO);
+  const end = parseISODateLocal(endISO);
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0;
+  if (end < start) return 0;
   let months =
     (end.getFullYear() - start.getFullYear()) * 12 +
     (end.getMonth() - start.getMonth());
-  // Ajuste pelos dias do mês final: ≥ 15 dias conta como mês.
-  if (end.getDate() >= 15) months += 1;
-  return Math.max(0, Math.min(12, months));
+  let dias = end.getDate() - start.getDate() + 1; // inclui o dia da demissão
+  if (dias < 0) {
+    months -= 1;
+    dias += new Date(end.getFullYear(), end.getMonth(), 0).getDate();
+  }
+  if (dias >= 15) months += 1;
+  return Math.max(0, months);
 }
 
-/** Meses do 13º / férias no ANO da rescisão (base 1º de janeiro). */
+/** Meses do último período aquisitivo (iniciado no aniversário da admissão)
+ *  até a demissão — base das férias proporcionais quando o ciclo está incompleto. */
+function mesesUltimoPeriodoAquisitivo(startISO, endISO) {
+  const adm = parseISODateLocal(startISO);
+  if (Number.isNaN(adm.getTime())) return 0;
+  const anos = completeYearsOfService(startISO, endISO);
+  const inicioPeriodo = new Date(adm.getFullYear() + anos, adm.getMonth(), adm.getDate());
+  const y = inicioPeriodo.getFullYear();
+  const m = String(inicioPeriodo.getMonth() + 1).padStart(2, "0");
+  const d = String(inicioPeriodo.getDate()).padStart(2, "0");
+  const meses = completeMonthsWithRule(`${y}-${m}-${d}`, endISO);
+  return Math.max(0, Math.min(12, meses));
+}
+
+/** Meses do 13º no ANO da rescisão (base 1º de janeiro). Inclui o mês da
+ *  demissão quando o empregado trabalhou 15 dias ou mais nesse mês. */
 function monthsInTerminationYear(endISO) {
-  const end = new Date(endISO);
+  const end = parseISODateLocal(endISO);
   if (Number.isNaN(end.getTime())) return 0;
   let months = end.getMonth() + 1; // jan=1
   if (end.getDate() < 15) months -= 1;
@@ -103,19 +143,21 @@ export function calcularVerbasRescisorias({ admissao, demissao, salario, tipoRes
   const meses13 = monthsInTerminationYear(demissao);
   const decimoTerceiro = round2((salarioNum / 12) * meses13);
 
-  // Férias proporcionais + 1/3: avos desde o último período aquisitivo.
-  // Simplificação: usa meses proporcionais no vínculo (máx. 12) do ciclo atual.
-  const mesesFerias = proportionalMonths(admissao, demissao);
+  // Férias proporcionais + 1/3: avos do último período aquisitivo (ciclo atual
+  // iniciado no aniversário da admissão), quando incompleto.
+  const mesesFerias = mesesUltimoPeriodoAquisitivo(admissao, demissao);
   const feriasProporcionais = round2((salarioNum / 12) * mesesFerias);
   const tercoFerias = round2(feriasProporcionais / 3);
 
-  // Aviso prévio indenizado: devido em dispensa sem justa causa (e no acordo,
-  // pela metade). 30 dias + 3 dias/ano (teto 90) — usa base 30 dias aqui.
+  // Aviso prévio indenizado (Lei 12.506/2011): 30 dias + 3 dias por ano completo
+  // após o primeiro. Devido na dispensa sem justa causa (metade no acordo).
+  const anosServico = completeYearsOfService(admissao, demissao);
+  const diasAviso = 30 + Math.max(0, anosServico - 1) * 3;
   let avisoPrevio = 0;
   if (tipo === "sem_justa_causa") {
-    avisoPrevio = round2(salarioNum);
+    avisoPrevio = round2(salarioDia * diasAviso);
   } else if (tipo === "acordo") {
-    avisoPrevio = round2(salarioNum / 2);
+    avisoPrevio = round2((salarioDia * diasAviso) / 2);
   }
 
   // FGTS do período (8% sobre salário × meses) — estimativa.
@@ -132,7 +174,7 @@ export function calcularVerbasRescisorias({ admissao, demissao, salario, tipoRes
 
   const itens = [
     { key: "saldoSalario", label: `Saldo de salário (${diasSaldo} dias)`, value: saldoSalario },
-    { key: "avisoPrevio", label: "Aviso prévio indenizado", value: avisoPrevio },
+    { key: "avisoPrevio", label: `Aviso prévio indenizado (${diasAviso} dias)`, value: avisoPrevio },
     { key: "decimoTerceiro", label: `13º proporcional (${meses13}/12)`, value: decimoTerceiro },
     { key: "feriasProporcionais", label: `Férias proporcionais (${mesesFerias}/12)`, value: feriasProporcionais },
     { key: "tercoFerias", label: "1/3 sobre férias", value: tercoFerias },
