@@ -1431,13 +1431,44 @@ function PrivateNotesCard({ specialistId, caseId }) {
   );
 }
 
+// Série 11 do SGS/Bacen (Selic diária). Taxa anual usada como padrão inicial.
+const SELIC_DEFAULT = 11.0;
+const SELIC_SGS_URL =
+  "https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados/ultimos/1?formato=json";
+
 /** Calculadora de verbas rescisórias. */
 function LaborCalculatorCard({ specialistId, caseId, onSavedToHistory }) {
   const [f, setF] = useState({ admissao: "", demissao: "", salario: "", tipoRescisao: "sem_justa_causa" });
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [selic, setSelic] = useState(SELIC_DEFAULT);
+  const [selicLoading, setSelicLoading] = useState(false);
+  const [selicError, setSelicError] = useState("");
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
+
+  const atualizarSelic = async () => {
+    setSelicLoading(true);
+    setSelicError("");
+    try {
+      const resp = await fetch(SELIC_SGS_URL);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      const valorDia = parseFloat(String(data?.[0]?.valor).replace(",", "."));
+      if (!Number.isFinite(valorDia)) throw new Error("Valor inválido");
+      // A série 11 retorna a Selic ao dia; converte para taxa anual (252 dias úteis).
+      const anual = (Math.pow(1 + valorDia / 100, 252) - 1) * 100;
+      setSelic(anual);
+    } catch {
+      setSelicError("Não foi possível atualizar. Usando taxa anterior.");
+    } finally {
+      setSelicLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    atualizarSelic();
+  }, []);
 
   const handleCalc = () => {
     setSaved(false);
@@ -1500,6 +1531,42 @@ function LaborCalculatorCard({ specialistId, caseId, onSavedToHistory }) {
         </div>
       </div>
       {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
+
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <label className={labelCls}>Taxa Selic (% a.a.)</label>
+        <input
+          inputMode="decimal"
+          className="w-28 text-sm px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+          value={selic.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          onChange={(e) => {
+            const v = parseFloat(String(e.target.value).replace(/\./g, "").replace(",", "."));
+            setSelic(Number.isFinite(v) ? v : 0);
+          }}
+        />
+        {selicLoading ? (
+          <span
+            className="inline-block h-5 w-5 rounded-full border-2 border-slate-300 border-t-blue-600 animate-spin"
+            role="status"
+            aria-label="Carregando taxa Selic"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={atualizarSelic}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-100 text-sm font-bold"
+          >
+            Atualizar Selic
+          </button>
+        )}
+        {selicError ? (
+          <span className="text-xs text-red-600 dark:text-red-400">{selicError}</span>
+        ) : (
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            Selic atual: {selic.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% a.a.
+          </span>
+        )}
+      </div>
+
       <button type="button" onClick={handleCalc} className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold">
         Calcular
       </button>
