@@ -22,6 +22,17 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    // --- INÍCIO DAS ALTERAÇÕES ---
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    // Se o seu projeto usa Kotlin, adicione também este bloco
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+    // --- FIM DAS ALTERAÇÕES ---
 }
 
 repositories {
