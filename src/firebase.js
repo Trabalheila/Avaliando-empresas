@@ -15,20 +15,27 @@ import {
   isSupported as isMessagingSupported,
 } from "firebase/messaging";
 
+const runtimeEnv = typeof window !== "undefined" ? window._env_ || {} : {};
+const getEnv = (key, fallback = "") => {
+  return (
+    runtimeEnv[key] || process.env[key] || fallback
+  ).trim();
+};
+
 const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "trabalheila.firebaseapp.com",
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "trabalheila",
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "trabalheila.appspot.com",
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "338684255438",
-  appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:338684255438:web:88a03cf43a04adfe23449f",
-  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID || "G-3H8CY15WLE",
+  apiKey: getEnv("REACT_APP_FIREBASE_API_KEY"),
+  authDomain: getEnv("REACT_APP_FIREBASE_AUTH_DOMAIN", "trabalheila.firebaseapp.com"),
+  projectId: getEnv("REACT_APP_FIREBASE_PROJECT_ID", "trabalheila"),
+  storageBucket: getEnv("REACT_APP_FIREBASE_STORAGE_BUCKET", "trabalheila.appspot.com"),
+  messagingSenderId: getEnv("REACT_APP_FIREBASE_MESSAGING_SENDER_ID", "338684255438"),
+  appId: getEnv("REACT_APP_FIREBASE_APP_ID", "1:338684255438:web:88a03cf43a04adfe23449f"),
+  measurementId: getEnv("REACT_APP_FIREBASE_MEASUREMENT_ID", "G-3H8CY15WLE"),
 };
 
 // Reexportado para que o Service Worker do FCM (public/firebase-messaging-sw.js)
 // possa ser inicializado com a mesma configuração — os valores são passados a
 // ele via query string no momento do registro (chaves de cliente não são
-// segredos).
+// segredos.
 export { firebaseConfig };
 
 const requiredKeys = [
@@ -48,7 +55,13 @@ if (missingKeys.length > 0) {
   );
 }
 
-export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const isFirebaseConfigured = missingKeys.length === 0;
+
+export const app = isFirebaseConfigured
+  ? getApps().length
+    ? getApp()
+    : initializeApp(firebaseConfig)
+  : null;
 
 // Persistência do Firebase Auth.
 //
@@ -71,21 +84,23 @@ export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 // `browserPopupRedirectResolver` é obrigatório ao usar `initializeAuth`
 // porque o app faz login do Google via `signInWithPopup`; sem ele o popup
 // quebraria com `auth/argument-error`.
-let authInstance;
-try {
-  authInstance = initializeAuth(app, {
-    persistence: [browserLocalPersistence, indexedDBLocalPersistence],
-    popupRedirectResolver: browserPopupRedirectResolver,
-  });
-} catch {
-  // `initializeAuth` lança se o Auth já foi inicializado (HMR / múltiplos
-  // imports). Nesse caso reaproveitamos a instância existente.
-  authInstance = getAuth(app);
+let authInstance = null;
+if (app) {
+  try {
+    authInstance = initializeAuth(app, {
+      persistence: [browserLocalPersistence, indexedDBLocalPersistence],
+      popupRedirectResolver: browserPopupRedirectResolver,
+    });
+  } catch {
+    // `initializeAuth` lança se o Auth já foi inicializado (HMR / múltiplos
+    // imports). Nesse caso reaproveitamos a instância existente.
+    authInstance = getAuth(app);
+  }
 }
 
 export const auth = authInstance;
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+export const db = app ? getFirestore(app) : null;
+export const storage = app ? getStorage(app) : null;
 export const googleProvider = new GoogleAuthProvider();
 
 // Aguarda o SDK terminar a restauração da sessão persistida antes de
@@ -106,19 +121,19 @@ export const googleProvider = new GoogleAuthProvider();
 // foi restaurada. Só então faz sentido checar `auth.currentUser`.
 export async function ensureAuthReady() {
   try {
-    if (typeof authInstance.authStateReady === "function") {
+    if (authInstance && typeof authInstance.authStateReady === "function") {
       await authInstance.authStateReady();
     }
   } catch {
     /* segue mesmo assim — o caller ainda checa auth.currentUser */
   }
-  return authInstance.currentUser;
+  return authInstance ? authInstance.currentUser : null;
 }
 
 
 // analytics (opcional)
 export const analyticsPromise = isSupported().then((yes) =>
-  yes ? getAnalytics(app) : null
+  yes && app ? getAnalytics(app) : null
 );
 
 // Firebase Cloud Messaging (FCM) — usado para enviar notificações push ao
@@ -129,5 +144,5 @@ export const analyticsPromise = isSupported().then((yes) =>
 // resolve `false` — por isso o messaging é carregado de forma preguiçosa e
 // GUARDADA, resolvendo para `null` quando indisponível (nunca lança).
 export const messagingPromise = isMessagingSupported()
-  .then((yes) => (yes ? getMessaging(app) : null))
+  .then((yes) => (yes && app ? getMessaging(app) : null))
   .catch(() => null);

@@ -44,6 +44,8 @@
   },
   "proxy": "http://localhost:3001",
   "scripts": {
+    "prestart": "node scripts/generate-runtime-env.js",
+    "prebuild": "node scripts/generate-runtime-env.js",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "build:mobile": "npm run build && npx cap sync",
