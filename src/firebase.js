@@ -23,13 +23,13 @@ const getEnv = (key, fallback = "") => {
 };
 
 const firebaseConfig = {
-  apiKey: getEnv("REACT_APP_FIREBASE_API_KEY"),
-  authDomain: getEnv("REACT_APP_FIREBASE_AUTH_DOMAIN", "trabalheila.firebaseapp.com"),
-  projectId: getEnv("REACT_APP_FIREBASE_PROJECT_ID", "trabalheila"),
-  storageBucket: getEnv("REACT_APP_FIREBASE_STORAGE_BUCKET", "trabalheila.appspot.com"),
-  messagingSenderId: getEnv("REACT_APP_FIREBASE_MESSAGING_SENDER_ID", "338684255438"),
-  appId: getEnv("REACT_APP_FIREBASE_APP_ID", "1:338684255438:web:88a03cf43a04adfe23449f"),
-  measurementId: getEnv("REACT_APP_FIREBASE_MEASUREMENT_ID", "G-3H8CY15WLE"),
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
 };
 
 // Reexportado para que o Service Worker do FCM (public/firebase-messaging-sw.js)
