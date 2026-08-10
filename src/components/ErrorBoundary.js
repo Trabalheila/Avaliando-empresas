@@ -52,6 +52,10 @@ export default class ErrorBoundary extends React.Component {
       return this.props.children;
     }
 
+    const errorMessage =
+      this.state.error?.message || String(this.state.error || "Erro desconhecido");
+    const errorStack = this.state.error?.stack || "";
+
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 py-10 bg-blue-50 dark:bg-slate-900 text-center">
         <div className="text-5xl" aria-hidden="true">
@@ -65,6 +69,22 @@ export default class ErrorBoundary extends React.Component {
           recarregar ou voltar para a página inicial — sua sessão continua
           ativa.
         </p>
+        <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-4 text-left text-sm text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+          <strong className="block mb-2 text-base text-slate-900 dark:text-slate-100">
+            Erro capturado:
+          </strong>
+          <pre className="whitespace-pre-wrap break-words text-xs leading-5">
+            {errorMessage}
+          </pre>
+          {errorStack ? (
+            <details className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+              <summary className="cursor-pointer font-medium">Mostrar stack trace</summary>
+              <pre className="whitespace-pre-wrap break-words mt-2 text-xs leading-5">
+                {errorStack}
+              </pre>
+            </details>
+          ) : null}
+        </div>
         <div className="flex flex-col sm:flex-row gap-2 mt-2">
           <button
             type="button"
