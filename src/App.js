@@ -156,6 +156,7 @@ function App() {
   const [outgoingLocation, setOutgoingLocation] = useState(null);
   const [incomingLocation, setIncomingLocation] = useState(location);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isBooting, setIsBooting] = useState(true);
   const [transitionDirection, setTransitionDirection] = useState('forward');
   const initialProfile = useMemo(() => getRouteTransitionProfile(location.pathname), [location.pathname]);
   const [transitionDurationMs, setTransitionDurationMs] = useState(initialProfile.durationMs);
@@ -166,6 +167,11 @@ function App() {
     applyTheme(theme);
     window.localStorage.setItem('trabalheiLa_theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setIsBooting(false), 260);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   /* Migração one-shot (apenas em dev): espelha cadastros antigos de
      `apoiadores` na coleção `users` com userType="apoiador" para que
@@ -292,49 +298,68 @@ function App() {
     </Routes>
   );
 
-  return (
-    <>
-      <div
-        className="route-transition-stage"
-        style={{
-          '--route-transition-ms': `${transitionDurationMs}ms`,
-          '--route-transition-ease': transitionEasing,
-        }}
-      >
-        {isTransitioning && outgoingLocation ? (
-          <>
-            <div
-              key={`out-${outgoingLocation.pathname}${outgoingLocation.search}`}
-              className={`route-layer route-layer-exit ${
-                transitionDirection === 'back' ? 'route-exit-back' : 'route-exit-forward'
-              }`}
-            >
-              <ErrorBoundary key={`eb-out-${outgoingLocation.pathname}`}>
-                {renderRoutes(outgoingLocation)}
-              </ErrorBoundary>
-            </div>
-            <div
-              key={`in-${incomingLocation.pathname}${incomingLocation.search}`}
-              className={`route-layer route-layer-enter ${
-                transitionDirection === 'back' ? 'route-enter-back' : 'route-enter-forward'
-              }`}
-            >
-              <ErrorBoundary key={`eb-in-${incomingLocation.pathname}`}>
-                {renderRoutes(incomingLocation)}
-              </ErrorBoundary>
-            </div>
-          </>
-        ) : (
-          <div className="route-layer route-layer-steady">
-            <ErrorBoundary key={`eb-${currentLocation.pathname}`}>
-              {renderRoutes(currentLocation)}
-            </ErrorBoundary>
+  if (isBooting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-6 py-10 text-center dark:bg-slate-900">
+        <div className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
+          <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Carregando Trabalhei Lá</h2>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Ajustando a interface e preparando o conteúdo para você.</p>
+          <div className="mt-4 space-y-2">
+            <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-700" />
+            <div className="h-2 w-3/4 rounded-full bg-slate-200 dark:bg-slate-700" />
+            <div className="h-2 w-1/2 rounded-full bg-slate-200 dark:bg-slate-700" />
           </div>
-        )}
+        </div>
       </div>
-      <CookieBanner />
-      <ChatbotWidget />
-    </>
+    );
+  }
+
+  return (
+    <ErrorBoundary>
+      <>
+        <div
+          className="route-transition-stage"
+          style={{
+            '--route-transition-ms': `${transitionDurationMs}ms`,
+            '--route-transition-ease': transitionEasing,
+          }}
+        >
+          {isTransitioning && outgoingLocation ? (
+            <>
+              <div
+                key={`out-${outgoingLocation.pathname}${outgoingLocation.search}`}
+                className={`route-layer route-layer-exit ${
+                  transitionDirection === 'back' ? 'route-exit-back' : 'route-exit-forward'
+                }`}
+              >
+                <ErrorBoundary key={`eb-out-${outgoingLocation.pathname}`}>
+                  {renderRoutes(outgoingLocation)}
+                </ErrorBoundary>
+              </div>
+              <div
+                key={`in-${incomingLocation.pathname}${incomingLocation.search}`}
+                className={`route-layer route-layer-enter ${
+                  transitionDirection === 'back' ? 'route-enter-back' : 'route-enter-forward'
+                }`}
+              >
+                <ErrorBoundary key={`eb-in-${incomingLocation.pathname}`}>
+                  {renderRoutes(incomingLocation)}
+                </ErrorBoundary>
+              </div>
+            </>
+          ) : (
+            <div className="route-layer route-layer-steady">
+              <ErrorBoundary key={`eb-${currentLocation.pathname}`}>
+                {renderRoutes(currentLocation)}
+              </ErrorBoundary>
+            </div>
+          )}
+        </div>
+        <CookieBanner />
+        <ChatbotWidget />
+      </>
+    </ErrorBoundary>
   );
 }
 export default App;

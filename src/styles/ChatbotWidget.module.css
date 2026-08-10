@@ -1,12 +1,12 @@
 /* src/styles/ChatbotWidget.module.css */
 .chatbotToggle {
   position: fixed;
-  bottom: 20px;
-  left: 20px;
-  width: 410px;
-  height: 410px;
-  max-width: 33vw;
-  max-height: 33vw;
+  bottom: 16px;
+  left: 16px;
+  width: 88px;
+  height: 88px;
+  max-width: 28vw;
+  max-height: 28vw;
   border-radius: 50%;
   /* Sem cor de fundo, sem sombra do botão — o avatar fica "solto" */
   background: transparent;
@@ -32,12 +32,12 @@
    com o conteúdo principal. Mobile/tablet permanecem no tamanho cheio.
    410 × 0.75 = 308 ; 33vw × 0.75 = 25vw
    ──────────────────────────────────────────────────────────────────────── */
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .chatbotToggle {
-    width: 308px;
-    height: 308px;
-    max-width: 25vw;
-    max-height: 25vw;
+    width: 104px;
+    height: 104px;
+    max-width: 18vw;
+    max-height: 18vw;
   }
 }
 
@@ -46,7 +46,7 @@
    ponto de partida quando ainda não há posição salva. */
 .chatbotToggleRight {
   left: auto;
-  right: 20px;
+  right: 16px;
 }
 
 .chatbotToggle:hover {
@@ -74,17 +74,13 @@
 
 .chatbotWindow {
   position: fixed;
-  /* Ancorado próximo ao avatar (canto inferior direito), aparecendo
-     à ESQUERDA e ACIMA dele — efeito de balão de fala. */
-  bottom: 340px;
-  right: 32px;
+  bottom: 112px;
+  right: 16px;
   left: auto;
-  width: 420px;
-  height: 560px;
-  max-width: calc(100vw - 32px);
-  /* Considera o offset `bottom: 340px` + uma folga de 16px no topo,
-     para que o painel nunca ultrapasse a borda superior da viewport. */
-  max-height: calc(100vh - 340px - 16px);
+  width: min(360px, calc(100vw - 24px));
+  height: min(70vh, 460px);
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 132px);
   /* Background translúcido para integrar-se ao tema da página.
      Mantém legibilidade graças ao backdrop-filter. */
   background-color: rgba(255, 255, 255, 0.94);
@@ -101,12 +97,12 @@
 
 /* Desktop 75%: janela proporcional ao avatar reduzido.
    420 × 0.75 ≈ 315 ; 560 × 0.75 = 420 ; 340 × 0.75 = 255 */
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .chatbotWindow {
-    bottom: 255px;
-    width: 315px;
-    height: 420px;
-    max-height: calc(100vh - 255px - 16px);
+    bottom: 126px;
+    width: min(360px, 34vw);
+    height: min(70vh, 480px);
+    max-height: calc(100vh - 146px);
   }
 }
 

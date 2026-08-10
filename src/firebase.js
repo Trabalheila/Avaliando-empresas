@@ -15,21 +15,21 @@ import {
   isSupported as isMessagingSupported,
 } from "firebase/messaging";
 
-const runtimeEnv = typeof window !== "undefined" ? window._env_ || {} : {};
+const runtimeEnv = typeof window !== "undefined" && window._env_ ? window._env_ : {};
 const getEnv = (key, fallback = "") => {
-  return (
-    runtimeEnv[key] || process.env[key] || fallback
-  ).trim();
+  const runtimeValue = runtimeEnv[key];
+  const envValue = runtimeValue ?? process.env[key] ?? fallback;
+  return typeof envValue === "string" ? envValue.trim() : String(envValue || "").trim();
 };
 
 const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.REACT_APP_FIREBASE_APP_ID,
-  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
+  apiKey: getEnv("REACT_APP_FIREBASE_API_KEY"),
+  authDomain: getEnv("REACT_APP_FIREBASE_AUTH_DOMAIN"),
+  projectId: getEnv("REACT_APP_FIREBASE_PROJECT_ID"),
+  storageBucket: getEnv("REACT_APP_FIREBASE_STORAGE_BUCKET"),
+  messagingSenderId: getEnv("REACT_APP_FIREBASE_MESSAGING_SENDER_ID"),
+  appId: getEnv("REACT_APP_FIREBASE_APP_ID"),
+  measurementId: getEnv("REACT_APP_FIREBASE_MEASUREMENT_ID")
 };
 
 // Reexportado para que o Service Worker do FCM (public/firebase-messaging-sw.js)
@@ -49,19 +49,29 @@ const requiredKeys = [
 
 const missingKeys = requiredKeys.filter((key) => !firebaseConfig[key]);
 if (missingKeys.length > 0) {
-  console.warn(
-    "Firebase não está totalmente configurado. Defina as variáveis de ambiente REACT_APP_FIREBASE_<KEY>:",
+  console.error(
+    "[firebase] Configuração incompleta. Defina as variáveis REACT_APP_FIREBASE_<KEY>:",
     missingKeys
   );
 }
 
 const isFirebaseConfigured = missingKeys.length === 0;
+export const firebaseInitError = isFirebaseConfigured
+  ? null
+  : new Error(`Firebase não está configurado: ${missingKeys.join(", ")}`);
 
-export const app = isFirebaseConfigured
-  ? getApps().length
-    ? getApp()
-    : initializeApp(firebaseConfig)
-  : null;
+export const app = (() => {
+  if (!isFirebaseConfigured) {
+    return null;
+  }
+
+  try {
+    return getApps().length ? getApp() : initializeApp(firebaseConfig);
+  } catch (error) {
+    console.error("[firebase] Falha ao inicializar o app do Firebase:", error);
+    return null;
+  }
+})();
 
 // Persistência do Firebase Auth.
 //
@@ -91,11 +101,17 @@ if (app) {
       persistence: [browserLocalPersistence, indexedDBLocalPersistence],
       popupRedirectResolver: browserPopupRedirectResolver,
     });
-  } catch {
+  } catch (error) {
     // `initializeAuth` lança se o Auth já foi inicializado (HMR / múltiplos
     // imports). Nesse caso reaproveitamos a instância existente.
-    authInstance = getAuth(app);
+    try {
+      authInstance = getAuth(app);
+    } catch (authError) {
+      console.error("[firebase] Falha ao inicializar o auth do Firebase:", authError);
+    }
   }
+} else {
+  console.error("[firebase] Auth não inicializado porque o app do Firebase está indisponível.");
 }
 
 export const auth = authInstance;

@@ -111,6 +111,12 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
         setIsAuthed(false);
       }
     };
+
+    if (!auth) {
+      syncFromStorage();
+      return undefined;
+    }
+
     // onAuthStateChanged é a fonte de verdade: usuário REAL (não anônimo)
     // → logado; null ou anônimo → mostra "Entrar".
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -146,9 +152,11 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
     // Encerra a sessão REAL do Firebase Auth ANTES de limpar o cache. Sem
     // isso a sessão do IndexedDB/localStorage permanecia ativa e a Home
     // re-autenticava o usuário automaticamente (logout "não pegava").
-    try {
-      await signOut(auth);
-    } catch { /* segue limpando mesmo se o signOut falhar */ }
+    if (auth) {
+      try {
+        await signOut(auth);
+      } catch { /* segue limpando mesmo se o signOut falhar */ }
+    }
     try {
       localStorage.removeItem("userProfile");
       localStorage.removeItem("userPseudonym");
@@ -161,6 +169,14 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
   const handleLogin = useCallback(() => {
     setDropdownOpen(false);
     navigate("/login");
+  }, [navigate]);
+
+  const handleBack = useCallback(() => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate("/");
   }, [navigate]);
 
   const avatarSrc = getAvatarSrc();
@@ -177,8 +193,8 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
           {showBack && (
             <button
               type="button"
-              onClick={() => navigate(-1)}
-              className="inline-flex items-center gap-1.5 text-base font-semibold text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
+              onClick={handleBack}
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -193,7 +209,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
           <button
             type="button"
             onClick={() => navigate("/")}
-            className="hidden sm:block text-lg sm:text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-wide text-blue-700 dark:text-blue-300 hover:opacity-80 transition"
+            className="text-lg font-extrabold tracking-wide text-blue-700 transition hover:opacity-80 dark:text-blue-300 sm:text-2xl md:text-3xl lg:text-4xl"
             style={{ fontFamily: "'Space Grotesk', sans-serif", whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden", textShadow: "2px 2px 4px rgba(0,0,0,0.3)" }}
           >
             <span>TRABALHEI </span>
@@ -229,7 +245,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
             <button
               type="button"
               onClick={handleLogin}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition"
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-4 py-1.5 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
