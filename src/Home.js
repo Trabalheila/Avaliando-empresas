@@ -7,7 +7,7 @@ import { saveReview, listRecentReviews, saveSelectionProcessReview, slugifyCompa
 import { saveCompany, listCompanies, enrichCompanyWithBrasilAPI, searchCompaniesByName } from "./services/companies";
 import { getUserProfile, saveUserProfile, findUnifiedProfile } from "./services/users";
 import { savePendingReview, clearPendingReview } from "./utils/pendingReview";
-import { auth, db, ensureAuthReady } from "./firebase";
+import { auth, db, ensureAuthReady, firebaseInitError } from "./firebase";
 import { signInAnonymously, signInWithPopup, signOut } from "firebase/auth";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
@@ -218,6 +218,10 @@ function Home({ theme, toggleTheme }) {
   // Inicia vazio para não exibir um placeholder ("verificando...") enquanto o
   // ping de conexão está em andamento. Só será preenchido se o ping falhar.
   const [firebaseStatus, setFirebaseStatus] = useState("");
+  const isFirebaseConfigured = Boolean(auth && db);
+  const firebaseConfigMessage = firebaseInitError
+    ? `Firebase não está configurado: ${String(firebaseInitError.message)}`
+    : "Firebase não está disponível.";
   // eslint-disable-next-line no-unused-vars
   const [isLaunchPopupVisible, setIsLaunchPopupVisible] = useState(() => {
     try {
@@ -247,6 +251,12 @@ function Home({ theme, toggleTheme }) {
     let alive = true;
 
     const testFirebase = async () => {
+      if (!auth || !db) {
+        if (!alive) return;
+        setFirebaseStatus(firebaseConfigMessage);
+        return;
+      }
+
       try {
         // Caso as regras do Firestore exijam autenticação, faz login anônimo primeiro.
         // IMPORTANTE: aguarda a restauração da sessão persistida antes de
@@ -254,7 +264,7 @@ function Home({ theme, toggleTheme }) {
         // "/" o `currentUser` ainda é null e o login anônimo SUBSTITUIRIA a
         // sessão real do usuário (gerando o "Escolha seu perfil" indevido).
         await ensureAuthReady();
-        if (!auth.currentUser) {
+        if (!auth?.currentUser) {
           await signInAnonymously(auth);
         }
 
@@ -516,11 +526,17 @@ function Home({ theme, toggleTheme }) {
     };
 
     const syncFromFirestore = async () => {
+      if (!auth || !db) {
+        if (!alive) return;
+        console.warn("[Home] Firebase não está configurado; pulando sincronização de empresas/reviews.");
+        return;
+      }
+
       try {
         // Aguarda a restauração da sessão antes de eventual login anônimo,
         // para não substituir a sessão real do usuário já logado.
         await ensureAuthReady();
-        if (!auth.currentUser) {
+        if (!auth?.currentUser) {
           await signInAnonymously(auth);
         }
 
@@ -1837,9 +1853,15 @@ function Home({ theme, toggleTheme }) {
     setError(null);
 
     try {
+      if (!auth) {
+        throw new Error(
+          "Firebase Auth não está disponível. Verifique a configuração do Firebase."
+        );
+      }
+
       // Garante usuário autenticado (anônimo se necessário) ANTES de tentar
       // upload no Storage — as regras costumam exigir request.auth != null.
-      if (!auth.currentUser) {
+      if (!auth?.currentUser) {
         try { await signInAnonymously(auth); } catch { /* segue mesmo assim */ }
       }
 
@@ -1969,6 +1991,7 @@ function Home({ theme, toggleTheme }) {
   // `signInAnonymously` (usado para ler dados públicos).
   const authReconciledRef = React.useRef(false);
   useEffect(() => {
+    if (!auth) return undefined;
     const unsub = onAuthStateChanged(auth, (u) => {
       const isRealUser = !!u && !u.isAnonymous;
 
@@ -2014,6 +2037,7 @@ function Home({ theme, toggleTheme }) {
   // gravam essas chaves localmente — o que faz o botão "Painel Empresa"
   // sumir e "Crie seu perfil" aparecer indevidamente.
   useEffect(() => {
+    if (!auth) return undefined;
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) return;
       try {
@@ -2104,7 +2128,9 @@ function Home({ theme, toggleTheme }) {
 
   const handleLogout = useCallback(async () => {
     try {
-      await signOut(auth);
+      if (auth) {
+        await signOut(auth);
+      }
     } catch (err) {
       console.warn("Falha ao encerrar sessão do Firebase Auth:", err);
     }
@@ -2325,6 +2351,10 @@ function Home({ theme, toggleTheme }) {
     setError(null);
 
     try {
+      if (!auth) {
+        throw new Error("Firebase Auth não está disponível. Verifique a configuração do Firebase.");
+      }
+
       // Captura o perfil escolhido na Landing (Trabalhador/Especialista)
       // ANTES do popup. Default "worker".
       const selectedProfileType = ensureSelectedProfileType();
