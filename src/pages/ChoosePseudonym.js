@@ -117,6 +117,7 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
 
   // ─── Boot: garante UID anônimo do Firebase Auth para o funil ───
   useEffect(() => {
+    if (!auth) return undefined;
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         try {

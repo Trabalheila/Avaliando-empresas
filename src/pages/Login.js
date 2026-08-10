@@ -120,6 +120,11 @@ export default function Login({ theme, toggleTheme }) {
   // multiplos cliques porque a cada montagem de /login o useEffect chamava
   // navigate(target, { replace: true }) e jogava o user de volta a frente).
   useEffect(() => {
+    if (!auth) {
+      setError("Firebase não está disponível. Verifique a configuração do Firebase.");
+      return undefined;
+    }
+
     const unsub = onAuthStateChanged(auth, (user) => {
       if (!user || user.isAnonymous) return;
       // Exceção específica: caio.cad@gmail.com vai sempre direto para `/`,
@@ -390,6 +395,10 @@ export default function Login({ theme, toggleTheme }) {
       setError("Informe e-mail e senha.");
       return;
     }
+    if (!auth) {
+      setError("Firebase não está disponível. Verifique a configuração do Firebase.");
+      return;
+    }
     setSubmitting(true);
     setError("");
     setResetMessage("");
@@ -414,6 +423,10 @@ export default function Login({ theme, toggleTheme }) {
   }
 
   async function handleGoogleLogin() {
+    if (!auth) {
+      setError("Firebase não está disponível. Verifique a configuração do Firebase.");
+      return;
+    }
     setSubmitting(true);
     setError("");
     setResetMessage("");

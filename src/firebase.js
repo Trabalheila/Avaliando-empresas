@@ -15,7 +15,12 @@ import {
   isSupported as isMessagingSupported,
 } from "firebase/messaging";
 
-const runtimeEnv = typeof window !== "undefined" && window._env_ ? window._env_ : {};
+const runtimeEnv =
+  typeof window !== "undefined" &&
+  typeof window._env_ === "object" &&
+  window._env_ !== null
+    ? window._env_
+    : {};
 const getEnv = (key, fallback = "") => {
   const runtimeValue = runtimeEnv[key];
   const envValue = runtimeValue ?? process.env[key] ?? fallback;

@@ -241,13 +241,18 @@ export default function WorkerProfile({ theme, toggleTheme }) {
     // a leitura de `users/{id}` dispara antes de `auth.currentUser` existir e
     // falha por permission-denied, exibindo "perfil não encontrado" mesmo para
     // sessões válidas. O onAuthStateChanged garante o primeiro estado definitivo.
+    if (!auth) return undefined;
     const unsub = onAuthStateChanged(auth, () => {
       if (!cancelled) load();
     });
 
     return () => {
       cancelled = true;
-      try { unsub(); } catch { /* ignore */ }
+      try {
+        unsub();
+      } catch {
+        /* ignore */
+      }
     };
   }, [profileId]);
 

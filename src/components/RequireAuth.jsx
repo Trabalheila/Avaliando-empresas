@@ -42,6 +42,11 @@ export default function RequireAuth({ children }) {
   useEffect(() => {
     let cancelled = false;
 
+    if (!auth) {
+      setStatus("anonymous");
+      return undefined;
+    }
+
     const unsub = onAuthStateChanged(auth, (user) => {
       if (cancelled) return;
       const isAnonymous = !!user?.isAnonymous;

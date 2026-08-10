@@ -129,6 +129,8 @@ export default function CompanyPage() {
 
   // garante um uid (anônimo) para reagir
   useEffect(() => {
+    if (!auth) return undefined;
+
     let alive = true;
 
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -152,7 +154,11 @@ export default function CompanyPage() {
 
     return () => {
       alive = false;
-      unsub();
+      try {
+        unsub();
+      } catch {
+        /* ignore */
+      }
     };
   }, []);
 

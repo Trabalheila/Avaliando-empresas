@@ -162,11 +162,18 @@ export default function EvaluatePartner({ theme, toggleTheme }) {
 
   // ── Auth ───────────────────────────────────────────────────────────────
   useEffect(() => {
+    if (!auth) return undefined;
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setAuthReady(true);
     });
-    return () => unsub();
+    return () => {
+      try {
+        unsub();
+      } catch {
+        /* ignore */
+      }
+    };
   }, []);
 
   // ── Carrega a empresa logada (cnpjAvaliador) ───────────────────────────

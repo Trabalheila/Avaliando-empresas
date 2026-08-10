@@ -170,6 +170,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
 
   // Observa o estado de autenticação para decidir se pede senha de acesso.
   useEffect(() => {
+    if (!auth) return undefined;
     const unsub = onAuthStateChanged(auth, (user) => {
       setSocialAuthed(Boolean(user && !user.isAnonymous));
     });

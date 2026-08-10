@@ -62,8 +62,15 @@ export default function NotificationsBell() {
 
   /* UID do Firebase Auth — usado para ler conversas (participants são UIDs). */
   useEffect(() => {
+    if (!auth) return undefined;
     const unsub = onAuthStateChanged(auth, (u) => setAuthUid(u?.uid || ""));
-    return () => unsub();
+    return () => {
+      try {
+        unsub();
+      } catch {
+        /* ignore */
+      }
+    };
   }, []);
 
   /* Detecta UID do usuário logado a partir do localStorage */

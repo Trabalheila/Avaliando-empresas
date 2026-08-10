@@ -290,8 +290,15 @@ export default function PlatformChat({ theme, toggleTheme }) {
   // render; por isso observamos onAuthStateChanged em estado.
   const [authUid, setAuthUid] = useState(auth.currentUser?.uid || "");
   useEffect(() => {
+    if (!auth) return undefined;
     const unsub = onAuthStateChanged(auth, (u) => setAuthUid(u?.uid || ""));
-    return () => unsub();
+    return () => {
+      try {
+        unsub();
+      } catch {
+        /* ignore */
+      }
+    };
   }, []);
 
   // ID efetivo da conversa. Quando o usuário atual é o TRABALHADOR

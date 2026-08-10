@@ -221,6 +221,8 @@ export default function EmpresaDashboard() {
 
   // Auth ready
   useEffect(() => {
+    if (!auth) return undefined;
+
     const unsub = onAuthStateChanged(auth, (u) => {
       // Logs de depuração do estado de autenticação no Dashboard.
       let storedProfile = null;
@@ -246,7 +248,13 @@ export default function EmpresaDashboard() {
       setUser(u);
       setAuthReady(true);
     });
-    return () => unsub();
+    return () => {
+      try {
+        unsub();
+      } catch {
+        /* ignore */
+      }
+    };
   }, []);
 
   // Carrega o documento da empresa do Firestore (sem recadastrar CNPJ).

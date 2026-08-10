@@ -235,11 +235,21 @@ export default function CompanyProfile() {
 
   // Auth ready
   useEffect(() => {
+    if (!auth) {
+      setAuthReady(true);
+      return undefined;
+    }
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setAuthReady(true);
     });
-    return () => unsub();
+    return () => {
+      try {
+        unsub();
+      } catch {
+        /* ignore */
+      }
+    };
   }, []);
 
   // Carrega empresa: prioridade =>
