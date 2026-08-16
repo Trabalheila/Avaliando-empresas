@@ -23,6 +23,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -35,7 +36,8 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { db } from "../firebase";
+import { deleteObject, ref as storageRef } from "firebase/storage";
+import { db, storage } from "../firebase";
 import {
   getSpecialistIdFromConversationId,
   getWorkerIdFromConversationId,
@@ -213,6 +215,7 @@ export async function sendChatMessage({
     senderUid: String(senderUid),
     senderName: String(senderName || "").slice(0, 160),
     text: text ? String(text).slice(0, 4000) : "",
+    senderRole: senderRole === "especialista" ? "especialista" : "trabalhador",
     createdAt,
     createdAtServer: serverTimestamp(),
   };
@@ -223,13 +226,28 @@ export async function sendChatMessage({
       url: String(attachment.url),
       storagePath: attachment.storagePath ? String(attachment.storagePath) : "",
       contentType: attachment.contentType ? String(attachment.contentType) : "",
+      uploadedAt: createdAt,
     };
   }
 
-  await addDoc(
+  const ref = await addDoc(
     collection(db, "conversations", conversationId, "messages"),
     message
   );
+
+  if (message.attachment) {
+    try {
+      await syncChatAttachmentToConversationDocuments({
+        conversationId,
+        attachment: message.attachment,
+        senderUid: message.senderUid,
+        senderName: message.senderName,
+        senderRole: message.senderRole,
+      });
+    } catch (err) {
+      console.warn("Falha ao sincronizar anexo do chat com documentos da conversa:", err);
+    }
+  }
 
   // Determina o estado de "não lida" a partir do papel do remetente. Só
   // escrevemos o campo quando conhecemos o papel, para não sobrescrever o
@@ -264,6 +282,128 @@ export async function sendChatMessage({
     recipientUid,
     kind: message.attachment ? "documento" : "mensagem",
   });
+
+  return { id: ref.id, ...message };
+}
+
+/**
+ * Garante que um anexo do chat também exista na coleção de documentos da
+ * conversa (a mesma usada por workerDocuments.js), sem duplicar itens iguais.
+ */
+export async function syncChatAttachmentToConversationDocuments({
+  conversationId,
+  attachment,
+  senderUid,
+  senderName,
+  senderRole,
+}) {
+  if (!conversationId || !attachment || !attachment.url) return null;
+
+  const docQuery = query(
+    collection(db, "conversations", conversationId, "documents")
+  );
+  const snap = await getDocs(docQuery);
+  const existing = snap.docs.find((d) => {
+    const data = d.data() || {};
+    return (
+      data.url === attachment.url ||
+      (data.storagePath && attachment.storagePath && data.storagePath === attachment.storagePath)
+    );
+  });
+  if (existing) return { id: existing.id, ...existing.data() };
+
+  const createdAt = new Date().toISOString();
+  const payload = {
+    name: String(attachment.name || "arquivo").slice(0, 200),
+    url: String(attachment.url),
+    storagePath: attachment.storagePath ? String(attachment.storagePath) : "",
+    size: Number(attachment.size) || 0,
+    contentType: attachment.contentType ? String(attachment.contentType) : "",
+    senderId: String(senderUid || ""),
+    senderName: String(senderName || "").slice(0, 160),
+    senderRole: senderRole === "especialista" ? "especialista" : "trabalhador",
+    source: "chat",
+    category: "chat",
+    createdAt,
+    createdAtServer: serverTimestamp(),
+  };
+
+  const ref = await addDoc(
+    collection(db, "conversations", conversationId, "documents"),
+    payload
+  );
+  return { id: ref.id, ...payload };
+}
+
+/**
+ * Remove um anexo do chat, apaga o arquivo do Storage e marca a mensagem como
+ * "Arquivo removido" sem apagar a própria mensagem.
+ */
+export async function removeChatAttachment({
+  conversationId,
+  messageId,
+  attachment,
+}) {
+  if (!conversationId || !messageId) {
+    throw new Error("conversationId e messageId são obrigatórios.");
+  }
+
+  const storagePath = attachment?.storagePath ? String(attachment.storagePath) : "";
+  if (storagePath) {
+    try {
+      await deleteObject(storageRef(storage, storagePath));
+    } catch (err) {
+      if (err?.code !== "storage/object-not-found") {
+        console.warn("Falha ao remover anexo do Storage do chat:", err);
+      }
+    }
+  }
+
+  const messageRef = doc(db, "conversations", conversationId, "messages", messageId);
+  const snap = await getDoc(messageRef);
+  const messageData = snap.exists() ? snap.data() || {} : {};
+
+  const documentDocs = await getDocs(
+    collection(db, "conversations", conversationId, "documents")
+  );
+  const matchDoc = documentDocs.docs.find((d) => {
+    const data = d.data() || {};
+    return (
+      data.url === attachment?.url ||
+      (data.storagePath && attachment?.storagePath && data.storagePath === attachment.storagePath)
+    );
+  });
+
+  await updateDoc(messageRef, {
+    text: "Arquivo removido",
+    attachment: null,
+    attachmentRemoved: true,
+    updatedAt: serverTimestamp(),
+  });
+
+  if (matchDoc) {
+    try {
+      await deleteDoc(doc(db, "conversations", conversationId, "documents", matchDoc.id));
+    } catch (err) {
+      console.warn("Falha ao remover documento persistido do anexo do chat:", err);
+    }
+  }
+
+  try {
+    await updateDoc(doc(db, "conversations", conversationId), {
+      updatedAt: serverTimestamp(),
+      lastMessage: {
+        text: "Arquivo removido",
+        senderUid: String(messageData.senderUid || ""),
+        attachmentName: "",
+        createdAt: String(messageData.createdAt || new Date().toISOString()),
+      },
+    });
+  } catch (err) {
+    console.warn("Falha ao atualizar o resumo após remoção do anexo:", err);
+  }
+
+  return true;
 }
 
 /**

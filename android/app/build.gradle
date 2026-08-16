@@ -7,8 +7,8 @@ android {
         applicationId "com.trabalheila.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 3
+        versionName "1.0.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -27,10 +27,6 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
-    }
-    // Se o seu projeto usa Kotlin, adicione também este bloco
-    kotlinOptions {
-        jvmTarget = "17"
     }
     // --- FIM DAS ALTERAÇÕES ---
 }

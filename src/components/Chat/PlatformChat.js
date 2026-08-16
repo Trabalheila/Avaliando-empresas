@@ -31,6 +31,7 @@ import {
   sendChatMessage,
   subscribeToMessages,
   markConversationRead,
+  removeChatAttachment,
 } from "../../services/chat";
 import {
   buildSpecialistConversationId,
@@ -107,7 +108,7 @@ function formatTime(iso) {
   }
 }
 
-function Bubble({ msg, isMine }) {
+function Bubble({ msg, isMine, onRemoveAttachment }) {
   if (msg.from === "system") {
     return (
       <div className="mx-auto max-w-md text-center text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-full px-3 py-1">
@@ -136,9 +137,11 @@ function Bubble({ msg, isMine }) {
           <div className="space-y-2">
             {attachments.map((att, i) => (
               <AttachmentView
-                key={att.storagePath || att.url || i}
+                key={att.storagePath || att.url || att.messageId || i}
                 att={att}
                 isMine={isMine}
+                messageId={att.messageId || msg.id}
+                onRemove={onRemoveAttachment}
               />
             ))}
           </div>
@@ -165,68 +168,71 @@ function getAttachmentKind(att) {
 }
 
 /** Renderiza um único anexo conforme o tipo (imagem, PDF ou genérico). */
-function AttachmentView({ att, isMine }) {
+function AttachmentView({ att, isMine, messageId, onRemove }) {
   const kind = getAttachmentKind(att);
   const url = att?.url || "";
   const name = att?.name || "documento";
+  const canDelete = Boolean(isMine && messageId && onRemove && url);
 
-  if (kind === "image" && url) {
-    // Miniatura clicável que abre a imagem em tamanho real em nova aba.
-    return (
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block"
-        title={`Abrir ${name}`}
-      >
-        <img
-          src={url}
-          alt={name}
-          loading="lazy"
-          className="max-h-48 w-auto max-w-full rounded-lg object-cover border border-black/10"
-        />
-      </a>
-    );
-  }
-
-  const linkClass = isMine
-    ? "underline"
-    : "text-blue-700 dark:text-blue-300 underline";
-
-  if (kind === "pdf") {
-    return (
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        download={name}
-        className="flex items-center gap-2 group"
-        title={`Abrir ${name}`}
-      >
-        <span aria-hidden="true" className="text-lg shrink-0">
-          📄
-        </span>
-        <span className={`min-w-0 truncate ${linkClass}`}>{name}</span>
-      </a>
-    );
-  }
-
-  // Genérico: ícone de clipe + nome + download.
-  return (
+  const renderNameLink = (className = "flex items-center gap-2") => (
     <a
       href={url}
       target="_blank"
       rel="noopener noreferrer"
       download={name}
-      className="flex items-center gap-2"
+      className={className}
       title={`Baixar ${name}`}
     >
       <span aria-hidden="true" className="shrink-0">
-        📎
+        {kind === "image" ? "🖼️" : kind === "pdf" ? "📄" : "📎"}
       </span>
-      <span className={`min-w-0 truncate ${linkClass}`}>{name}</span>
+      <span className={`min-w-0 truncate ${isMine ? "underline" : "text-blue-700 dark:text-blue-300 underline"}`}>
+        {name}
+      </span>
     </a>
+  );
+
+  if (kind === "image" && url) {
+    return (
+      <div className="flex items-center gap-2">
+        <a href={url} target="_blank" rel="noopener noreferrer" className="block min-w-0" title={`Abrir ${name}`}>
+          <img
+            src={url}
+            alt={name}
+            loading="lazy"
+            className="max-h-48 w-auto max-w-full rounded-lg object-cover border border-black/10"
+          />
+        </a>
+        {canDelete && (
+          <button
+            type="button"
+            aria-label={`Remover anexo ${name}`}
+            title="Remover anexo"
+            onClick={() => onRemove(messageId, att)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/20 shrink-0"
+          >
+            🗑️
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      {renderNameLink("flex items-center gap-2 min-w-0")}
+      {canDelete && (
+        <button
+          type="button"
+          aria-label={`Remover anexo ${name}`}
+          title="Remover anexo"
+          onClick={() => onRemove(messageId, att)}
+          className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/20 shrink-0"
+        >
+          🗑️
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -249,7 +255,7 @@ function groupMessages(messages) {
       last.from === m.from &&
       Math.abs(new Date(m.createdAt).getTime() - last._lastTs) <= GROUP_WINDOW_MS
     ) {
-      last.attachments.push(m.attachment);
+      last.attachments.push({ ...m.attachment, messageId: m.id });
       last._lastTs = new Date(m.createdAt).getTime();
       continue;
     }
@@ -259,7 +265,7 @@ function groupMessages(messages) {
         from: m.from,
         fromName: m.fromName,
         createdAt: m.createdAt,
-        attachments: [m.attachment],
+        attachments: [{ ...m.attachment, messageId: m.id }],
         grouped: true,
         _lastTs: new Date(m.createdAt).getTime(),
       });
@@ -577,6 +583,30 @@ export default function PlatformChat({ theme, toggleTheme }) {
     ];
     persist(next);
     setDraft("");
+  };
+
+  const handleRemoveAttachment = async (messageId, attachment) => {
+    if (!useFirestore || !effectiveConversationId || !messageId) return;
+    if (!window.confirm("Tem certeza que deseja remover este anexo?")) return;
+
+    try {
+      await removeChatAttachment({
+        conversationId: effectiveConversationId,
+        messageId,
+        attachment,
+      });
+      setWarning("");
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId
+            ? { ...msg, text: "Arquivo removido", attachment: null, attachmentRemoved: true }
+            : msg
+        )
+      );
+    } catch (err) {
+      console.warn("Falha ao remover anexo do chat:", err);
+      setWarning("Não foi possível remover o anexo. Tente novamente.");
+    }
   };
 
   const handleAttach = (e) => {
@@ -929,7 +959,12 @@ export default function PlatformChat({ theme, toggleTheme }) {
           className="flex-1 min-h-[300px] h-full bg-white/60 dark:bg-slate-900/60 rounded-2xl border border-blue-100 dark:border-slate-700 p-3 overflow-y-auto space-y-2"
         >
           {renderItems.map((m) => (
-            <Bubble key={m.id} msg={m} isMine={m.from === myId} />
+            <Bubble
+              key={m.id}
+              msg={m}
+              isMine={m.from === myId}
+              onRemoveAttachment={handleRemoveAttachment}
+            />
           ))}
         </div>
 
