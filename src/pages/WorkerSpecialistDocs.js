@@ -63,6 +63,11 @@ function readWorkerName() {
   );
 }
 
+export function isCaseChatActive(caso) {
+  const status = String(caso?.status || "").trim().toLowerCase();
+  return status === "ativo" || status === "pendente";
+}
+
 export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const { apoiadorId } = useParams();
@@ -294,6 +299,7 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
     (d) => String(d.category || DOC_CATEGORY_PROCESS) === DOC_CATEGORY_CLIENT
   ).length;
   const processCount = docs.length - personalCount;
+  const hasActiveChat = isCaseChatActive(caso);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col">
@@ -363,9 +369,11 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
                     Ver todos os casos com este especialista →
                   </button>
                 </div>
-                <span className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200">
-                  ● Contato ativo
-                </span>
+                {hasActiveChat && (
+                  <span className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200">
+                    ● Contato ativo
+                  </span>
+                )}
               </div>
               <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
                 <div>
@@ -409,7 +417,7 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
                 }
                 className="mt-4 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 min-h-[44px]"
               >
-                💬 Solicitar Chat
+                {hasActiveChat ? "💬 Chat" : "💬 Solicitar Chat"}
               </button>
             </section>
 
