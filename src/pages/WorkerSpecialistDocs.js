@@ -417,7 +417,7 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
                 }
                 className="mt-4 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 min-h-[44px]"
               >
-                {hasActiveChat ? "💬 Chat" : "💬 Solicitar Chat"}
+                {"💬 Chat"}
               </button>
             </section>
 
