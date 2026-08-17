@@ -26,14 +26,15 @@ function getProfile() {
   }
 }
 
-function getPseudonym() {}
+function getPseudonym() {    // linha 29 — abre a função
   try {
     const p = getProfile();
     return p?.pseudonym || p?.name || localStorage.getItem("userPseudonym") || "";
   } catch {
     return "";
   }
-}
+}                            // fecha a função — adiciona aqui
+
 
 // Detecta se o usuário logado é um Especialista/Apoiador (mesma heurística
 // usada nas Home mobile/desktop), para exibir o atalho "Ver painel".
