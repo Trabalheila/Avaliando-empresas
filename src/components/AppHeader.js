@@ -26,14 +26,14 @@ function getProfile() {
   }
 }
 
-function getPseudonym() {
+function getPseudonym() {}
   try {
     const p = getProfile();
     return p?.pseudonym || p?.name || localStorage.getItem("userPseudonym") || "";
   } catch {
     return "";
   }
-}
+
 
 // Detecta se o usuário logado é um Especialista/Apoiador (mesma heurística
 // usada nas Home mobile/desktop), para exibir o atalho "Ver painel".
@@ -189,7 +189,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
     <nav className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-blue-100 dark:border-slate-700 shadow-sm" style={{ height: 'auto' }}>
       <div className="max-w-6xl mx-auto px-3.5 py-2 min-h-[64px]" style={{ display: "flex", flexDirection: "row", alignItems: "center", width: "100%", justifyContent: "space-between" }}>
         {/* ── Zona esquerda: Voltar ── */}
-        <div className="flex items-center gap-3" style={{ flex: "0 1 auto", paddingLeft: 24 }}>
+        <div className="flex items-center gap-3" style={{ flex: "0 1 auto" }}>
           {showBack && (
             <button
               type="button"
@@ -199,7 +199,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
-              Voltar
+              <span className="hidden sm:inline">Voltar</span>
             </button>
           )}
         </div>
@@ -221,7 +221,7 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
         </div>
 
         {/* ── Zona direita: Tema + Avatar ── */}
-        <div className="flex items-center" style={{ flex: "0 1 auto", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, paddingRight: 24 }}>
+        <div className="flex items-center" style={{ flex: "0 1 auto", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
           <button
             type="button"
             onClick={toggleTheme}
