@@ -453,6 +453,14 @@ export default function MinhaConta({ theme, toggleTheme }) {
       return;
     }
 
+try {
+  if (auth.currentUser) {
+    await auth.currentUser.getIdToken(true);
+  }
+} catch (tokenErr) {
+  console.warn("Token refresh falhou:", tokenErr);
+}
+
     setUploadingAvatar(true);
     setUploadProgress(0);
 
@@ -611,7 +619,7 @@ export default function MinhaConta({ theme, toggleTheme }) {
   // Nunca cair em `profile.name` aqui: esse campo pode ter sido um dia
   // populado com o nome real vindo do Google/LinkedIn. Pseudônimo só
   // a partir de `profile.pseudonimo`.
-  const pseudonym = safeProfile.pseudonimo || "Anônimo";
+  const pseudonym = safeProfile.pseudonimo || safeProfile.pseudonym || safeProfile.nomeReal || safeProfile.fullName || auth.currentUser?.displayName || "Anônimo";
   const memberSince = formatDate(safeProfile.createdAt || safeProfile.updatedAt);
   const planLabel = getPlanLabel(safeProfile);
   const planColor = getPlanColor(safeProfile);

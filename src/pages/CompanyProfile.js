@@ -418,10 +418,12 @@ export default function CompanyProfile() {
   }, [isPremium, reviews]);
 
   const avg = useMemo(() => {
-    if (!reviews.length) return 0;
-    const total = reviews.reduce((acc, r) => acc + (Number(r.rating) || Number(r.media) || 0), 0);
-    return total / reviews.length;
-  }, [reviews]);
+  if (!reviews.length) return 0;
+  const verifiedReviews = reviews.filter(r => r.verified === true);
+  if (!verifiedReviews.length) return 0;
+  const total = verifiedReviews.reduce((acc, r) => acc + (Number(r.rating) || Number(r.media) || 0), 0);
+  return total / verifiedReviews.length;
+}, [reviews]);
 
   const repliesUsed = Number(company?.repliesUsedThisMonth || 0);
   const repliesRemaining = isPremium ? Infinity : Math.max(0, FREE_REPLY_LIMIT - repliesUsed);
