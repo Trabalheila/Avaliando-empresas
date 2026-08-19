@@ -2,6 +2,7 @@
 import { Routes, Route, useLocation, useNavigationType } from 'react-router-dom';
 import Home from './Home';
 import './i18n';
+import { auth } from './firebase';
 
 import AuthLinkedIn from './pages/AuthLinkedIn';
 import ChoosePseudonym from './pages/ChoosePseudonym';
@@ -70,7 +71,6 @@ import PagamentoCancelado from './pages/PagamentoCancelado';
 import ConsultaEspecializadaDetalhesPage from './pages/ConsultaEspecializadaDetalhesPage';
 import migrateApoiadoresToUsers from './scripts/migrateApoiadoresToUsers';
 
-// Função para aplicar o tema (dark/light)
 function applyTheme(theme) {
   if (typeof document === 'undefined') return;
   document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -101,41 +101,15 @@ function getTransitionDurationMs() {
 function getRouteTransitionProfile(pathname) {
   const baseDuration = getTransitionDurationMs();
   if (baseDuration === 0) return { durationMs: 0, easing: 'linear' };
-
   const path = pathname || '/';
-
-  if (path === '/') {
-    return ROUTE_TRANSITION_PRESETS.home;
-  }
-
-  if (path.startsWith('/empresa')) {
-    return ROUTE_TRANSITION_PRESETS.company;
-  }
-
-  if (path.startsWith('/pseudonym')) {
-    return ROUTE_TRANSITION_PRESETS.profile;
-  }
-
-  if (path.startsWith('/perfil')) {
-    return ROUTE_TRANSITION_PRESETS.profile;
-  }
-
-  if (path.startsWith('/minha-conta')) {
-    return ROUTE_TRANSITION_PRESETS.profile;
-  }
-
-  if (path.startsWith('/purpose')) {
-    return ROUTE_TRANSITION_PRESETS.purpose;
-  }
-
-  if (path.startsWith('/excluir-dados')) {
-    return ROUTE_TRANSITION_PRESETS.purpose;
-  }
-
-  if (path.startsWith('/auth')) {
-    return ROUTE_TRANSITION_PRESETS.auth;
-  }
-
+  if (path === '/') return ROUTE_TRANSITION_PRESETS.home;
+  if (path.startsWith('/empresa')) return ROUTE_TRANSITION_PRESETS.company;
+  if (path.startsWith('/pseudonym')) return ROUTE_TRANSITION_PRESETS.profile;
+  if (path.startsWith('/perfil')) return ROUTE_TRANSITION_PRESETS.profile;
+  if (path.startsWith('/minha-conta')) return ROUTE_TRANSITION_PRESETS.profile;
+  if (path.startsWith('/purpose')) return ROUTE_TRANSITION_PRESETS.purpose;
+  if (path.startsWith('/excluir-dados')) return ROUTE_TRANSITION_PRESETS.purpose;
+  if (path.startsWith('/auth')) return ROUTE_TRANSITION_PRESETS.auth;
   return { durationMs: baseDuration, easing: DEFAULT_ROUTE_TRANSITION.easing };
 }
 
@@ -143,10 +117,8 @@ function getPreferredTheme() {
   if (typeof window === 'undefined') return 'light';
   const stored = window.localStorage.getItem('trabalheiLa_theme');
   if (stored === 'dark' || stored === 'light') return stored;
-  // Valor padrão: dia (azul claro). Não seguimos o esquema de cores do sistema automaticamente.
   return 'light';
 }
-
 
 function App() {
   const location = useLocation();
@@ -173,10 +145,6 @@ function App() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  /* Migração one-shot (apenas em dev): espelha cadastros antigos de
-     `apoiadores` na coleção `users` com userType="apoiador" para que
-     o painel admin os encontre no filtro por tipo. Usa flag em
-     localStorage para rodar uma única vez por navegador. */
   useEffect(() => {
     if (process.env.NODE_ENV !== 'development') return;
     migrateApoiadoresToUsers().catch(() => {});
@@ -201,9 +169,7 @@ function App() {
     setIncomingLocation(location);
     setIsTransitioning(true);
 
-    if (transitionTimeoutRef.current) {
-      clearTimeout(transitionTimeoutRef.current);
-    }
+    if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
 
     const duration = profile.durationMs;
     if (duration === 0) {
@@ -224,10 +190,26 @@ function App() {
 
   useEffect(() => {
     return () => {
-      if (transitionTimeoutRef.current) {
-        clearTimeout(transitionTimeoutRef.current);
+      if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+    };
+  }, []);
+
+  // ── Fix tela preta no mobile ao voltar do background ou de outra tela ──
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        if (transitionTimeoutRef.current) {
+          clearTimeout(transitionTimeoutRef.current);
+        }
+        setIsTransitioning(false);
+        setOutgoingLocation(null);
+        setCurrentLocation((prev) => prev);
+        auth.currentUser?.reload().catch(() => {});
+        window.dispatchEvent(new Event('trabalheiLa_user_updated'));
       }
     };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
 
   const renderRoutes = (routeLocation) => (
@@ -362,4 +344,5 @@ function App() {
     </ErrorBoundary>
   );
 }
+
 export default App;
