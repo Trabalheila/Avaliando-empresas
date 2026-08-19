@@ -113,8 +113,8 @@ const MARKET_AVERAGES = [
 // Percentual de comissão retido pela plataforma sobre consultas intermediadas
 // e pagas pelo checkout (split). Espelha a lógica de `create-checkout-session`.
 const COMMISSION_BY_TIER = [
-  { tier: "Gratuito / Essencial", pct: "10%" },
-  { tier: "Premium", pct: "12,5%" },
+  { tier: "Gratuito / Essencial", pct: "12,5%" },
+  { tier: "Premium", pct: "10%" },
 ];
 
 function PlanCard({
