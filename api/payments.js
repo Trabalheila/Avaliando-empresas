@@ -295,7 +295,8 @@ async function handleMpCheckout(req, res) {
   if (!(valor_total > 0)) {
     return res.status(400).json({ error: "Nao foi possivel calcular o valor da consulta." });
   }
-  const { valor_comissao, valor_repasse } = computeSplit(valor_total);
+  const specialistPlan = especialista.plan || especialista.plano || especialista.planStatus;
+  const { valor_comissao, valor_repasse } = computeSplit(valor_total, specialistPlan);
 
   // 4. Cria o pagamento no MP com application_fee = comissao da plataforma.
   let paymentResult;
