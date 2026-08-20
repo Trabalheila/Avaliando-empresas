@@ -2057,28 +2057,19 @@ function Home({ theme, toggleTheme }) {
           uid: existing.uid || u.uid,
           id: existing.id || u.uid,
           email: existing.email || u.email || "",
-          // O campo público `name` nunca deve receber o nome real vindo
-          // do provider (Google/LinkedIn). Mantemos apenas o que o próprio
-          // usuário já escolheu como pseudônimo (existing.name) ou o
-          // valor já salvo no doc Firestore (data.name = pseudônimo).
           name: existing.name || data.name || "",
-          // Nome real do provider fica restrito a campos privados.
           nomeReal: existing.nomeReal || u.displayName || data.nomeReal || data.fullName || "",
           fullName: existing.fullName || u.displayName || data.fullName || data.nomeReal || "",
           // Campos do perfil usados para detectar empresário:
-          role: data.role || existing.role || "",
-          userType: data.userType || existing.userType || "",
-          isEmployer:
-            data.isEmployer === true ||
-            existing.isEmployer === true ||
-            data.role === "admin_empresa" ||
-            existing.role === "admin_empresa",
-          managedCompanyId:
-            data.managedCompanyId || existing.managedCompanyId || null,
-          managedCompanyName:
-            data.managedCompanyName || existing.managedCompanyName || null,
+          // Prioriza dados do Firestore (data) sobre o localStorage (existing)
+          role: data.role || "worker",
+          userType: data.userType || "worker",
+          isEmployer: data.isEmployer === true || data.role === "admin_empresa",
+          managedCompanyId: data.managedCompanyId || null,
+          managedCompanyName: data.managedCompanyName || null,
         };
         localStorage.setItem("userProfile", JSON.stringify(merged));
+        setUserProfile(merged);
         window.dispatchEvent(new Event("trabalheiLa_user_updated"));
 
         // Propaga o logoUrl da empresa do usuário para o estado `empresas`,
@@ -2492,6 +2483,8 @@ function Home({ theme, toggleTheme }) {
   }, [loadPersistedProfile, promptProfileCompletion]);
 
   useEffect(() => {
+    if (isLoading) return;
+
     const params = new URLSearchParams(location.search || "");
     let linkedInCode = params.get("linkedin_code") || params.get("code");
     let linkedInError = params.get("linkedin_error") || params.get("error");
@@ -2530,17 +2523,21 @@ function Home({ theme, toggleTheme }) {
 
     if (!linkedInCode) return;
 
-    try {
-      localStorage.removeItem(LINKEDIN_OAUTH_RESULT_KEY);
-    } catch {
-      // ignore storage failures
-    }
-
-    handleLoginSuccess({ code: linkedInCode });
-
     const cleanUrl = `${window.location.pathname}${window.location.hash || ""}`;
-    window.history.replaceState({}, "", cleanUrl || "/");
-  }, [location.search, handleLoginSuccess]);
+
+    try {
+      handleLoginSuccess({ code: linkedInCode });
+    } catch (err) {
+      console.error("Erro ao processar login do LinkedIn:", err);
+    } finally {
+      try {
+        localStorage.removeItem(LINKEDIN_OAUTH_RESULT_KEY);
+      } catch {
+        // ignore storage failures
+      }
+      window.history.replaceState({}, "", cleanUrl || "/");
+    }
+  }, [location.search, handleLoginSuccess, isLoading]);
 
   // Nível de verificação do usuário corrente (free | identity | proven),
   // usado pelos formulários para bloquear o envio de avaliações de usuários

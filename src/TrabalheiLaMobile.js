@@ -818,7 +818,7 @@ function TrabalheiLaMobile({
                   title="Ir para Minha conta"
                   className="text-sm font-semibold text-slate-700 dark:text-blue-100 truncate hover:underline focus:outline-none focus:ring-2 focus:ring-blue-400 rounded"
                 >
-                  {isAuthenticated && userProfile?.fullName ? userProfile.fullName : userPseudonym || "Anônimo"}
+                  {userPseudonym || "Anônimo"}
                 </button>
                 {userProfile?.verification?.certified && (
                   <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">

@@ -566,7 +566,7 @@ function TrabalheiLaDesktop({
                     className="hidden sm:flex flex-col items-end leading-tight max-w-[220px] hover:opacity-80 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 rounded"
                   >
                     <span className="text-base md:text-lg font-bold text-blue-900 dark:text-blue-100 truncate max-w-[220px]">
-                      {isAuthenticated && userProfile?.fullName ? userProfile.fullName : userPseudonym || "Anônimo"}
+                      {userPseudonym || "Anônimo"}
                     </span>
                     {userProfile?.verification?.certified && (
                       <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
