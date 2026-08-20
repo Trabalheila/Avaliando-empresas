@@ -2269,19 +2269,9 @@ function Home({ theme, toggleTheme }) {
                 ...(persisted.resumeData || {}),
                 ...(mergedProfile.resumeData || {}),
               },
-              // --- CORREÇÃO AQUI: Prioriza avatar existente sobre o do login social ---
-              avatar:
-                mergedProfile.avatar ||
-                persisted.avatar ||
-                persisted.picture ||
-                mergedProfile.picture ||
-                "",
-              picture:
-                mergedProfile.picture ||
-                persisted.picture ||
-                persisted.avatar ||
-                mergedProfile.avatar ||
-                "",
+              // --- CORREÇÃO AQUI: Prioriza avatar persistido sobre o do login social ---
+              avatar: persisted.avatar || persisted.picture || incomingPicture || "",
+              picture: persisted.picture || persisted.avatar || incomingPicture || "",
               // --- FIM DA CORREÇÃO ---
             };
           }
@@ -2421,19 +2411,9 @@ function Home({ theme, toggleTheme }) {
               ...(persisted.resumeData || {}),
               ...(mergedProfile.resumeData || {}),
             },
-            // --- CORREÇÃO AQUI: Prioriza avatar existente sobre o do login social ---
-            avatar:
-              mergedProfile.avatar ||
-              persisted.avatar ||
-              persisted.picture ||
-              mergedProfile.picture ||
-              "",
-            picture:
-              mergedProfile.picture ||
-              persisted.picture ||
-              persisted.avatar ||
-              mergedProfile.avatar ||
-              "",
+            // --- CORREÇÃO AQUI: Prioriza avatar persistido sobre o do login social ---
+            avatar: persisted.avatar || persisted.picture || googleData.avatar || "",
+            picture: persisted.picture || persisted.avatar || googleData.avatar || "",
             // --- FIM DA CORREÇÃO ---
           };
         }
