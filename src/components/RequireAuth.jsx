@@ -29,6 +29,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 
 import { auth } from "../firebase";
+import { isProfileAuthenticated } from "../utils/profileIdentity";
 
 export default function RequireAuth({ children }) {
   const location = useLocation();
@@ -42,20 +43,35 @@ export default function RequireAuth({ children }) {
   useEffect(() => {
     let cancelled = false;
 
+    const hasPersistedProfile = () => {
+      try {
+        const raw = localStorage.getItem("userProfile");
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        return isProfileAuthenticated(parsed);
+      } catch {
+        return false;
+      }
+    };
+
     if (!auth) {
-      setStatus("anonymous");
+      setStatus(hasPersistedProfile() ? "ready" : "anonymous");
       return undefined;
     }
 
     const unsub = onAuthStateChanged(auth, (user) => {
       if (cancelled) return;
       const isAnonymous = !!user?.isAnonymous;
-      if (!user || isAnonymous) {
-        setStatus("anonymous");
-      } else {
+      if (hasPersistedProfile() || (!user || isAnonymous ? false : true)) {
         setStatus("ready");
+      } else {
+        setStatus("anonymous");
       }
     });
+
+    if (hasPersistedProfile()) {
+      setStatus("ready");
+    }
 
     return () => {
       cancelled = true;
