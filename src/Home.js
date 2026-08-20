@@ -1,3 +1,5 @@
+// src/Home.js (arquivo completo com a correção)
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import TrabalheiLaMobile from "./TrabalheiLaMobile";
@@ -466,7 +468,7 @@ function Home({ theme, toggleTheme }) {
   }, []);
 
   // Inicializa as empresa3s dinamicamente sem erro de map
-  
+
   const [empresas, setEmpresas] = useState(() => {
     try {
       const stored = localStorage.getItem("empresasData");
@@ -692,7 +694,7 @@ function Home({ theme, toggleTheme }) {
       emp.reconhecimento, emp.comunicacao, emp.etica, emp.desenvolvimento,
       emp.saudeBemEstar, emp.impactoSocial, emp.reputacao, emp.estimacaoOrganizacao,
       emp.discriminacao,
-    ].filter(val => typeof val === 'number' && !isNaN(val) && val > 0); 
+    ].filter(val => typeof val === 'number' && !isNaN(val) && val > 0);
 
     if (ratings.length === 0) return null;
     const sum = ratings.reduce((acc, curr) => acc + curr, 0);
@@ -2237,8 +2239,10 @@ function Home({ theme, toggleTheme }) {
           loginProvider: "linkedin",
           fallback: false,
           linkedInUrl: data?.linkedInUrl || existingProfile?.linkedInUrl || null,
-          avatar: incomingPicture || existingProfile?.avatar || existingProfile?.picture || "",
-          picture: incomingPicture || existingProfile?.picture || existingProfile?.avatar || "",
+          // --- CORREÇÃO AQUI: Prioriza avatar existente sobre o do login social ---
+          avatar: existingProfile?.avatar || existingProfile?.picture || incomingPicture || "",
+          picture: existingProfile?.picture || existingProfile?.avatar || incomingPicture || "",
+          // --- FIM DA CORREÇÃO ---
           // Mantém o tipo de perfil já escolhido; se vazio, aplica o
           // selecionado na Landing (default "worker").
           profileTypeChosen:
@@ -2265,6 +2269,7 @@ function Home({ theme, toggleTheme }) {
                 ...(persisted.resumeData || {}),
                 ...(mergedProfile.resumeData || {}),
               },
+              // --- CORREÇÃO AQUI: Prioriza avatar existente sobre o do login social ---
               avatar:
                 mergedProfile.avatar ||
                 persisted.avatar ||
@@ -2277,6 +2282,7 @@ function Home({ theme, toggleTheme }) {
                 persisted.avatar ||
                 mergedProfile.avatar ||
                 "",
+              // --- FIM DA CORREÇÃO ---
             };
           }
         } catch (loadErr) {
@@ -2309,8 +2315,10 @@ function Home({ theme, toggleTheme }) {
             nomeReal: mergedProfile.nomeReal || undefined,
             fullName: mergedProfile.fullName || mergedProfile.nomeReal || undefined,
             email: mergedProfile.email,
-            picture: mergedProfile.picture || mergedProfile.avatar || "",
+            // --- CORREÇÃO AQUI: Prioriza avatar existente sobre o do login social ---
+            picture: mergedProfile.avatar || mergedProfile.picture || "",
             avatar: mergedProfile.avatar || mergedProfile.picture || "",
+            // --- FIM DA CORREÇÃO ---
             loginProvider: "linkedin",
             // Login social = Identidade Verificada (selo azul) imediatamente.
             verification_level: "identity",
@@ -2383,8 +2391,10 @@ function Home({ theme, toggleTheme }) {
         ...existingProfile,
         ...googleData,
         fallback: false,
-        avatar: googleData.avatar || existingProfile.avatar || existingProfile.picture || "",
-        picture: googleData.picture || existingProfile.picture || existingProfile.avatar || "",
+        // --- CORREÇÃO AQUI: Prioriza avatar existente sobre o do login social ---
+        avatar: existingProfile.avatar || existingProfile.picture || googleData.avatar || "",
+        picture: existingProfile.picture || existingProfile.avatar || googleData.picture || "",
+        // --- FIM DA CORREÇÃO ---
         // Mantém o tipo de perfil já escolhido; se vazio, aplica o
         // selecionado na Landing (default "worker").
         profileTypeChosen:
@@ -2411,6 +2421,7 @@ function Home({ theme, toggleTheme }) {
               ...(persisted.resumeData || {}),
               ...(mergedProfile.resumeData || {}),
             },
+            // --- CORREÇÃO AQUI: Prioriza avatar existente sobre o do login social ---
             avatar:
               mergedProfile.avatar ||
               persisted.avatar ||
@@ -2423,6 +2434,7 @@ function Home({ theme, toggleTheme }) {
               persisted.avatar ||
               mergedProfile.avatar ||
               "",
+            // --- FIM DA CORREÇÃO ---
           };
         }
       } catch (loadErr) {
@@ -2454,8 +2466,10 @@ function Home({ theme, toggleTheme }) {
           nomeReal: mergedProfile.nomeReal || undefined,
           fullName: mergedProfile.fullName || mergedProfile.nomeReal || undefined,
           email: mergedProfile.email,
-          picture: mergedProfile.picture || mergedProfile.avatar || "",
+          // --- CORREÇÃO AQUI: Prioriza avatar existente sobre o do login social ---
+          picture: mergedProfile.avatar || mergedProfile.picture || "",
           avatar: mergedProfile.avatar || mergedProfile.picture || "",
+          // --- FIM DA CORREÇÃO ---
           loginProvider: "google",
           // Login social = Identidade Verificada (selo azul) imediatamente.
           // Sem isso, o doc fica com verification_level ausente e cai em
