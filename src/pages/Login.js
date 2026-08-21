@@ -130,7 +130,7 @@ export default function Login({ theme, toggleTheme }) {
       if (!user || user.isAnonymous) return;
       // Exceção específica: caio.cad@gmail.com vai sempre direto para `/`,
       // com prioridade sobre qualquer outro redirecionamento.
-      
+
       let target = "";
       try {
         const fromSession = sessionStorage.getItem(REDIRECT_AFTER_LOGIN_KEY);
@@ -222,20 +222,24 @@ export default function Login({ theme, toggleTheme }) {
   function persistUserProfile(user, providerLabel) {
     try {
       const existing = JSON.parse(localStorage.getItem("userProfile") || "{}");
+
+      // Tenta carregar o pseudônimo e avatar do localStorage primeiro
+      const storedPseudonimo = localStorage.getItem("userPseudonym") || "";
+      const storedAvatar = existing.avatar || existing.picture || "";
+
       const merged = {
         ...existing,
         id: user.uid || existing.id,
         uid: user.uid || existing.uid,
-        // Não copia displayName para o campo público `name` — ele
-        // pertence ao pseudônimo escolhido pelo usuário. O nome real
-        // fica em `nomeReal`/`fullName` (privados).
-        name: existing.name || "",
+        // Prioriza o pseudônimo armazenado ou o do perfil existente
+        pseudonimo: storedPseudonimo || existing.pseudonimo || "",
+        name: storedPseudonimo || existing.name || "", // Usa o pseudônimo para o campo 'name' também
         nomeReal: existing.nomeReal || user.displayName || "",
         fullName: existing.fullName || user.displayName || "",
         email: user.email || existing.email || "",
-        // foto do provedor social nunca é copiada — preserva anonimato
-        picture: existing.picture || existing.avatar || "",
-        avatar: existing.avatar || existing.picture || "",
+        // Prioriza o avatar armazenado ou o do perfil existente
+        picture: storedAvatar || existing.picture || existing.avatar || "",
+        avatar: storedAvatar || existing.avatar || existing.picture || "",
         loginProvider: providerLabel,
         fallback: false,
       };
@@ -285,180 +289,120 @@ export default function Login({ theme, toggleTheme }) {
           if (!patch.role) patch.role = "supporter";
         }
       } catch { /* ignore */ }
-      // Busca todos os perfis com esse email e prefere o do LinkedIn
+      // Busca perfil existente por email para unificar contas (LinkedIn + Google)
       const userEmail = String(user?.email || "").trim().toLowerCase();
       if (userEmail) {
         try {
-          const emailSnap = await getDocs(
-            query(collection(db, "users"), where("email", "==", userEmail))
-          );
-          if (!emailSnap.empty) {
-            const docs = emailSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-            // LinkedIn = fonte autoritativa do pseudônimo; fallback = qualquer perfil com pseudonimo
-            const linkedinProfile = docs.find((d) => d.loginProvider === "linkedin");
-            const profileWithPseudo = docs.find((d) => d.pseudonimo || d.name);
-            const unifiedProfile = linkedinProfile || profileWithPseudo || docs[0];
-            if (unifiedProfile) {
-              if (!patch.pseudonimo && unifiedProfile.pseudonimo) patch.pseudonimo = unifiedProfile.pseudonimo;
-              if (!patch.pseudonimo && unifiedProfile.name) patch.pseudonimo = unifiedProfile.name;
-              if (!patch.userType && unifiedProfile.userType) patch.userType = unifiedProfile.userType;
-              if (!patch.role && unifiedProfile.role) patch.role = unifiedProfile.role;
-              if (!patch.profileId && unifiedProfile.id) patch.profileId = unifiedProfile.id;
-              const avatarSrc = unifiedProfile.avatar || unifiedProfile.picture || "";
-              const isCustomPhoto = avatarSrc.startsWith("data:") || avatarSrc.includes("firebasestorage.googleapis.com");
-              if (!patch.avatar && isCustomPhoto) {
-                patch.avatar = avatarSrc;
-                patch.picture = unifiedProfile.picture || unifiedProfile.avatar || "";
-              }
+          // findUnifiedProfile busca pelo campo email no Firestore — funciona
+          // independente do ID do documento (email:xxx, UUID, linkedin:xxx)
+          const unifiedProfile = await findUnifiedProfile({ email: userEmail });
+          if (unifiedProfile) {
+            if (!patch.pseudonimo && unifiedProfile.pseudonimo) patch.pseudonimo = unifiedProfile.pseudonimo;
+            if (!patch.pseudonimo && unifiedProfile.name) patch.pseudonimo = unifiedProfile.name;
+            if (!patch.userType && unifiedProfile.userType) patch.userType = unifiedProfile.userType;
+            if (!patch.role && unifiedProfile.role) patch.role = unifiedProfile.role;
+            if (!patch.profileId && unifiedProfile.id) patch.profileId = unifiedProfile.id;
+            // Herda avatar apenas se for upload personalizado (Firebase Storage ou data URL)
+            const avatarSrc = unifiedProfile.avatar || unifiedProfile.picture || "";
+            const isCustomPhoto = avatarSrc.startsWith("data:") || avatarSrc.includes("firebasestorage.googleapis.com");
+            if (isCustomPhoto) {
+              patch.avatar = avatarSrc;
+              patch.picture = avatarSrc;
             }
           }
-        } catch { /* ignore */ }
+        } catch (err) {
+          console.warn("Erro ao buscar unifiedProfile para enriquecer:", err);
+        }
       }
-      if (Object.keys(patch).length === 0) return;
-      const existing = JSON.parse(localStorage.getItem("userProfile") || "{}");
-      const merged = { ...existing, ...patch };
-      localStorage.setItem("userProfile", JSON.stringify(merged));
-      // Sempre aplica o pseudônimo encontrado (LinkedIn é fonte autoritativa)
+
+      // Aplica o patch ao userProfile no localStorage
+      const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      const updatedProfile = { ...existingProfile, ...patch };
+      localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
+      // Atualiza userPseudonym no localStorage se o patch trouxe um novo
       if (patch.pseudonimo) {
-        try {
-          localStorage.setItem("userPseudonym", patch.pseudonimo);
-        } catch { /* ignore */ }
+        localStorage.setItem("userPseudonym", patch.pseudonimo);
       }
       window.dispatchEvent(new Event("trabalheiLa_user_updated"));
-    } catch { /* ignore */ }
-  }
-
-  // Salva o e-mail retornado pelo provedor social (Google/LinkedIn) no
-  // documento do usuário no Firestore APENAS quando o campo ainda não existe.
-  // Nunca sobrescreve um e-mail já preenchido. Necessário para o backend
-  // (resolveEmail em api/send-contact-request.js) conseguir notificar por
-  // e-mail — especialmente o documento do especialista/apoiador.
-  async function backfillProviderEmail(user, providerLabel) {
-    if (providerLabel !== "google" && providerLabel !== "linkedin") return;
-    const uid = user?.uid;
-    const providerEmail = String(user?.email || "").trim().toLowerCase();
-    if (!uid || !providerEmail) return;
-    try {
-      // users/{uid}: grava o e-mail só se ainda não houver um salvo.
-      const userRef = doc(db, "users", String(uid));
-      const userSnap = await getDoc(userRef);
-      const existingUserEmail = userSnap.exists()
-        ? String(userSnap.data()?.email || "").trim()
-        : "";
-      if (!existingUserEmail) {
-        await setDoc(
-          userRef,
-          { uid, email: providerEmail, loginProvider: providerLabel, updatedAt: serverTimestamp() },
-          { merge: true }
-        );
-      }
     } catch (err) {
-      console.warn("[login] backfill de e-mail em users falhou:", err?.message || err);
-    }
-    try {
-      // apoiadores (se o usuário for especialista): garante o e-mail no doc
-      // do especialista, que é o lido pelo resolveEmail do backend. Só grava
-      // quando o campo estiver vazio.
-      const apSnap = await getDocs(
-        query(collection(db, "apoiadores"), where("uid", "==", uid), limit(1))
-      );
-      if (!apSnap.empty) {
-        const apDoc = apSnap.docs[0];
-        const existingApEmail = String(apDoc.data()?.email || "").trim();
-        if (!existingApEmail) {
-          await setDoc(
-            doc(db, "apoiadores", apDoc.id),
-            { email: providerEmail, updatedAt: serverTimestamp() },
-            { merge: true }
-          );
-        }
-      }
-    } catch (err) {
-      console.warn("[login] backfill de e-mail em apoiadores falhou:", err?.message || err);
+      console.error("Erro ao enriquecer perfil do Firestore:", err);
     }
   }
 
+  // Função de finalização de login (chamada após qualquer login bem-sucedido)
   async function finishLogin(user, providerLabel) {
-    persistUserProfile(user, providerLabel);
-    await enrichProfileFromFirestore(user);
-    await backfillProviderEmail(user, providerLabel);
-    // Exceção específica: o usuário caio.cad@gmail.com vai sempre direto para a
-    // página principal (`/`), com prioridade sobre qualquer outro redirect
-    // (redirectAfterLogin / location.state / perfil).
-   
+    setSubmitting(true);
+    setError("");
+    try {
+      // 1. Persiste o perfil básico no localStorage
+      persistUserProfile(user, providerLabel);
 
-    const explicitRedirect = getRedirectTarget();
-    if (explicitRedirect) {
-      clearRedirect();
-      navigate(explicitRedirect, { replace: true });
-      return;
-    }
-    // Sem redirect explícito: descobre quais perfis o e-mail tem.
-    const profiles = await detectProfilesByEmail(user?.email, user?.uid);
-    if (profiles.length >= 2) {
-      // Se o perfil já foi enriquecido com um userType conhecido, usa-o
-      // diretamente para evitar exibir o modal de escolha desnecessariamente.
-      try {
-        const stored = JSON.parse(localStorage.getItem("userProfile") || "{}");
-        const storedType = (stored.userType || stored.role || "").toLowerCase();
-        if (storedType === "worker" || storedType === "trabalhador") {
-          clearRedirect();
-          navigate(PROFILE_ROUTES["trabalhador"].route, { replace: true });
-          return;
-        }
-        if (storedType === "apoiador" || storedType === "especialista") {
-          clearRedirect();
-          navigate(PROFILE_ROUTES["apoiador"].route, { replace: true });
-          return;
-        }
-      } catch { /* ignore */ }
-      // Conflito genuíno: pede ao usuário que escolha.
-      setProfileChoice({ profiles });
+      // 2. Enriquece o perfil com dados do Firestore
+      await enrichProfileFromFirestore(user);
+
+      // 3. Detecta os perfis associados ao e-mail
+      const profiles = await detectProfilesByEmail(user?.email, user?.uid);
+
+      // 4. Lógica de redirecionamento com priorização
+      if (profiles.length === 0) {
+        // Se não encontrou nenhum perfil, vai para a criação de pseudônimo
+        clearRedirect();
+        navigate("/pseudonym", { replace: true });
+        return;
+      }
+
+      // Prioridade 1: Se "trabalhador" está entre os perfis, vá para trabalhador.
+      if (profiles.includes("trabalhador")) {
+        clearRedirect();
+        navigate(PROFILE_ROUTES["trabalhador"].route, { replace: true });
+        return;
+      }
+
+      // Prioridade 2: Se "apoiador" (especialista) está entre os perfis, vá para apoiador.
+      if (profiles.includes("apoiador")) {
+        clearRedirect();
+        navigate(PROFILE_ROUTES["apoiador"].route, { replace: true });
+        return;
+      }
+
+      // Se encontrou apenas um perfil (e não era trabalhador nem apoiador, então deve ser empresário)
+      if (profiles.length === 1) {
+        clearRedirect();
+        navigate(PROFILE_ROUTES[profiles[0]].route, { replace: true });
+        return;
+      }
+
+      // Se encontrou múltiplos perfis (e não era trabalhador nem apoiador), abre o modal.
+      // Isso cobriria o caso de ter "empresario" e "apoiador" juntos, ou "empresario" e "trabalhador" juntos
+      // se a prioridade acima não fosse aplicada.
+      setProfileChoice({ profiles }); // <--- ESTA LINHA ABRE O MODAL SE NENHUMA PRIORIDADE FOR ATENDIDA
+
+    } catch (err) {
+      console.error("Erro na finalização do login:", err);
+      setError(`Erro ao finalizar login: ${err?.message || String(err)}`);
       setSubmitting(false);
-      return;
+    } finally {
+      setSubmitting(false);
     }
-    const target = profiles[0]
-      ? PROFILE_ROUTES[profiles[0]].route
-      : "/minha-conta";
-    clearRedirect();
-    navigate(target, { replace: true });
-  }
-
-  function pickProfile(profileType) {
-    const cfg = PROFILE_ROUTES[profileType];
-    if (!cfg) return;
-    setProfileChoice(null);
-    clearRedirect();
-    navigate(cfg.route, { replace: true });
   }
 
   async function handleEmailLogin(e) {
     e.preventDefault();
-    if (!email || !password) {
-      setError("Informe e-mail e senha.");
-      return;
-    }
-    if (!auth) {
-      setError("Firebase não está disponível. Verifique a configuração do Firebase.");
-      return;
-    }
-    setSubmitting(true);
     setError("");
     setResetMessage("");
+    setSubmitting(true);
     try {
-      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
-      await finishLogin(cred.user, "email");
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      await finishLogin(result.user, "email");
     } catch (err) {
-      console.error("Erro no login por e-mail:", err);
+      console.error("Erro no login com e-mail:", err);
       const code = String(err?.code || "");
-      if (code.includes("auth/invalid-credential") || code.includes("auth/wrong-password") || code.includes("auth/user-not-found")) {
+      if (code.includes("auth/user-not-found") || code.includes("auth/wrong-password")) {
         setError("E-mail ou senha incorretos.");
-      } else if (code.includes("auth/too-many-requests")) {
-        setError("Muitas tentativas. Tente novamente em alguns minutos.");
       } else if (code.includes("auth/invalid-email")) {
         setError("E-mail inválido.");
       } else {
-        setError("Não foi possível entrar. Tente novamente.");
+        setError("Erro ao fazer login. Tente novamente.");
       }
     } finally {
       setSubmitting(false);
@@ -466,88 +410,43 @@ export default function Login({ theme, toggleTheme }) {
   }
 
   async function handleGoogleLogin() {
-    if (!auth) {
-      setError("Firebase não está disponível. Verifique a configuração do Firebase.");
-      return;
-    }
-    setSubmitting(true);
     setError("");
     setResetMessage("");
+    setSubmitting(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      if (!result?.user) throw new Error("Falha ao autenticar com Google.");
+      // O resultado do Google já vem com user.email, user.displayName, user.photoURL
       await finishLogin(result.user, "google");
     } catch (err) {
       console.error("Erro no login com Google:", err);
       const code = String(err?.code || "");
-      if (code.includes("auth/account-exists-with-different-credential")) {
-        // Conflito: já existe uma conta com este e-mail criada por outro
-        // provedor. Guardamos a credencial do Google e descobrimos quais
-        // métodos de login já existem para orientar a vinculação.
-        try {
-          const pendingCredential = GoogleAuthProvider.credentialFromError(err);
-          const conflictEmail =
-            err?.customData?.email || err?.email || "";
-          let methods = [];
-          if (conflictEmail) {
-            methods = await fetchSignInMethodsForEmail(auth, conflictEmail);
-          }
-          // Determina o provedor original: se houver e-mail/senha, pedimos a
-          // senha; caso contrário, identificamos o provedor social existente
-          // para reautenticar via popup.
-          const usesPassword = methods.includes(EmailAuthProvider.PROVIDER_ID);
-          const socialProviderId = methods.find(
-            (m) => m !== EmailAuthProvider.PROVIDER_ID && SOCIAL_PROVIDERS[m]
-          );
-          const socialLabel = socialProviderId
-            ? SOCIAL_PROVIDERS[socialProviderId].label
-            : "";
-          setEmail(conflictEmail);
-          setLinkState({
-            email: conflictEmail,
-            pendingCredential,
-            methods,
-            usesPassword,
-            socialProviderId: socialProviderId || "",
-            socialLabel,
-          });
-          setLinkError("");
-          if (usesPassword) {
-            setLinkMessage(
-              "Já existe uma conta com este e-mail. Deseja vincular seu login do Google a ela?"
-            );
-          } else if (socialProviderId) {
-            setLinkMessage(
-              `Já existe uma conta com este e-mail criada com ${socialLabel}. Deseja vincular seu login do Google a ela?`
-            );
-          } else {
-            setLinkMessage(
-              "Já existe uma conta com este e-mail. Deseja vincular seu login do Google a ela?"
-            );
-          }
-        } catch (linkErr) {
-          console.error("Falha ao preparar vinculação de contas:", linkErr);
-          setError("Não foi possível vincular as contas. Tente novamente.");
-        }
+      if (code === "auth/account-exists-with-different-credential") {
+        const email = err.customData?.email;
+        const methods = await fetchSignInMethodsForEmail(auth, email);
+        const socialProviderId = methods.find((m) => m !== EmailAuthProvider.PROVIDER_ID);
+        setLinkState({
+          email,
+          pendingCredential: err.credential,
+          methods,
+          usesPassword: methods.includes(EmailAuthProvider.PROVIDER_ID),
+          socialProviderId,
+          socialLabel: socialProviderId ? SOCIAL_PROVIDERS[socialProviderId]?.label : "",
+        });
       } else if (code.includes("auth/popup-closed-by-user")) {
         setError("Login com Google cancelado.");
       } else if (code.includes("auth/popup-blocked")) {
         setError("Popup bloqueado. Permita popups e tente novamente.");
-      } else if (code.includes("auth/unauthorized-domain")) {
-        setError("Domínio não autorizado no Firebase Auth.");
       } else {
-        setError("Não foi possível entrar com Google.");
+        setError("Erro ao fazer login com Google. Tente novamente.");
       }
     } finally {
       setSubmitting(false);
     }
   }
 
-  // Confirma a identidade com o provedor original (e-mail/senha) e vincula a
-  // credencial do Google à conta existente via linkWithCredential.
   async function handleConfirmAccountLink(e) {
-    e?.preventDefault?.();
-    if (!linkState?.pendingCredential) {
+    e.preventDefault();
+    if (!linkState?.pendingCredential || !linkState?.email) {
       setLinkError("Não foi possível vincular as contas. Tente novamente.");
       return;
     }
