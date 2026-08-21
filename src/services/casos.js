@@ -275,3 +275,19 @@ export async function updateCasoStatus(casoId, status) {
     updatedAt: serverTimestamp(),
   });
 }
+
+/**
+ * Oculta um caso apenas da lista do trabalhador. O documento é preservado
+ * para que o especialista mantenha o histórico e o atendimento em andamento.
+ * @param {string} casoId
+ * @returns {Promise<void>}
+ */
+export async function hideCasoForWorker(casoId) {
+  const id = cleanId(casoId);
+  if (!id) throw new Error("casoId obrigatório.");
+  await updateDoc(doc(db, "casos", id), {
+    hiddenForWorker: true,
+    hiddenForWorkerAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}

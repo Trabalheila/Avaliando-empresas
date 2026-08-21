@@ -34,6 +34,7 @@ import {
   groupCasosByEspecialista,
   casoLabel,
 } from "../services/workerCasos";
+import { hideCasoForWorker } from "../services/casos";
 
 async function compressImage(file, maxDim = 256, quality = 0.82) {
   const dataUrl = await new Promise((resolve, reject) => {
@@ -974,6 +975,9 @@ function ActiveServicesSection({ profile, navigate }) {
   const uid = auth.currentUser?.uid || profile?.uid || profile?.id || "";
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [caseToRemove, setCaseToRemove] = useState(null);
+  const [removingCaseId, setRemovingCaseId] = useState("");
+  const [removeError, setRemoveError] = useState("");
 
   useEffect(() => {
     if (!uid) return undefined;
@@ -996,6 +1000,28 @@ function ActiveServicesSection({ profile, navigate }) {
   const openCaso = (especialistaId, casoId) => {
     const params = casoId ? `?caso=${encodeURIComponent(casoId)}` : "";
     navigate(`/trabalhador/especialista/${encodeURIComponent(especialistaId)}${params}`);
+  };
+
+  const removeCase = async () => {
+    if (!caseToRemove || caseToRemove._virtual) return;
+    setRemovingCaseId(caseToRemove.id);
+    setRemoveError("");
+    try {
+      await hideCasoForWorker(caseToRemove.id);
+      setGroups((current) =>
+        current
+          .map((group) => ({
+            ...group,
+            casos: group.casos.filter((caso) => caso.id !== caseToRemove.id),
+          }))
+          .filter((group) => group.casos.length > 0)
+      );
+      setCaseToRemove(null);
+    } catch (err) {
+      setRemoveError(err?.message || "Não foi possível apagar este atendimento.");
+    } finally {
+      setRemovingCaseId("");
+    }
   };
 
   const totalCasos = groups.reduce((acc, g) => acc + g.casos.length, 0);
@@ -1041,15 +1067,69 @@ function ActiveServicesSection({ profile, navigate }) {
                         ● {c.status === "pendente" ? "Pendente" : "Ativo"}
                       </p>
                     </div>
-                    <button type="button" onClick={() => openCaso(g.especialistaId, c.casoId || c.id)}
-                      className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition shrink-0">
-                      Abrir atendimento →
-                    </button>
+                    <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                      <button type="button" onClick={() => openCaso(g.especialistaId, c.casoId || c.id)}
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition">
+                        Abrir atendimento →
+                      </button>
+                      {!c._virtual && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRemoveError("");
+                            setCaseToRemove(c);
+                          }}
+                          className="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 text-sm font-bold hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+                        >
+                          Apagar
+                        </button>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>
             </div>
           ))}
+        </div>
+      )}
+
+      {caseToRemove && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="remove-active-case-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        >
+          <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-5">
+            <h3 id="remove-active-case-title" className="text-base font-bold text-slate-800 dark:text-slate-100">
+              Apagar atendimento da sua lista?
+            </h3>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              Este atendimento deixará de aparecer em “Atendimentos Ativos”. O especialista mantém o histórico e o caso dele.
+            </p>
+            <p className="mt-2 text-xs font-semibold text-slate-500 dark:text-slate-400 break-words">
+              {casoLabel(caseToRemove)}
+            </p>
+            {removeError && <p className="mt-3 text-xs text-red-700 dark:text-red-300">{removeError}</p>}
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setCaseToRemove(null)}
+                disabled={Boolean(removingCaseId)}
+                className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-200 disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={removeCase}
+                disabled={Boolean(removingCaseId)}
+                className="px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-bold disabled:opacity-60"
+              >
+                {removingCaseId ? "Apagando..." : "Apagar"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </section>

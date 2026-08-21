@@ -38,6 +38,7 @@ export async function listWorkerCasosEnriched(uid) {
 
   const byId = new Map();
   for (const c of casos) {
+    if (c.hiddenForWorker === true) continue;
     byId.set(String(c.id), { ...c, _virtual: false });
   }
 

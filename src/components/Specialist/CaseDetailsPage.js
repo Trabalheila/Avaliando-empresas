@@ -2003,7 +2003,44 @@ function DocumentList({ title, items }) {
 /** Popup (modal) que lista um conjunto de documentos. Usado pela página do
  *  caso para separar "Documentos do Cliente" e "Documentos do Processo" sem
  *  sobrecarregar a tela principal. */
+function getDocumentPreviewKind(item) {
+  const contentType = String(item?.contentType || item?.type || "").toLowerCase();
+  const name = String(item?.name || "").toLowerCase();
+  if (contentType.startsWith("image/") || /\.(png|jpe?g|gif|webp|bmp)$/i.test(name)) {
+    return "image";
+  }
+  if (contentType === "application/pdf" || name.endsWith(".pdf")) return "pdf";
+  return "";
+}
+
 function DocumentsModal({ open, onClose, title, items, emptyText }) {
+  const [previewItem, setPreviewItem] = useState(null);
+  const [saveError, setSaveError] = useState("");
+  const [savingImage, setSavingImage] = useState("");
+
+  const saveImage = async (item) => {
+    if (!item?.url) return;
+    setSavingImage(item.url);
+    setSaveError("");
+    try {
+      const response = await fetch(item.url);
+      if (!response.ok) throw new Error("Falha ao baixar a imagem.");
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = item.name || "imagem";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      setSaveError(err?.message || "Não foi possível salvar a imagem.");
+    } finally {
+      setSavingImage("");
+    }
+  };
+
   if (!open) return null;
   return (
     <div
@@ -2036,28 +2073,82 @@ function DocumentsModal({ open, onClose, title, items, emptyText }) {
             {items.map((d, idx) => (
               <li
                 key={`${d.name}-${idx}`}
-                className="py-2 flex items-center justify-between gap-3"
+                className="py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
               >
                 <span className="text-sm text-slate-700 dark:text-slate-200 truncate">
                   {d.name}
                 </span>
-                <a
-                  href={d.url || "#"}
-                  target={d.url && d.url !== "#" ? "_blank" : undefined}
-                  rel={d.url && d.url !== "#" ? "noopener noreferrer" : undefined}
-                  onClick={(e) => {
-                    if (!d.url || d.url === "#") {
-                      e.preventDefault();
-                      alert(`O download de "${d.name}" estará disponível em breve.`);
-                    }
-                  }}
-                  className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  Baixar
-                </a>
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  {getDocumentPreviewKind(d) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPreviewItem(d);
+                        setSaveError("");
+                      }}
+                      className="text-xs font-bold px-3 py-1.5 rounded-lg border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                    >
+                      Visualizar
+                    </button>
+                  )}
+                  {getDocumentPreviewKind(d) === "image" && (
+                    <button
+                      type="button"
+                      onClick={() => saveImage(d)}
+                      disabled={savingImage === d.url}
+                      className="text-xs font-bold px-3 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 disabled:opacity-60"
+                    >
+                      {savingImage === d.url ? "Salvando..." : "Salvar imagem"}
+                    </button>
+                  )}
+                  <a
+                    href={d.url || "#"}
+                    target={d.url && d.url !== "#" ? "_blank" : undefined}
+                    rel={d.url && d.url !== "#" ? "noopener noreferrer" : undefined}
+                    onClick={(e) => {
+                      if (!d.url || d.url === "#") {
+                        e.preventDefault();
+                        alert(`O download de "${d.name}" estará disponível em breve.`);
+                      }
+                    }}
+                    className="text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Baixar
+                  </a>
+                </div>
               </li>
             ))}
           </ul>
+        )}
+        {saveError && <p className="mt-3 text-xs text-red-700 dark:text-red-300">{saveError}</p>}
+        {previewItem && (
+          <div className="mt-5 border-t border-slate-200 dark:border-slate-700 pt-4">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
+                {previewItem.name}
+              </p>
+              <button
+                type="button"
+                onClick={() => setPreviewItem(null)}
+                className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:underline"
+              >
+                Fechar prévia
+              </button>
+            </div>
+            {getDocumentPreviewKind(previewItem) === "image" ? (
+              <img
+                src={previewItem.url}
+                alt={`Prévia de ${previewItem.name}`}
+                className="w-full max-h-[50vh] object-contain rounded-lg bg-slate-100 dark:bg-slate-800"
+              />
+            ) : (
+              <iframe
+                src={previewItem.url}
+                title={`Prévia de ${previewItem.name}`}
+                className="w-full h-[50vh] rounded-lg border border-slate-200 dark:border-slate-700 bg-white"
+              />
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -2578,7 +2669,7 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
     () =>
       (caseDocuments || [])
         .filter((d) => String(d.category || "") === "cliente")
-        .map((d) => ({ name: d.name || "Documento", url: d.url || "#" })),
+        .map((d) => ({ ...d, name: d.name || "Documento", url: d.url || "#" })),
     [caseDocuments]
   );
   // Documentos do Processo: documentos do caso (realCase) + documentos
@@ -2586,7 +2677,7 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
   const processDocs = useMemo(() => {
     const worker = (caseDocuments || [])
       .filter((d) => String(d.category || "") !== "cliente")
-      .map((d) => ({ name: d.name || "Documento", url: d.url || "#" }));
+      .map((d) => ({ ...d, name: d.name || "Documento", url: d.url || "#" }));
     return [...((realCase && realCase.documents) || []), ...worker];
   }, [caseDocuments, realCase]);
 
