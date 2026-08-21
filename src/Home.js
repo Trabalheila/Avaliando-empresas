@@ -296,7 +296,7 @@ function Home({ theme, toggleTheme }) {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [firebaseConfigMessage]);
 
   const [company, setCompany] = useState(null);
   const [newCompanyCnpj, setNewCompanyCnpj] = useState("");
@@ -2525,18 +2525,20 @@ function Home({ theme, toggleTheme }) {
 
     const cleanUrl = `${window.location.pathname}${window.location.hash || ""}`;
 
-    try {
-      handleLoginSuccess({ code: linkedInCode });
-    } catch (err) {
-      console.error("Erro ao processar login do LinkedIn:", err);
-    } finally {
+    (async () => {
       try {
-        localStorage.removeItem(LINKEDIN_OAUTH_RESULT_KEY);
-      } catch {
-        // ignore storage failures
+        await handleLoginSuccess({ code: linkedInCode });
+      } catch (err) {
+        console.error("Erro ao processar login do LinkedIn:", err);
+      } finally {
+        try {
+          localStorage.removeItem(LINKEDIN_OAUTH_RESULT_KEY);
+        } catch {
+          // ignore storage failures
+        }
+        window.history.replaceState({}, "", cleanUrl || "/");
       }
-      window.history.replaceState({}, "", cleanUrl || "/");
-    }
+    })();
   }, [location.search, handleLoginSuccess, isLoading]);
 
   // Nível de verificação do usuário corrente (free | identity | proven),

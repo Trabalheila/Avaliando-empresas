@@ -633,8 +633,8 @@ export default function Login({ theme, toggleTheme }) {
         ...data,
         loginProvider: "linkedin",
         fallback: false,
-        avatar: data?.picture || data?.avatar || existing.avatar || existing.picture || "",
-        picture: data?.picture || data?.avatar || existing.picture || existing.avatar || "",
+        avatar: existing.avatar || existing.picture || data?.avatar || data?.picture || "",
+        picture: existing.picture || existing.avatar || data?.picture || data?.avatar || "",
       };
       localStorage.setItem("userProfile", JSON.stringify(merged));
       window.dispatchEvent(new Event("trabalheiLa_user_updated"));

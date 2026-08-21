@@ -15,7 +15,7 @@ import {
 } from "firebase/firestore";
 import { ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { getUserRole, isPremium, isAdmin } from "../utils/rbac";
-import { resolveProfileId } from "../utils/profileIdentity";
+import { isProfileAuthenticated, resolveProfileId } from "../utils/profileIdentity";
 import { findUnifiedProfile } from "../services/users";
 import LoginLinkedInButton from "../LoginLinkedInButton";
 import { getLinkedInRedirectUri } from "../utils/linkedinAuth";
@@ -257,7 +257,13 @@ export default function MinhaConta({ theme, toggleTheme }) {
 
     const unsub = onAuthStateChanged(auth, (user) => {
       if (cancelled) return;
-      const uid = user?.uid || "";
+      let stored = {};
+      try {
+        stored = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      } catch { /* ignore malformed local profile */ }
+      const uid = user?.uid || (isProfileAuthenticated(stored)
+        ? stored.uid || stored.profileId || resolveProfileId(stored, { persistGeneratedId: false })
+        : "");
       setAuthUid(uid);
       setAuthResolved(true);
       load(uid);
