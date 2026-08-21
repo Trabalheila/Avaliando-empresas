@@ -130,7 +130,7 @@ export default function Login({ theme, toggleTheme }) {
       if (!user || user.isAnonymous) return;
       // Exceção específica: caio.cad@gmail.com vai sempre direto para `/`,
       // com prioridade sobre qualquer outro redirecionamento.
-
+      
       let target = "";
       try {
         const fromSession = sessionStorage.getItem(REDIRECT_AFTER_LOGIN_KEY);
@@ -222,24 +222,20 @@ export default function Login({ theme, toggleTheme }) {
   function persistUserProfile(user, providerLabel) {
     try {
       const existing = JSON.parse(localStorage.getItem("userProfile") || "{}");
-
-      // Tenta carregar o pseudônimo e avatar do localStorage primeiro
-      const storedPseudonimo = localStorage.getItem("userPseudonym") || "";
-      const storedAvatar = existing.avatar || existing.picture || "";
-
       const merged = {
         ...existing,
         id: user.uid || existing.id,
         uid: user.uid || existing.uid,
-        // Prioriza o pseudônimo armazenado ou o do perfil existente
-        pseudonimo: storedPseudonimo || existing.pseudonimo || "",
-        name: storedPseudonimo || existing.name || "", // Usa o pseudônimo para o campo 'name' também
+        // Não copia displayName para o campo público `name` — ele
+        // pertence ao pseudônimo escolhido pelo usuário. O nome real
+        // fica em `nomeReal`/`fullName` (privados).
+        name: existing.name || "",
         nomeReal: existing.nomeReal || user.displayName || "",
         fullName: existing.fullName || user.displayName || "",
         email: user.email || existing.email || "",
-        // Prioriza o avatar armazenado ou o do perfil existente
-        picture: storedAvatar || existing.picture || existing.avatar || "",
-        avatar: storedAvatar || existing.avatar || existing.picture || "",
+        // foto do provedor social nunca é copiada — preserva anonimato
+        picture: existing.picture || existing.avatar || "",
+        avatar: existing.avatar || existing.picture || "",
         loginProvider: providerLabel,
         fallback: false,
       };
@@ -289,25 +285,31 @@ export default function Login({ theme, toggleTheme }) {
           if (!patch.role) patch.role = "supporter";
         }
       } catch { /* ignore */ }
-      // Busca perfil existente por email para unificar contas (LinkedIn + Google)
+      // Busca todos os perfis com esse email e prefere o do LinkedIn
       const userEmail = String(user?.email || "").trim().toLowerCase();
       if (userEmail) {
         try {
-          // findUnifiedProfile busca pelo campo email no Firestore — funciona
-          // independente do ID do documento (email:xxx, UUID, linkedin:xxx)
-          const unifiedProfile = await findUnifiedProfile({ email: userEmail });
-          if (unifiedProfile) {
-            if (!patch.pseudonimo && unifiedProfile.pseudonimo) patch.pseudonimo = unifiedProfile.pseudonimo;
-            if (!patch.pseudonimo && unifiedProfile.name) patch.pseudonimo = unifiedProfile.name;
-            if (!patch.userType && unifiedProfile.userType) patch.userType = unifiedProfile.userType;
-            if (!patch.role && unifiedProfile.role) patch.role = unifiedProfile.role;
-            if (!patch.profileId && unifiedProfile.id) patch.profileId = unifiedProfile.id;
-            // Herda avatar apenas se for upload personalizado (Firebase Storage ou data URL)
-            const avatarSrc = unifiedProfile.avatar || unifiedProfile.picture || "";
-            const isCustomPhoto = avatarSrc.startsWith("data:") || avatarSrc.includes("firebasestorage.googleapis.com");
-            if (!patch.avatar && isCustomPhoto) {
-              patch.avatar = avatarSrc;
-              patch.picture = unifiedProfile.picture || unifiedProfile.avatar || "";
+          const emailSnap = await getDocs(
+            query(collection(db, "users"), where("email", "==", userEmail))
+          );
+          if (!emailSnap.empty) {
+            const docs = emailSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+            // LinkedIn = fonte autoritativa do pseudônimo; fallback = qualquer perfil com pseudonimo
+            const linkedinProfile = docs.find((d) => d.loginProvider === "linkedin");
+            const profileWithPseudo = docs.find((d) => d.pseudonimo || d.name);
+            const unifiedProfile = linkedinProfile || profileWithPseudo || docs[0];
+            if (unifiedProfile) {
+              if (!patch.pseudonimo && unifiedProfile.pseudonimo) patch.pseudonimo = unifiedProfile.pseudonimo;
+              if (!patch.pseudonimo && unifiedProfile.name) patch.pseudonimo = unifiedProfile.name;
+              if (!patch.userType && unifiedProfile.userType) patch.userType = unifiedProfile.userType;
+              if (!patch.role && unifiedProfile.role) patch.role = unifiedProfile.role;
+              if (!patch.profileId && unifiedProfile.id) patch.profileId = unifiedProfile.id;
+              const avatarSrc = unifiedProfile.avatar || unifiedProfile.picture || "";
+              const isCustomPhoto = avatarSrc.startsWith("data:") || avatarSrc.includes("firebasestorage.googleapis.com");
+              if (!patch.avatar && isCustomPhoto) {
+                patch.avatar = avatarSrc;
+                patch.picture = unifiedProfile.picture || unifiedProfile.avatar || "";
+              }
             }
           }
         } catch { /* ignore */ }
@@ -316,12 +318,10 @@ export default function Login({ theme, toggleTheme }) {
       const existing = JSON.parse(localStorage.getItem("userProfile") || "{}");
       const merged = { ...existing, ...patch };
       localStorage.setItem("userProfile", JSON.stringify(merged));
-      // Restaura userPseudonym a partir do perfil unificado se estava perdido
+      // Sempre aplica o pseudônimo encontrado (LinkedIn é fonte autoritativa)
       if (patch.pseudonimo) {
         try {
-          if (!(localStorage.getItem("userPseudonym") || "").trim()) {
-            localStorage.setItem("userPseudonym", patch.pseudonimo);
-          }
+          localStorage.setItem("userPseudonym", patch.pseudonimo);
         } catch { /* ignore */ }
       }
       window.dispatchEvent(new Event("trabalheiLa_user_updated"));
@@ -385,50 +385,80 @@ export default function Login({ theme, toggleTheme }) {
     // Exceção específica: o usuário caio.cad@gmail.com vai sempre direto para a
     // página principal (`/`), com prioridade sobre qualquer outro redirect
     // (redirectAfterLogin / location.state / perfil).
+   
 
-    setSubmitting(false);
-    clearRedirect();
-
+    const explicitRedirect = getRedirectTarget();
+    if (explicitRedirect) {
+      clearRedirect();
+      navigate(explicitRedirect, { replace: true });
+      return;
+    }
+    // Sem redirect explícito: descobre quais perfis o e-mail tem.
     const profiles = await detectProfilesByEmail(user?.email, user?.uid);
-    if (profiles.length === 0) {
-      // Se não encontrou nenhum perfil, assume que é trabalhador e vai para /pseudonym
-      navigate("/pseudonym", { replace: true });
+    if (profiles.length >= 2) {
+      // Se o perfil já foi enriquecido com um userType conhecido, usa-o
+      // diretamente para evitar exibir o modal de escolha desnecessariamente.
+      try {
+        const stored = JSON.parse(localStorage.getItem("userProfile") || "{}");
+        const storedType = (stored.userType || stored.role || "").toLowerCase();
+        if (storedType === "worker" || storedType === "trabalhador") {
+          clearRedirect();
+          navigate(PROFILE_ROUTES["trabalhador"].route, { replace: true });
+          return;
+        }
+        if (storedType === "apoiador" || storedType === "especialista") {
+          clearRedirect();
+          navigate(PROFILE_ROUTES["apoiador"].route, { replace: true });
+          return;
+        }
+      } catch { /* ignore */ }
+      // Conflito genuíno: pede ao usuário que escolha.
+      setProfileChoice({ profiles });
+      setSubmitting(false);
       return;
     }
-    if (profiles.length === 1) {
-      // Se encontrou apenas um perfil, vai direto para a rota correspondente
-      navigate(PROFILE_ROUTES[profiles[0]].route, { replace: true });
-      return;
-    }
-    // Se encontrou múltiplos perfis, abre o modal para o usuário escolher
-    setProfileChoice({ profiles });
+    const target = profiles[0]
+      ? PROFILE_ROUTES[profiles[0]].route
+      : "/minha-conta";
+    clearRedirect();
+    navigate(target, { replace: true });
   }
 
-  async function pickProfile(type) {
+  function pickProfile(profileType) {
+    const cfg = PROFILE_ROUTES[profileType];
+    if (!cfg) return;
     setProfileChoice(null);
     clearRedirect();
-    navigate(PROFILE_ROUTES[type].route, { replace: true });
+    navigate(cfg.route, { replace: true });
   }
 
   async function handleEmailLogin(e) {
     e.preventDefault();
+    if (!email || !password) {
+      setError("Informe e-mail e senha.");
+      return;
+    }
+    if (!auth) {
+      setError("Firebase não está disponível. Verifique a configuração do Firebase.");
+      return;
+    }
+    setSubmitting(true);
     setError("");
     setResetMessage("");
-    setSubmitting(true);
     try {
-      const result = await signInWithEmailAndPassword(auth, email.trim(), password);
-      await finishLogin(result.user, "email");
+      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+      await finishLogin(cred.user, "email");
     } catch (err) {
-      console.error("Erro no login com e-mail:", err);
+      console.error("Erro no login por e-mail:", err);
       const code = String(err?.code || "");
-      if (code.includes("auth/invalid-credential") || code.includes("auth/wrong-password")) {
-        setError("E-mail ou senha inválidos.");
-      } else if (code.includes("auth/user-not-found")) {
-        setError("Não encontramos uma conta com este e-mail.");
+      if (code.includes("auth/invalid-credential") || code.includes("auth/wrong-password") || code.includes("auth/user-not-found")) {
+        setError("E-mail ou senha incorretos.");
+      } else if (code.includes("auth/too-many-requests")) {
+        setError("Muitas tentativas. Tente novamente em alguns minutos.");
       } else if (code.includes("auth/invalid-email")) {
         setError("E-mail inválido.");
       } else {
-        setError(`Falha ao fazer login: ${err?.message || String(err)}`);
+        setError("Não foi possível entrar. Tente novamente.");
       }
     } finally {
       setSubmitting(false);
@@ -436,64 +466,234 @@ export default function Login({ theme, toggleTheme }) {
   }
 
   async function handleGoogleLogin() {
+    if (!auth) {
+      setError("Firebase não está disponível. Verifique a configuração do Firebase.");
+      return;
+    }
+    setSubmitting(true);
     setError("");
     setResetMessage("");
-    setSubmitting(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      // O resultado do Google já vem com user.email, user.displayName, user.photoURL
+      if (!result?.user) throw new Error("Falha ao autenticar com Google.");
       await finishLogin(result.user, "google");
     } catch (err) {
       console.error("Erro no login com Google:", err);
       const code = String(err?.code || "");
-      if (code === "auth/account-exists-with-different-credential") {
-        // Se a conta já existe com outro provedor, tenta vincular
-        const email = err.customData?.email;
-        const pendingCredential = err.credential;
-        if (email && pendingCredential) {
-          const methods = await fetchSignInMethodsForEmail(auth, email);
-          const usesPassword = methods.includes("password");
+      if (code.includes("auth/account-exists-with-different-credential")) {
+        // Conflito: já existe uma conta com este e-mail criada por outro
+        // provedor. Guardamos a credencial do Google e descobrimos quais
+        // métodos de login já existem para orientar a vinculação.
+        try {
+          const pendingCredential = GoogleAuthProvider.credentialFromError(err);
+          const conflictEmail =
+            err?.customData?.email || err?.email || "";
+          let methods = [];
+          if (conflictEmail) {
+            methods = await fetchSignInMethodsForEmail(auth, conflictEmail);
+          }
+          // Determina o provedor original: se houver e-mail/senha, pedimos a
+          // senha; caso contrário, identificamos o provedor social existente
+          // para reautenticar via popup.
+          const usesPassword = methods.includes(EmailAuthProvider.PROVIDER_ID);
           const socialProviderId = methods.find(
-            (m) => m !== "password" && m !== "google.com"
+            (m) => m !== EmailAuthProvider.PROVIDER_ID && SOCIAL_PROVIDERS[m]
           );
           const socialLabel = socialProviderId
-            ? SOCIAL_PROVIDERS[socialProviderId]?.label || socialProviderId
+            ? SOCIAL_PROVIDERS[socialProviderId].label
             : "";
+          setEmail(conflictEmail);
           setLinkState({
-            email,
+            email: conflictEmail,
             pendingCredential,
             methods,
             usesPassword,
-            socialProviderId,
+            socialProviderId: socialProviderId || "",
             socialLabel,
           });
-        } else {
-          setError("Erro desconhecido ao vincular contas.");
+          setLinkError("");
+          if (usesPassword) {
+            setLinkMessage(
+              "Já existe uma conta com este e-mail. Deseja vincular seu login do Google a ela?"
+            );
+          } else if (socialProviderId) {
+            setLinkMessage(
+              `Já existe uma conta com este e-mail criada com ${socialLabel}. Deseja vincular seu login do Google a ela?`
+            );
+          } else {
+            setLinkMessage(
+              "Já existe uma conta com este e-mail. Deseja vincular seu login do Google a ela?"
+            );
+          }
+        } catch (linkErr) {
+          console.error("Falha ao preparar vinculação de contas:", linkErr);
+          setError("Não foi possível vincular as contas. Tente novamente.");
         }
+      } else if (code.includes("auth/popup-closed-by-user")) {
+        setError("Login com Google cancelado.");
+      } else if (code.includes("auth/popup-blocked")) {
+        setError("Popup bloqueado. Permita popups e tente novamente.");
+      } else if (code.includes("auth/unauthorized-domain")) {
+        setError("Domínio não autorizado no Firebase Auth.");
       } else {
-        setError(`Falha ao conectar com Google: ${err?.message || String(err)}`);
+        setError("Não foi possível entrar com Google.");
       }
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function handleLinkedInSuccess(data) {
-    setError("");
-    setResetMessage("");
-    setSubmitting(true);
+  // Confirma a identidade com o provedor original (e-mail/senha) e vincula a
+  // credencial do Google à conta existente via linkWithCredential.
+  async function handleConfirmAccountLink(e) {
+    e?.preventDefault?.();
+    if (!linkState?.pendingCredential) {
+      setLinkError("Não foi possível vincular as contas. Tente novamente.");
+      return;
+    }
+    const usesPassword = (linkState.methods || []).includes(
+      EmailAuthProvider.PROVIDER_ID
+    );
+    if (usesPassword && !linkPassword) {
+      setLinkError("Por favor, faça login com sua senha original para confirmar a vinculação.");
+      return;
+    }
+    setLinking(true);
+    setLinkError("");
+    setLinkMessage("");
     try {
-      // O LoginLinkedInButton já retorna um "fake user" com email para a detecção funcionar.
+      // 1) Confirma a identidade com o provedor original (senha).
+      const cred = await signInWithEmailAndPassword(
+        auth,
+        linkState.email,
+        linkPassword
+      );
+      // 2) Vincula a credencial do Google à conta existente.
+      await linkWithCredential(cred.user, linkState.pendingCredential);
+      setLinkMessage("Contas vinculadas com sucesso!");
+      setLinkPassword("");
+      // 3) Finaliza o login normalmente.
+      await finishLogin(cred.user, "google");
+      setLinkState(null);
+    } catch (err) {
+      console.error("Erro ao vincular contas:", err);
+      const code = String(err?.code || "");
+      if (
+        code.includes("auth/wrong-password") ||
+        code.includes("auth/invalid-credential")
+      ) {
+        setLinkError("Senha incorreta. Tente novamente.");
+      } else {
+        setLinkError("Não foi possível vincular as contas. Tente novamente.");
+      }
+    } finally {
+      setLinking(false);
+    }
+  }
+
+  function cancelAccountLink() {
+    setLinkState(null);
+    setLinkPassword("");
+    setLinkError("");
+    setLinkMessage("");
+  }
+
+  // Reautentica com o provedor SOCIAL original (Facebook, Twitter, GitHub, …)
+  // via popup e, em seguida, vincula a credencial do Google (pendingCredential)
+  // à conta existente. Não usa senha — a identidade é confirmada pelo próprio
+  // provedor social.
+  async function handleConfirmSocialLink() {
+    if (!linkState?.pendingCredential || !linkState?.socialProviderId) {
+      setLinkError("Não foi possível vincular as contas. Tente novamente.");
+      return;
+    }
+    const cfg = SOCIAL_PROVIDERS[linkState.socialProviderId];
+    if (!cfg) {
+      setLinkError("Provedor original não suportado para vinculação automática.");
+      return;
+    }
+    setLinking(true);
+    setLinkError("");
+    setLinkMessage("");
+    try {
+      // 1) Confirma a identidade fazendo login com o provedor social original.
+      const provider = cfg.makeProvider();
+      const result = await signInWithPopup(auth, provider);
+      if (!result?.user) throw new Error("Falha ao reautenticar com o provedor original.");
+      // 2) Vincula a credencial do Google (pendente) à conta existente.
+      await linkWithCredential(result.user, linkState.pendingCredential);
+      setLinkMessage("Contas vinculadas com sucesso!");
+      // 3) Finaliza o login normalmente.
+      await finishLogin(result.user, "google");
+      setLinkState(null);
+    } catch (err) {
+      console.error("Erro ao vincular contas (social):", err);
+      const code = String(err?.code || "");
+      if (code.includes("auth/popup-closed-by-user")) {
+        setLinkError(`Login com ${cfg.label} cancelado. Tente novamente.`);
+      } else if (code.includes("auth/popup-blocked")) {
+        setLinkError("Popup bloqueado. Permita popups e tente novamente.");
+      } else if (code.includes("auth/credential-already-in-use")) {
+        setLinkError("Esta conta do Google já está vinculada a outro usuário.");
+      } else {
+        setLinkError("Não foi possível vincular as contas. Tente novamente.");
+      }
+    } finally {
+      setLinking(false);
+    }
+  }
+
+  // Callback do botão LinkedIn. O componente robusto entrega ou
+  // { profile } (raro — só quando o callback do popup já enriqueceu o perfil)
+  // ou { code, state } (caso atual: a página /auth/auth/ só repassa o code).
+  // Aqui resolvemos o code chamando /api/linkedin-auth e seguimos o mesmo
+  // fluxo de finalização dos demais providers.
+  async function handleLinkedInSuccess({ profile, code } = {}) {
+    setSubmitting(true);
+    setError("");
+    try {
+      let data = profile;
+      if (!data && code) {
+        const redirectUri =
+          process.env.REACT_APP_LINKEDIN_REDIRECT_URI ||
+          `${window.location.origin}/auth/auth/`;
+        const response = await fetch("/api/linkedin-auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, redirectUri }),
+        });
+        data = await response.json().catch(() => ({}));
+        if (!response.ok || data?.error) {
+          throw new Error(data?.error || `Erro HTTP ${response.status}`);
+        }
+      }
+      if (!data) throw new Error("Sem dados de perfil.");
+
+      // Persiste perfil LinkedIn no localStorage no mesmo formato do Home.js.
+      const existing = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      const merged = {
+        ...existing,
+        ...data,
+        loginProvider: "linkedin",
+        fallback: false,
+        avatar: existing.avatar || existing.picture || data?.avatar || data?.picture || "",
+        picture: existing.picture || existing.avatar || data?.picture || data?.avatar || "",
+      };
+      localStorage.setItem("userProfile", JSON.stringify(merged));
+      window.dispatchEvent(new Event("trabalheiLa_user_updated"));
+
+      // Usa o mesmo fluxo de finishLogin para tratar conflito de perfis.
+      // Passa um "fake user" com email para a detecção funcionar.
       const fakeUser = {
-        uid: data?.id || data?.sub || "",
-        email: data?.email || "",
-        displayName: data?.name || "",
+        uid: data?.id || data?.sub || existing.uid || "",
+        email: data?.email || existing.email || "",
+        displayName: data?.name || existing.fullName || "",
         photoURL: data?.picture || data?.avatar || "",
       };
       await finishLogin(fakeUser, "linkedin");
     } catch (err) {
       console.error("Erro no login com LinkedIn:", err);
-      setError(`Falha ao conectar com LinkedIn: ${err?.message || String(err)}`);
+      setError(`Falha ao conectar com LinkedIn: ${err?.message || ""}`);
       setSubmitting(false);
     }
   }
@@ -519,72 +719,6 @@ export default function Login({ theme, toggleTheme }) {
         setError("Não foi possível enviar o link. Tente novamente.");
       }
     }
-  }
-
-  // Funções para account linking
-  async function handleConfirmAccountLink(e) {
-    e.preventDefault();
-    setLinking(true);
-    setLinkError("");
-    setLinkMessage("");
-    try {
-      if (!linkState?.email || !linkState?.pendingCredential || !linkPassword) {
-        throw new Error("Dados de vinculação incompletos.");
-      }
-      const credential = EmailAuthProvider.credential(linkState.email, linkPassword);
-      const user = auth.currentUser;
-      if (!user) throw new Error("Usuário não autenticado.");
-
-      await linkWithCredential(user, credential);
-      await linkWithCredential(user, linkState.pendingCredential); // Vincula a credencial pendente (Google)
-      setLinkMessage("Contas vinculadas com sucesso! Redirecionando...");
-      setLinkState(null);
-      await finishLogin(user, "google"); // Finaliza o login com a conta Google vinculada
-    } catch (err) {
-      console.error("Erro ao vincular contas:", err);
-      const code = String(err?.code || "");
-      if (code.includes("auth/invalid-credential") || code.includes("auth/wrong-password")) {
-        setLinkError("Senha incorreta.");
-      } else {
-        setLinkError(`Falha ao vincular contas: ${err?.message || String(err)}`);
-      }
-    } finally {
-      setLinking(false);
-    }
-  }
-
-  async function handleConfirmSocialLink() {
-    setLinking(true);
-    setLinkError("");
-    setLinkMessage("");
-    try {
-      if (!linkState?.socialProviderId || !linkState?.pendingCredential) {
-        throw new Error("Dados de vinculação incompletos.");
-      }
-      const provider = SOCIAL_PROVIDERS[linkState.socialProviderId]?.makeProvider();
-      if (!provider) throw new Error("Provedor social desconhecido.");
-
-      const user = auth.currentUser;
-      if (!user) throw new Error("Usuário não autenticado.");
-
-      await signInWithPopup(auth, provider); // Reautentica com o provedor social original
-      await linkWithCredential(user, linkState.pendingCredential); // Vincula a credencial pendente (Google)
-      setLinkMessage("Contas vinculadas com sucesso! Redirecionando...");
-      setLinkState(null);
-      await finishLogin(user, "google"); // Finaliza o login com a conta Google vinculada
-    } catch (err) {
-      console.error("Erro ao vincular contas sociais:", err);
-      setLinkError(`Falha ao vincular contas: ${err?.message || String(err)}`);
-    } finally {
-      setLinking(false);
-    }
-  }
-
-  function cancelAccountLink() {
-    setLinkState(null);
-    setLinkError("");
-    setLinkMessage("");
-    setSubmitting(false); // Libera o botão de login principal
   }
 
   return (
