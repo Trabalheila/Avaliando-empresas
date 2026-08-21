@@ -12,7 +12,7 @@ import {
   FiClock, FiArrowUpCircle, FiInfo,
 } from "react-icons/fi";
 import Select from "react-select";
-import LoginLinkedInButton from "./LoginLinkedInButton";
+import LoginLinkedInButton from "./components/LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
 import EvaluationConfirmModal from "./components/EvaluationConfirmModal";
 import RestrictableTextarea from "./components/RestrictableTextarea";

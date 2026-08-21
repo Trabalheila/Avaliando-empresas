@@ -1,92 +1,284 @@
-// src/components/LoginLinkedInButton.js
-import React, { useCallback, useEffect, useRef } from "react";
-import { FaLinkedinIn } from "react-icons/fa";
+import React, { useEffect, useRef } from "react"; // Adicione 'useRef' aqui
 
-function LoginLinkedInButton({ clientId, redirectUri, onLoginSuccess }) {
-  const messageListenerRef = useRef(null);
+const DEFAULT_SCOPE = "openid profile email";
+const LINKEDIN_OAUTH_RESULT_KEY = "linkedin_oauth_result";
 
-  // Remove o listener anterior se o componente desmontar
+function readLinkedInOAuthResult() {
+  try {
+    const raw = localStorage.getItem(LINKEDIN_OAUTH_RESULT_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    const createdAt = Number(parsed?.createdAt || 0);
+    if (createdAt && Date.now() - createdAt > 5 * 60 * 1000) {
+      localStorage.removeItem(LINKEDIN_OAUTH_RESULT_KEY);
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function clearLinkedInOAuthResult() {
+  try {
+    localStorage.removeItem(LINKEDIN_OAUTH_RESULT_KEY);
+  } catch {
+    // ignore storage failures
+  }
+}
+
+const LoginLinkedInButton = ({
+  clientId: clientIdProp,
+  redirectUri: redirectUriProp,
+  scope = DEFAULT_SCOPE,
+  onLoginSuccess,
+  onLoginFailure,
+  disabled,
+}) => {
+  const intervalRef = useRef(null); // Declare um useRef para o interval
+
   useEffect(() => {
     return () => {
-      if (messageListenerRef.current) {
-        window.removeEventListener("message", messageListenerRef.current);
-        messageListenerRef.current = null;
+      // Esta função será executada quando o componente for desmontado
+      if (intervalRef.current) { // Use intervalRef.current aqui
+        clearInterval(intervalRef.current);
       }
     };
-  }, []);
+  }, []); // Array de dependências vazio para rodar apenas na montagem/desmontagem
 
-  const handleLogin = useCallback(() => {
-    // Garante que vai pegar a chave, seja por prop ou direto do .env
-    const finalClientId = clientId || process.env.REACT_APP_LINKEDIN_CLIENT_ID;
-    const finalRedirectUri = redirectUri || process.env.REACT_APP_LINKEDIN_REDIRECT_URI;
+  const shouldUseDirectRedirect = () => {
+    if (typeof window === "undefined") return false;
 
-    if (!finalClientId || !finalRedirectUri) {
-      console.error("Client ID ou Redirect URI do LinkedIn não configurados.");
-      alert("Erro de configuração do LinkedIn. Verifique as variáveis de ambiente.");
+    const ua = (window.navigator?.userAgent || "").toLowerCase();
+    const isMobileDevice =
+      /android|iphone|ipad|ipod|iemobile|opera mini|mobile/.test(ua) ||
+      window.matchMedia?.("(max-width: 768px)")?.matches;
+
+    // In-app browsers costumam quebrar popup/opener.
+    const isInAppBrowser =
+      /fbav|fban|instagram|line\//.test(ua) ||
+      (ua.includes("wv") && ua.includes("android"));
+
+    return Boolean(isMobileDevice || isInAppBrowser);
+  };
+
+  const handleLogin = () => {
+    if (disabled) return;
+
+    const clientId =
+      clientIdProp || process.env.REACT_APP_LINKEDIN_CLIENT_ID || "";
+    const redirectUri =
+      redirectUriProp || process.env.REACT_APP_LINKEDIN_REDIRECT_URI || "";
+
+    if (!clientId || String(clientId).trim().length < 5) {
+      onLoginFailure?.(new Error("clientId do LinkedIn ausente/inválido"));
+      return;
+    }
+    if (!redirectUri) {
+      onLoginFailure?.(new Error("redirectUri ausente"));
       return;
     }
 
-    const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    sessionStorage.setItem("linkedin_oauth_state", state);
+    const state = Math.random().toString(36).slice(2);
+    try {
+      sessionStorage.setItem("linkedin_oauth_state", state);
+    } catch {
+      // sem drama: se storage falhar, seguimos
+    }
 
-    const scope = "openid profile email";
+    clearLinkedInOAuthResult();
 
-    const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${finalClientId}&redirect_uri=${encodeURIComponent(finalRedirectUri)}&state=${state}&scope=${encodeURIComponent(scope)}`;
+    const params = new URLSearchParams({
+      response_type: "code",
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      scope,
+      state,
+    });
 
-    // Abre o fluxo em uma janela popup (sem sair da página)
+    const authUrl = `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`;
+
+    // Fluxo por redirect completo é mais estável no desktop do que popup/opener.
+    // Mantemos a mesma experiência já validada no mobile.
+    const forceFullPageRedirect = true;
+
+    if (forceFullPageRedirect) {
+      window.location.assign(authUrl);
+      return;
+    }
+
+    if (shouldUseDirectRedirect()) {
+      window.location.assign(authUrl);
+      return;
+    }
+
     const width = 500;
     const height = 650;
     const left = Math.max(0, window.screen.width / 2 - width / 2);
     const top = Math.max(0, window.screen.height / 2 - height / 2);
 
+    // 1) tenta popup
     const popup = window.open(
       authUrl,
       "LinkedIn Login",
       `width=${width},height=${height},left=${left},top=${top},resizable,scrollbars`
     );
 
+    // 2) se popup foi bloqueado (muito comum), faz redirect na mesma aba
     if (!popup) {
-      alert("Popup bloqueado. Permita popups para continuar o login.");
+      window.location.assign(authUrl);
       return;
     }
 
-    // Remove listener anterior, se existir
-    if (messageListenerRef.current) {
-      window.removeEventListener("message", messageListenerRef.current);
-    }
+    let finished = false;
 
-    // Escuta o postMessage enviado pelo AuthLinkedIn após autenticação bem-sucedida
-    const handleMessage = (event) => {
-      if (event.origin !== window.location.origin) return;
+    const consumeOAuthResult = (payload) => {
+      if (!payload || finished) return false;
 
-      const { type, profile, message: errMessage } = event.data || {};
+      const data = payload?.payload || payload;
+      if (!data) return false;
 
-      if (type === "linkedin_oauth") {
-        window.removeEventListener("message", handleMessage);
-        messageListenerRef.current = null;
-        if (typeof onLoginSuccess === "function") {
-          onLoginSuccess({ profile });
+      const returnedState = data.state;
+      const code = data.code;
+      const profile = data.profile;
+      const message = data.message;
+
+      const storedState = (() => {
+        try {
+          return sessionStorage.getItem("linkedin_oauth_state");
+        } catch {
+          return null;
         }
-      } else if (type === "linkedin_oauth_error") {
-        window.removeEventListener("message", handleMessage);
-        messageListenerRef.current = null;
-        console.error("Erro no login LinkedIn:", errMessage);
+      })();
+
+      if (storedState && returnedState && storedState !== returnedState) {
+        cleanup();
+        clearLinkedInOAuthResult();
+        onLoginFailure?.(new Error("State inválido (possível CSRF)"));
+        return true;
+      }
+
+      if (data.type === "linkedin_oauth_error") {
+        cleanup();
+        clearLinkedInOAuthResult();
+        try {
+          popup.close();
+        } catch {}
+        onLoginFailure?.(new Error(message || "Falha ao autenticar com LinkedIn"));
+        return true;
+      }
+
+      if (data.type !== "linkedin_oauth") {
+        return false;
+      }
+
+      cleanup();
+      clearLinkedInOAuthResult();
+      try {
+        popup.close();
+      } catch {}
+
+      if (profile) {
+        onLoginSuccess?.({ profile });
+        return true;
+      }
+
+      if (!code) {
+        onLoginFailure?.(new Error("Callback do LinkedIn sem 'code'"));
+        return true;
+      }
+
+      onLoginSuccess?.({ code, state: returnedState || storedState || state });
+      return true;
+    };
+
+    const cleanup = () => {
+      window.removeEventListener("message", onMessage);
+      window.removeEventListener("storage", onStorage);
+      if (intervalRef.current) { // Use intervalRef.current aqui também
+        clearInterval(intervalRef.current);
+      }
+      finished = true;
+    };
+
+    // Você PRECISA que sua página de callback faça postMessage para o opener.
+    // Exemplo de payload esperado: { type: "linkedin_oauth", code, state }
+    const onMessage = (event) => {
+      // ⚠️ SEGURANÇA CRÍTICA: Restrinja o origin ao seu domínio do app.
+      // Em produção, substitua window.location.origin pelo seu domínio exato:
+      // Ex: if (event.origin !== "https://www.trabalheila.com.br") return;
+      // Para desenvolvimento, pode ser window.location.origin ou http://localhost:3000
+      if (event.origin !== window.location.origin) {
+        console.warn("Mensagem de origem desconhecida bloqueada:", event.origin);
+        return;
+      }
+
+      const data = event.data;
+      if (!data) return;
+
+      consumeOAuthResult(data);
+    };
+
+    const onStorage = (event) => {
+      if (event.key !== LINKEDIN_OAUTH_RESULT_KEY || !event.newValue) return;
+
+      try {
+        consumeOAuthResult(JSON.parse(event.newValue));
+      } catch {
+        // ignore malformed storage values
       }
     };
 
-    messageListenerRef.current = handleMessage;
-    window.addEventListener("message", handleMessage);
+    window.addEventListener("message", onMessage);
+    window.addEventListener("storage", onStorage);
 
-  }, [clientId, redirectUri, onLoginSuccess]);
+    const startedAt = Date.now();
+    intervalRef.current = setInterval(() => { // Armazene o ID do interval no useRef
+      if (finished) return;
+
+      const storedResult = readLinkedInOAuthResult();
+      if (storedResult && consumeOAuthResult(storedResult)) {
+        return;
+      }
+
+      if (popup.closed) {
+        cleanup();
+        onLoginFailure?.(new Error("Login cancelado (popup fechado)"));
+        return;
+      }
+
+      if (Date.now() - startedAt > 2 * 60 * 1000) {
+        cleanup();
+        try {
+          popup.close();
+        } catch {}
+        onLoginFailure?.(new Error("Timeout no login do LinkedIn"));
+      }
+    }, 400);
+  };
 
   return (
     <button
       onClick={handleLogin}
-      className="flex items-center justify-center gap-3 bg-blue-700 text-white font-semibold py-2 px-4 rounded-full shadow-lg hover:bg-blue-800 transition-colors text-base w-full"
+      disabled={disabled}
+      className={`
+        px-4 py-2 min-h-[42px] rounded-lg font-semibold text-sm md:text-base transition-all
+        flex items-center justify-center gap-2 w-full
+        ${
+          disabled
+            ? "bg-gray-400 cursor-not-allowed opacity-60 text-white"
+            : "bg-[#0077B5] hover:bg-[#005582] text-white hover:shadow-lg"
+        }
+      `}
     >
-      <FaLinkedinIn className="text-lg" /> Entrar com LinkedIn
+      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+      </svg>
+      {disabled ? "Conectando..." : "Entrar com LinkedIn"}
     </button>
   );
-}
+};
 
 export default LoginLinkedInButton;

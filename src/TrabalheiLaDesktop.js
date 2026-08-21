@@ -11,7 +11,7 @@ import {
   FiBriefcase, FiShield, FiHeart, FiRepeat, FiAward, FiTrendingUp, FiAlertCircle,
   FiClock, FiArrowUpCircle, FiInfo,
 } from "react-icons/fi";
-import LoginLinkedInButton from "./LoginLinkedInButton";
+import LoginLinkedInButton from "./components/LoginLinkedInButton";
 import CaptchaModal from "./components/CaptchaModal";
 import EvaluationConfirmModal from "./components/EvaluationConfirmModal";
 import RestrictableTextarea from "./components/RestrictableTextarea";
