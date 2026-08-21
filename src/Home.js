@@ -2541,6 +2541,25 @@ function Home({ theme, toggleTheme }) {
     })();
   }, [location.search, handleLoginSuccess, isLoading]);
 
+    // Limpa a item do localStorage ANTES de tentar o login para evitar loops
+    try {
+      localStorage.removeItem(LINKEDIN_OAUTH_RESULT_KEY);
+    } catch { /* ignore */ }
+
+    // Chame handleLoginSuccess e aguarde sua conclusão
+    (async () => {
+      try {
+        await handleLoginSuccess({ code: linkedInCode });
+      } catch (loginErr) {
+        console.error("Erro durante handleLoginSuccess no useEffect do LinkedIn:", loginErr);
+        setError(`Falha no login com LinkedIn: ${loginErr.message || loginErr}`);
+      } finally {
+        // Limpa a URL SOMENTE APÓS o processamento do login
+        const cleanUrl = `${window.location.pathname}${window.location.hash || ""}`;
+        window.history.replaceState({}, "", cleanUrl || "/");
+      }
+    })();
+
   // Nível de verificação do usuário corrente (free | identity | proven),
   // usado pelos formulários para bloquear o envio de avaliações de usuários
   // ainda não autenticados via LinkedIn/Google.
