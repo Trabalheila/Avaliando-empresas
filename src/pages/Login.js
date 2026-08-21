@@ -301,9 +301,11 @@ export default function Login({ theme, toggleTheme }) {
             if (!patch.userType && unifiedProfile.userType) patch.userType = unifiedProfile.userType;
             if (!patch.role && unifiedProfile.role) patch.role = unifiedProfile.role;
             if (!patch.profileId && unifiedProfile.id) patch.profileId = unifiedProfile.id;
-            // Herda avatar do perfil existente (ex.: foto personalizada do LinkedIn)
-            if (!patch.avatar && (unifiedProfile.avatar || unifiedProfile.picture)) {
-              patch.avatar = unifiedProfile.avatar || unifiedProfile.picture || "";
+            // Herda avatar apenas se for upload personalizado (Firebase Storage ou data URL)
+            const avatarSrc = unifiedProfile.avatar || unifiedProfile.picture || "";
+            const isCustomPhoto = avatarSrc.startsWith("data:") || avatarSrc.includes("firebasestorage.googleapis.com");
+            if (!patch.avatar && isCustomPhoto) {
+              patch.avatar = avatarSrc;
               patch.picture = unifiedProfile.picture || unifiedProfile.avatar || "";
             }
           }
