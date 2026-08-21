@@ -343,7 +343,8 @@ export default function Login({ theme, toggleTheme }) {
       );
       if (!apSnap.empty) {
         const apDoc = apSnap.docs[0];
-        const existingApEmail = String(apDoc.data()?.email || "").trim();
+        const data = apDoc.data() || {};
+        const existingApEmail = String(data?.email || "").trim();
         if (!existingApEmail) {
           await setDoc(
             doc(db, "apoiadores", apDoc.id),
@@ -386,9 +387,8 @@ export default function Login({ theme, toggleTheme }) {
         return;
       }
 
-      // Se encontrou perfis, mas nenhum dos prioritários, e o modal foi reintroduzido
-      // (o que é o caso agora, com apenas trabalhador e apoiador)
-      // E o usuário tem mais de um perfil (trabalhador E apoiador), mostra o modal.
+      // Se encontrou perfis, mas nenhum dos prioritários, e o usuário tem mais de um perfil
+      // (trabalhador E apoiador), mostra o modal.
       // Se tiver apenas um perfil (trabalhador OU apoiador), já teria redirecionado acima.
       if (profiles.length > 1) {
         setProfileChoice({ profiles: profiles.filter(p => p !== "empresario") }); // Filtra empresario
@@ -550,267 +550,303 @@ export default function Login({ theme, toggleTheme }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-6 py-10 text-center dark:bg-slate-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900"> {/* Removido flex items-center justify-center e text-center */}
       <AppHeader theme={theme} toggleTheme={toggleTheme} />
-      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-        <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
-          <div className="text-center">
-            <span className="inline-block px-4 py-1 rounded-full bg-blue-600 text-white text-xs font-bold tracking-widest uppercase">
-              Acesso
-            </span>
-            <h1 className="mt-3 text-2xl font-extrabold text-slate-800 dark:text-slate-100">
-              Entrar na Trabalhei Lá
-            </h1>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Use seu e-mail, Google ou LinkedIn.
-            </p>
-          </div>
-
-          {companyConfirmed && (
-            <div
-              role="status"
-              aria-live="polite"
-              className="mt-5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-3 text-sm font-semibold text-emerald-800 dark:text-emerald-200 text-center"
-            >
-              ✅ Sua empresa foi confirmada! Faça login para acessar seu painel.
+      <div className="flex items-center justify-center px-6 py-10"> {/* Novo container para centralizar o formulário */}
+        <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
+            <div className="text-center">
+              <span className="inline-block px-4 py-1 rounded-full bg-blue-600 text-white text-xs font-bold tracking-widest uppercase">
+                Acesso
+              </span>
+              <h1 className="mt-3 text-2xl font-extrabold text-slate-800 dark:text-slate-100">
+                Entrar na Trabalhei Lá
+              </h1>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Use seu e-mail, Google ou LinkedIn.
+              </p>
             </div>
-          )}
 
-          {error && (
-            <div className="mt-5 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 p-3 text-sm text-rose-800 dark:text-rose-200 text-center">
-              {error}
-            </div>
-          )}
-          {resetMessage && (
-            <div className="mt-5 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-3 text-sm text-blue-800 dark:text-blue-200 text-center">
-              {resetMessage}
-            </div>
-          )}
-
-          <form onSubmit={handleEmailLogin} className="mt-6 space-y-4">
-            <label className="block">
-              <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">E-mail</span>
-              <input
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="voce@email.com"
-                className="mt-1 w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </label>
-
-            <label className="block">
-              <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">Senha</span>
-              <div className="relative mt-1">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full h-11 pl-3 pr-20 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((s) => !s)}
-                  className="absolute inset-y-0 right-0 px-3 text-xs font-bold text-blue-700 dark:text-blue-300"
-                >
-                  {showPassword ? "Ocultar" : "Mostrar"}
-                </button>
-              </div>
-            </label>
-
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={handleResetPassword}
-                className="text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline"
+            {companyConfirmed && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="mt-5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-3 text-sm font-semibold text-emerald-800 dark:text-emerald-200 text-center"
               >
-                Esqueceu sua senha?
-              </button>
-            </div>
-
-            <button
-              type="submit"
-              disabled={submitting}
-              style={{ backgroundColor: submitting ? undefined : "#1a237e" }}
-              className={`w-full h-11 rounded-lg font-bold text-white transition ${
-                submitting ? "bg-slate-400 dark:bg-slate-700 opacity-70 cursor-not-allowed" : "hover:brightness-110"
-              }`}
-            >
-              {submitting ? "Entrando..." : "Entrar"}
-            </button>
-          </form>
-
-          <div className="my-6 flex items-center gap-3 text-xs text-slate-400">
-            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
-            <span>ou continue com</span>
-            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
-          </div>
-
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              disabled={submitting}
-              className="w-full h-11 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-semibold flex items-center justify-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-60"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 48 48" aria-hidden="true">
-                <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.1 29.2 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.4 1 7.4 2.8l5.7-5.7C33.6 6.5 29.1 4.5 24 4.5 13.2 4.5 4.5 13.2 4.5 24S13.2 43.5 24 43.5 43.5 34.8 43.5 24c0-1.2-.1-2.4-.4-3.5z"/>
-                <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c2.8 0 5.4 1 7.4 2.8l5.7-5.7C33.6 6.5 29.1 4.5 24 4.5 16.3 4.5 9.6 8.7 6.3 14.7z"/>
-                <path fill="#4CAF50" d="M24 43.5c5 0 9.5-1.9 12.9-5.1l-6-4.9C29 35.5 26.6 36 24 36c-5.2 0-9.6-3.4-11.2-8l-6.5 5C9.6 39.3 16.3 43.5 24 43.5z"/>
-                <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4 5.5l6 4.9c-.4.4 6.5-4.7 6.5-14.4 0-1.2-.1-2.4-.2-3.5z"/>
-              </svg>
-              Entrar com Google
-            </button>
-
-            <LoginLinkedInButton
-              clientId={process.env.REACT_APP_LINKEDIN_CLIENT_ID}
-              redirectUri={process.env.REACT_APP_LINKEDIN_REDIRECT_URI}
-              onLoginSuccess={handleLinkedInSuccess}
-              onLoginFailure={(err) =>
-                setError(`Falha ao conectar com LinkedIn: ${err?.message || String(err)}`)
-              }
-              disabled={submitting}
-            />
-          </div>
-
-          <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-300">
-            Não tem conta?{" "}
-            <Link to="/cadastro" className="font-bold text-blue-700 dark:text-blue-300 hover:underline">
-              Cadastre-se aqui
-            </Link>
-          </p>
-        </div>
-      </div>
-
-      {profileChoice && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="profile-choice-title"
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:px-4"
-        >
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain">
-            <h2
-              id="profile-choice-title"
-              className="text-xl font-extrabold text-slate-800 dark:text-slate-100 text-center"
-            >
-              Com qual perfil deseja entrar?
-            </h2>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 text-center">
-              Encontramos mais de um perfil vinculado a este e-mail. Escolha por
-              qual deles você quer acessar agora.
-            </p>
-
-            <div className="mt-5 flex flex-col gap-2">
-              {profileChoice.profiles.map((type) => {
-                const cfg = PROFILE_ROUTES[type];
-                if (!cfg) return null;
-                return (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => pickProfile(type)}
-                    className={`w-full py-2.5 px-4 rounded-lg font-bold shadow transition ${cfg.color}`}
-                  >
-                    {cfg.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Acesso a perfis ainda não cadastrados para este e-mail */}
-            {profileChoice.profiles.length < 3 && (
-              <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-700">
-                <p className="text-xs text-slate-500 dark:text-slate-400 text-center mb-2">
-                  Quer criar outro perfil com este e-mail?
-                </p>
-                <div className="flex flex-col gap-2">
-                  {["empresario", "apoiador", "trabalhador"]
-                    .filter((t) => !profileChoice.profiles.includes(t))
-                    .map((type) => {
-                      const cfg = PROFILE_ROUTES[type];
-                      const cadastroRoute = {
-                        empresario: "/empresa/cadastro",
-                        apoiador: "/apoiadores/cadastro",
-                        trabalhador: "/pseudonym",
-                      }[type];
-                      return (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() => {
-                            setProfileChoice(null);
-                            clearRedirect();
-                            navigate(cadastroRoute);
-                          }}
-                          className="w-full py-2 px-4 rounded-lg text-sm font-semibold border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
-                        >
-                          Cadastrar como {cfg.label.replace(/^Sou /, "")}
-                        </button>
-                      );
-                    })}
-                </div>
+                ✅ Sua empresa foi confirmada! Faça login para acessar seu painel.
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={() => setProfileChoice(null)}
-              className="mt-5 w-full text-xs text-slate-500 dark:text-slate-400 hover:underline"
-            >
-              Cancelar
-            </button>
+            {error && (
+              <div className="mt-5 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 p-3 text-sm text-rose-800 dark:text-rose-200 text-center">
+                {error}
+              </div>
+            )}
+            {resetMessage && (
+              <div className="mt-5 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-3 text-sm text-blue-800 dark:text-blue-200 text-center">
+                {resetMessage}
+              </div>
+            )}
+
+            <form onSubmit={handleEmailLogin} className="mt-6 space-y-4">
+              <label className="block">
+                <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">E-mail</span>
+                <input
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="voce@email.com"
+                  className="mt-1 w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </label>
+
+              <label className="block">
+                <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">Senha</span>
+                <div className="relative mt-1">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full h-11 pl-3 pr-20 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    className="absolute inset-y-0 right-0 px-3 text-xs font-bold text-blue-700 dark:text-blue-300"
+                  >
+                    {showPassword ? "Ocultar" : "Mostrar"}
+                  </button>
+                </div>
+              </label>
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleResetPassword}
+                  className="text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline"
+                >
+                  Esqueceu sua senha?
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                style={{ backgroundColor: submitting ? undefined : "#1a237e" }}
+                className={`w-full h-11 rounded-lg font-bold text-white transition ${
+                  submitting ? "bg-slate-400 dark:bg-slate-700 opacity-70 cursor-not-allowed" : "hover:brightness-110"
+                }`}
+              >
+                {submitting ? "Entrando..." : "Entrar"}
+              </button>
+            </form>
+
+            <div className="my-6 flex items-center gap-3 text-xs text-slate-400">
+              <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+              <span>ou continue com</span>
+              <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+            </div>
+
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={submitting}
+                className="w-full h-11 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-semibold flex items-center justify-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-60"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 48 48" aria-hidden="true">
+                  <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.1 29.2 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.4 1 7.4 2.8l5.7-5.7C33.6 6.5 29.1 4.5 24 4.5 13.2 4.5 4.5 13.2 4.5 24S13.2 43.5 24 43.5 43.5 34.8 43.5 24c0-1.2-.1-2.4-.4-3.5z"/>
+                  <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c2.8 0 5.4 1 7.4 2.8l5.7-5.7C33.6 6.5 29.1 4.5 24 4.5 16.3 4.5 9.6 8.7 6.3 14.7z"/>
+                  <path fill="#4CAF50" d="M24 43.5c5 0 9.5-1.9 12.9-5.1l-6-4.9C29 35.5 26.6 36 24 36c-5.2 0-9.6-3.4-11.2-8l-6.5 5C9.6 39.3 16.3 43.5 24 43.5z"/>
+                  <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4 5.5l6 4.9c-.4.4 6.5-4.7 6.5-14.4 0-1.2-.1-2.4-.2-3.5z"/>
+                </svg>
+                Entrar com Google
+              </button>
+
+              <LoginLinkedInButton
+                clientId={process.env.REACT_APP_LINKEDIN_CLIENT_ID}
+                redirectUri={process.env.REACT_APP_LINKEDIN_REDIRECT_URI}
+                onLoginSuccess={handleLinkedInSuccess}
+                onLoginFailure={(err) =>
+                  setError(`Falha ao conectar com LinkedIn: ${err?.message || String(err)}`)
+                }
+                disabled={submitting}
+              />
+            </div>
+
+            <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-300">
+              Não tem conta?{" "}
+              <Link to="/cadastro" className="font-bold text-blue-700 dark:text-blue-300 hover:underline">
+                Cadastre-se aqui
+              </Link>
+            </p>
           </div>
         </div>
-      )}
 
-      {linkState && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="account-link-title"
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:px-4"
-        >
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain">
-            <h2
-              id="account-link-title"
-              className="text-xl font-extrabold text-slate-800 dark:text-slate-100 text-center"
-            >
-              Vincular contas
-            </h2>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 text-center">
-              Já existe uma conta com o e-mail{" "}
-              <strong className="break-all">{linkState.email}</strong>
-              {linkState.usesPassword
-                ? ". Deseja vincular seu login do Google a ela?"
-                : linkState.socialLabel
-                ? `, criada com ${linkState.socialLabel}. Deseja vincular seu login do Google a ela?`
-                : ". Deseja vincular seu login do Google a ela?"}
-            </p>
+        {profileChoice && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="profile-choice-title"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:px-4"
+          >
+            <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain">
+              <h2
+                id="profile-choice-title"
+                className="text-xl font-extrabold text-slate-800 dark:text-slate-100 text-center"
+              >
+                Com qual perfil deseja entrar?
+              </h2>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 text-center">
+                Encontramos mais de um perfil vinculado a este e-mail. Escolha por
+                qual deles você quer acessar agora.
+              </p>
 
-            {linkState.usesPassword ? (
-              <>
-                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 text-center">
-                  Por favor, faça login com sua senha original para confirmar a vinculação.
-                </p>
-                <form onSubmit={handleConfirmAccountLink} className="mt-5 flex flex-col gap-3">
-                  <input
-                    type="email"
-                    value={linkState.email}
-                    readOnly
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 p-3 text-sm text-slate-600 dark:text-slate-300"
-                  />
-                  <input
-                    type="password"
-                    value={linkPassword}
-                    onChange={(e) => setLinkPassword(e.target.value)}
-                    placeholder="Sua senha"
-                    autoComplete="current-password"
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+              <div className="mt-5 flex flex-col gap-2">
+                {profileChoice.profiles.map((type) => {
+                  const cfg = PROFILE_ROUTES[type];
+                  if (!cfg) return null;
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => pickProfile(type)}
+                      className={`w-full py-2.5 px-4 rounded-lg font-bold shadow transition ${cfg.color}`}
+                    >
+                      {cfg.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Acesso a perfis ainda não cadastrados para este e-mail */}
+              {profileChoice.profiles.length < 3 && (
+                <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-700">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 text-center mb-2">
+                    Quer criar outro perfil com este e-mail?
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {["empresario", "apoiador", "trabalhador"]
+                      .filter((t) => !profileChoice.profiles.includes(t))
+                      .map((type) => {
+                        const cfg = PROFILE_ROUTES[type];
+                        const cadastroRoute = {
+                          empresario: "/empresa/cadastro",
+                          apoiador: "/apoiadores/cadastro",
+                          trabalhador: "/pseudonym",
+                        }[type];
+                        return (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => {
+                              setProfileChoice(null);
+                              clearRedirect();
+                              navigate(cadastroRoute);
+                            }}
+                            className="w-full py-2 px-4 rounded-lg text-sm font-semibold border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                          >
+                            Cadastrar como {cfg.label.replace(/^Sou /, "")}
+                          </button>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setProfileChoice(null)}
+                className="mt-5 w-full text-xs text-slate-500 dark:text-slate-400 hover:underline"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {linkState && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="account-link-title"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:px-4"
+          >
+            <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain">
+              <h2
+                id="account-link-title"
+                className="text-xl font-extrabold text-slate-800 dark:text-slate-100 text-center"
+              >
+                Vincular contas
+              </h2>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 text-center">
+                Já existe uma conta com o e-mail{" "}
+                <strong className="break-all">{linkState.email}</strong>
+                {linkState.usesPassword
+                  ? ". Deseja vincular seu login do Google a ela?"
+                  : linkState.socialLabel
+                  ? `, criada com ${linkState.socialLabel}. Deseja vincular seu login do Google a ela?`
+                  : ". Deseja vincular seu login do Google a ela?"}
+              </p>
+
+              {linkState.usesPassword ? (
+                <>
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 text-center">
+                    Por favor, faça login com sua senha original para confirmar a vinculação.
+                  </p>
+                  <form onSubmit={handleConfirmAccountLink} className="mt-5 flex flex-col gap-3">
+                    <input
+                      type="email"
+                      value={linkState.email}
+                      readOnly
+                      className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 p-3 text-sm text-slate-600 dark:text-slate-300"
+                    />
+                    <input
+                      type="password"
+                      value={linkPassword}
+                      onChange={(e) => setLinkPassword(e.target.value)}
+                      placeholder="Sua senha"
+                      autoComplete="current-password"
+                      className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+
+                    {linkMessage && (
+                      <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                        {linkMessage}
+                      </p>
+                    )}
+                    {linkError && (
+                      <p className="text-sm font-semibold text-red-600 dark:text-red-400">
+                        {linkError}
+                      </p>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={linking}
+                      className="w-full py-2.5 px-4 rounded-lg font-bold shadow bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition"
+                    >
+                      {linking ? "Vinculando…" : "Vincular contas"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelAccountLink}
+                      disabled={linking}
+                      className="w-full text-xs text-slate-500 dark:text-slate-400 hover:underline disabled:opacity-50"
+                    >
+                      Cancelar
+                    </button>
+                  </form>
+                </>
+              ) : linkState.socialProviderId ? (
+                <div className="mt-5 flex flex-col gap-3">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+                    Por favor, faça login com sua conta {linkState.socialLabel} para
+                    confirmar a vinculação.
+                  </p>
 
                   {linkMessage && (
                     <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
@@ -824,11 +860,14 @@ export default function Login({ theme, toggleTheme }) {
                   )}
 
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={handleConfirmSocialLink}
                     disabled={linking}
                     className="w-full py-2.5 px-4 rounded-lg font-bold shadow bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition"
                   >
-                    {linking ? "Vinculando…" : "Vincular contas"}
+                    {linking
+                      ? "Vinculando…"
+                      : `Entrar com ${linkState.socialLabel} e vincular`}
                   </button>
                   <button
                     type="button"
@@ -838,64 +877,26 @@ export default function Login({ theme, toggleTheme }) {
                   >
                     Cancelar
                   </button>
-                </form>
-              </>
-            ) : linkState.socialProviderId ? (
-              <div className="mt-5 flex flex-col gap-3">
-                <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
-                  Por favor, faça login com sua conta {linkState.socialLabel} para
-                  confirmar a vinculação.
-                </p>
-
-                {linkMessage && (
-                  <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-                    {linkMessage}
+                </div>
+              ) : (
+                <div className="mt-5 flex flex-col gap-3">
+                  <p className="text-sm font-semibold text-red-600 dark:text-red-400 text-center">
+                    Não foi possível identificar o provedor original desta conta.
+                    Tente fazer login pelo método usado no cadastro.
                   </p>
-                )}
-                {linkError && (
-                  <p className="text-sm font-semibold text-red-600 dark:text-red-400">
-                    {linkError}
-                  </p>
-                )}
-
-                <button
-                  type="button"
-                  onClick={handleConfirmSocialLink}
-                  disabled={linking}
-                  className="w-full py-2.5 px-4 rounded-lg font-bold shadow bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition"
-                >
-                  {linking
-                    ? "Vinculando…"
-                    : `Entrar com ${linkState.socialLabel} e vincular`}
-                </button>
-                <button
-                  type="button"
-                  onClick={cancelAccountLink}
-                  disabled={linking}
-                  className="w-full text-xs text-slate-500 dark:text-slate-400 hover:underline disabled:opacity-50"
-                >
-                  Cancelar
-                </button>
-              </div>
-            ) : (
-              <div className="mt-5 flex flex-col gap-3">
-                <p className="text-sm font-semibold text-red-600 dark:text-red-400 text-center">
-                  Não foi possível identificar o provedor original desta conta.
-                  Tente fazer login pelo método usado no cadastro.
-                </p>
-                <button
-                  type="button"
-                  onClick={cancelAccountLink}
-                  className="w-full text-xs text-slate-500 dark:text-slate-400 hover:underline"
-                >
-                  Fechar
-                </button>
-              </div>
-            )}
+                  <button
+                    type="button"
+                    onClick={cancelAccountLink}
+                    className="w-full text-xs text-slate-500 dark:text-slate-400 hover:underline"
+                  >
+                    Fechar
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
-
