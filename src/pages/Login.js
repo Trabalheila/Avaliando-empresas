@@ -301,6 +301,11 @@ export default function Login({ theme, toggleTheme }) {
             if (!patch.userType && unifiedProfile.userType) patch.userType = unifiedProfile.userType;
             if (!patch.role && unifiedProfile.role) patch.role = unifiedProfile.role;
             if (!patch.profileId && unifiedProfile.id) patch.profileId = unifiedProfile.id;
+            // Herda avatar do perfil existente (ex.: foto personalizada do LinkedIn)
+            if (!patch.avatar && (unifiedProfile.avatar || unifiedProfile.picture)) {
+              patch.avatar = unifiedProfile.avatar || unifiedProfile.picture || "";
+              patch.picture = unifiedProfile.picture || unifiedProfile.avatar || "";
+            }
           }
         } catch { /* ignore */ }
       }
@@ -395,7 +400,23 @@ export default function Login({ theme, toggleTheme }) {
     // Sem redirect explícito: descobre quais perfis o e-mail tem.
     const profiles = await detectProfilesByEmail(user?.email, user?.uid);
     if (profiles.length >= 2) {
-      // Conflito: pergunta com qual perfil deseja entrar.
+      // Se o perfil já foi enriquecido com um userType conhecido, usa-o
+      // diretamente para evitar exibir o modal de escolha desnecessariamente.
+      try {
+        const stored = JSON.parse(localStorage.getItem("userProfile") || "{}");
+        const storedType = (stored.userType || stored.role || "").toLowerCase();
+        if (storedType === "worker" || storedType === "trabalhador") {
+          clearRedirect();
+          navigate(PROFILE_ROUTES["trabalhador"].route, { replace: true });
+          return;
+        }
+        if (storedType === "apoiador" || storedType === "especialista") {
+          clearRedirect();
+          navigate(PROFILE_ROUTES["apoiador"].route, { replace: true });
+          return;
+        }
+      } catch { /* ignore */ }
+      // Conflito genuíno: pede ao usuário que escolha.
       setProfileChoice({ profiles });
       setSubmitting(false);
       return;
