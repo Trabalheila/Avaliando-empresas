@@ -2369,8 +2369,7 @@ function Home({ theme, toggleTheme }) {
         nomeReal: user.displayName || "",
         fullName: user.displayName || "",
         email: user.email || "",
-        picture: user.photoURL || "",
-        avatar: user.photoURL || "",
+        // foto do Google não é copiada — preserva anonimato do usuário
         loginProvider: "google",
       };
 
@@ -2380,8 +2379,8 @@ function Home({ theme, toggleTheme }) {
         ...googleData,
         fallback: false,
         // --- CORREÇÃO AQUI: Prioriza avatar existente sobre o do login social ---
-        avatar: existingProfile.avatar || existingProfile.picture || googleData.avatar || "",
-        picture: existingProfile.picture || existingProfile.avatar || googleData.picture || "",
+        avatar: existingProfile.avatar || existingProfile.picture || "",
+        picture: existingProfile.picture || existingProfile.avatar || "",
         // --- FIM DA CORREÇÃO ---
         // Mantém o tipo de perfil já escolhido; se vazio, aplica o
         // selecionado na Landing (default "worker").
@@ -2410,8 +2409,8 @@ function Home({ theme, toggleTheme }) {
               ...(mergedProfile.resumeData || {}),
             },
             // --- CORREÇÃO AQUI: Prioriza avatar persistido sobre o do login social ---
-            avatar: persisted.avatar || persisted.picture || googleData.avatar || "",
-            picture: persisted.picture || persisted.avatar || googleData.avatar || "",
+            avatar: persisted.avatar || persisted.picture || "",
+            picture: persisted.picture || persisted.avatar || "",
             // --- FIM DA CORREÇÃO ---
           };
         }

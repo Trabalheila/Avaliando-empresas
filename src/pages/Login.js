@@ -31,6 +31,7 @@ import { auth, db, googleProvider } from "../firebase";
 // com o callback atual de /auth/auth/ que devolve apenas {code,state}.
 import LoginLinkedInButton from "../components/LoginLinkedInButton";
 import AppHeader from "../components/AppHeader";
+import { findUnifiedProfile } from "../services/users";
 
 const REDIRECT_AFTER_LOGIN_KEY = "trabalheiLa_redirectAfterLogin";
 const COMPANY_CONFIRMED_FLAG_KEY = "trabalheiLa_companyConfirmedFlag";
@@ -287,16 +288,19 @@ export default function Login({ theme, toggleTheme }) {
           if (!patch.role) patch.role = "supporter";
         }
       } catch { /* ignore */ }
-      // Unifica com perfil salvo pelo LinkedIn (email:xxx) para herdar pseudonimo
+      // Busca perfil existente por email para unificar contas (LinkedIn + Google)
       const userEmail = String(user?.email || "").trim().toLowerCase();
       if (userEmail) {
         try {
-          const emailSnap = await getDoc(doc(db, "users", `email:${userEmail}`));
-          if (emailSnap.exists()) {
-            const d = emailSnap.data() || {};
-            if (!patch.pseudonimo && d.pseudonimo) patch.pseudonimo = d.pseudonimo;
-            if (!patch.userType && d.userType) patch.userType = d.userType;
-            if (!patch.role && d.role) patch.role = d.role;
+          // findUnifiedProfile busca pelo campo email no Firestore — funciona
+          // independente do ID do documento (email:xxx, UUID, linkedin:xxx)
+          const unifiedProfile = await findUnifiedProfile({ email: userEmail });
+          if (unifiedProfile) {
+            if (!patch.pseudonimo && unifiedProfile.pseudonimo) patch.pseudonimo = unifiedProfile.pseudonimo;
+            if (!patch.pseudonimo && unifiedProfile.name) patch.pseudonimo = unifiedProfile.name;
+            if (!patch.userType && unifiedProfile.userType) patch.userType = unifiedProfile.userType;
+            if (!patch.role && unifiedProfile.role) patch.role = unifiedProfile.role;
+            if (!patch.profileId && unifiedProfile.id) patch.profileId = unifiedProfile.id;
           }
         } catch { /* ignore */ }
       }
