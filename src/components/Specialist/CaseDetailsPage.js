@@ -2083,6 +2083,10 @@ function DocumentsModal({ open, onClose, title, items, emptyText }) {
                     <button
                       type="button"
                       onClick={() => {
+                        if (getDocumentPreviewKind(d) === "pdf") {
+                          window.open(d.url, "_blank", "noopener,noreferrer");
+                          return;
+                        }
                         setPreviewItem(d);
                         setSaveError("");
                       }}
@@ -2135,19 +2139,11 @@ function DocumentsModal({ open, onClose, title, items, emptyText }) {
                 Fechar prévia
               </button>
             </div>
-            {getDocumentPreviewKind(previewItem) === "image" ? (
-              <img
-                src={previewItem.url}
-                alt={`Prévia de ${previewItem.name}`}
-                className="w-full max-h-[50vh] object-contain rounded-lg bg-slate-100 dark:bg-slate-800"
-              />
-            ) : (
-              <iframe
-                src={previewItem.url}
-                title={`Prévia de ${previewItem.name}`}
-                className="w-full h-[50vh] rounded-lg border border-slate-200 dark:border-slate-700 bg-white"
-              />
-            )}
+            <img
+              src={previewItem.url}
+              alt={`Prévia de ${previewItem.name}`}
+              className="w-full max-h-[50vh] object-contain rounded-lg bg-slate-100 dark:bg-slate-800"
+            />
           </div>
         )}
       </div>
