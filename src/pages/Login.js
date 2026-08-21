@@ -29,7 +29,7 @@ import { auth, db, googleProvider } from "../firebase";
 // Usa o LoginLinkedInButton "robusto" (suporta callback {code,state} e tem
 // onLoginFailure/disabled). O de src/components/ entrega só {profile} e quebra
 // com o callback atual de /auth/auth/ que devolve apenas {code,state}.
-import LoginLinkedInButton from "../LoginLinkedInButton";
+import LoginLinkedInButton from "../components/LoginLinkedInButton";
 import AppHeader from "../components/AppHeader";
 
 const REDIRECT_AFTER_LOGIN_KEY = "trabalheiLa_redirectAfterLogin";
@@ -235,12 +235,21 @@ export default function Login({ theme, toggleTheme }) {
         nomeReal: existing.nomeReal || user.displayName || "",
         fullName: existing.fullName || user.displayName || "",
         email: user.email || existing.email || "",
-        picture: user.photoURL || existing.picture || existing.avatar || "",
-        avatar: user.photoURL || existing.avatar || existing.picture || "",
+        // foto do provedor social nunca é copiada — preserva anonimato
+        picture: existing.picture || existing.avatar || "",
+        avatar: existing.avatar || existing.picture || "",
         loginProvider: providerLabel,
         fallback: false,
       };
       localStorage.setItem("userProfile", JSON.stringify(merged));
+      // Restaura userPseudonym se foi perdido mas existe no perfil
+      try {
+        const storedPseudo = (localStorage.getItem("userPseudonym") || "").trim();
+        if (!storedPseudo) {
+          const profilePseudo = (merged.pseudonimo || merged.name || "").trim();
+          if (profilePseudo) localStorage.setItem("userPseudonym", profilePseudo);
+        }
+      } catch { /* ignore */ }
       window.dispatchEvent(new Event("trabalheiLa_user_updated"));
     } catch {
       /* ignore */
@@ -278,10 +287,31 @@ export default function Login({ theme, toggleTheme }) {
           if (!patch.role) patch.role = "supporter";
         }
       } catch { /* ignore */ }
+      // Unifica com perfil salvo pelo LinkedIn (email:xxx) para herdar pseudonimo
+      const userEmail = String(user?.email || "").trim().toLowerCase();
+      if (userEmail) {
+        try {
+          const emailSnap = await getDoc(doc(db, "users", `email:${userEmail}`));
+          if (emailSnap.exists()) {
+            const d = emailSnap.data() || {};
+            if (!patch.pseudonimo && d.pseudonimo) patch.pseudonimo = d.pseudonimo;
+            if (!patch.userType && d.userType) patch.userType = d.userType;
+            if (!patch.role && d.role) patch.role = d.role;
+          }
+        } catch { /* ignore */ }
+      }
       if (Object.keys(patch).length === 0) return;
       const existing = JSON.parse(localStorage.getItem("userProfile") || "{}");
       const merged = { ...existing, ...patch };
       localStorage.setItem("userProfile", JSON.stringify(merged));
+      // Restaura userPseudonym a partir do perfil unificado se estava perdido
+      if (patch.pseudonimo) {
+        try {
+          if (!(localStorage.getItem("userPseudonym") || "").trim()) {
+            localStorage.setItem("userPseudonym", patch.pseudonimo);
+          }
+        } catch { /* ignore */ }
+      }
       window.dispatchEvent(new Event("trabalheiLa_user_updated"));
     } catch { /* ignore */ }
   }

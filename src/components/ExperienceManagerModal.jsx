@@ -13,7 +13,7 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { saveUserProfile } from "../services/users";
 import { extractLinkedInExperiences } from "../services/socialAuth";
-import LoginLinkedInButton from "../LoginLinkedInButton";
+import LoginLinkedInButton from "./LoginLinkedInButton";
 import { getLinkedInRedirectUri } from "../utils/linkedinAuth";
 import { buildApiUrl } from "../utils/apiBase";
 import { normalizeCompanyName } from "../utils/companyMatching";

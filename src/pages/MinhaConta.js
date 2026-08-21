@@ -17,7 +17,7 @@ import { ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebas
 import { getUserRole, isPremium, isAdmin } from "../utils/rbac";
 import { isProfileAuthenticated, resolveProfileId } from "../utils/profileIdentity";
 import { findUnifiedProfile } from "../services/users";
-import LoginLinkedInButton from "../LoginLinkedInButton";
+import LoginLinkedInButton from "../components/LoginLinkedInButton";
 import { getLinkedInRedirectUri } from "../utils/linkedinAuth";
 import { buildApiUrl } from "../utils/apiBase";
 import AppHeader from "../components/AppHeader";

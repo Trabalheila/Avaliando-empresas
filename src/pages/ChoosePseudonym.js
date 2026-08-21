@@ -32,7 +32,7 @@ import {
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 import AppHeader from "../components/AppHeader";
-import LoginLinkedInButton from "../LoginLinkedInButton";
+import LoginLinkedInButton from "../components/LoginLinkedInButton";
 import { FaGoogle } from "react-icons/fa";
 
 import { auth, db } from "../firebase";
