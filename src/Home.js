@@ -2483,8 +2483,6 @@ function Home({ theme, toggleTheme }) {
   }, [loadPersistedProfile, promptProfileCompletion]);
 
   useEffect(() => {
-    if (isLoading) return;
-
     const params = new URLSearchParams(location.search || "");
     let linkedInCode = params.get("linkedin_code") || params.get("code");
     let linkedInError = params.get("linkedin_error") || params.get("error");
@@ -2513,29 +2511,28 @@ function Home({ theme, toggleTheme }) {
       setError(`Falha ao conectar com LinkedIn: ${linkedInErrorDescription || linkedInError}`);
       try {
         localStorage.removeItem(LINKEDIN_OAUTH_RESULT_KEY);
-      } catch {
-        // ignore storage failures
-      }
+      } catch { /* ignore */ }
       const cleanUrl = `${window.location.pathname}${window.location.hash || ""}`;
       window.history.replaceState({}, "", cleanUrl || "/");
       return;
     }
 
     if (!linkedInCode) return;
+    if (isLoading) return; // evita re-disparo enquanto login já está em andamento
 
-    const cleanUrl = `${window.location.pathname}${window.location.hash || ""}`;
+    // limpa antes de chamar para evitar loops caso o componente remonte
+    try {
+      localStorage.removeItem(LINKEDIN_OAUTH_RESULT_KEY);
+    } catch { /* ignore */ }
 
     (async () => {
       try {
         await handleLoginSuccess({ code: linkedInCode });
-      } catch (err) {
-        console.error("Erro ao processar login do LinkedIn:", err);
+      } catch (loginErr) {
+        console.error("Erro durante handleLoginSuccess no useEffect do LinkedIn:", loginErr);
+        setError(`Falha no login com LinkedIn: ${loginErr.message || loginErr}`);
       } finally {
-        try {
-          localStorage.removeItem(LINKEDIN_OAUTH_RESULT_KEY);
-        } catch {
-          // ignore storage failures
-        }
+        const cleanUrl = `${window.location.pathname}${window.location.hash || ""}`;
         window.history.replaceState({}, "", cleanUrl || "/");
       }
     })();
