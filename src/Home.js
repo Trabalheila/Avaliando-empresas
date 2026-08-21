@@ -2004,13 +2004,20 @@ function Home({ theme, toggleTheme }) {
           return;
         }
         // Sessão ausente na restauração: alinha a Home ao que os guards veem.
+        let storedProfile = {};
         let hadLocalProfile = false;
         try {
-          hadLocalProfile = isProfileAuthenticated(
-            JSON.parse(localStorage.getItem("userProfile") || "{}")
-          );
+          storedProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+          hadLocalProfile = isProfileAuthenticated(storedProfile);
         } catch {
           hadLocalProfile = false;
+        }
+        // LinkedIn não usa Firebase Auth — ausência de sessão Firebase é esperada
+        // e não significa que o perfil é inválido.
+        const storedProvider = (storedProfile.loginProvider || "").toLowerCase();
+        if (storedProvider === "linkedin" && hadLocalProfile) {
+          setIsAuthenticated(true);
+          return;
         }
         if (hadLocalProfile) {
           try {
