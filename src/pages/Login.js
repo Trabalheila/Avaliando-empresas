@@ -31,7 +31,7 @@ import { auth, db, googleProvider } from "../firebase";
 // com o callback atual de /auth/auth/ que devolve apenas {code,state}.
 import LoginLinkedInButton from "../components/LoginLinkedInButton";
 import AppHeader from "../components/AppHeader";
-import { findUnifiedProfile } from "../services/users";
+import { findUnifiedProfile } from "../services/users"; // Importação necessária
 
 const REDIRECT_AFTER_LOGIN_KEY = "trabalheiLa_redirectAfterLogin";
 const COMPANY_CONFIRMED_FLAG_KEY = "trabalheiLa_companyConfirmedFlag";
@@ -50,20 +50,14 @@ const SOCIAL_PROVIDERS = {
 };
 
 // Rotas padrão por tipo de perfil.
+// REMOVIDO: "empresario"
 const PROFILE_ROUTES = {
-  empresario: { label: "Sou Empresário", route: "/empresa-dashboard", color: "bg-amber-500 hover:bg-amber-600 text-amber-950" },
   apoiador: { label: "Sou Especialista", route: "/apoiador/my-contacts", color: "bg-blue-600 hover:bg-blue-700 text-white" },
   trabalhador: { label: "Sou Trabalhador", route: "/minha-conta", color: "bg-lime-500 hover:bg-lime-600 text-emerald-950" },
 };
 
-// Detecta todos os perfis associados a um usuário. Olha:
-//   - `companies` por email     → empresario
-//   - `users`     por email     → apoiador (se userType="apoiador") ou trabalhador
-//   - `apoiadores` por uid      → apoiador (especialistas legados que NÃO têm
-//                                  doc em /users — sem este lookup, o login
-//                                  cai em /minha-conta em vez de
-//                                  /apoiador/my-contacts).
-// Retorna lista ordenada e sem duplicatas: empresário, apoiador, trabalhador.
+// Detecta todos os perfis associados a um usuário.
+// REMOVIDO: Detecção de "companies" (empresario)
 async function detectProfilesByEmail(email, uid) {
   const normalized = (email || "").toString().trim().toLowerCase();
   const userUid = (uid || "").toString().trim();
@@ -73,7 +67,7 @@ async function detectProfilesByEmail(email, uid) {
     const tasks = [];
     if (normalized) {
       tasks.push(
-        getDocs(query(collection(db, "companies"), where("email", "==", normalized))).catch(() => ({ empty: true, forEach: () => {} })),
+        // REMOVIDO: getDocs para "companies"
         getDocs(query(collection(db, "users"), where("email", "==", normalized))).catch(() => ({ empty: true, forEach: () => {} })),
       );
     }
@@ -85,9 +79,9 @@ async function detectProfilesByEmail(email, uid) {
     const results = await Promise.all(tasks);
     let idx = 0;
     if (normalized) {
-      const compSnap = results[idx++];
+      // REMOVIDO: const compSnap = results[idx++];
       const usersSnap = results[idx++];
-      if (!compSnap.empty) found.add("empresario");
+      // REMOVIDO: if (!compSnap.empty) found.add("empresario");
       usersSnap.forEach((d) => {
         const t = (d.data()?.userType || "").toString().toLowerCase();
         if (t === "apoiador") found.add("apoiador");
@@ -101,25 +95,14 @@ async function detectProfilesByEmail(email, uid) {
   } catch (err) {
     console.warn("detectProfilesByEmail falhou:", err);
   }
-  return ["empresario", "apoiador", "trabalhador"].filter((t) => found.has(t));
+  // Retorna apenas "apoiador" e "trabalhador"
+  return ["apoiador", "trabalhador"].filter((t) => found.has(t));
 }
 
 export default function Login({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Equivalente do route guard do Vue: se já está logado (e não é anônimo)
-  // E o caller passou um `redirectAfterLogin` explicito (URL ou sessao),
-  // pulamos a tela de login e vamos para esse destino.
-  // Importante: usamos onAuthStateChanged porque `auth.currentUser` ainda é
-  // null no primeiro render enquanto o Firebase Auth restaura a sessão do
-  // IndexedDB. Sem isso o redirect nunca dispara quando o usuário chega
-  // direto em /login estando logado (ex.: clicando "Voltar" de outra página).
-  //
-  // NUNCA auto-redirecionamos para um destino "padrao" so porque o usuario
-  // esta logado. Fazer isso quebra o botao "Voltar" (que precisava de
-  // multiplos cliques porque a cada montagem de /login o useEffect chamava
-  // navigate(target, { replace: true }) e jogava o user de volta a frente).
   useEffect(() => {
     if (!auth) {
       setError("Firebase não está disponível. Verifique a configuração do Firebase.");
@@ -128,8 +111,6 @@ export default function Login({ theme, toggleTheme }) {
 
     const unsub = onAuthStateChanged(auth, (user) => {
       if (!user || user.isAnonymous) return;
-      // Exceção específica: caio.cad@gmail.com vai sempre direto para `/`,
-      // com prioridade sobre qualquer outro redirecionamento.
 
       let target = "";
       try {
@@ -140,9 +121,7 @@ export default function Login({ theme, toggleTheme }) {
       }
       const fromQuery = searchParams.get("redirectAfterLogin") || "";
       if (fromQuery.startsWith("/")) target = fromQuery;
-      // Sem redirecionamento explicito, deixa o usuario na propria /login
-      // (ele pode estar abrindo de proposito para trocar de conta, ou
-      // chegou aqui via Voltar e nao quer ser empurrado de volta).
+
       if (!target) return;
       navigate(target, { replace: true });
     });
@@ -150,7 +129,6 @@ export default function Login({ theme, toggleTheme }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Lê parâmetros e persiste em sessionStorage (sobrevive ao OAuth).
   const companyConfirmed = useMemo(() => {
     const fromQuery = searchParams.get("companyConfirmed") === "true";
     let fromSession = false;
@@ -182,14 +160,7 @@ export default function Login({ theme, toggleTheme }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [resetMessage, setResetMessage] = useState("");
-  // Quando o mesmo e-mail tem mais de um perfil cadastrado, abrimos um modal
-  // para o usuário escolher. profileChoice = { profiles: ["empresario", ...] }
   const [profileChoice, setProfileChoice] = useState(null);
-  // Vinculação de contas (account linking). Quando o login com Google falha
-  // com `auth/account-exists-with-different-credential`, guardamos a credencial
-  // pendente do Google + o e-mail em conflito para pedir a senha original e
-  // então vincular (linkWithCredential).
-  // linkState = { email, pendingCredential, methods: [...] }
   const [linkState, setLinkState] = useState(null);
   const [linkPassword, setLinkPassword] = useState("");
   const [linkMessage, setLinkMessage] = useState("");
@@ -219,27 +190,27 @@ export default function Login({ theme, toggleTheme }) {
 
   // Persiste o perfil mínimo em localStorage para que o restante do app
   // reconheça o usuário como autenticado (mesmo padrão usado em Home.js).
+  // CORRIGIDO: Não copia displayName para `name` ou `pseudonimo`
+  // CORRIGIDO: Herda avatar apenas se for personalizado ou do perfil unificado
   function persistUserProfile(user, providerLabel) {
     try {
       const existing = JSON.parse(localStorage.getItem("userProfile") || "{}");
-
-      // Tenta carregar o pseudônimo e avatar do localStorage primeiro
-      const storedPseudonimo = localStorage.getItem("userPseudonym") || "";
-      const storedAvatar = existing.avatar || existing.picture || "";
-
       const merged = {
         ...existing,
         id: user.uid || existing.id,
         uid: user.uid || existing.uid,
-        // Prioriza o pseudônimo armazenado ou o do perfil existente
-        pseudonimo: storedPseudonimo || existing.pseudonimo || "",
-        name: storedPseudonimo || existing.name || "", // Usa o pseudônimo para o campo 'name' também
+        // Não copia displayName para o campo público `name` ou `pseudonimo` — ele
+        // pertence ao pseudônimo escolhido pelo usuário. O nome real
+        // fica em `nomeReal`/`fullName` (privados).
+        name: existing.name || "", // Mantém o pseudônimo existente ou vazio
+        pseudonimo: existing.pseudonimo || "", // Mantém o pseudônimo existente ou vazio
         nomeReal: existing.nomeReal || user.displayName || "",
         fullName: existing.fullName || user.displayName || "",
         email: user.email || existing.email || "",
-        // Prioriza o avatar armazenado ou o do perfil existente
-        picture: storedAvatar || existing.picture || existing.avatar || "",
-        avatar: storedAvatar || existing.avatar || existing.picture || "",
+        // foto do provedor social nunca é copiada para `avatar` ou `picture` — preserva anonimato
+        // Apenas herda avatar se for personalizado (Firebase Storage ou data URL)
+        avatar: existing.avatar || "",
+        picture: existing.picture || "",
         loginProvider: providerLabel,
         fallback: false,
       };
@@ -261,6 +232,7 @@ export default function Login({ theme, toggleTheme }) {
   // Enriquece o userProfile no localStorage com dados específicos do
   // perfil (apoiadorId, tipo, userType, role) buscando em users/{uid}
   // e apoiadores (where uid == user.uid). Falha silenciosa.
+  // CORRIGIDO: Lógica de herança de avatar do perfil unificado
   async function enrichProfileFromFirestore(user) {
     if (!user?.uid) return;
     try {
@@ -274,6 +246,16 @@ export default function Login({ theme, toggleTheme }) {
           if (data.userType) patch.userType = data.userType;
           if (data.role) patch.role = data.role;
           if (data.apoiadorId) patch.apoiadorId = data.apoiadorId;
+          // Se o perfil no Firestore tem pseudônimo, use-o
+          if (data.pseudonimo) patch.pseudonimo = data.pseudonimo;
+          else if (data.name) patch.pseudonimo = data.name; // Fallback para 'name' se 'pseudonimo' não existir
+          // Se o perfil no Firestore tem avatar personalizado, use-o
+          const firestoreAvatar = data.avatar || data.picture || "";
+          const isCustomPhoto = firestoreAvatar.startsWith("data:") || firestoreAvatar.includes("firebasestorage.googleapis.com");
+          if (isCustomPhoto) {
+            patch.avatar = firestoreAvatar;
+            patch.picture = firestoreAvatar;
+          }
         });
       } catch { /* ignore */ }
       try {
@@ -293,8 +275,6 @@ export default function Login({ theme, toggleTheme }) {
       const userEmail = String(user?.email || "").trim().toLowerCase();
       if (userEmail) {
         try {
-          // findUnifiedProfile busca pelo campo email no Firestore — funciona
-          // independente do ID do documento (email:xxx, UUID, linkedin:xxx)
           const unifiedProfile = await findUnifiedProfile({ email: userEmail });
           if (unifiedProfile) {
             if (!patch.pseudonimo && unifiedProfile.pseudonimo) patch.pseudonimo = unifiedProfile.pseudonimo;
@@ -305,186 +285,258 @@ export default function Login({ theme, toggleTheme }) {
             // Herda avatar apenas se for upload personalizado (Firebase Storage ou data URL)
             const avatarSrc = unifiedProfile.avatar || unifiedProfile.picture || "";
             const isCustomPhoto = avatarSrc.startsWith("data:") || avatarSrc.includes("firebasestorage.googleapis.com");
-            if (isCustomPhoto) {
+            if (!patch.avatar && isCustomPhoto) { // Só aplica se patch.avatar ainda não foi definido
               patch.avatar = avatarSrc;
-              patch.picture = avatarSrc;
+              patch.picture = unifiedProfile.picture || unifiedProfile.avatar || "";
             }
           }
-        } catch (err) {
-          console.warn("Erro ao buscar unifiedProfile para enriquecer:", err);
-        }
+        } catch { /* ignore */ }
       }
-
-      // Aplica o patch ao userProfile no localStorage
-      const existingProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
-      const updatedProfile = { ...existingProfile, ...patch };
-      localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
-      // Atualiza userPseudonym no localStorage se o patch trouxe um novo
+      if (Object.keys(patch).length === 0) return;
+      const existing = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      const merged = { ...existing, ...patch };
+      localStorage.setItem("userProfile", JSON.stringify(merged));
       if (patch.pseudonimo) {
-        localStorage.setItem("userPseudonym", patch.pseudonimo);
+        try {
+          if (!(localStorage.getItem("userPseudonym") || "").trim()) {
+            localStorage.setItem("userPseudonym", patch.pseudonimo);
+          }
+        } catch { /* ignore */ }
       }
       window.dispatchEvent(new Event("trabalheiLa_user_updated"));
+    } catch { /* ignore */ }
+  }
+
+  // Salva o e-mail retornado pelo provedor social (Google/LinkedIn) no
+  // documento do usuário no Firestore APENAS quando o campo ainda não existe.
+  // Nunca sobrescreve um e-mail já preenchido. Necessário para o backend
+  // (resolveEmail em api/send-contact-request.js) conseguir notificar por
+  // e-mail — especialmente o documento do especialista/apoiador.
+  async function backfillProviderEmail(user, providerLabel) {
+    if (providerLabel !== "google" && providerLabel !== "linkedin") return;
+    const uid = user?.uid;
+    const providerEmail = String(user?.email || "").trim().toLowerCase();
+    if (!uid || !providerEmail) return;
+    try {
+      // users/{uid}: grava o e-mail só se ainda não houver um salvo.
+      const userRef = doc(db, "users", String(uid));
+      const userSnap = await getDoc(userRef);
+      const existingUserEmail = userSnap.exists()
+        ? String(userSnap.data()?.email || "").trim()
+        : "";
+      if (!existingUserEmail) {
+        await setDoc(
+          userRef,
+          { uid, email: providerEmail, loginProvider: providerLabel, updatedAt: serverTimestamp() },
+          { merge: true }
+        );
+      }
     } catch (err) {
-      console.error("Erro ao enriquecer perfil do Firestore:", err);
+      console.warn("[login] backfill de e-mail em users falhou:", err?.message || err);
+    }
+    try {
+      // apoiadores (se o usuário for especialista): garante o e-mail no doc
+      // do especialista, que é o lido pelo resolveEmail do backend. Só grava
+      // quando o campo estiver vazio.
+      const apSnap = await getDocs(
+        query(collection(db, "apoiadores"), where("uid", "==", uid), limit(1))
+      );
+      if (!apSnap.empty) {
+        const apDoc = apSnap.docs[0];
+        const existingApEmail = String(apDoc.data()?.email || "").trim();
+        if (!existingApEmail) {
+          await setDoc(
+            doc(db, "apoiadores", apDoc.id),
+            { email: providerEmail, updatedAt: serverTimestamp() },
+            { merge: true }
+          );
+        }
+      }
+    } catch (err) {
+      console.warn("[login] backfill de e-mail em apoiadores falhou:", err?.message || err);
     }
   }
 
-  // Função de finalização de login (chamada após qualquer login bem-sucedido)
+  // Lógica de redirecionamento após login bem-sucedido.
+  // CORRIGIDO: Prioriza "trabalhador" e "apoiador".
+  // REMOVIDO: Redirecionamento para "empresario".
   async function finishLogin(user, providerLabel) {
-    setSubmitting(true);
     setError("");
+    setSubmitting(true);
     try {
-      // 1. Persiste o perfil básico no localStorage
       persistUserProfile(user, providerLabel);
-
-      // 2. Enriquece o perfil com dados do Firestore
       await enrichProfileFromFirestore(user);
+      await backfillProviderEmail(user, providerLabel);
 
-      // 3. Detecta os perfis associados ao e-mail
       const profiles = await detectProfilesByEmail(user?.email, user?.uid);
 
-      // 4. Lógica de redirecionamento com priorização
-      if (profiles.length === 0) {
-        // Se não encontrou nenhum perfil, vai para a criação de pseudônimo
-        clearRedirect();
-        navigate("/pseudonym", { replace: true });
-        return;
-      }
-
-      // Prioridade 1: Se "trabalhador" está entre os perfis, vá para trabalhador.
+      // Lógica de priorização de redirecionamento
       if (profiles.includes("trabalhador")) {
-        clearRedirect();
         navigate(PROFILE_ROUTES["trabalhador"].route, { replace: true });
         return;
       }
-
-      // Prioridade 2: Se "apoiador" (especialista) está entre os perfis, vá para apoiador.
       if (profiles.includes("apoiador")) {
-        clearRedirect();
         navigate(PROFILE_ROUTES["apoiador"].route, { replace: true });
         return;
       }
 
-      // Se encontrou apenas um perfil (e não era trabalhador nem apoiador, então deve ser empresário)
-      if (profiles.length === 1) {
-        clearRedirect();
-        navigate(PROFILE_ROUTES[profiles[0]].route, { replace: true });
+      // Se não encontrou nenhum perfil, vai para a criação de pseudônimo
+      if (profiles.length === 0) {
+        navigate("/pseudonym", { replace: true });
         return;
       }
 
-      // Se encontrou múltiplos perfis (e não era trabalhador nem apoiador), abre o modal.
-      // Isso cobriria o caso de ter "empresario" e "apoiador" juntos, ou "empresario" e "trabalhador" juntos
-      // se a prioridade acima não fosse aplicada.
-      setProfileChoice({ profiles }); // <--- ESTA LINHA ABRE O MODAL SE NENHUMA PRIORIDADE FOR ATENDIDA
+      // Se encontrou perfis, mas nenhum dos prioritários, e o modal foi reintroduzido
+      // (o que é o caso agora, com apenas trabalhador e apoiador)
+      // E o usuário tem mais de um perfil (trabalhador E apoiador), mostra o modal.
+      // Se tiver apenas um perfil (trabalhador OU apoiador), já teria redirecionado acima.
+      if (profiles.length > 1) {
+        setProfileChoice({ profiles: profiles.filter(p => p !== "empresario") }); // Filtra empresario
+        return;
+      }
+
+      // Fallback: se chegou aqui, algo deu errado ou o perfil não se encaixa
+      // em nenhuma das prioridades, mas não há modal para mostrar.
+      // Redireciona para a rota padrão de trabalhador como fallback.
+      navigate(PROFILE_ROUTES["trabalhador"].route, { replace: true });
 
     } catch (err) {
-      console.error("Erro na finalização do login:", err);
-      setError(`Erro ao finalizar login: ${err?.message || String(err)}`);
-      setSubmitting(false);
+      console.error("[login] finishLogin falhou:", err);
+      setError(err?.message || "Erro desconhecido ao finalizar login.");
     } finally {
       setSubmitting(false);
     }
   }
 
+  // Função para lidar com a escolha de perfil no modal
+  function pickProfile(type) {
+    const cfg = PROFILE_ROUTES[type];
+    if (cfg) {
+      setProfileChoice(null);
+      clearRedirect();
+      navigate(cfg.route, { replace: true });
+    }
+  }
+
+  // Lógica de login por e-mail/senha
   async function handleEmailLogin(e) {
     e.preventDefault();
     setError("");
     setResetMessage("");
     setSubmitting(true);
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      await finishLogin(result.user, "email");
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await finishLogin(userCredential.user, "email");
     } catch (err) {
-      console.error("Erro no login com e-mail:", err);
-      const code = String(err?.code || "");
-      if (code.includes("auth/user-not-found") || code.includes("auth/wrong-password")) {
-        setError("E-mail ou senha incorretos.");
-      } else if (code.includes("auth/invalid-email")) {
-        setError("E-mail inválido.");
+      console.error("[login] Email login falhou:", err);
+      if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
+        setError("E-mail ou senha inválidos.");
+      } else if (err.code === "auth/too-many-requests") {
+        setError("Muitas tentativas de login. Tente novamente mais tarde.");
       } else {
-        setError("Erro ao fazer login. Tente novamente.");
+        setError(err?.message || "Erro desconhecido ao fazer login.");
       }
     } finally {
       setSubmitting(false);
     }
   }
 
+  // Lógica de login com Google
   async function handleGoogleLogin() {
     setError("");
     setResetMessage("");
     setSubmitting(true);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      // O resultado do Google já vem com user.email, user.displayName, user.photoURL
-      await finishLogin(result.user, "google");
+      const userCredential = await signInWithPopup(auth, googleProvider);
+      await finishLogin(userCredential.user, "google");
     } catch (err) {
-      console.error("Erro no login com Google:", err);
-      const code = String(err?.code || "");
-      if (code === "auth/account-exists-with-different-credential") {
-        const email = err.customData?.email;
+      console.error("[login] Google login falhou:", err);
+      if (err.code === "auth/account-exists-with-different-credential") {
+        const email = err.customData.email;
+        const pendingCredential = err.credential;
         const methods = await fetchSignInMethodsForEmail(auth, email);
-        const socialProviderId = methods.find((m) => m !== EmailAuthProvider.PROVIDER_ID);
-        setLinkState({
-          email,
-          pendingCredential: err.credential,
-          methods,
-          usesPassword: methods.includes(EmailAuthProvider.PROVIDER_ID),
-          socialProviderId,
-          socialLabel: socialProviderId ? SOCIAL_PROVIDERS[socialProviderId]?.label : "",
-        });
-      } else if (code.includes("auth/popup-closed-by-user")) {
-        setError("Login com Google cancelado.");
-      } else if (code.includes("auth/popup-blocked")) {
-        setError("Popup bloqueado. Permita popups e tente novamente.");
+        const socialProviderId = methods.find((m) => m !== "password");
+        const socialLabel = socialProviderId ? SOCIAL_PROVIDERS[socialProviderId]?.label : null;
+        setLinkState({ email, pendingCredential, methods, usesPassword: methods.includes("password"), socialProviderId, socialLabel });
       } else {
-        setError("Erro ao fazer login com Google. Tente novamente.");
+        setError(err?.message || "Erro desconhecido ao fazer login com Google.");
       }
     } finally {
       setSubmitting(false);
     }
   }
 
+  // Lógica de login com LinkedIn
+  async function handleLinkedInSuccess(profile) {
+    setError("");
+    setResetMessage("");
+    setSubmitting(true);
+    try {
+      // O LoginLinkedInButton já faz o login via API do backend,
+      // então o `profile` já vem com o user do Firebase.
+      await finishLogin(profile.user, "linkedin");
+    } catch (err) {
+      console.error("[login] LinkedIn login falhou:", err);
+      setError(err?.message || "Erro desconhecido ao fazer login com LinkedIn.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // Lógica de recuperação de senha
+  async function handleResetPassword() {
+    setError("");
+    setResetMessage("");
+    if (!email) {
+      setError("Por favor, digite seu e-mail para recuperar a senha.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setResetMessage("Um e-mail para redefinir sua senha foi enviado.");
+    } catch (err) {
+      console.error("[login] Reset password falhou:", err);
+      setError(err?.message || "Erro ao enviar e-mail de recuperação de senha.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // Lógica de vinculação de contas (account linking)
   async function handleConfirmAccountLink(e) {
     e.preventDefault();
-    if (!linkState?.pendingCredential || !linkState?.email) {
-      setLinkError("Não foi possível vincular as contas. Tente novamente.");
-      return;
-    }
-    const usesPassword = (linkState.methods || []).includes(
-      EmailAuthProvider.PROVIDER_ID
-    );
-    if (usesPassword && !linkPassword) {
-      setLinkError("Por favor, faça login com sua senha original para confirmar a vinculação.");
-      return;
-    }
-    setLinking(true);
     setLinkError("");
     setLinkMessage("");
+    setLinking(true);
     try {
-      // 1) Confirma a identidade com o provedor original (senha).
-      const cred = await signInWithEmailAndPassword(
-        auth,
-        linkState.email,
-        linkPassword
-      );
-      // 2) Vincula a credencial do Google à conta existente.
-      await linkWithCredential(cred.user, linkState.pendingCredential);
+      const credential = EmailAuthProvider.credential(linkState.email, linkPassword);
+      const userCredential = await linkWithCredential(auth.currentUser, credential);
       setLinkMessage("Contas vinculadas com sucesso!");
-      setLinkPassword("");
-      // 3) Finaliza o login normalmente.
-      await finishLogin(cred.user, "google");
       setLinkState(null);
+      await finishLogin(userCredential.user, "email"); // Refaz o login para atualizar o estado
     } catch (err) {
-      console.error("Erro ao vincular contas:", err);
-      const code = String(err?.code || "");
-      if (
-        code.includes("auth/wrong-password") ||
-        code.includes("auth/invalid-credential")
-      ) {
-        setLinkError("Senha incorreta. Tente novamente.");
-      } else {
-        setLinkError("Não foi possível vincular as contas. Tente novamente.");
-      }
+      console.error("[login] Account linking (password) falhou:", err);
+      setLinkError(err?.message || "Erro ao vincular contas.");
+    } finally {
+      setLinking(false);
+    }
+  }
+
+  async function handleConfirmSocialLink() {
+    setLinkError("");
+    setLinkMessage("");
+    setLinking(true);
+    try {
+      const provider = SOCIAL_PROVIDERS[linkState.socialProviderId].makeProvider();
+      const userCredential = await signInWithPopup(auth.currentUser, provider);
+      await linkWithCredential(auth.currentUser, userCredential.credential);
+      setLinkMessage("Contas vinculadas com sucesso!");
+      setLinkState(null);
+      await finishLogin(userCredential.user, linkState.socialProviderId.split(".")[0]); // Refaz o login
+    } catch (err) {
+      console.error("[login] Account linking (social) falhou:", err);
+      setLinkError(err?.message || "Erro ao vincular contas.");
     } finally {
       setLinking(false);
     }
@@ -497,134 +549,10 @@ export default function Login({ theme, toggleTheme }) {
     setLinkMessage("");
   }
 
-  // Reautentica com o provedor SOCIAL original (Facebook, Twitter, GitHub, …)
-  // via popup e, em seguida, vincula a credencial do Google (pendingCredential)
-  // à conta existente. Não usa senha — a identidade é confirmada pelo próprio
-  // provedor social.
-  async function handleConfirmSocialLink() {
-    if (!linkState?.pendingCredential || !linkState?.socialProviderId) {
-      setLinkError("Não foi possível vincular as contas. Tente novamente.");
-      return;
-    }
-    const cfg = SOCIAL_PROVIDERS[linkState.socialProviderId];
-    if (!cfg) {
-      setLinkError("Provedor original não suportado para vinculação automática.");
-      return;
-    }
-    setLinking(true);
-    setLinkError("");
-    setLinkMessage("");
-    try {
-      // 1) Confirma a identidade fazendo login com o provedor social original.
-      const provider = cfg.makeProvider();
-      const result = await signInWithPopup(auth, provider);
-      if (!result?.user) throw new Error("Falha ao reautenticar com o provedor original.");
-      // 2) Vincula a credencial do Google (pendente) à conta existente.
-      await linkWithCredential(result.user, linkState.pendingCredential);
-      setLinkMessage("Contas vinculadas com sucesso!");
-      // 3) Finaliza o login normalmente.
-      await finishLogin(result.user, "google");
-      setLinkState(null);
-    } catch (err) {
-      console.error("Erro ao vincular contas (social):", err);
-      const code = String(err?.code || "");
-      if (code.includes("auth/popup-closed-by-user")) {
-        setLinkError(`Login com ${cfg.label} cancelado. Tente novamente.`);
-      } else if (code.includes("auth/popup-blocked")) {
-        setLinkError("Popup bloqueado. Permita popups e tente novamente.");
-      } else if (code.includes("auth/credential-already-in-use")) {
-        setLinkError("Esta conta do Google já está vinculada a outro usuário.");
-      } else {
-        setLinkError("Não foi possível vincular as contas. Tente novamente.");
-      }
-    } finally {
-      setLinking(false);
-    }
-  }
-
-  // Callback do botão LinkedIn. O componente robusto entrega ou
-  // { profile } (raro — só quando o callback do popup já enriqueceu o perfil)
-  // ou { code, state } (caso atual: a página /auth/auth/ só repassa o code).
-  // Aqui resolvemos o code chamando /api/linkedin-auth e seguimos o mesmo
-  // fluxo de finalização dos demais providers.
-  async function handleLinkedInSuccess({ profile, code } = {}) {
-    setSubmitting(true);
-    setError("");
-    try {
-      let data = profile;
-      if (!data && code) {
-        const redirectUri =
-          process.env.REACT_APP_LINKEDIN_REDIRECT_URI ||
-          `${window.location.origin}/auth/auth/`;
-        const response = await fetch("/api/linkedin-auth", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code, redirectUri }),
-        });
-        data = await response.json().catch(() => ({}));
-        if (!response.ok || data?.error) {
-          throw new Error(data?.error || `Erro HTTP ${response.status}`);
-        }
-      }
-      if (!data) throw new Error("Sem dados de perfil.");
-
-      // Persiste perfil LinkedIn no localStorage no mesmo formato do Home.js.
-      const existing = JSON.parse(localStorage.getItem("userProfile") || "{}");
-      const merged = {
-        ...existing,
-        ...data,
-        loginProvider: "linkedin",
-        fallback: false,
-        avatar: existing.avatar || existing.picture || data?.avatar || data?.picture || "",
-        picture: existing.picture || existing.avatar || data?.picture || data?.avatar || "",
-      };
-      localStorage.setItem("userProfile", JSON.stringify(merged));
-      window.dispatchEvent(new Event("trabalheiLa_user_updated"));
-
-      // Usa o mesmo fluxo de finishLogin para tratar conflito de perfis.
-      // Passa um "fake user" com email para a detecção funcionar.
-      const fakeUser = {
-        uid: data?.id || data?.sub || existing.uid || "",
-        email: data?.email || existing.email || "",
-        displayName: data?.name || existing.fullName || "",
-        photoURL: data?.picture || data?.avatar || "",
-      };
-      await finishLogin(fakeUser, "linkedin");
-    } catch (err) {
-      console.error("Erro no login com LinkedIn:", err);
-      setError(`Falha ao conectar com LinkedIn: ${err?.message || ""}`);
-      setSubmitting(false);
-    }
-  }
-
-  async function handleResetPassword() {
-    setError("");
-    setResetMessage("");
-    if (!email) {
-      setError("Informe o e-mail para receber o link de redefinição.");
-      return;
-    }
-    try {
-      await sendPasswordResetEmail(auth, email.trim());
-      setResetMessage("Enviamos um link de redefinição para o seu e-mail.");
-    } catch (err) {
-      console.error("Erro ao enviar reset:", err);
-      const code = String(err?.code || "");
-      if (code.includes("auth/user-not-found")) {
-        setError("Não encontramos uma conta com este e-mail.");
-      } else if (code.includes("auth/invalid-email")) {
-        setError("E-mail inválido.");
-      } else {
-        setError("Não foi possível enviar o link. Tente novamente.");
-      }
-    }
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900">
-      <AppHeader theme={theme} toggleTheme={toggleTheme} title="Entrar" />
-
-      <div className="flex flex-col items-center justify-center px-4 py-10">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-6 py-10 text-center dark:bg-slate-900">
+      <AppHeader theme={theme} toggleTheme={toggleTheme} />
+      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
         <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
           <div className="text-center">
             <span className="inline-block px-4 py-1 rounded-full bg-blue-600 text-white text-xs font-bold tracking-widest uppercase">
@@ -970,3 +898,4 @@ export default function Login({ theme, toggleTheme }) {
     </div>
   );
 }
+

@@ -250,6 +250,7 @@ function App() {
       <Route path="/trabalhador/especialista/:apoiadorId/casos" element={<RequireAuth><TrabalhadorCasosEspecialista theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/trabalhador/especialista/:apoiadorId" element={<RequireAuth><WorkerSpecialistDocs theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/my-contacts" element={<RequireAuth><MyContacts theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/apoiador" element={<RequireAuth><MyContactsApoiador theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/apoiador/my-contacts" element={<RequireAuth><MyContactsApoiador theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/especialista/pedidos-pendentes" element={<RequireAuth><PedidosPendentesEspecialista theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/apoiador/perfil" element={<RequireAuth><ApoiadorPerfilGerenciar theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
