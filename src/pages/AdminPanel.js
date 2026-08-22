@@ -646,7 +646,7 @@ function AdminPanel({ theme, toggleTheme }) {
       const user = auth.currentUser;
       if (!user) throw new Error("Sessão administrativa expirada.");
       const token = await user.getIdToken();
-      const response = await fetch(buildApiUrl("/api/send-profile-reminder"), {
+      const response = await fetch(buildApiUrl("/api/send-contact-request?op=profile-reminder"), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ supporterIds: recipients.map((a) => a.id) }),
