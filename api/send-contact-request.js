@@ -56,7 +56,18 @@ async function handleProfileReminder(req, res) {
       const snapshot = await db.collection("apoiadores").doc(id).get();
       return snapshot.exists ? { id, ...snapshot.data() } : null;
     }));
-    const recipients = supporters.filter((supporter) => isValidEmail(supporter?.email));
+    const recipients = (await Promise.all(supporters.map(async (supporter) => {
+      if (!supporter) return null;
+      let email = supporter.email;
+      if (!isValidEmail(email)) {
+        const uid = String(supporter.uid || supporter.authUid || supporter.userId || "").trim();
+        if (uid) {
+          const userSnapshot = await db.collection("users").doc(uid).get();
+          email = userSnapshot.exists ? userSnapshot.data()?.email : "";
+        }
+      }
+      return isValidEmail(email) ? { ...supporter, email: String(email).trim().toLowerCase() } : null;
+    }))).filter(Boolean);
     if (recipients.length === 0) return res.status(400).json({ error: "Nenhum especialista possui e-mail válido." });
 
     const resendKey = String(process.env.RESEND_API_KEY || "").trim();
@@ -75,6 +86,12 @@ async function handleProfileReminder(req, res) {
     return res.status(200).json({ sent, failed: recipients.length - sent, skipped: ids.length - recipients.length });
   } catch (err) {
     console.error("[profile-reminder] erro:", err?.message || err);
+    if (err?.code === "auth/id-token-expired" || err?.code === "auth/invalid-id-token" || err?.code === "auth/argument-error") {
+      return res.status(401).json({ error: "Sessão administrativa expirada. Entre novamente." });
+    }
+    if (err?.code === "auth/invalid-credential") {
+      return res.status(401).json({ error: "Token administrativo inválido." });
+    }
     return res.status(500).json({ error: "Não foi possível enviar os lembretes." });
   }
 }

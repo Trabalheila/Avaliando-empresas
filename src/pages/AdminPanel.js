@@ -225,6 +225,8 @@ function AdminPanel({ theme, toggleTheme }) {
   const [apoiadorToast, setApoiadorToast] = useState(null);
   const [expandedApoiadorId, setExpandedApoiadorId] = useState(null);
   const [reminderBusy, setReminderBusy] = useState(false);
+  const [selectedApoiadores, setSelectedApoiadores] = useState(new Set());
+  const [editingApoiador, setEditingApoiador] = useState(null);
 
   /* ── Tentativas de contato recebidas por especialista ── */
   const [expandedContactsId, setExpandedContactsId] = useState(null);
@@ -665,6 +667,48 @@ function AdminPanel({ theme, toggleTheme }) {
     }
   }, []);
 
+  const deleteApoiador = useCallback(async (apoiador) => {
+    setDeleting(true);
+    try {
+      await adminDeleteDoc("apoiadores", apoiador.id);
+      setApoiadores((prev) => prev.filter((item) => item.id !== apoiador.id));
+      setSelectedApoiadores((prev) => {
+        const next = new Set(prev);
+        next.delete(apoiador.id);
+        return next;
+      });
+      setModal(null);
+      setApoiadorToast({ type: "success", message: "Especialista removido." });
+    } catch (err) {
+      setApoiadorToast({ type: "error", message: err.message || "Não foi possível remover o especialista." });
+    } finally {
+      setDeleting(false);
+    }
+  }, [adminDeleteDoc]);
+
+  const saveApoiadorEdit = useCallback(async (updates) => {
+    if (!editingApoiador) return;
+    setApoiadorBusyId(editingApoiador.id);
+    try {
+      const payload = {
+        nome: updates.nome.trim(),
+        email: updates.email.trim().toLowerCase(),
+        telefone: updates.telefone.trim(),
+        registroProfissional: updates.registroProfissional.trim(),
+        especialidade: updates.especialidade.trim(),
+        descricao: updates.descricao.trim(),
+      };
+      await updateDoc(doc(db, "apoiadores", editingApoiador.id), payload);
+      setApoiadores((prev) => prev.map((item) => item.id === editingApoiador.id ? { ...item, ...payload } : item));
+      setEditingApoiador(null);
+      setApoiadorToast({ type: "success", message: "Dados do especialista atualizados." });
+    } catch (err) {
+      setApoiadorToast({ type: "error", message: err.message || "Não foi possível editar o especialista." });
+    } finally {
+      setApoiadorBusyId(null);
+    }
+  }, [editingApoiador]);
+
   /* ── Carregar tentativas de contato recebidas por um especialista ── */
   const loadApoiadorContacts = useCallback(async (a) => {
     const id = a.id;
@@ -791,7 +835,8 @@ function AdminPanel({ theme, toggleTheme }) {
     if (modal.type === "review") deleteReview(modal.id, modal.companySlug, modal.collectionName || "reviews");
     if (modal.type === "bulk-comments") deleteBulkComments(modal.ids);
     if (modal.type === "bulk-reviews") deleteBulkReviews(modal.ids);
-  }, [modal, deleteComment, deleteReview, deleteBulkComments, deleteBulkReviews]);
+    if (modal.type === "apoiador") deleteApoiador(modal.apoiador);
+  }, [modal, deleteComment, deleteReview, deleteBulkComments, deleteBulkReviews, deleteApoiador]);
 
   /* ── Marcar avaliação para revisão (moderação) ── */
   const flagReviewForReview = useCallback(async (review, reason) => {
@@ -1783,13 +1828,42 @@ function AdminPanel({ theme, toggleTheme }) {
                 <button
                   type="button"
                   disabled={reminderBusy}
-                  onClick={() => sendProfileReminders(filteredApoiadores)}
+                  onClick={() => sendProfileReminders(
+                    selectedApoiadores.size > 0
+                      ? filteredApoiadores.filter((a) => selectedApoiadores.has(a.id))
+                      : filteredApoiadores
+                  )}
                   className="px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-700 hover:bg-blue-800 text-white disabled:opacity-50"
                   title="Envia lembrete aos cadastros incompletos exibidos"
                 >
-                  {reminderBusy ? "Enviando…" : "Lembrar cadastros incompletos"}
+                  {reminderBusy ? "Enviando…" : selectedApoiadores.size > 0 ? `Lembrar selecionados (${selectedApoiadores.size})` : "Lembrar cadastros incompletos"}
+                </button>
+                <button
+                  type="button"
+                  disabled={selectedApoiadores.size === 0 || reminderBusy}
+                  onClick={() => setSelectedApoiadores(new Set())}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 disabled:opacity-50"
+                >
+                  Limpar seleção
                 </button>
               </div>
+            </div>
+
+            <div className="mb-3 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+              <input
+                type="checkbox"
+                checked={filteredApoiadores.length > 0 && filteredApoiadores.every((a) => selectedApoiadores.has(a.id))}
+                onChange={(e) => {
+                  setSelectedApoiadores((prev) => {
+                    const next = new Set(prev);
+                    filteredApoiadores.forEach((a) => e.target.checked ? next.add(a.id) : next.delete(a.id));
+                    return next;
+                  });
+                }}
+                className="accent-blue-600"
+              />
+              <span>Selecionar todos os especialistas exibidos</span>
+              {selectedApoiadores.size > 0 && <strong>({selectedApoiadores.size} selecionado(s))</strong>}
             </div>
 
             {apoiadorToast && (
@@ -1832,6 +1906,17 @@ function AdminPanel({ theme, toggleTheme }) {
                       className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700"
                     >
                       <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedApoiadores.has(a.id)}
+                          onChange={(e) => setSelectedApoiadores((prev) => {
+                            const next = new Set(prev);
+                            if (e.target.checked) next.add(a.id); else next.delete(a.id);
+                            return next;
+                          })}
+                          aria-label={`Selecionar ${a.nome || a.email || "especialista"}`}
+                          className="mt-1 accent-blue-600"
+                        />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">
@@ -1964,6 +2049,20 @@ function AdminPanel({ theme, toggleTheme }) {
                               Enviar lembrete
                             </button>
                           )}
+                          <button
+                            type="button"
+                            onClick={() => setEditingApoiador(a)}
+                            className="px-3 py-1.5 text-xs font-semibold text-white bg-slate-700 hover:bg-slate-800 rounded-lg"
+                          >
+                            Editar dados
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setModal({ type: "apoiador", id: a.id, label: a.nome || a.email || a.id, apoiador: a })}
+                            className="px-3 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg"
+                          >
+                            Remover
+                          </button>
                           {isPending && (
                             <>
                               <button
@@ -2231,6 +2330,15 @@ function AdminPanel({ theme, toggleTheme }) {
         )}
       </main>
 
+      {editingApoiador && (
+        <ApoiadorEditModal
+          apoiador={editingApoiador}
+          busy={apoiadorBusyId === editingApoiador.id}
+          onClose={() => setEditingApoiador(null)}
+          onSave={saveApoiadorEdit}
+        />
+      )}
+
       {/* ═══ Modal de confirmação ═══ */}
       {modal && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4" onClick={() => setModal(null)}>
@@ -2331,6 +2439,46 @@ function AdminPanel({ theme, toggleTheme }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ApoiadorEditModal({ apoiador, busy, onClose, onSave }) {
+  const [form, setForm] = useState({
+    nome: apoiador.nome || apoiador.razaoSocial || "",
+    email: apoiador.email || "",
+    telefone: apoiador.telefone || apoiador.whatsapp || "",
+    registroProfissional: apoiador.registroProfissional || apoiador.registroClasse || apoiador.oab || "",
+    especialidade: apoiador.especialidade || apoiador.ramoEspecializacao || apoiador.tipo || "",
+    descricao: apoiador.descricao || apoiador.bio || "",
+  });
+  const setField = (field) => (event) => setForm((prev) => ({ ...prev, [field]: event.target.value }));
+
+  return (
+    <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4" onClick={onClose}>
+      <form className="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-xl p-6 max-w-lg w-full border border-slate-200 dark:border-slate-700 space-y-3 max-h-[92dvh] overflow-y-auto" onClick={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); onSave(form); }}>
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">Editar dados do especialista</h3>
+        {[
+          ["nome", "Nome completo"],
+          ["email", "E-mail"],
+          ["telefone", "Telefone"],
+          ["registroProfissional", "Registro profissional"],
+          ["especialidade", "Área de atuação"],
+        ].map(([field, label]) => (
+          <label key={field} className="block text-xs font-semibold text-slate-600 dark:text-slate-300">
+            {label}
+            <input type={field === "email" ? "email" : "text"} value={form[field]} onChange={setField(field)} className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-normal" />
+          </label>
+        ))}
+        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300">
+          Descrição
+          <textarea value={form.descricao} onChange={setField("descricao")} rows={4} className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-normal" />
+        </label>
+        <div className="flex gap-3 pt-2">
+          <button type="button" onClick={onClose} className="flex-1 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-sm font-semibold">Cancelar</button>
+          <button type="submit" disabled={busy} className="flex-1 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold disabled:opacity-50">{busy ? "Salvando…" : "Salvar alterações"}</button>
+        </div>
+      </form>
     </div>
   );
 }
