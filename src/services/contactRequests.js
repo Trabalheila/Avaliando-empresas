@@ -212,6 +212,7 @@ export async function markRequestRead(requestId) {
   try {
     await updateDoc(doc(db, "contactRequests", requestId), {
       readByWorker: true,
+      readAt: serverTimestamp(),
     });
   } catch (err) {
     console.warn("markRequestRead:", err);
@@ -226,6 +227,7 @@ export async function respondToRequest(requestId, { accept, reply, revealEmail }
     revealEmail: Boolean(accept && revealEmail),
     respondedAt: new Date().toISOString(),
     readByWorker: true,
+    readAt: serverTimestamp(),
   });
 }
 
@@ -386,6 +388,7 @@ export async function markApoiadorRequestRead(requestId) {
   try {
     await updateDoc(doc(db, "contactRequestsApoiador", requestId), {
       readByApoiador: true,
+      readAt: serverTimestamp(),
     });
   } catch {
     /* silencioso */
@@ -414,6 +417,7 @@ export async function respondToApoiadorRequest(
     revealEmail: Boolean(accept && revealEmail),
     respondedAt: new Date().toISOString(),
     readByApoiador: true,
+    readAt: serverTimestamp(),
   });
 
   // Fase 1 (Casos): ao ACEITAR um pedido originado por um TRABALHADOR (ex.:

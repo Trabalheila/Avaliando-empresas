@@ -124,7 +124,10 @@ export async function markNotificationRead(notificationId) {
   const id = (notificationId || "").toString().trim();
   if (!id) return { updated: false };
   try {
-    await updateDoc(doc(db, "notifications", id), { read: true });
+    await updateDoc(doc(db, "notifications", id), {
+      read: true,
+      readAt: serverTimestamp(),
+    });
     return { updated: true };
   } catch {
     return { updated: false };

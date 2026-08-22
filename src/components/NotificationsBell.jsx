@@ -16,6 +16,14 @@ import { collection, query, where, getDocs, limit } from "firebase/firestore";
 /* Estado "lido" mantido no localStorage (sem escrita no Firestore). */
 const SEEN_MSG_KEY = "tl_notif_seen_messages"; // { [conversationId]: ISO }
 const SEEN_AE_KEY = "tl_notif_seen_adexitum"; // [requestId]
+const READ_RETENTION_MS = 2 * 24 * 60 * 60 * 1000;
+
+function toMillis(value) {
+  if (!value) return 0;
+  if (typeof value?.toDate === "function") return value.toDate().getTime();
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
 function readSeenMap(key) {
   try {
@@ -173,12 +181,14 @@ export default function NotificationsBell() {
           _kind: "adExitumAccepted",
           createdAt: r.respondedAt || r.createdAt || "",
           _unread: !seenAe.includes(r.id),
+          _readAt: seenAe.includes(r.id) ? r.respondedAt || r.createdAt : "",
         })),
         ...messageItems.map((r) => ({
           ...r,
           _unread:
             String(r.lastMessage?.createdAt || "") >
             String(seenMsg[r.id] || ""),
+          _readAt: seenMsg[r.id] || "",
         })),
         ...activity.map((r) => ({
           ...r,
@@ -188,11 +198,29 @@ export default function NotificationsBell() {
             r.createdAt ||
             "",
           _unread: r.read === false,
+          _readAt: r.readAt || "",
         })),
       ].sort((a, b) =>
         String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
       );
-      setItems(combined);
+      const cutoff = Date.now() - READ_RETENTION_MS;
+      const isUnread = (item) => {
+        if (item._kind === "consulta") {
+          return item.status === "pending" && item.readByApoiador === false;
+        }
+        if (item._kind === "activity" || item._kind === "message" || item._kind === "adExitumAccepted") {
+          return Boolean(item._unread);
+        }
+        if (item.status !== "pending") return false;
+        return item._kind === "apoiador" ? !item.readByApoiador : !item.readByWorker;
+      };
+      setItems(
+        combined.filter((item) => {
+          if (isUnread(item)) return true;
+          const readAt = toMillis(item._readAt || item.readAt || item.createdAt);
+          return !readAt || readAt >= cutoff;
+        })
+      );
     } catch {
       /* silencioso */
     } finally {
@@ -264,15 +292,15 @@ export default function NotificationsBell() {
       setItems((prev) =>
         prev.map((it) => {
           if (it._kind === "activity" && activityIds.includes(it.id)) {
-            return { ...it, read: true, _unread: false };
+            return { ...it, read: true, _unread: false, _readAt: new Date().toISOString() };
           }
           if (it._kind === "message" && it._unread) return { ...it, _unread: false };
           if (it._kind === "adExitumAccepted" && it._unread) return { ...it, _unread: false };
           if (it._kind === "worker" && workerIds.includes(it.id)) {
-            return { ...it, readByWorker: true };
+            return { ...it, readByWorker: true, _readAt: new Date().toISOString() };
           }
           if (it._kind === "apoiador" && apoiadorIds.includes(it.id)) {
-            return { ...it, readByApoiador: true };
+            return { ...it, readByApoiador: true, _readAt: new Date().toISOString() };
           }
           return it;
         })
