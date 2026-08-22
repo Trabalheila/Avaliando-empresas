@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import {
   collection,
   getDocs,
@@ -139,6 +139,14 @@ function formatDateTime(value) {
   }
 }
 
+function isApoiadorProfileIncomplete(apoiador) {
+  const areas = apoiador?.areas || apoiador?.nichos || apoiador?.segmentos || [];
+  return !String(apoiador?.descricao || apoiador?.bio || "").trim() ||
+    !String(apoiador?.especialidade || apoiador?.ramoEspecializacao || apoiador?.tipo || "").trim() ||
+    !Array.isArray(areas) || areas.length === 0 ||
+    !String(apoiador?.foto || apoiador?.fotoUrl || "").trim();
+}
+
 /* Rótulos amigáveis para o status do pedido de contato ao especialista. */
 const CONTACT_STATUS_LABEL = {
   pending: "Aguardando resposta",
@@ -215,6 +223,8 @@ function AdminPanel({ theme, toggleTheme }) {
   const [apoiadoresStatusFilter, setApoiadoresStatusFilter] = useState("pendente");
   const [apoiadorBusyId, setApoiadorBusyId] = useState(null);
   const [apoiadorToast, setApoiadorToast] = useState(null);
+  const [expandedApoiadorId, setExpandedApoiadorId] = useState(null);
+  const [reminderBusy, setReminderBusy] = useState(false);
 
   /* ── Tentativas de contato recebidas por especialista ── */
   const [expandedContactsId, setExpandedContactsId] = useState(null);
@@ -623,6 +633,36 @@ function AdminPanel({ theme, toggleTheme }) {
       });
     }
     setApoiadorBusyId(null);
+  }, []);
+
+  const sendProfileReminders = useCallback(async (selected) => {
+    const recipients = selected.filter((a) => isApoiadorProfileIncomplete(a) && a.email);
+    if (recipients.length === 0) {
+      setApoiadorToast({ type: "error", message: "Nenhum especialista com cadastro incompleto e e-mail válido foi encontrado." });
+      return;
+    }
+    setReminderBusy(true);
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("Sessão administrativa expirada.");
+      const token = await user.getIdToken();
+      const response = await fetch(buildApiUrl("/api/send-profile-reminder"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ supporterIds: recipients.map((a) => a.id) }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Falha ao enviar os lembretes.");
+      setApoiadorToast({
+        type: "success",
+        message: `${result.sent || 0} lembrete(s) enviado(s).${result.failed ? ` Falhas: ${result.failed}.` : ""}`,
+      });
+    } catch (err) {
+      console.error("Erro ao enviar lembretes de perfil:", err);
+      setApoiadorToast({ type: "error", message: err.message || "Não foi possível enviar os lembretes." });
+    } finally {
+      setReminderBusy(false);
+    }
   }, []);
 
   /* ── Carregar tentativas de contato recebidas por um especialista ── */
@@ -1740,6 +1780,15 @@ function AdminPanel({ theme, toggleTheme }) {
                   <option value="rejeitado">Rejeitados</option>
                   <option value="todos">Todos</option>
                 </select>
+                <button
+                  type="button"
+                  disabled={reminderBusy}
+                  onClick={() => sendProfileReminders(filteredApoiadores)}
+                  className="px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-700 hover:bg-blue-800 text-white disabled:opacity-50"
+                  title="Envia lembrete aos cadastros incompletos exibidos"
+                >
+                  {reminderBusy ? "Enviando…" : "Lembrar cadastros incompletos"}
+                </button>
               </div>
             </div>
 
@@ -1840,6 +1889,25 @@ function AdminPanel({ theme, toggleTheme }) {
                               ))}
                             </div>
                           )}
+                          {expandedApoiadorId === a.id && (
+                            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-xs text-slate-600 dark:text-slate-300">
+                              <p><strong>Nome:</strong> {a.nome || "—"}</p>
+                              <p><strong>E-mail:</strong> {a.email || "—"}</p>
+                              <p><strong>UID:</strong> {a.uid || a.authUid || a.userId || "—"}</p>
+                              <p><strong>Telefone:</strong> {a.whatsapp || a.telefone || "—"}</p>
+                              <p><strong>Site:</strong> {a.site || "—"}</p>
+                              <p><strong>LinkedIn:</strong> {a.linkedin || "—"}</p>
+                              <p><strong>Plano:</strong> {a.plano || "—"}</p>
+                              <p><strong>OAB/Registro:</strong> {a.oab || a.registroProfissional || "—"}</p>
+                              <p className="sm:col-span-2"><strong>Descrição:</strong> {a.descricao || a.bio || "—"}</p>
+                              <p className="sm:col-span-2"><strong>Áreas:</strong> {[
+                                ...(Array.isArray(a.areas) ? a.areas : []),
+                                ...(Array.isArray(a.nichos) ? a.nichos : []),
+                                ...(Array.isArray(a.segmentos) ? a.segmentos : []),
+                              ].join(", ") || "—"}</p>
+                              <p className="sm:col-span-2"><strong>Portfólio:</strong> {Array.isArray(a.portfolio) ? a.portfolio.join(", ") || "—" : a.portfolio || "—"}</p>
+                            </div>
+                          )}
                           <div className="flex gap-3 flex-wrap mt-1">
                             {a.linkedin && (
                               <a
@@ -1879,6 +1947,23 @@ function AdminPanel({ theme, toggleTheme }) {
                           </div>
                         </div>
                         <div className="flex flex-col gap-2 shrink-0 w-full sm:w-auto">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedApoiadorId((current) => current === a.id ? null : a.id)}
+                            className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                          >
+                            {expandedApoiadorId === a.id ? "Ocultar dados" : "Ver dados completos"}
+                          </button>
+                          {isApoiadorProfileIncomplete(a) && (
+                            <button
+                              type="button"
+                              disabled={reminderBusy || !a.email}
+                              onClick={() => sendProfileReminders([a])}
+                              className="px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg disabled:opacity-50"
+                            >
+                              Enviar lembrete
+                            </button>
+                          )}
                           {isPending && (
                             <>
                               <button
