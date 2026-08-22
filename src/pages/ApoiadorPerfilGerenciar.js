@@ -56,7 +56,12 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [requiredErrors, setRequiredErrors] = useState({});
 
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [registroProfissional, setRegistroProfissional] = useState("");
   const [foto, setFoto] = useState("");
   const [fotoFile, setFotoFile] = useState(null);
   const [fotoPreview, setFotoPreview] = useState("");
@@ -104,6 +109,12 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
         if (cancelled) return;
         if (snap.exists()) {
           const d = snap.data();
+          setNome(d.nome || d.name || profile?.nome || profile?.name || "");
+          setEmail(d.email || profile?.email || "");
+          setTelefone(d.telefone || d.phone || d.whatsapp || profile?.telefone || "");
+          setRegistroProfissional(
+            d.registroProfissional || d.registroClasse || d.oab || d.credential?.number || ""
+          );
           setFoto(d.foto || d.photoURL || d.avatar || d.picture || "");
           setDescricao(d.descricao || "");
           const areas = Array.isArray(d.areas)
@@ -136,7 +147,7 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
     return () => {
       cancelled = true;
     };
-  }, [apoiadorId]);
+  }, [apoiadorId, profile]);
 
   // Registra o token FCM do especialista e assina as notificações em primeiro
   // plano. Roda quando o especialista está autenticado no seu painel — o
@@ -202,6 +213,18 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
     async (e) => {
       e?.preventDefault?.();
       if (!apoiadorId) return;
+      const missing = {
+        nome: !nome.trim(),
+        email: !email.trim(),
+        telefone: !telefone.trim(),
+        area: !areasText.trim(),
+        registro: !registroProfissional.trim(),
+      };
+      setRequiredErrors(missing);
+      if (Object.values(missing).some(Boolean)) {
+        setError("Preencha todos os campos obrigatórios.");
+        return;
+      }
       setSaving(true);
       setError("");
       setMessage("");
@@ -223,6 +246,10 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
           .filter(Boolean);
 
         const updates = {
+          nome: nome.trim(),
+          email: email.trim().toLowerCase(),
+          telefone: telefone.trim(),
+          registroProfissional: registroProfissional.trim(),
           descricao: descricao.trim(),
           areas,
           nichos,
@@ -355,7 +382,7 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
         setSaving(false);
       }
     },
-    [apoiadorId, descricao, areasText, nichosText, disponibilidade, fotoFile, compressImageToDataUrl, isPremium, precoConsultaEspecializada, mpEmail, isAdvogado, adExitum, ramosDireito]
+    [apoiadorId, nome, email, telefone, registroProfissional, descricao, areasText, nichosText, disponibilidade, fotoFile, compressImageToDataUrl, isPremium, precoConsultaEspecializada, mpEmail, isAdvogado, adExitum, ramosDireito]
   );
 
   if (!apoiadorId) {
@@ -481,6 +508,38 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
               </div>
             </section>
 
+            {/* Dados obrigatórios do perfil */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                  Nome Completo <span className="text-rose-500">*</span>
+                </label>
+                <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm text-slate-800 dark:text-slate-100" />
+                {requiredErrors.nome && <p className="mt-1 text-xs font-semibold text-rose-600">dado(s) obrigatório(s)</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                  E-mail <span className="text-rose-500">*</span>
+                </label>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm text-slate-800 dark:text-slate-100" />
+                {requiredErrors.email && <p className="mt-1 text-xs font-semibold text-rose-600">dado(s) obrigatório(s)</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                  Telefone <span className="text-rose-500">*</span>
+                </label>
+                <input type="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm text-slate-800 dark:text-slate-100" />
+                {requiredErrors.telefone && <p className="mt-1 text-xs font-semibold text-rose-600">dado(s) obrigatório(s)</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                  Registro Profissional <span className="text-rose-500">*</span>
+                </label>
+                <input type="text" value={registroProfissional} onChange={(e) => setRegistroProfissional(e.target.value)} placeholder="Ex.: CRP 06/12345, CRM 123456, CREA 123456" className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm text-slate-800 dark:text-slate-100" />
+                {requiredErrors.registro && <p className="mt-1 text-xs font-semibold text-rose-600">dado(s) obrigatório(s)</p>}
+              </div>
+            </div>
+
             {/* Descrição */}
             <div>
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
@@ -511,6 +570,7 @@ export default function ApoiadorPerfilGerenciar({ theme, toggleTheme }) {
                 placeholder="Ex.: Direito trabalhista, Compliance, Negociações coletivas"
                 className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              {requiredErrors.area && <p className="mt-1 text-xs font-semibold text-rose-600">dado(s) obrigatório(s)</p>}
               <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                 Separe múltiplas áreas por vírgula.
               </p>

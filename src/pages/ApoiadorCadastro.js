@@ -164,6 +164,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
   const [createdApoiadorId, setCreatedApoiadorId] = useState("");
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [error, setError] = useState("");
+  const [requiredErrors, setRequiredErrors] = useState({});
   /* true quando há um login social/real ativo (Google/LinkedIn). Nesse caso
      a conta já existe e os campos de e-mail/senha de acesso são ocultados. */
   const [socialAuthed, setSocialAuthed] = useState(false);
@@ -335,9 +336,17 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     setError("");
+    const missing = {
+      nome: !nome.trim(),
+      email: !email.trim(),
+      telefone: !telefone.trim(),
+      area: !ramoEspecializacao.trim(),
+      registro: !credentialNumber.trim(),
+    };
+    setRequiredErrors(missing);
 
     if (!tipo) { setError("Selecione o tipo de especialista."); return; }
-    if (!nome.trim() || !email.trim() || !telefone.trim()) { setError("Preencha todos os campos obrigatórios."); return; }
+    if (Object.values(missing).some(Boolean)) { setError("Preencha todos os campos obrigatórios."); return; }
 
     // Credenciais de acesso: exigidas apenas quando o usuário ainda não está
     // autenticado por um provedor social (Google/LinkedIn). Nesses casos o
@@ -510,6 +519,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
           ...(servesEmployer ? ["employer"] : []),
         ],
         ramoEspecializacao,
+        registroProfissional: credentialNumber.trim(),
         // Ramos de atuação do Direito (somente advogados). Permite filtrar
         // advogados por especialidade jurídica.
         ramosDireito: isAdvogadoTipo(tipo) ? ramosDireito : [],
@@ -721,15 +731,18 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
-                    Nome completo / Razão social *
+                    Nome Completo *
                   </label>
                   <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} maxLength={120}
+                    aria-required="true"
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200" />
+                  {requiredErrors.nome && <p className="mt-1 text-xs font-semibold text-rose-600">dado(s) obrigatório(s)</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">E-mail *</label>
                   <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200" />
+                  {requiredErrors.email && <p className="mt-1 text-xs font-semibold text-rose-600">dado(s) obrigatório(s)</p>}
                 </div>
                 {!socialAuthed && (
                   <>
@@ -803,6 +816,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Telefone *</label>
                   <input type="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} maxLength={20} placeholder="(11) 99999-0000"
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200" />
+                  {requiredErrors.telefone && <p className="mt-1 text-xs font-semibold text-rose-600">dado(s) obrigatório(s)</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">WhatsApp</label>
@@ -837,7 +851,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
               {/* ── Ramo de Especialização (obrigatório) ── */}
               <div className="mb-6">
                 <label htmlFor="ramoEspecializacao" className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
-                  Ramo de Especialização <span className="text-rose-500">*</span>
+                  Área de Atuação <span className="text-rose-500">*</span>
                 </label>
                 <select
                   id="ramoEspecializacao"
@@ -853,6 +867,7 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                     </option>
                   ))}
                 </select>
+                {requiredErrors.area && <p className="mt-1 text-xs font-semibold text-rose-600">dado(s) obrigatório(s)</p>}
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Ramo principal em que você presta consultoria. Empresas Premium poderão filtrar
                   especialistas compatíveis por este ramo.
@@ -1003,23 +1018,26 @@ function ApoiadorCadastro({ theme, toggleTheme }) {
                   <span className="font-semibold"> "Especialista Verificado"</span>.
                 </p>
 
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Registro Profissional <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={credentialNumber}
+                    onChange={(e) => setCredentialNumber(e.target.value)}
+                    maxLength={30}
+                    placeholder="Ex.: CRP 06/12345, CRM 123456, CREA 123456"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200"
+                  />
+                  {requiredErrors.registro && <p className="mt-1 text-xs font-semibold text-rose-600">dado(s) obrigatório(s)</p>}
+                </div>
+
                 {REGULATED_PROFESSIONS.has(tipo) && CREDENTIAL_LABELS[tipo] && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
-                        {CREDENTIAL_LABELS[tipo].number} *
-                      </label>
-                      <input
-                        type="text"
-                        value={credentialNumber}
-                        onChange={(e) => setCredentialNumber(e.target.value)}
-                        maxLength={30}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
-                        {CREDENTIAL_LABELS[tipo].state} *
+                        Estado/região do registro *
                       </label>
                       <input
                         type="text"
