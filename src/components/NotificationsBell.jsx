@@ -11,7 +11,16 @@ import { listConversationsForParticipant } from "../services/chat";
 import { listNotificationsForUser, markNotificationRead } from "../services/notifications";
 import { db, auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, query, where, getDocs, limit } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  limit,
+  doc,
+  updateDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 
 /* Estado "lido" mantido no localStorage (sem escrita no Firestore). */
 const SEEN_MSG_KEY = "tl_notif_seen_messages"; // { [conversationId]: ISO }
@@ -257,9 +266,12 @@ export default function NotificationsBell() {
     const activityIds = [];
     const workerIds = [];
     const apoiadorIds = [];
+    const consultaIds = [];
 
     list.forEach((it) => {
-      if (it._kind === "activity" && it.read === false) {
+      if (it._kind === "consulta" && it.status === "pending" && it.readByApoiador === false) {
+        consultaIds.push(it.id);
+      } else if (it._kind === "activity" && it.read === false) {
         activityIds.push(it.id);
       } else if (it._kind === "message" && it._unread) {
         seenMsg[it.id] = it.lastMessage?.createdAt || new Date().toISOString();
@@ -281,11 +293,18 @@ export default function NotificationsBell() {
     activityIds.forEach((id) => markNotificationRead(id).catch(() => {}));
     workerIds.forEach((id) => markRequestRead(id).catch(() => {}));
     apoiadorIds.forEach((id) => markApoiadorRequestRead(id).catch(() => {}));
+    consultaIds.forEach((id) =>
+      updateDoc(doc(db, "consultas", id), {
+        readByApoiador: true,
+        readAt: serverTimestamp(),
+      }).catch(() => {})
+    );
 
     if (
       activityIds.length ||
       workerIds.length ||
       apoiadorIds.length ||
+      consultaIds.length ||
       seenMsgChanged ||
       seenAeChanged
     ) {
@@ -300,6 +319,9 @@ export default function NotificationsBell() {
             return { ...it, readByWorker: true, _readAt: new Date().toISOString() };
           }
           if (it._kind === "apoiador" && apoiadorIds.includes(it.id)) {
+            return { ...it, readByApoiador: true, _readAt: new Date().toISOString() };
+          }
+          if (it._kind === "consulta" && consultaIds.includes(it.id)) {
             return { ...it, readByApoiador: true, _readAt: new Date().toISOString() };
           }
           return it;
@@ -362,6 +384,21 @@ export default function NotificationsBell() {
         )
       );
       if (r.link) navigate(r.link);
+      return;
+    }
+    if (r._kind === "consulta") {
+      updateDoc(doc(db, "consultas", r.id), {
+        readByApoiador: true,
+        readAt: serverTimestamp(),
+      }).catch(() => {});
+      setItems((prev) =>
+        prev.map((it) =>
+          it._kind === "consulta" && it.id === r.id
+            ? { ...it, _unread: false, readByApoiador: true, _readAt: new Date().toISOString() }
+            : it
+        )
+      );
+      navigate("/apoiador/requisicoes");
       return;
     }
     if (r._kind === "message") {
