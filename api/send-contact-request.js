@@ -322,6 +322,31 @@ async function handleCronPrazos(req, res) {
     return res.status(500).json({ ok: false, error: "Admin SDK indisponível." });
   }
 
+  // Remove atividades já lidas há pelo menos 24 horas. Pedidos, consultas e
+  // conversas não entram aqui: são registros de trabalho e têm ciclo de vida
+  // próprio, mesmo quando deixam de aparecer como notificações.
+  let deletedNotifications = 0;
+  try {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const notificationSnap = await db
+      .collection("notifications")
+      .where("readAt", "<=", cutoff)
+      .limit(500)
+      .get();
+    if (notificationSnap.size > 0) {
+      const batch = db.batch();
+      notificationSnap.docs.forEach((notificationDoc) => {
+        if (notificationDoc.data()?.read === true) {
+          batch.delete(notificationDoc.ref);
+          deletedNotifications += 1;
+        }
+      });
+      if (deletedNotifications > 0) await batch.commit();
+    }
+  } catch (err) {
+    console.warn("[cron-prazos] limpeza de notificações falhou:", err?.message || err);
+  }
+
   let processed = 0;
   let sent = 0;
   try {
@@ -417,7 +442,7 @@ async function handleCronPrazos(req, res) {
     return res.status(500).json({ ok: false, error: err?.message || "Erro na consulta." });
   }
 
-  return res.status(200).json({ ok: true, target, processed, sent });
+  return res.status(200).json({ ok: true, target, processed, sent, deletedNotifications });
 }
 
 /**

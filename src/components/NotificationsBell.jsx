@@ -24,8 +24,8 @@ import {
 
 /* Estado "lido" mantido no localStorage (sem escrita no Firestore). */
 const SEEN_MSG_KEY = "tl_notif_seen_messages"; // { [conversationId]: ISO }
-const SEEN_AE_KEY = "tl_notif_seen_adexitum"; // [requestId]
-const READ_RETENTION_MS = 2 * 24 * 60 * 60 * 1000;
+const SEEN_AE_KEY = "tl_notif_seen_adexitum"; // { [requestId]: ISO }
+const READ_RETENTION_MS = 24 * 60 * 60 * 1000;
 
 function toMillis(value) {
   if (!value) return 0;
@@ -45,9 +45,13 @@ function readSeenMap(key) {
 function readSeenList(key) {
   try {
     const v = JSON.parse(localStorage.getItem(key) || "[]");
-    return Array.isArray(v) ? v : [];
+    if (Array.isArray(v)) {
+      // Compatibilidade com a versão anterior, que armazenava apenas IDs.
+      return Object.fromEntries(v.map((id) => [id, ""]));
+    }
+    return v && typeof v === "object" ? v : {};
   } catch {
-    return [];
+    return {};
   }
 }
 function writeSeen(key, value) {
@@ -189,8 +193,8 @@ export default function NotificationsBell() {
           ...r,
           _kind: "adExitumAccepted",
           createdAt: r.respondedAt || r.createdAt || "",
-          _unread: !seenAe.includes(r.id),
-          _readAt: seenAe.includes(r.id) ? r.respondedAt || r.createdAt : "",
+          _unread: !Object.prototype.hasOwnProperty.call(seenAe, r.id),
+          _readAt: seenAe[r.id] || r.respondedAt || r.createdAt || "",
         })),
         ...messageItems.map((r) => ({
           ...r,
@@ -277,8 +281,8 @@ export default function NotificationsBell() {
         seenMsg[it.id] = it.lastMessage?.createdAt || new Date().toISOString();
         seenMsgChanged = true;
       } else if (it._kind === "adExitumAccepted" && it._unread) {
-        if (!seenAe.includes(it.id)) {
-          seenAe.push(it.id);
+        if (!Object.prototype.hasOwnProperty.call(seenAe, it.id)) {
+          seenAe[it.id] = new Date().toISOString();
           seenAeChanged = true;
         }
       } else if (it._kind === "worker" && it.status === "pending" && !it.readByWorker) {
@@ -403,12 +407,13 @@ export default function NotificationsBell() {
     }
     if (r._kind === "message") {
       const seen = readSeenMap(SEEN_MSG_KEY);
-      seen[r.id] = r.lastMessage?.createdAt || new Date().toISOString();
+      const readAt = new Date().toISOString();
+      seen[r.id] = readAt;
       writeSeen(SEEN_MSG_KEY, seen);
       setItems((prev) =>
         prev.map((it) =>
           it._kind === "message" && it.id === r.id
-            ? { ...it, _unread: false }
+            ? { ...it, _unread: false, _readAt: readAt }
             : it
         )
       );
@@ -418,11 +423,13 @@ export default function NotificationsBell() {
     }
     if (r._kind === "adExitumAccepted") {
       const seen = readSeenList(SEEN_AE_KEY);
-      if (!seen.includes(r.id)) writeSeen(SEEN_AE_KEY, [...seen, r.id]);
+      const readAt = new Date().toISOString();
+      seen[r.id] = readAt;
+      writeSeen(SEEN_AE_KEY, seen);
       setItems((prev) =>
         prev.map((it) =>
           it._kind === "adExitumAccepted" && it.id === r.id
-            ? { ...it, _unread: false }
+            ? { ...it, _unread: false, _readAt: readAt }
             : it
         )
       );

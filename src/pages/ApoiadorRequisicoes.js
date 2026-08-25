@@ -10,6 +10,7 @@ import {
   doc,
   getDoc,
   updateDoc,
+  serverTimestamp,
   limit,
 } from "firebase/firestore";
 import AppHeader from "../components/AppHeader";
@@ -195,7 +196,10 @@ export default function ApoiadorRequisicoes({ theme, toggleTheme }) {
     if (unread.length === 0) return;
     Promise.all(
       unread.map((c) =>
-        updateDoc(doc(db, "consultas", c.id), { readByApoiador: true }).catch(() => {})
+        updateDoc(doc(db, "consultas", c.id), {
+          readByApoiador: true,
+          readAt: serverTimestamp(),
+        }).catch(() => {})
       )
     );
   }, [activeTab, consultas]);
