@@ -112,6 +112,19 @@ export default function DocumentSignaturePage({ theme, toggleTheme }) {
                 </a>
               )}
 
+              {!isSigned && (
+                <div className="mt-4 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 text-sm text-blue-900 dark:text-blue-100">
+                  <p>
+                    Para assinar este documento, clique no botão <strong>"Assinar via Gov.br"</strong> abaixo.
+                    Você será redirecionado para o portal Gov.br para concluir a assinatura eletrônica.
+                  </p>
+                  <p className="mt-2">
+                    Após assinar, baixe o documento assinado do Gov.br e retorne a esta página para
+                    enviá-lo de volta através da seção <strong>"Enviar Documento Assinado"</strong> no seu painel.
+                  </p>
+                </div>
+              )}
+
               {isSigned ? (
                 <div className="mt-6 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700">
                   <p className="text-sm font-bold text-emerald-800 dark:text-emerald-200">

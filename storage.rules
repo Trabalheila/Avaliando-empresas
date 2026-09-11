@@ -78,6 +78,34 @@ service firebase.storage {
       allow write: if isSignedIn() && underMb(20);
     }
 
+    // Documentos para assinatura (fluxo Gov.br): documentsForSignature/{apoiadorId}/{caseId}/...
+    // Firestore é a fonte da verdade sobre quem é o dono (apoiadores/{apoiadorId})
+    // e quem é o cliente vinculado (apoiadores/{apoiadorId}/cases/{caseId}.workerUid).
+    //  - O especialista (dono do caso) faz upload do documento original.
+    //  - O trabalhador vinculado ao caso só lê os arquivos e envia de volta
+    //    o documento assinado em .../signed/{documentName}.
+    match /documentsForSignature/{apoiadorId}/{caseId}/{documentName} {
+      function isSpecialistOwner() {
+        return isSignedIn()
+          && (request.auth.uid == apoiadorId
+              || request.auth.uid ==
+                 firestore.get(/databases/(default)/documents/apoiadores/$(apoiadorId)).data.uid);
+      }
+      function isCaseWorker() {
+        return isSignedIn()
+          && request.auth.uid ==
+             firestore.get(/databases/(default)/documents/apoiadores/$(apoiadorId)/cases/$(caseId)).data.workerUid;
+      }
+      allow read: if isSpecialistOwner() || isCaseWorker();
+      allow write: if isSpecialistOwner() && underMb(20);
+
+      // Documento assinado devolvido pelo cliente.
+      match /signed/{documentName} {
+        allow read: if isSpecialistOwner() || isCaseWorker();
+        allow write: if isCaseWorker() && underMb(20);
+      }
+    }
+
     // Demais caminhos: bloqueados por padrão.
     match /{allPaths=**} {
       allow read, write: if false;

@@ -361,17 +361,22 @@ service cloud.firestore {
 
         // Documentos enviados ao cliente para assinatura via Gov.br.
         // O especialista cria/gerencia o envio; o trabalhador vinculado
-        // (workerUid no doc) só pode LER os seus. status/signedUrl/
-        // signedAt/signedByUserId são preenchidos exclusivamente pelo
-        // backend (Admin SDK, callback do Gov.br), que ignora estas regras
-        // — por isso não há `allow update` para o trabalhador aqui.
+        // (workerUid no doc) só pode LER os seus, e enviar de volta o
+        // documento assinado (upload manual, fora do fluxo Gov.br) —
+        // atualização restrita aos campos status/signedUrl/signedAt/
+        // signedByUserId, sem alterar o restante do documento.
         match /documentsForSignature/{docId} {
           allow read: if isCaseOwner()
             || (isCaseWorker() && resource.data.workerUid == request.auth.uid);
           allow create: if isCaseOwner()
             && request.resource.data.status == 'pending'
             && request.resource.data.sentByUserId == request.auth.uid;
-          allow update: if isCaseOwner();
+          allow update: if isCaseOwner()
+            || (isCaseWorker()
+                && resource.data.workerUid == request.auth.uid
+                && request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(['status', 'signedUrl', 'signedAt', 'signedByUserId'])
+                && request.resource.data.signedByUserId == request.auth.uid);
           allow delete: if false;
         }
       }

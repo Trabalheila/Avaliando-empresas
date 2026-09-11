@@ -22,6 +22,7 @@ import {
   listDocumentsForSignature,
   sendDocumentForSignature,
   resendSignatureReminder,
+  friendlyStorageErrorMessage,
 } from "../../services/documentSignature";
 import AnamneseCard from "./AnamneseCard";
 import {
@@ -2420,8 +2421,13 @@ function DocumentsForSignatureCard({ specialistId, caseId, workerUid, specialist
     const safeName = (filename || "documento").replace(/[^\w.-]+/g, "_").slice(0, 120);
     const path = `documentsForSignature/${specialistId}/${caseId}/${Date.now()}-${safeName}`;
     const sRef = storageRef(storage, path);
-    await uploadBytes(sRef, blob);
-    const originalUrl = await getDownloadURL(sRef);
+    let originalUrl;
+    try {
+      await uploadBytes(sRef, blob);
+      originalUrl = await getDownloadURL(sRef);
+    } catch (err) {
+      throw new Error(friendlyStorageErrorMessage(err));
+    }
 
     await sendDocumentForSignature(specialistId, caseId, {
       documentTitle,

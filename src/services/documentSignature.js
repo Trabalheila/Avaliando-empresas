@@ -22,9 +22,20 @@ import {
   query,
   serverTimestamp,
   updateDoc,
+  collectionGroup,
+  where,
 } from "firebase/firestore";
-import { db, auth } from "../firebase";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { db, auth, storage } from "../firebase";
 import { buildApiUrl } from "../utils/apiBase";
+
+/** Traduz erros comuns do Firebase Storage para mensagens amigáveis ao usuário. */
+export function friendlyStorageErrorMessage(err) {
+  if (err?.code === "storage/unauthorized") {
+    return "Erro de permissão ao enviar o documento. Por favor, verifique suas permissões ou tente novamente mais tarde.";
+  }
+  return err?.message || "Não foi possível enviar o documento. Tente novamente.";
+}
 
 function caseSubcol(specialistId, caseId, sub) {
   return collection(db, "apoiadores", String(specialistId), "cases", String(caseId), sub);
@@ -201,4 +212,48 @@ export async function markDocumentRejected(specialistId, caseId, documentId) {
     ),
     { status: "rejected" }
   );
+}
+
+/** Lista, via collectionGroup, todos os documentos para assinatura vinculados ao trabalhador logado. */
+export async function listDocumentsForWorker(workerUid) {
+  if (!workerUid) return [];
+  const snap = await getDocs(
+    query(collectionGroup(db, "documentsForSignature"), where("workerUid", "==", String(workerUid)))
+  );
+  return snap.docs.map((d) => {
+    // Caminho: apoiadores/{specialistId}/cases/{caseId}/documentsForSignature/{docId}
+    const caseRef = d.ref.parent.parent;
+    const specialistId = caseRef?.parent?.parent?.id || "";
+    const caseId = caseRef?.id || "";
+    return { id: d.id, specialistId, caseId, ...d.data() };
+  });
+}
+
+/**
+ * Faz o upload do documento assinado (baixado do Gov.br) de volta para o
+ * Storage e atualiza o Firestore (signedUrl/status/signedAt/signedByUserId).
+ * Chamado pelo próprio trabalhador logado a partir do seu painel.
+ */
+export async function uploadSignedDocument(specialistId, caseId, documentId, { file, workerUid }) {
+  if (!specialistId || !caseId || !documentId) throw new Error("Documento inválido.");
+  if (!file) throw new Error("Selecione o arquivo assinado para enviar.");
+  if (!workerUid) throw new Error("Não foi possível identificar o usuário logado.");
+
+  const safeName = String(file.name || "documento_assinado").replace(/[^\w.-]+/g, "_").slice(0, 120);
+  const path = `documentsForSignature/${specialistId}/${caseId}/signed/${Date.now()}-${safeName}`;
+  const sRef = storageRef(storage, path);
+  await uploadBytes(sRef, file);
+  const signedUrl = await getDownloadURL(sRef);
+
+  await updateDoc(
+    doc(db, "apoiadores", String(specialistId), "cases", String(caseId), "documentsForSignature", String(documentId)),
+    {
+      status: "signed",
+      signedUrl,
+      signedAt: serverTimestamp(),
+      signedByUserId: workerUid,
+    }
+  );
+
+  return { signedUrl };
 }

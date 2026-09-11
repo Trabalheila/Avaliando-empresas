@@ -12,6 +12,8 @@ import {
   listWorkerVisibleDocuments,
   listWorkerCaseDeadlines,
 } from "../../services/workerCaseView";
+import { listDocumentsForSignature } from "../../services/documentSignature";
+import WorkerDocumentCard from "./WorkerDocumentCard";
 
 function formatDateTime(ts) {
   try {
@@ -50,6 +52,12 @@ function WorkerCaseCard({ caseItem }) {
   const [history, setHistory] = useState([]);
   const [docs, setDocs] = useState([]);
   const [deadlines, setDeadlines] = useState([]);
+  const [signatureDocs, setSignatureDocs] = useState([]);
+
+  const reloadSignatureDocs = async () => {
+    const list = await listDocumentsForSignature(specialistId, caseId).catch(() => []);
+    setSignatureDocs(list);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -63,10 +71,12 @@ function WorkerCaseCard({ caseItem }) {
       setHistory(h);
       setDocs(d);
       setDeadlines(dl);
+      await reloadSignatureDocs();
     })();
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [specialistId, caseId]);
 
   const doneCount = checklist.filter((i) => i.done).length;
@@ -139,6 +149,22 @@ function WorkerCaseCard({ caseItem }) {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* Documentos para assinatura via Gov.br */}
+      {signatureDocs.length > 0 && (
+        <div className="mt-4">
+          <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Documentos para Assinatura</span>
+          <div className="mt-2 space-y-3">
+            {signatureDocs.map((doc) => (
+              <WorkerDocumentCard
+                key={doc.id}
+                document={{ ...doc, specialistId, caseId }}
+                onUploaded={reloadSignatureDocs}
+              />
+            ))}
+          </div>
         </div>
       )}
 
