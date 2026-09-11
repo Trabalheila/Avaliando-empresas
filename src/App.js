@@ -69,6 +69,7 @@ import SelecionarConsultaPage from './pages/SelecionarConsultaPage';
 import PagamentoConfirmado from './pages/PagamentoConfirmado';
 import PagamentoCancelado from './pages/PagamentoCancelado';
 import ConsultaEspecializadaDetalhesPage from './pages/ConsultaEspecializadaDetalhesPage';
+import DocumentSignaturePage from './pages/DocumentSignaturePage';
 import migrateApoiadoresToUsers from './scripts/migrateApoiadoresToUsers';
 
 function applyTheme(theme) {
@@ -255,6 +256,7 @@ function App() {
       <Route path="/especialista/pedidos-pendentes" element={<RequireAuth><PedidosPendentesEspecialista theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/apoiador/perfil" element={<RequireAuth><ApoiadorPerfilGerenciar theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/especialista/:specialistType/caso/:caseId" element={<RequireAuth><CaseDetailsPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
+      <Route path="/assinatura/:token" element={<DocumentSignaturePage theme={theme} toggleTheme={toggleTheme} />} />
       <Route path="/especialista/beneficios" element={<RequireAuth><SpecialistBenefitsPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/trabalhador/encontrar-especialista" element={<RequireAuth><FindSpecialistPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />
       <Route path="/trabalhador/beneficios" element={<RequireAuth><WorkerBenefitsPage theme={theme} toggleTheme={toggleTheme} /></RequireAuth>} />

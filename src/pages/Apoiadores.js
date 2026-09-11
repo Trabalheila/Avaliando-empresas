@@ -22,7 +22,7 @@ function Apoiadores({ theme, toggleTheme }) {
 
       <main className="max-w-5xl mx-auto px-4 pt-10 pb-4 text-center">
         <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white mb-3">
-          Planos para Especialistas de Trabalhadores e Empresas
+          Planos para Especialistas de Trabalhadores
         </h1>
         <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-base">
           Profissionais como <strong>Advogados Trabalhistas, Psicólogos, Consultores Empresariais e outros especialistas</strong>:

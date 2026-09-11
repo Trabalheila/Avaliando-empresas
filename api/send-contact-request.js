@@ -20,6 +20,12 @@ import { getApp } from "firebase-admin/app";
 import { handleSendReceipt } from "./_sendReceipt.js";
 import { getServiceAccount, getAdminResources } from "./_firebaseAdmin.js";
 import { notifySpecialistWhatsApp } from "./_whatsapp.js";
+import {
+  handleCaseDocNotifySend,
+  handleCaseDocClientView,
+  handleCaseDocGovBrStart,
+  handleCaseDocGovBrCallback,
+} from "./_caseDocuments.js";
 
 function escapeHtml(value) {
   return String(value || "")
@@ -743,6 +749,22 @@ export default async function handler(req, res) {
 
   if (String(req.query?.op || "").toLowerCase() === "profile-reminder") {
     return handleProfileReminder(req, res);
+  }
+
+  // Rotas consolidadas do fluxo "Documento para Assinatura" (Gov.br):
+  // /api/documents/* → /api/send-contact-request?op=... (evita criar uma
+  // nova Serverless Function e estourar o limite da Vercel).
+  if (String(req.query?.op || "").toLowerCase() === "notify-send") {
+    return handleCaseDocNotifySend(req, res);
+  }
+  if (String(req.query?.op || "").toLowerCase() === "client-view") {
+    return handleCaseDocClientView(req, res);
+  }
+  if (String(req.query?.op || "").toLowerCase() === "govbr-start") {
+    return handleCaseDocGovBrStart(req, res);
+  }
+  if (String(req.query?.op || "").toLowerCase() === "govbr-callback") {
+    return handleCaseDocGovBrCallback(req, res);
   }
 
   if (req.method !== "POST") {

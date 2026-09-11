@@ -34,10 +34,10 @@
    ──────────────────────────────────────────────────────────────────────── */
 @media (min-width: 768px) {
   .chatbotToggle {
-    width: 104px;
-    height: 104px;
-    max-width: 18vw;
-    max-height: 18vw;
+    width: 208px;
+    height: 208px;
+    max-width: 36vw;
+    max-height: 36vw;
   }
 }
 

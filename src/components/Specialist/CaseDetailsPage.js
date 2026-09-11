@@ -13,16 +13,23 @@ import { useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../AppHeader";
 import { getCaseDetails } from "../../data/mockCaseDetails";
 import { SPECIALIST_CONFIGS } from "../../pages/MyContactsApoiador";
-import { db, auth } from "../../firebase";
+import { db, auth, storage } from "../../firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getSpecialistCase } from "../../services/specialistCases";
 import { listWorkerDocuments } from "../../services/workerDocuments";
+import {
+  listDocumentsForSignature,
+  sendDocumentForSignature,
+  resendSignatureReminder,
+} from "../../services/documentSignature";
 import AnamneseCard from "./AnamneseCard";
 import {
   downloadContrato,
   downloadDeclaracao,
   downloadTermoFatos,
   downloadProcuracao,
+  generateLegalDocumentBlob,
 } from "../../utils/legalDocuments";
 import {
   getSpecialistIdFromConversationId,
@@ -2244,6 +2251,292 @@ function ClientPersonalDataCard({ client }) {
  *  Usa o modelo /public/Petição Inicial.docx e insere automaticamente o
  *  nome, estado civil, profissão, RG, CPF e endereço do autor (cliente),
  *  poupando o advogado de redigitar a qualificação. */
+const SIGNATURE_STATUS_LABELS = {
+  pending: "Pendente de assinatura",
+  awaiting_signature: "Aguardando Gov.br",
+  signed: "Assinado",
+  rejected: "Recusado",
+};
+
+const PRE_FILLED_DOC_OPTIONS = [
+  { key: "procuracao", label: "Procuração", templateFile: "procuracao.docx", docLabel: "Procuração" },
+  { key: "contrato", label: "Contrato de Honorários", templateFile: "contrato_honorarios.docx", docLabel: "Contrato de Honorários" },
+  { key: "declaracao", label: "Declaração de Hipossuficiência", templateFile: "declaracao_hipossuficiencia.docx", docLabel: "Declaração de Hipossuficiência" },
+  { key: "termo", label: "Termo de Fatos", templateFile: "termo_fatos.docx", docLabel: "Termo de Fatos" },
+];
+
+function formatDateTime(value) {
+  const ms = value?.toDate ? value.toDate().getTime() : Date.parse(value || "");
+  if (!Number.isFinite(ms)) return "—";
+  return new Date(ms).toLocaleString("pt-BR");
+}
+
+/** Modal de envio: escolhe um documento pré-preenchido ou faz upload de um arquivo próprio. */
+function SendForSignatureModal({ onClose, onSend, client, clientAlias }) {
+  const [source, setSource] = useState(PRE_FILLED_DOC_OPTIONS[0].key);
+  const [title, setTitle] = useState(PRE_FILLED_DOC_OPTIONS[0].label);
+  const [file, setFile] = useState(null);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSourceChange = (key) => {
+    setSource(key);
+    const preset = PRE_FILLED_DOC_OPTIONS.find((o) => o.key === key);
+    setTitle(preset ? preset.label : "");
+  };
+
+  const handleConfirm = async () => {
+    setError("");
+    if (!title.trim()) {
+      setError("Informe o título do documento.");
+      return;
+    }
+    if (source === "upload" && !file) {
+      setError("Selecione um arquivo para enviar.");
+      return;
+    }
+    setSending(true);
+    try {
+      let blob;
+      let filename;
+      if (source === "upload") {
+        blob = file;
+        filename = file.name;
+      } else {
+        const preset = PRE_FILLED_DOC_OPTIONS.find((o) => o.key === source);
+        const generated = await generateLegalDocumentBlob({
+          templateFile: preset.templateFile,
+          docLabel: preset.docLabel,
+          client,
+          fallbackName: clientAlias,
+        });
+        blob = generated.blob;
+        filename = generated.filename;
+      }
+      await onSend({ blob, filename, documentTitle: title.trim() });
+    } catch (err) {
+      setError(err?.message || "Não foi possível enviar o documento.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:px-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-xl max-w-md w-full p-6 max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto overscroll-contain"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-lg font-extrabold text-slate-800 dark:text-slate-100">
+          Enviar Documento para Assinatura
+        </h3>
+
+        <label className="mt-4 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          Documento
+        </label>
+        <select
+          value={source}
+          onChange={(e) => handleSourceChange(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+        >
+          {PRE_FILLED_DOC_OPTIONS.map((o) => (
+            <option key={o.key} value={o.key}>
+              {o.label} (pré-preenchido)
+            </option>
+          ))}
+          <option value="upload">Enviar novo arquivo (PDF/DOCX)</option>
+        </select>
+
+        {source === "upload" && (
+          <input
+            type="file"
+            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            className="mt-3 w-full text-sm text-slate-700 dark:text-slate-200"
+          />
+        )}
+
+        <label className="mt-4 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          Título do documento
+        </label>
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+        />
+
+        {error && <p className="mt-3 text-xs text-red-600 dark:text-red-400">{error}</p>}
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-bold"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={sending}
+            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-bold"
+          >
+            {sending ? "Enviando…" : "Confirmar Envio"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Card "Documentos para Assinatura": envio de documentos ao cliente para assinatura via Gov.br. */
+function DocumentsForSignatureCard({ specialistId, caseId, workerUid, specialistName, client, clientAlias }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [error, setError] = useState("");
+
+  const reload = async () => {
+    setLoading(true);
+    try {
+      const docs = await listDocumentsForSignature(specialistId, caseId);
+      setItems(docs);
+    } catch {
+      setError("Não foi possível carregar os documentos enviados.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (specialistId && caseId) reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [specialistId, caseId]);
+
+  const handleSend = async ({ blob, filename, documentTitle }) => {
+    if (!workerUid) {
+      throw new Error("Não foi possível identificar o cliente deste caso.");
+    }
+    const safeName = (filename || "documento").replace(/[^\w.-]+/g, "_").slice(0, 120);
+    const path = `documentsForSignature/${specialistId}/${caseId}/${Date.now()}-${safeName}`;
+    const sRef = storageRef(storage, path);
+    await uploadBytes(sRef, blob);
+    const originalUrl = await getDownloadURL(sRef);
+
+    await sendDocumentForSignature(specialistId, caseId, {
+      documentTitle,
+      originalUrl,
+      workerUid,
+      specialistName,
+    });
+    setModalOpen(false);
+    await reload();
+  };
+
+  const handleRemind = async (item) => {
+    await resendSignatureReminder(specialistId, caseId, item);
+  };
+
+  return (
+    <InfoCard>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h2 className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+          <span aria-hidden="true">🔏</span> Documentos para Assinatura
+        </h2>
+        <button
+          type="button"
+          onClick={() => setModalOpen(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
+        >
+          Enviar Documento para Assinatura
+        </button>
+      </div>
+
+      {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
+
+      <div className="mt-4 overflow-x-auto">
+        {loading ? (
+          <p className="text-sm text-slate-500 dark:text-slate-400">Carregando…</p>
+        ) : items.length === 0 ? (
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Nenhum documento enviado para assinatura ainda.
+          </p>
+        ) : (
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                <th className="py-1 pr-3">Documento</th>
+                <th className="py-1 pr-3">Status</th>
+                <th className="py-1 pr-3">Enviado em</th>
+                <th className="py-1 pr-3">Assinado em</th>
+                <th className="py-1 pr-3">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.id} className="border-t border-slate-200 dark:border-slate-700">
+                  <td className="py-2 pr-3 font-semibold text-slate-800 dark:text-slate-100">
+                    {item.documentTitle}
+                  </td>
+                  <td className="py-2 pr-3">{SIGNATURE_STATUS_LABELS[item.status] || item.status}</td>
+                  <td className="py-2 pr-3">{formatDateTime(item.sentAt)}</td>
+                  <td className="py-2 pr-3">{item.signedAt ? formatDateTime(item.signedAt) : "—"}</td>
+                  <td className="py-2 pr-3">
+                    <div className="flex flex-wrap gap-2">
+                      <a
+                        href={item.originalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-700 dark:text-blue-300 font-bold hover:underline"
+                      >
+                        Visualizar
+                      </a>
+                      {item.signedUrl && (
+                        <a
+                          href={item.signedUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-emerald-700 dark:text-emerald-300 font-bold hover:underline"
+                        >
+                          Baixar
+                        </a>
+                      )}
+                      {item.status === "pending" && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemind(item)}
+                          className="text-amber-700 dark:text-amber-300 font-bold hover:underline"
+                        >
+                          Reenviar lembrete
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {modalOpen && (
+        <SendForSignatureModal
+          onClose={() => setModalOpen(false)}
+          onSend={handleSend}
+          client={client}
+          clientAlias={clientAlias}
+        />
+      )}
+    </InfoCard>
+  );
+}
+
 function PeticaoCard({ client, clientAlias }) {
   // `busy` guarda qual documento está sendo gerado (ou "" quando ocioso), para
   // desabilitar apenas o botão clicado e exibir o rótulo "Gerando…".
@@ -2829,6 +3122,16 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
             )}
             {tipo === "advogado" && (
               <PeticaoCard
+                client={clientProfile}
+                clientAlias={data.client}
+              />
+            )}
+            {tipo === "advogado" && isRealCase && (
+              <DocumentsForSignatureCard
+                specialistId={specialistIdForCase}
+                caseId={caseId}
+                workerUid={data.workerUid}
+                specialistName={specialistName}
                 client={clientProfile}
                 clientAlias={data.client}
               />

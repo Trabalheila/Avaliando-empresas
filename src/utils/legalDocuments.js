@@ -130,6 +130,30 @@ function safeClientName(client, fallbackName) {
 }
 
 /**
+ * Gera o Blob de um documento jurídico pré-preenchido sem disparar o
+ * download — usado quando o arquivo precisa ser enviado para o Storage
+ * (ex.: fluxo de assinatura via Gov.br) em vez de baixado no navegador.
+ *
+ * @param {object}  opts
+ * @param {string}  opts.templateFile  arquivo do modelo em /public.
+ * @param {string}  opts.docLabel      rótulo usado no nome do arquivo.
+ * @param {object}  opts.client        dados pessoais do cliente.
+ * @param {string} [opts.fallbackName] nome alternativo (alias do caso).
+ * @returns {Promise<{ blob: Blob, filename: string }>}
+ */
+export async function generateLegalDocumentBlob({
+  templateFile,
+  docLabel,
+  client,
+  fallbackName = "",
+}) {
+  const fields = buildClientTemplateData(client, fallbackName);
+  const blob = await fillTemplateBlob(templateFile, fields);
+  const filename = `${docLabel} de ${safeClientName(client, fallbackName)}.docx`;
+  return { blob, filename };
+}
+
+/**
  * Gera e baixa um documento jurídico pré-preenchido.
  *
  * @param {object}  opts
@@ -144,9 +168,13 @@ export async function downloadLegalDocument({
   client,
   fallbackName = "",
 }) {
-  const fields = buildClientTemplateData(client, fallbackName);
-  const blob = await fillTemplateBlob(templateFile, fields);
-  triggerDownload(blob, `${docLabel} de ${safeClientName(client, fallbackName)}.docx`);
+  const { blob, filename } = await generateLegalDocumentBlob({
+    templateFile,
+    docLabel,
+    client,
+    fallbackName,
+  });
+  triggerDownload(blob, filename);
 }
 
 /** Contrato de Prestação de Serviços Jurídicos e Honorários (Ad Exitum). */

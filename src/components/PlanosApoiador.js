@@ -155,7 +155,7 @@ export default function PlanosApoiador() {
               <FeatureRow>Portfólio de casos e projetos</FeatureRow>
               <FeatureRow>Avaliações e estrelas de clientes</FeatureRow>
               <FeatureRow>Relatório mensal de visualizações e cliques</FeatureRow>
-              <FeatureRow>Acesso a leads qualificados de empresas e trabalhadores Premium</FeatureRow>
+              <FeatureRow ok>Acesso a leads qualificados de trabalhadores Premium</FeatureRow>
             </ul>
           </div>
 
@@ -175,12 +175,12 @@ export default function PlanosApoiador() {
               <FeatureRow ok>Aparece na listagem geral de Especialistas</FeatureRow>
               <FeatureRow ok>Seleção de até 3 nichos de atuação (recrutamento, direito trabalhista, saúde ocupacional, benefícios corporativos, treinamento)</FeatureRow>
               <FeatureRow ok>Posição de destaque na listagem ordenada por avaliação</FeatureRow>
-              <FeatureRow ok>Aparece nas seções de recomendação da página de empresas e de benefícios Premium</FeatureRow>
+              <FeatureRow ok>Aparece nas seções de recomendação da página de benefícios Premium</FeatureRow>
               <FeatureRow ok>Selo visual "Especialista Essencial Verificado" no perfil</FeatureRow>
               <FeatureRow ok>Portfólio com até 5 casos ou projetos</FeatureRow>
               <FeatureRow ok>Avaliações e estrelas de clientes Premium</FeatureRow>
               <FeatureRow ok>Relatório mensal de visualizações e cliques no perfil</FeatureRow>
-              <FeatureRow ok>Acesso a leads qualificados de empresas e trabalhadores Premium com 10% de comissão sobre contratos fechados via plataforma <span className="text-amber-600 dark:text-amber-400 font-semibold">(em breve)</span></FeatureRow>
+              <FeatureRow ok>Acesso a leads qualificados de trabalhadores Premium com 10% de comissão sobre contratos fechados via plataforma <span className="text-amber-600 dark:text-amber-400 font-semibold">(em breve)</span></FeatureRow>
               <FeatureRow>Participação em programas de suporte Premium para usuários</FeatureRow>
             </ul>
             <button
@@ -205,8 +205,8 @@ export default function PlanosApoiador() {
             <ul className="space-y-3 text-sm text-slate-800 dark:text-slate-200 flex-1">
               <FeatureRow ok><span className="font-semibold">Todos os benefícios do plano Especialista Essencial</span></FeatureRow>
               <FeatureRow ok><span className="font-semibold">Contato direto via e-mail e WhatsApp</span> liberado no perfil para visítantes (exclusivo Premium)</FeatureRow>
-              <FeatureRow ok><span className="font-semibold">10 Créditos de Contato/mês</span> para iniciar conversas com Empresas Premium</FeatureRow>
-              <FeatureRow ok>Acesso à página <span className="font-semibold">"Meus Contatos"</span> para gerenciar interações e responder pedidos de empresas</FeatureRow>
+              <FeatureRow ok><span className="font-semibold">10 Créditos de Contato/mês</span> para iniciar conversas com Trabalhadores Premium</FeatureRow>
+              <FeatureRow ok>Acesso à página <span className="font-semibold">"Meus Contatos"</span> para gerenciar interações e responder pedidos de trabalhadores</FeatureRow>
               <FeatureRow ok><span className="font-semibold">Notificações Prioritárias</span> sobre novas oportunidades e pedidos de contato (sininho na plataforma)</FeatureRow>
               <FeatureRow ok>Selo visual <span className="font-semibold">"Especialista Premium Verificado"</span> no perfil (substitui o Essencial)</FeatureRow>
               <FeatureRow ok><span className="font-semibold">Controle de Disponibilidade:</span> ative/desative seu status para receber novos contatos</FeatureRow>
@@ -214,7 +214,7 @@ export default function PlanosApoiador() {
               <FeatureRow ok><span className="font-semibold">Relatórios de Mercado Avançados</span> com insights específicos por especialidade e ramo de atuação</FeatureRow>
               <FeatureRow ok>Acesso prioritário a um volume maior de leads qualificados</FeatureRow>
               <FeatureRow ok>Posicionamento ainda mais privilegiado nas listagens e recomendações</FeatureRow>
-              <FeatureRow ok>Participação em programas de suporte Premium para usuários, com remuneração por sessões/consultas incluídas nos planos Premium de trabalhadores e empresas</FeatureRow>
+              <FeatureRow ok>Participação em programas de suporte Premium para usuários, com remuneração por sessões/consultas incluídas no plano Premium de trabalhadores</FeatureRow>
               <FeatureRow ok>Acesso a ferramentas de marketing e branding co-criadas com o Trabalhei Lá</FeatureRow>
               <FeatureRow ok>Convites exclusivos para eventos e workshops da plataforma</FeatureRow>
             </ul>

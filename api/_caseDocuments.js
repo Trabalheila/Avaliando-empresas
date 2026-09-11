@@ -1,14 +1,10 @@
-// api/case-documents.js
+// api/_caseDocuments.js
 //
-// Endpoints do fluxo "Documento para Assinatura" (Detalhes do caso →
-// Gov.br). Roteamento por query param `op` (mesmo padrão de
-// api/send-contact-request.js), com nomes amigáveis mapeados em
-// vercel.json:
-//
-//   POST /api/documents/notify-send      -> ?op=notify-send
-//   POST /api/documents/govbr-start      -> ?op=govbr-start
-//   GET  /api/documents/govbr-callback   -> ?op=govbr-callback
-//   GET  /api/documents/client-view      -> ?op=client-view
+// Handlers do fluxo "Documento para Assinatura" (Detalhes do caso →
+// Gov.br). Consolidado em api/send-contact-request.js (op=notify-send |
+// client-view | govbr-start | govbr-callback) para manter a contagem de
+// Serverless Functions dentro do limite do plano Vercel (arquivos
+// prefixados com "_" não viram função própria).
 //
 // Documento no Firestore:
 //   apoiadores/{specialistId}/cases/{caseId}/documentsForSignature/{docId}
@@ -55,7 +51,9 @@ async function resolveEmail(db, collectionName, docId) {
 // ── POST /api/documents/notify-send ─────────────────────────────────────
 // Disparado pelo cliente logo após registrar o documento no Firestore.
 // Envia e-mail + notificação in-app (sino) ao cliente com o link de acesso.
-async function handleNotifySend(req, res) {
+export async function handleCaseDocNotifySend(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Método não permitido.' });
+
   const {
     specialistId,
     caseId,
@@ -136,7 +134,9 @@ async function handleNotifySend(req, res) {
 // ── GET /api/documents/client-view?token=... ────────────────────────────
 // Devolve os dados do documento (sem expor specialistId/caseId/docId) para
 // a tela pública de assinatura do cliente.
-async function handleClientView(req, res) {
+export async function handleCaseDocClientView(req, res) {
+  if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'Método não permitido.' });
+
   const token = String(req.query?.token || '');
   const { db } = await getAdminResources();
   const docSnap = await findDocumentByToken(db, token);
@@ -161,7 +161,9 @@ async function handleClientView(req, res) {
 // Gov.br (assinatura eletrônica / conecta gov.br) — este endpoint apenas
 // prepara o framework: valida o token e devolve a URL para onde o
 // frontend deve redirecionar o usuário.
-async function handleGovBrStart(req, res) {
+export async function handleCaseDocGovBrStart(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Método não permitido.' });
+
   const token = String((req.body || {}).token || '');
   const { db } = await getAdminResources();
   const docSnap = await findDocumentByToken(db, token);
@@ -189,7 +191,7 @@ async function handleGovBrStart(req, res) {
 // Callback de retorno do Gov.br após a assinatura. Atualiza o status do
 // documento e notifica o especialista, depois redireciona o cliente de
 // volta para a tela de confirmação no app.
-async function handleGovBrCallback(req, res) {
+export async function handleCaseDocGovBrCallback(req, res) {
   const token = String(req.query?.state || req.body?.state || '');
   const { db, FieldValue } = await getAdminResources();
   const docSnap = await findDocumentByToken(db, token);
@@ -251,30 +253,4 @@ async function handleGovBrCallback(req, res) {
   }
 
   return res.redirect(302, `${getAppBaseUrl()}/assinatura/${encodeURIComponent(token)}?status=signed`);
-}
-
-export default async function handler(req, res) {
-  const op = String(req.query?.op || '').toLowerCase();
-
-  try {
-    if (op === 'notify-send') {
-      if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Método não permitido.' });
-      return await handleNotifySend(req, res);
-    }
-    if (op === 'client-view') {
-      if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'Método não permitido.' });
-      return await handleClientView(req, res);
-    }
-    if (op === 'govbr-start') {
-      if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Método não permitido.' });
-      return await handleGovBrStart(req, res);
-    }
-    if (op === 'govbr-callback') {
-      return await handleGovBrCallback(req, res);
-    }
-    return res.status(400).json({ ok: false, error: 'Operação desconhecida.' });
-  } catch (err) {
-    console.error('[case-documents] Erro:', err?.message || err);
-    return res.status(500).json({ ok: false, error: 'Erro interno.' });
-  }
 }

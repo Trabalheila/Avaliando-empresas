@@ -19,7 +19,7 @@ const COPY = {
     title: "Como funciona o pagamento para Especialistas",
     paragraphs: [
       "Você define o preço de cada consulta. Como referência, o valor médio cobrado hoje na plataforma fica entre R$ 100 e R$ 300, variando por especialidade e experiência.",
-      "Sobre cada consulta paga, a Trabalhei Lá retém uma comissão da plataforma: 10% no plano Essencial e 12,5% no plano Premium. O restante é o seu valor líquido.",
+      "Sobre cada consulta paga, a Trabalhei Lá retém uma comissão da plataforma: 12,5% no plano Essencial e 10% no plano Premium. O restante é o seu valor líquido.",
       "Para receber, é obrigatório ter uma conta no Mercado Pago. No seu perfil de especialista, informe o e-mail vinculado à sua conta Mercado Pago — é para ele que o repasse é direcionado.",
       "O pagamento usa split automático: quando o cliente paga a consulta, o Mercado Pago separa a comissão da plataforma e deposita o valor líquido diretamente na sua conta Mercado Pago.",
       "A emissão de nota fiscal/recibo para o cliente final é de sua responsabilidade.",
