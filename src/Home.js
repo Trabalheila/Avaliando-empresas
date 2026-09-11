@@ -2616,7 +2616,7 @@ function Home({ theme, toggleTheme }) {
         companyName={lawyerOfferCompany}
         onAccept={() => {
           setShowLawyerOfferModal(false);
-          navigate("/minha-conta");
+          navigate("/trabalhador/encontrar-especialista");
         }}
         onDecline={() => {
           setShowLawyerOfferModal(false);
