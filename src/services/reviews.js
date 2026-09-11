@@ -69,6 +69,66 @@ export async function listRecentReviews(take = 1000) {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+// Calcula o doc id determinístico usado em `reviews` para (empresa, pseudônimo/uid).
+function buildReviewId(companyName, pseudonym, uid) {
+  const companySlug = slugifyCompany(companyName);
+  const rawPseudonym = (pseudonym || "").toString().trim();
+  const pseudonymSlug = rawPseudonym
+    ? slugifyCompany(rawPseudonym)
+    : `anon-${(uid || "").slice(0, 12)}`;
+  return { companySlug, reviewId: `${companySlug}_${pseudonymSlug}` };
+}
+
+/**
+ * Busca uma avaliação já existente do usuário (por pseudônimo ou UID
+ * anônimo) para a empresa informada. Usada para oferecer edição em vez de
+ * bloquear com erro de duplicidade.
+ */
+export async function findExistingReview(companyName, pseudonym) {
+  if (!companyName) return null;
+  if (!auth.currentUser) {
+    try {
+      await signInAnonymously(auth);
+    } catch {
+      return null;
+    }
+  }
+  const uid = auth.currentUser?.uid;
+  const { reviewId } = buildReviewId(companyName, pseudonym, uid);
+  const snap = await getDoc(doc(db, "reviews", reviewId));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+
+/**
+ * Atualiza uma avaliação existente (fluxo de edição). Preserva `createdAt`
+ * e `uid` originais, atualizando os demais campos e marcando `updatedAt`.
+ */
+export async function updateReview(reviewId, review) {
+  if (!reviewId) {
+    throw new Error("reviewId é obrigatório para editar a avaliação.");
+  }
+  if (!auth.currentUser) {
+    await signInAnonymously(auth);
+  }
+  const reviewRef = doc(db, "reviews", reviewId);
+  const existing = await getDoc(reviewRef);
+  if (!existing.exists()) {
+    throw new Error("Avaliação original não encontrada para edição.");
+  }
+
+  const rawPseudonym = (review.pseudonym || "").toString().trim();
+  const payload = {
+    ...review,
+    pseudonym: rawPseudonym,
+    companySlug: slugifyCompany(review.company),
+    isAnonymousAuthor: !rawPseudonym,
+    updatedAt: serverTimestamp(),
+  };
+
+  await updateDoc(reviewRef, payload);
+  return { id: reviewId, ...existing.data(), ...payload };
+}
+
 export async function saveReview(review) {
   if (!review?.company) {
     throw new Error("Empresa é obrigatória para salvar a avaliação.");
@@ -79,17 +139,9 @@ export async function saveReview(review) {
     await signInAnonymously(auth);
   }
 
-  const companySlug = slugifyCompany(review.company);
-  const rawPseudonym = (review.pseudonym || "").toString().trim();
-  // Lazy registration: quando o usuário ainda não criou um pseudônimo,
-  // identificamos a avaliação pelo UID anônimo do Firebase Auth. Isso evita
-  // colisão de IDs e permite vincular as avaliações depois que o pseudônimo
-  // for criado (backfill em `linkAnonymousReviewsToPseudonym`).
   const uid = auth.currentUser.uid;
-  const pseudonymSlug = rawPseudonym
-    ? slugifyCompany(rawPseudonym)
-    : `anon-${uid.slice(0, 12)}`;
-  const reviewId = `${companySlug}_${pseudonymSlug}`;
+  const { companySlug, reviewId } = buildReviewId(review.company, review.pseudonym, uid);
+  const rawPseudonym = (review.pseudonym || "").toString().trim();
   const reviewRef = doc(db, "reviews", reviewId);
 
   const existing = await getDoc(reviewRef);

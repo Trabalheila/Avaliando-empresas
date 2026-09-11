@@ -5,7 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import TrabalheiLaMobile from "./TrabalheiLaMobile";
 import TrabalheiLaDesktop from "./TrabalheiLaDesktop";
 import { empresasBrasileiras } from "./empresas";
-import { saveReview, listRecentReviews, saveSelectionProcessReview, slugifyCompany } from "./services/reviews";
+import { saveReview, updateReview, findExistingReview, listRecentReviews, saveSelectionProcessReview, slugifyCompany } from "./services/reviews";
 import { saveCompany, listCompanies, enrichCompanyWithBrasilAPI, searchCompaniesByName } from "./services/companies";
 import { getUserProfile, saveUserProfile, findUnifiedProfile } from "./services/users";
 import { savePendingReview, clearPendingReview } from "./utils/pendingReview";
@@ -412,6 +412,15 @@ function Home({ theme, toggleTheme }) {
   const [showLawyerOfferModal, setShowLawyerOfferModal] = useState(false);
   const [lawyerOfferCompany, setLawyerOfferCompany] = useState("");
   const [pendingEvaluationData, setPendingEvaluationData] = useState(null);
+  // Detecção de avaliação duplicada: quando o usuário seleciona uma empresa
+  // que já avaliou (mesmo pseudônimo/UID anônimo), oferecemos editar a
+  // avaliação anterior em vez de bloquear silenciosamente no submit.
+  const [showDuplicateReviewModal, setShowDuplicateReviewModal] = useState(false);
+  const [duplicateReviewData, setDuplicateReviewData] = useState(null);
+  // Guarda o id da avaliação sendo editada (null = criação de avaliação nova).
+  const editingReviewIdRef = React.useRef(null);
+  // Evita reabrir o modal repetidamente para a mesma empresa após "Não, cancelar".
+  const dismissedDuplicateCompanyRef = React.useRef(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   // Lazy registration: modal de convite exibido após o usuário enviar
   // uma avaliação SEM ter pseudônimo. A avaliação fica bufferizada em
@@ -419,6 +428,104 @@ function Home({ theme, toggleTheme }) {
   // perfil for criado em /pseudonym (drenado em ChoosePseudonym).
   const [showSignupInviteModal, setShowSignupInviteModal] = useState(false);
   const [signupInviteCompanyName, setSignupInviteCompanyName] = useState("");
+
+  // Preenche o formulário com os dados de uma avaliação existente (modo edição).
+  const populateFormFromReview = useCallback((existingReview) => {
+    if (!existingReview) return;
+    setRating(Number(existingReview.rating) || 0);
+    setCommentRating(existingReview.commentRating || "");
+    setSalario(Number(existingReview.salario) || 0);
+    setCommentSalario(existingReview.commentSalario || "");
+    setBeneficios(Number(existingReview.beneficios) || 0);
+    setCommentBeneficios(existingReview.commentBeneficios || "");
+    setCultura(Number(existingReview.cultura) || 0);
+    setCommentCultura(existingReview.commentCultura || "");
+    setOportunidades(Number(existingReview.oportunidades) || 0);
+    setCommentOportunidades(existingReview.commentOportunidades || "");
+    setInovacao(Number(existingReview.inovacao) || 0);
+    setCommentInovacao(existingReview.commentInovacao || "");
+    setLideranca(Number(existingReview.lideranca) || 0);
+    setCommentLideranca(existingReview.commentLideranca || "");
+    setDiversidade(Number(existingReview.diversidade) || 0);
+    setCommentDiversidade(existingReview.commentDiversidade || "");
+    setDiscriminacao(Number(existingReview.discriminacao) || 0);
+    setCommentDiscriminacao(existingReview.commentDiscriminacao || "");
+    setCargaHoraria(Number(existingReview.cargaHoraria) || 0);
+    setCommentCargaHoraria(existingReview.commentCargaHoraria || "");
+    setCrescimento(Number(existingReview.crescimento) || 0);
+    setCommentCrescimento(existingReview.commentCrescimento || "");
+    setAmbiente(Number(existingReview.ambiente) || 0);
+    setCommentAmbiente(existingReview.commentAmbiente || "");
+    setEquilibrio(Number(existingReview.equilibrio) || 0);
+    setCommentEquilibrio(existingReview.commentEquilibrio || "");
+    setReconhecimento(Number(existingReview.reconhecimento) || 0);
+    setCommentReconhecimento(existingReview.commentReconhecimento || "");
+    setComunicacao(Number(existingReview.comunicacao) || 0);
+    setCommentComunicacao(existingReview.commentComunicacao || "");
+    setEtica(Number(existingReview.etica) || 0);
+    setCommentEtica(existingReview.commentEtica || "");
+    setDesenvolvimento(Number(existingReview.desenvolvimento) || 0);
+    setCommentDesenvolvimento(existingReview.commentDesenvolvimento || "");
+    setSaudeBemEstar(Number(existingReview.saudeBemEstar) || 0);
+    setCommentSaudeBemEstar(existingReview.commentSaudeBemEstar || "");
+    setImpactoSocial(Number(existingReview.impactoSocial) || 0);
+    setCommentImpactoSocial(existingReview.commentImpactoSocial || "");
+    setReputacao(Number(existingReview.reputacao) || 0);
+    setCommentReputacao(existingReview.commentReputacao || "");
+    setEstimacaoOrganizacao(Number(existingReview.estimacaoOrganizacao) || 0);
+    setCommentEstimacaoOrganizacao(existingReview.commentEstimacaoOrganizacao || "");
+    setGeneralComment(existingReview.generalComment || "");
+    setEntrySource(existingReview.entrySource || "");
+    setContractType(existingReview.contractType || "");
+    setWorkModel(existingReview.workModel || "");
+    setWorkPeriodStartMonth(existingReview.workPeriodStartMonth || "");
+    setWorkPeriodStartYear(existingReview.workPeriodStartYear || "");
+    setWorkPeriodEndMonth(existingReview.workPeriodEndMonth || "");
+    setWorkPeriodEndYear(existingReview.workPeriodEndYear || "");
+    setWorkPeriodStillWorking(Boolean(existingReview.workPeriodStillWorking));
+  }, []);
+
+  // Detecção de avaliação duplicada: ao selecionar uma empresa, verifica se o
+  // usuário (mesmo pseudônimo/UID anônimo) já avaliou essa empresa antes e,
+  // se sim, oferece editar a avaliação anterior em vez de criar uma nova.
+  useEffect(() => {
+    const companyName = company?.value || "";
+    if (!companyName || selectionProcessOnly) return;
+    if (dismissedDuplicateCompanyRef.current === companyName) return;
+
+    let cancelled = false;
+    (async () => {
+      const pseudonym = (localStorage.getItem("userPseudonym") || "").toString().trim();
+      try {
+        const existing = await findExistingReview(companyName, pseudonym);
+        if (!cancelled && existing) {
+          setDuplicateReviewData(existing);
+          setShowDuplicateReviewModal(true);
+        }
+      } catch (err) {
+        console.warn("[Home] falha ao checar avaliação existente:", err?.message || err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [company, selectionProcessOnly]);
+
+  const handleEditExistingReview = useCallback(() => {
+    if (duplicateReviewData) {
+      populateFormFromReview(duplicateReviewData);
+      editingReviewIdRef.current = duplicateReviewData.id;
+    }
+    setShowDuplicateReviewModal(false);
+  }, [duplicateReviewData, populateFormFromReview]);
+
+  const handleCancelEditExistingReview = useCallback(() => {
+    dismissedDuplicateCompanyRef.current = company?.value || null;
+    editingReviewIdRef.current = null;
+    setShowDuplicateReviewModal(false);
+    setDuplicateReviewData(null);
+  }, [company]);
 
   // Após login bem-sucedido, se houver um destino solicitado (via query string
   // ou sessionStorage — que sobrevive ao redirect do OAuth), navega para lá.
@@ -1556,13 +1663,16 @@ function Home({ theme, toggleTheme }) {
       return;
     }
 
-    // Não permite que o mesmo pseudônimo avalie a mesma empresa mais de uma vez (cache local rápido).
+    // Não permite que o mesmo pseudônimo avalie a mesma empresa mais de uma vez
+    // (cache local rápido) — exceto quando estamos editando uma avaliação
+    // anterior (fluxo "Você já avaliou esta empresa. Deseja editar?").
+    const isEditing = Boolean(editingReviewIdRef.current);
     const evaluationsKey = `evaluations_${evaluationData.company}`;
     const storedEvals = localStorage.getItem(evaluationsKey);
     const existingEvals = storedEvals ? JSON.parse(storedEvals) : {};
     const dedupeKey = pseudonym;
 
-    if (existingEvals[dedupeKey]) {
+    if (!isEditing && existingEvals[dedupeKey]) {
       setError("Você já avaliou essa empresa com este pseudônimo.");
       return;
     }
@@ -1580,8 +1690,17 @@ function Home({ theme, toggleTheme }) {
 
     console.log("Dados prontos para envio (Firestore):", evaluationData);
 
-    await saveReview(evaluationData);
+    if (isEditing) {
+      await updateReview(editingReviewIdRef.current, evaluationData);
+      editingReviewIdRef.current = null;
+    } else {
+      await saveReview(evaluationData);
+    }
 
+    // Ao editar uma avaliação existente, as médias/estatísticas da empresa já
+    // consideram a avaliação anterior — recalculá-las exigiria reprocessar
+    // todas as avaliações, então pulamos a atualização otimista local aqui.
+    if (!isEditing) {
     // Atualiza a empresa localmente para refletir a nova avaliação
     setEmpresas((prev) =>
       prev.map((emp) => {
@@ -1628,8 +1747,11 @@ function Home({ theme, toggleTheme }) {
         };
       })
     );
+    }
 
-    const successMessage = evaluationData?.hasPotentialPersonalName
+    const successMessage = isEditing
+      ? "Avaliação atualizada com sucesso! Obrigado por manter sua avaliação em dia."
+      : evaluationData?.hasPotentialPersonalName
       ? "Avaliação enviada com sucesso! Identificamos uma possível citação de nome no seu comentário; sua avaliação foi registrada e poderá ser revisada por nossa equipe."
       : "Avaliação enviada com sucesso! Obrigado por sua contribuição.";
     setEmailVerificationToast({ type: "success", message: successMessage });
@@ -2610,6 +2732,77 @@ function Home({ theme, toggleTheme }) {
     <>
       {/* Banner de lançamento removido */}
       <ReferralBanner hasReferred={Boolean(userProfile?.referralRewardClaimed)} />
+
+      {showDuplicateReviewModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Avaliação Existente"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 95,
+            backgroundColor: "rgba(15, 23, 42, 0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 440,
+              borderRadius: 16,
+              backgroundColor: "#ffffff",
+              color: "#0f172a",
+              boxShadow: "0 24px 48px rgba(2, 6, 23, 0.28)",
+              padding: "22px 22px 18px 22px",
+            }}
+          >
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#1e3a8a" }}>
+              Avaliação Existente
+            </h2>
+            <p style={{ marginTop: 12, marginBottom: 0, lineHeight: 1.5, fontSize: 14, color: "#334155" }}>
+              Você já avaliou esta empresa. Deseja editar sua avaliação anterior?
+            </p>
+            <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+              <button
+                type="button"
+                onClick={handleEditExistingReview}
+                style={{
+                  border: "none",
+                  borderRadius: 12,
+                  padding: "12px 16px",
+                  backgroundColor: "#1d4ed8",
+                  color: "#ffffff",
+                  fontWeight: 800,
+                  fontSize: 15,
+                  cursor: "pointer",
+                }}
+              >
+                Sim, editar
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelEditExistingReview}
+                style={{
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 12,
+                  padding: "12px 16px",
+                  backgroundColor: "#ffffff",
+                  color: "#475569",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  cursor: "pointer",
+                }}
+              >
+                Não, cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <LawyerOfferModal
         open={showLawyerOfferModal}
