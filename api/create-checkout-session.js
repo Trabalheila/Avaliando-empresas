@@ -106,7 +106,7 @@ async function createMercadoPagoCheckout({ req, cnpj, companySlug, companyName, 
     worker: {
       essential: {
         amount: 29.90,
-        reason: "Plano Trabalhador Essencial - Trabalhei La",
+        reason: "Plano usuário gratuito - Trabalhei La",
         envPlanId: "MP_PLAN_WORKER_ESSENTIAL",
       },
       premium: {

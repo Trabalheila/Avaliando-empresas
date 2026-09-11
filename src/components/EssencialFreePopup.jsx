@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
  * Popup contextual de gratuidade dos planos Essencial até 30/06/2026.
  *
  * Props:
- * - planName: nome do plano (ex.: "Trabalhador Essencial")
+ * - planName: nome do plano (ex.: "usuário gratuito")
  * - storageKey: chave única no localStorage para não exibir mais de uma vez
  * - ctaLabel?: rótulo do botão principal (default "Quero Aproveitar!")
  * - onCta?: callback opcional ao clicar no CTA. Se não informado, apenas fecha.

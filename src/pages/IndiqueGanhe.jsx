@@ -40,11 +40,11 @@ export default function IndiqueGanhe({ theme = "dark", toggleTheme }) {
             🎁
           </div>
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, lineHeight: 1.2 }}>
-            Indique e Ganhe 30 Dias de Trabalhador Essencial!
+            Indique e Ganhe 30 Dias de usuário gratuito!
           </h1>
           <p style={{ marginTop: 10, marginBottom: 0, fontSize: 15, lineHeight: 1.5, opacity: 0.95 }}>
             Convide 5 amigos para se cadastrarem no Trabalhei Lá e ganhe 1 mês gratuito do plano
-            Trabalhador Essencial — com acesso exclusivo a recursos premium da plataforma.
+            usuário gratuito — com acesso exclusivo a recursos premium da plataforma.
           </p>
         </div>
 
@@ -61,7 +61,7 @@ export default function IndiqueGanhe({ theme = "dark", toggleTheme }) {
           <ol style={{ marginTop: 12, marginBottom: 0, paddingLeft: 22, lineHeight: 1.6, fontSize: 14, color: muted }}>
             <li>Compartilhe seu link de indicação com amigos e colegas.</li>
             <li>Quando 5 deles concluírem o cadastro, você recebe o benefício.</li>
-            <li>O plano Trabalhador Essencial é ativado automaticamente por 30 dias.</li>
+            <li>O plano usuário gratuito é ativado automaticamente por 30 dias.</li>
           </ol>
         </section>
 

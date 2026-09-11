@@ -104,7 +104,7 @@ export default function ReferralBanner({ hasReferred = false }) {
               marginBottom: 2,
             }}
           >
-            Indique e Ganhe 30 Dias de Trabalhador Essencial!
+            Indique e Ganhe 30 Dias de usuário gratuito!
           </div>
           <div
             style={{
@@ -114,7 +114,7 @@ export default function ReferralBanner({ hasReferred = false }) {
             }}
           >
             Convide 5 amigos para o Trabalhei Lá e ganhe acesso exclusivo ao plano
-            Trabalhador Essencial por um mês.
+            usuário gratuito por um mês.
           </div>
         </div>
 

@@ -16,6 +16,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { db, auth } from "../../firebase";
 import { collection, onSnapshot, query } from "firebase/firestore";
 import AppHeader from "../AppHeader";
+import ConsultaAvulsaIntroModal from "../ConsultaAvulsaIntroModal";
 import { filterOutTestApoiadores } from "../../utils/testAccounts";
 import { isPremiumWorker } from "../../utils/rbac";
 import { buildSpecialistConversationId } from "../../utils/chatId";
@@ -709,6 +710,9 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
   // Especialista selecionado para "consulta pontual" (fluxo gratuito).
   const [pontualSpecialist, setPontualSpecialist] = useState(null);
 
+  // Modal "Consulta Avulsa em 3 passos", acionado pelo botão "Atendimento Avulso".
+  const [showConsultaAvulsaIntro, setShowConsultaAvulsaIntro] = useState(false);
+
   // Dados
   const [remote, setRemote] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -851,6 +855,22 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
       <AppHeader theme={theme} toggleTheme={toggleTheme} title="Encontre um especialista" />
 
       <main className="flex-1 w-full max-w-6xl mx-auto px-3 sm:px-6 py-5 sm:py-8 space-y-5">
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setShowConsultaAvulsaIntro(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow transition"
+          >
+            Atendimento Avulso
+          </button>
+        </div>
+
+        <ConsultaAvulsaIntroModal
+          open={showConsultaAvulsaIntro}
+          onClose={() => setShowConsultaAvulsaIntro(false)}
+          onContinue={() => setShowConsultaAvulsaIntro(false)}
+        />
+
         {/* Tour guiado para Especialistas do Plano Gratuito */}
         {searchParams.get("tour") === "1" && (
           <div className="rounded-2xl border-2 border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/40 p-4 sm:p-5">
