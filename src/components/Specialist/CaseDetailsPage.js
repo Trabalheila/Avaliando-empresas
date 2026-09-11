@@ -2426,6 +2426,7 @@ function DocumentsForSignatureCard({ specialistId, caseId, workerUid, specialist
       await uploadBytes(sRef, blob);
       originalUrl = await getDownloadURL(sRef);
     } catch (err) {
+      console.error("Erro detalhado de permissão no Firebase Storage:", err);
       throw new Error(friendlyStorageErrorMessage(err));
     }
 
@@ -3011,13 +3012,6 @@ export default function CaseDetailsPage({ theme, toggleTheme }) {
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold"
             >
               ← Voltar para o painel
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="text-sm font-semibold text-blue-700 dark:text-blue-300 hover:underline"
-            >
-              ← Voltar
             </button>
           </div>
         </div>

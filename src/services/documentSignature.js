@@ -242,8 +242,14 @@ export async function uploadSignedDocument(specialistId, caseId, documentId, { f
   const safeName = String(file.name || "documento_assinado").replace(/[^\w.-]+/g, "_").slice(0, 120);
   const path = `documentsForSignature/${specialistId}/${caseId}/signed/${Date.now()}-${safeName}`;
   const sRef = storageRef(storage, path);
-  await uploadBytes(sRef, file);
-  const signedUrl = await getDownloadURL(sRef);
+  let signedUrl;
+  try {
+    await uploadBytes(sRef, file);
+    signedUrl = await getDownloadURL(sRef);
+  } catch (err) {
+    console.error("Erro detalhado de permissão no Firebase Storage:", err);
+    throw err;
+  }
 
   await updateDoc(
     doc(db, "apoiadores", String(specialistId), "cases", String(caseId), "documentsForSignature", String(documentId)),
