@@ -87,20 +87,34 @@ function formatDate(value) {
 
 function getPlanLabel(profile) {
   const role = getUserRole();
-  const premium = isPremium();
+  const premium = isPremium() || resolveProfilePremium(profile);
   if (isAdmin()) return "Administrador";
   if (role === "admin_empresa") return "Premium Empresa (Fundador)";
   if (premium) return "Premium Trabalhador";
-  return "Gratuito";
+  return "Essencial";
 }
 
 function getPlanColor(profile) {
   const role = getUserRole();
-  const premium = isPremium();
+  const premium = isPremium() || resolveProfilePremium(profile);
   if (isAdmin()) return "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700";
   if (role === "admin_empresa") return "text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-700";
   if (premium) return "text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700";
   return "text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700";
+}
+
+/** Lê o status Premium diretamente do perfil buscado no Firestore (mais
+ *  confiável que o cache local, que pode ficar desatualizado logo após uma
+ *  compra até o próximo login). */
+function resolveProfilePremium(profile) {
+  if (!profile) return false;
+  const plano = String(profile.plano || profile.planStatus || "").toLowerCase().trim();
+  return (
+    Boolean(profile.is_premium) ||
+    Boolean(profile.is_premium_worker) ||
+    Boolean(profile.isPremium) ||
+    plano === "premium"
+  );
 }
 
 function isLinkedInConnected(p) {
@@ -211,6 +225,20 @@ export default function MinhaConta({ theme, toggleTheme }) {
 
         if (!cancelled) setProfile(userData);
 
+        // Sincroniza o cache local (localStorage) com o status Premium vindo
+        // do Firestore, para que `isPremium()`/`isPremiumWorker()` (usados em
+        // outras partes da tela) reflitam a compra mais recente sem exigir
+        // um novo login.
+        if (resolveProfilePremium(userData)) {
+          try {
+            const storedNow = JSON.parse(localStorage.getItem("userProfile") || "{}");
+            localStorage.setItem(
+              "userProfile",
+              JSON.stringify({ ...storedNow, is_premium: true, is_premium_worker: true })
+            );
+          } catch { /* ignore */ }
+        }
+
         const profilePseudonym = (
           userData?.pseudonimo || userData?.pseudonym ||
           stored?.pseudonimo || stored?.pseudonym || ""
@@ -310,7 +338,14 @@ export default function MinhaConta({ theme, toggleTheme }) {
   }, [profile, reviews]);
 
   const avatarDisplay = useMemo(() => {
-    const av = profile?.avatar || profile?.picture || profile?.photoURL || "";
+    // Prioriza a foto personalizada (upload). Na ausência dela, cai para a
+    // foto fornecida pelo provedor de login (Google/LinkedIn), quando houver.
+    const av =
+      profile?.avatar ||
+      profile?.picture ||
+      profile?.photoURL ||
+      auth.currentUser?.photoURL ||
+      "";
     if (av && (av.startsWith("data:") || av.startsWith("http"))) {
       return <img src={av} alt="avatar" className="h-20 w-20 rounded-full object-cover border-2 border-blue-200 dark:border-slate-600" referrerPolicy="no-referrer" />;
     }

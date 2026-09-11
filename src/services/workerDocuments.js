@@ -33,6 +33,8 @@ import {
 } from "firebase/firestore";
 import { db, storage } from "../firebase";
 import { ensureConversation, sendChatMessage } from "./chat";
+import { getSpecialistCase, buildCaseIdFromConversation } from "./specialistCases";
+import { getSpecialistIdFromConversationId } from "../utils/chatId";
 
 // Limite de tamanho por documento (em MB). Mantido em sincronia com a regra
 // do Firebase Storage para `adExitumDocs/`.
@@ -365,16 +367,29 @@ export async function commitWorkerDocuments({
     saved.push({ id: ref.id, ...meta });
   }
 
-  // Notifica o especialista: uma mensagem-resumo no chat.
+  // Notifica o especialista: uma mensagem-resumo no chat. Quando já existe
+  // um caso ativo para esta conversa, o documento é apenas ADICIONADO ao
+  // caso existente (sem reabrir o convite "Aceitar cliente"): a mensagem
+  // deixa isso claro para o especialista.
   try {
     const label =
       cat === DOC_CATEGORY_CLIENT
         ? "Documentos Pessoais"
         : "Documentos do Processo";
-    const summary =
-      saved.length === 1
-        ? `📎 Enviei um novo documento (${label}): ${saved[0].name}`
-        : `📎 Enviei ${saved.length} novos documentos (${label}).`;
+
+    const specialistId = getSpecialistIdFromConversationId(conversationId);
+    const caseId = buildCaseIdFromConversation(conversationId);
+    const activeCase = specialistId && caseId
+      ? await getSpecialistCase(specialistId, caseId).catch(() => null)
+      : null;
+
+    const summary = activeCase
+      ? (saved.length === 1
+          ? `📎 Um novo documento foi adicionado ao caso ${caseId} (${label}): ${saved[0].name}`
+          : `📎 ${saved.length} novos documentos foram adicionados ao caso ${caseId} (${label}).`)
+      : (saved.length === 1
+          ? `📎 Enviei um novo documento (${label}): ${saved[0].name}`
+          : `📎 Enviei ${saved.length} novos documentos (${label}).`);
     await sendChatMessage({
       conversationId,
       senderUid,
