@@ -2402,7 +2402,8 @@ function DocumentsForSignatureCard({ specialistId, caseId, workerUid, specialist
     try {
       const docs = await listDocumentsForSignature(specialistId, caseId);
       setItems(docs);
-    } catch {
+    } catch (err) {
+      console.error("Erro detalhado de permissão no Firestore (documentsForSignature):", err);
       setError("Não foi possível carregar os documentos enviados.");
     } finally {
       setLoading(false);
