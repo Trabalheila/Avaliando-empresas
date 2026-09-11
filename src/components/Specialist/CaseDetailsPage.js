@@ -2265,12 +2265,6 @@ const PRE_FILLED_DOC_OPTIONS = [
   { key: "termo", label: "Termo de Fatos", templateFile: "termo_fatos.docx", docLabel: "Termo de Fatos" },
 ];
 
-function formatDateTime(value) {
-  const ms = value?.toDate ? value.toDate().getTime() : Date.parse(value || "");
-  if (!Number.isFinite(ms)) return "—";
-  return new Date(ms).toLocaleString("pt-BR");
-}
-
 /** Modal de envio: escolhe um documento pré-preenchido ou faz upload de um arquivo próprio. */
 function SendForSignatureModal({ onClose, onSend, client, clientAlias }) {
   const [source, setSource] = useState(PRE_FILLED_DOC_OPTIONS[0].key);
