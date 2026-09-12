@@ -56,47 +56,154 @@ const PROFILE_ROUTES = {
   trabalhador: { label: "Sou Trabalhador", route: "/minha-conta", color: "bg-lime-500 hover:bg-lime-600 text-emerald-950" },
 };
 
-// Detecta todos os perfis associados a um usuário.
-// REMOVIDO: Detecção de "companies" (empresario)
-async function detectProfilesByEmail(email, uid) {
-  const normalized = (email || "").toString().trim().toLowerCase();
-  const userUid = (uid || "").toString().trim();
-  if (!normalized && !userUid) return [];
-  const found = new Set();
+// Verifica se os dados de um documento representam um perfil completo cadastrado
+function isCompleteProfile(data) {
+  if (!data || typeof data !== "object") return false;
+  const pseudonym = (data.pseudonimo || data.pseudonym || data.name || "").toString().trim();
+  const profileType = (data.profileType || data.userType || data.tipo || data.role || "").toString().trim();
+  const plano = (data.plano || "").toString().trim();
+  const status = (data.status || "").toString().trim().toLowerCase();
+  const cpf = (data.cpf || "").toString().trim();
+  const completed = data.cadastrado === true || data.completed === true || data.concluido === true;
+
+  return Boolean(pseudonym || profileType || plano || cpf || status === "ativo" || completed);
+}
+
+// Detecta perfil existente no Firestore consultando users, apoiadores, trabalhadores e profiles pelo UID e email.
+// Retorna se o usuário já possui perfil completo, os dados e os tipos encontrados.
+async function fetchUserProfile(user) {
+  const uid = (user?.uid || "").toString().trim();
+  const normalized = (user?.email || "").toString().trim().toLowerCase();
+  if (!uid && !normalized) {
+    return { hasProfile: false, profileData: null, profileTypes: [] };
+  }
+
+  const profileTypes = new Set();
+  let profileData = null;
+
   try {
-    const tasks = [];
+    // 1. Busca direta pelo UID na coleção users
+    if (uid) {
+      try {
+        const userSnap = await getDoc(doc(db, "users", uid));
+        if (userSnap.exists()) {
+          const data = userSnap.data() || {};
+          if (isCompleteProfile(data)) {
+            profileData = { id: userSnap.id, ...data };
+            const uType = (data.userType || data.profileType || data.role || "").toString().toLowerCase();
+            if (uType === "apoiador" || uType === "supporter" || uType === "especialista") {
+              profileTypes.add("apoiador");
+            } else {
+              profileTypes.add("trabalhador");
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[login] Erro ao buscar users/{uid}:", err?.message || err);
+      }
+    }
+
+    // 2. Busca pelo UID na coleção apoiadores
+    if (uid) {
+      try {
+        const apoDocSnap = await getDoc(doc(db, "apoiadores", uid));
+        if (apoDocSnap.exists()) {
+          const data = apoDocSnap.data() || {};
+          profileTypes.add("apoiador");
+          if (!profileData) profileData = { id: apoDocSnap.id, ...data };
+        } else {
+          const apoSnap = await getDocs(
+            query(collection(db, "apoiadores"), where("uid", "==", uid), limit(1))
+          );
+          if (!apoSnap.empty) {
+            const d = apoSnap.docs[0];
+            const data = d.data() || {};
+            profileTypes.add("apoiador");
+            if (!profileData) profileData = { id: d.id, ...data };
+          }
+        }
+      } catch (err) {
+        console.warn("[login] Erro ao buscar apoiadores:", err?.message || err);
+      }
+    }
+
+    // 3. Busca pelo UID em coleções alternativas (trabalhadores / profiles)
+    if (uid && !profileData) {
+      try {
+        const [trabSnap, profSnap] = await Promise.all([
+          getDoc(doc(db, "trabalhadores", uid)).catch(() => null),
+          getDoc(doc(db, "profiles", uid)).catch(() => null),
+        ]);
+        if (trabSnap && trabSnap.exists() && isCompleteProfile(trabSnap.data())) {
+          profileData = { id: trabSnap.id, ...trabSnap.data() };
+          profileTypes.add("trabalhador");
+        }
+        if (profSnap && profSnap.exists() && isCompleteProfile(profSnap.data())) {
+          profileData = profileData || { id: profSnap.id, ...profSnap.data() };
+          profileTypes.add("trabalhador");
+        }
+      } catch (err) {
+        console.warn("[login] Erro ao buscar trabalhadores/profiles:", err?.message || err);
+      }
+    }
+
+    // 4. Busca unificada pelo email
     if (normalized) {
-      tasks.push(
-        // REMOVIDO: getDocs para "companies"
-        getDocs(query(collection(db, "users"), where("email", "==", normalized))).catch(() => ({ empty: true, forEach: () => {} })),
-      );
-    }
-    if (userUid) {
-      tasks.push(
-        getDocs(query(collection(db, "apoiadores"), where("uid", "==", userUid), limit(1))).catch(() => ({ empty: true, forEach: () => {} })),
-      );
-    }
-    const results = await Promise.all(tasks);
-    let idx = 0;
-    if (normalized) {
-      // REMOVIDO: const compSnap = results[idx++];
-      const usersSnap = results[idx++];
-      // REMOVIDO: if (!compSnap.empty) found.add("empresario");
-      usersSnap.forEach((d) => {
-        const t = (d.data()?.userType || "").toString().toLowerCase();
-        if (t === "apoiador") found.add("apoiador");
-        else found.add("trabalhador");
-      });
-    }
-    if (userUid) {
-      const apoSnap = results[idx++];
-      if (apoSnap && !apoSnap.empty) found.add("apoiador");
+      try {
+        const unified = await findUnifiedProfile({ email: normalized });
+        if (unified && isCompleteProfile(unified)) {
+          if (!profileData) profileData = unified;
+          const uType = (unified.userType || unified.profileType || unified.role || "").toString().toLowerCase();
+          if (uType === "apoiador" || uType === "supporter" || uType === "especialista") {
+            profileTypes.add("apoiador");
+          } else {
+            profileTypes.add("trabalhador");
+          }
+        }
+      } catch (err) {
+        console.warn("[login] Erro ao buscar findUnifiedProfile:", err?.message || err);
+      }
+
+      if (profileTypes.size === 0) {
+        try {
+          const usersByEmailSnap = await getDocs(
+            query(collection(db, "users"), where("email", "==", normalized), limit(5))
+          );
+          usersByEmailSnap.forEach((d) => {
+            const data = d.data() || {};
+            if (isCompleteProfile(data)) {
+              if (!profileData) profileData = { id: d.id, ...data };
+              const t = (data.userType || data.profileType || data.role || "").toString().toLowerCase();
+              if (t === "apoiador" || t === "supporter" || t === "especialista") {
+                profileTypes.add("apoiador");
+              } else {
+                profileTypes.add("trabalhador");
+              }
+            }
+          });
+        } catch (err) {
+          console.warn("[login] Erro ao buscar users por email:", err?.message || err);
+        }
+      }
     }
   } catch (err) {
-    console.warn("detectProfilesByEmail falhou:", err);
+    console.warn("fetchUserProfile falhou:", err);
   }
-  // Retorna apenas "apoiador" e "trabalhador"
-  return ["apoiador", "trabalhador"].filter((t) => found.has(t));
+
+  const typesArray = ["apoiador", "trabalhador"].filter((t) => profileTypes.has(t));
+  const hasProfile = Boolean(profileData || typesArray.length > 0);
+
+  return {
+    hasProfile,
+    profileData,
+    profileTypes: typesArray,
+  };
+}
+
+// Mantém detectProfilesByEmail para compatibilidade interna
+async function detectProfilesByEmail(email, uid) {
+  const result = await fetchUserProfile({ email, uid });
+  return result.profileTypes;
 }
 
 export default function Login({ theme, toggleTheme }) {
@@ -238,11 +345,9 @@ export default function Login({ theme, toggleTheme }) {
     try {
       const patch = {};
       try {
-        const usersSnap = await getDocs(
-          query(collection(db, "users"), where("__name__", "==", user.uid))
-        );
-        usersSnap.forEach((d) => {
-          const data = d.data() || {};
+        const userSnap = await getDoc(doc(db, "users", user.uid));
+        if (userSnap.exists()) {
+          const data = userSnap.data() || {};
           if (data.userType) patch.userType = data.userType;
           if (data.role) patch.role = data.role;
           if (data.apoiadorId) patch.apoiadorId = data.apoiadorId;
@@ -256,7 +361,7 @@ export default function Login({ theme, toggleTheme }) {
             patch.avatar = firestoreAvatar;
             patch.picture = firestoreAvatar;
           }
-        });
+        }
       } catch { /* ignore */ }
       try {
         const apSnap = await getDocs(
@@ -359,47 +464,52 @@ export default function Login({ theme, toggleTheme }) {
   }
 
   // Lógica de redirecionamento após login bem-sucedido.
-  // CORRIGIDO: Prioriza "trabalhador" e "apoiador".
-  // REMOVIDO: Redirecionamento para "empresario".
+  // Redireciona para /minha-conta se o usuário já tem perfil salvo no Firestore,
+  // ou para /pseudonym se for um usuário novo sem perfil.
   async function finishLogin(user, providerLabel) {
     setError("");
     setSubmitting(true);
     try {
       persistUserProfile(user, providerLabel);
       await enrichProfileFromFirestore(user);
+
+      // Busca perfil no Firestore e aguarda a Promise ser resolvida antes de qualquer redirect
+      const profileCheck = await fetchUserProfile(user);
+
       await backfillProviderEmail(user, providerLabel);
 
-      const profiles = await detectProfilesByEmail(user?.email, user?.uid);
+      const target = getRedirectTarget();
 
-      // Lógica de priorização de redirecionamento
-      if (profiles.includes("trabalhador")) {
-        navigate(PROFILE_ROUTES["trabalhador"].route, { replace: true });
-        return;
-      }
-      if (profiles.includes("apoiador")) {
-        navigate(PROFILE_ROUTES["apoiador"].route, { replace: true });
-        return;
-      }
-
-      // Se não encontrou nenhum perfil, vai para a criação de pseudônimo
-      if (profiles.length === 0) {
+      // Se não encontrou nenhum perfil completo (usuário NOVO), vai para criação de pseudônimo
+      if (!profileCheck.hasProfile) {
+        clearRedirect();
         navigate("/pseudonym", { replace: true });
         return;
       }
 
-      // Se encontrou perfis, mas nenhum dos prioritários, e o usuário tem mais de um perfil
-      // (trabalhador E apoiador), mostra o modal.
-      // Se tiver apenas um perfil (trabalhador OU apoiador), já teria redirecionado acima.
-      if (profiles.length > 1) {
-        setProfileChoice({ profiles: profiles.filter(p => p !== "empresario") }); // Filtra empresario
+      // Usuário JÁ TEM perfil completo salvo no Firestore
+      clearRedirect();
+
+      // Se houver um target customizado válido (ex: redirectAfterLogin), prioriza ele
+      if (target && target.startsWith("/")) {
+        navigate(target, { replace: true });
         return;
       }
 
-      // Fallback: se chegou aqui, algo deu errado ou o perfil não se encaixa
-      // em nenhuma das prioridades, mas não há modal para mostrar.
-      // Redireciona para a rota padrão de trabalhador como fallback.
-      navigate(PROFILE_ROUTES["trabalhador"].route, { replace: true });
+      // Se for exclusivamente especialista/apoiador
+      if (profileCheck.profileTypes.includes("apoiador") && !profileCheck.profileTypes.includes("trabalhador")) {
+        navigate(PROFILE_ROUTES["apoiador"].route, { replace: true });
+        return;
+      }
 
+      // Se o usuário tiver múltiplos perfis (trabalhador E apoiador), mostra modal
+      if (profileCheck.profileTypes.length > 1) {
+        setProfileChoice({ profiles: profileCheck.profileTypes.filter((p) => p !== "empresario") });
+        return;
+      }
+
+      // Rota padrão para trabalhador / usuário com perfil
+      navigate(PROFILE_ROUTES["trabalhador"].route, { replace: true });
     } catch (err) {
       console.error("[login] finishLogin falhou:", err);
       setError(err?.message || "Erro desconhecido ao finalizar login.");
