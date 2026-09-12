@@ -426,7 +426,9 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
   // ─────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center">
-      <AppHeader theme={theme} toggleTheme={toggleTheme} title="Criar perfil" />
+      <div className="w-full">
+  <AppHeader theme={theme} toggleTheme={toggleTheme} title="Criar perfil" />
+  </div>
 
       <main className="w-full max-w-2xl px-6 sm:px-10 mt-6 mb-12">
         {isAfterReview && (
