@@ -428,7 +428,7 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center">
       <AppHeader theme={theme} toggleTheme={toggleTheme} title="Criar perfil" />
 
-      <main className="w-full max-w-md px-4 sm:px-6 mt-6 mb-12">
+      <main className="w-full max-w-2xl px-6 sm:px-10 mt-6 mb-12">
         {isAfterReview && (
           <div className="mb-5 rounded-2xl border border-emerald-300 bg-emerald-50 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-100 dark:border-emerald-700 p-4 text-sm">
             <strong className="block text-base mb-1">✅ Sua avaliação foi enviada!</strong>
@@ -436,7 +436,7 @@ export default function ChoosePseudonym({ theme, toggleTheme }) {
           </div>
         )}
 
-        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-blue-100 dark:border-slate-700 p-6 sm:p-8">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-blue-100 dark:border-slate-700 p-8 sm:p-12">
           {/* ───────────── Tela de conclusão (pós-cadastro) ───────────── */}
           {completed ? (
             <div className="text-center">
