@@ -213,8 +213,8 @@ export default function AppHeader({ theme, toggleTheme, title, hideBack, hideAva
             onClick={() => navigate("/")}
             className={`font-extrabold tracking-wide text-blue-700 transition hover:opacity-80 dark:text-blue-300 ${
               isPseudonym
-                ? "text-lg sm:text-2xl"
-                : "text-lg sm:text-2xl md:text-3xl lg:text-4xl"
+                ? "text-2xl sm:text-3xl"
+                : "sm:text-2xl md:text-3xl lg:text-4xl"
             }`}
             style={{ fontFamily: "'Space Grotesk', sans-serif", whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden", textShadow: "2px 2px 4px rgba(0,0,0,0.3)" }}
           >
