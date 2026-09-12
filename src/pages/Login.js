@@ -6,7 +6,7 @@
 // - Lê os parâmetros `companyConfirmed` e `redirectAfterLogin` da URL e os
 //   persiste em sessionStorage para sobreviver ao redirect do OAuth.
 // - Após login bem-sucedido, redireciona para `redirectAfterLogin` (se houver)
-//   ou para a rota padrão `/minha-conta`.
+//   ou para a rota padrão `/trabalheila.com.br/`.
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -52,8 +52,8 @@ const SOCIAL_PROVIDERS = {
 // Rotas padrão por tipo de perfil.
 // REMOVIDO: "empresario"
 const PROFILE_ROUTES = {
-  apoiador: { label: "Sou Especialista", route: "/apoiador/my-contacts", color: "bg-blue-600 hover:bg-blue-700 text-white" },
-  trabalhador: { label: "Sou Trabalhador", route: "/minha-conta", color: "bg-lime-500 hover:bg-lime-600 text-emerald-950" },
+  apoiador: { label: "Sou Especialista", route: "/", color: "bg-blue-600 hover:bg-blue-700 text-white" },
+  trabalhador: { label: "Sou Trabalhador", route: "/", color: "bg-lime-500 hover:bg-lime-600 text-emerald-950" },
 };
 
 // Verifica se os dados de um documento representam um perfil completo cadastrado
