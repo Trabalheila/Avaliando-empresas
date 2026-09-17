@@ -23,7 +23,6 @@ import { collection, collectionGroup, doc, getDoc, getDocs, query, where } from 
 import AppHeader from "../components/AppHeader";
 import { listAcceptedAdExitumForWorker } from "../services/contactRequests";
 import { getWorkerAdExitumSummary } from "../services/commissions";
-import { buildCaseIdFromConversation } from "../services/specialistCases";
 import {
   buildSpecialistConversationId,
   buildCaseConversationId,
@@ -125,34 +124,24 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
 
   useEffect(() => {
     let cancelled = false;
-    if (!apoiadorId || !casoId) {
+    const currentWorkerUid = auth?.currentUser?.uid;
+    if (!currentWorkerUid) {
       setCaseSignatureDocs([]);
       return undefined;
     }
     (async () => {
       try {
-        const specialistCaseId = buildCaseIdFromConversation(caso?.conversationId);
-        const caseIds = [...new Set([specialistCaseId, casoId].filter(Boolean))];
-        const snapshots = await Promise.all(
-          caseIds.map((candidateCaseId) =>
-            getDocs(
-              query(
-                collection(
-                  db,
-                  "apoiadores",
-                  String(apoiadorId),
-                  "cases",
-                  String(candidateCaseId),
-                  "documentsForSignature"
-                )
-              )
-            )
+        const snap = await getDocs(
+          query(
+            collectionGroup(db, "documentsForSignature"),
+            where("workerUid", "==", currentWorkerUid),
+            where("status", "in", ["pending", "awaiting_signature"])
           )
         );
-        const pending = snapshots
-          .flatMap((snapshot) => snapshot.docs)
-          .map((documentSnap) => ({ id: documentSnap.id, ...documentSnap.data() }))
-          .filter((document) => ["pending", "awaiting_signature"].includes(document.status));
+        const pending = snap.docs.map((documentSnap) => ({
+          id: documentSnap.id,
+          ...documentSnap.data(),
+        }));
         if (!cancelled) setCaseSignatureDocs(pending);
       } catch (err) {
         console.warn("Falha ao carregar documentos para assinar neste caso:", err);
@@ -162,7 +151,7 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
     return () => {
       cancelled = true;
     };
-  }, [apoiadorId, casoId, caso?.conversationId]);
+  }, [workerUid]);
 
   useEffect(() => {
     let cancelled = false;
