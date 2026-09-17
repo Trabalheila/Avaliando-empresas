@@ -15,6 +15,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import { getDocumentByAccessToken, startGovBrSignature } from "../services/documentSignature";
+import { buildApiUrl } from "../utils/apiBase";
 
 const STATUS_LABELS = {
   pending: "Pendente de assinatura",
@@ -37,6 +38,9 @@ export default function DocumentSignaturePage({ theme, toggleTheme }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [signing, setSigning] = useState(false);
+  const [signedFile, setSignedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -67,6 +71,42 @@ export default function DocumentSignaturePage({ theme, toggleTheme }) {
     } catch (err) {
       setError(err?.message || "Não foi possível iniciar a assinatura via Gov.br. Tente novamente.");
       setSigning(false);
+    }
+  };
+
+  const handleUploadSigned = async () => {
+    if (!signedFile || uploading) return;
+    setUploading(true);
+    setUploadMessage("");
+    setError("");
+    try {
+      const fileContentBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || "").split(",")[1] || "");
+        reader.onerror = () => reject(new Error("Não foi possível ler o arquivo."));
+        reader.readAsDataURL(signedFile);
+      });
+      const response = await fetch(buildApiUrl("/api/documents/upload-signed"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          fileName: signedFile.name,
+          contentType: signedFile.type,
+          fileContentBase64,
+        }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload?.ok) {
+        throw new Error(payload?.error || "Não foi possível enviar o documento assinado.");
+      }
+      setDoc((current) => ({ ...current, status: "signed", signedUrl: payload.signedUrl }));
+      setSignedFile(null);
+      setUploadMessage("Documento assinado enviado com sucesso!");
+    } catch (err) {
+      setError(err?.message || "Não foi possível enviar o documento assinado.");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -154,6 +194,38 @@ export default function DocumentSignaturePage({ theme, toggleTheme }) {
                   <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                     Você será redirecionado ao Gov.br para concluir a assinatura eletrônica.
                   </p>
+                  <div className="mt-6 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+                    <h2 className="text-sm font-extrabold text-slate-800 dark:text-slate-100">
+                      Enviar Documento Assinado
+                    </h2>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Após assinar no Gov.br, baixe o arquivo PDF e envie-o aqui.
+                    </p>
+                    <input
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      onChange={(event) => {
+                        setSignedFile(event.target.files?.[0] || null);
+                        setUploadMessage("");
+                        setError("");
+                      }}
+                      disabled={uploading}
+                      className="mt-3 w-full text-sm text-slate-700 dark:text-slate-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleUploadSigned}
+                      disabled={!signedFile || uploading}
+                      className="mt-3 w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-sm font-bold"
+                    >
+                      {uploading ? "Enviando…" : "Enviar documento assinado"}
+                    </button>
+                    {uploadMessage && (
+                      <p className="mt-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                        ✅ {uploadMessage}
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
             </>

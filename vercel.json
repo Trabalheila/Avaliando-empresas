@@ -41,6 +41,7 @@
     { "source": "/api/cron-prazos", "destination": "/api/send-contact-request?op=cron-prazos" },
     { "source": "/api/documents/notify-send", "destination": "/api/send-contact-request?op=notify-send" },
     { "source": "/api/documents/client-view", "destination": "/api/send-contact-request?op=client-view" },
+    { "source": "/api/documents/upload-signed", "destination": "/api/send-contact-request?op=upload-signed" },
     { "source": "/api/documents/govbr-start", "destination": "/api/send-contact-request?op=govbr-start" },
     { "source": "/api/documents/govbr-callback", "destination": "/api/send-contact-request?op=govbr-callback" },
     { "source": "/(.*)", "destination": "/" }

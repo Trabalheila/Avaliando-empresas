@@ -23,6 +23,7 @@ import { notifySpecialistWhatsApp } from "./_whatsapp.js";
 import {
   handleCaseDocNotifySend,
   handleCaseDocClientView,
+  handleCaseDocUploadSigned,
   handleCaseDocGovBrStart,
   handleCaseDocGovBrCallback,
 } from "./_caseDocuments.js";
@@ -759,6 +760,9 @@ export default async function handler(req, res) {
   }
   if (String(req.query?.op || "").toLowerCase() === "client-view") {
     return handleCaseDocClientView(req, res);
+  }
+  if (String(req.query?.op || "").toLowerCase() === "upload-signed") {
+    return handleCaseDocUploadSigned(req, res);
   }
   if (String(req.query?.op || "").toLowerCase() === "govbr-start") {
     return handleCaseDocGovBrStart(req, res);

@@ -15,6 +15,7 @@
 // ignora as regras do Firestore), então não é necessário expor esses IDs.
 
 import { Resend } from 'resend';
+import { getStorage } from 'firebase-admin/storage';
 import { getAdminResources } from './_firebaseAdmin.js';
 
 function escapeHtml(value) {
@@ -66,6 +67,59 @@ async function resolveEmail(db, collectionName, docId) {
   } catch {
     return '';
   }
+}
+
+// ── POST /api/documents/upload-signed ──────────────────────────────────
+// Recebe o PDF assinado através do link opaco e atualiza o documento
+// correspondente usando o Admin SDK, sem exigir login no navegador.
+export async function handleCaseDocUploadSigned(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Método não permitido.' });
+
+  const token = String(req.body?.token || '').trim();
+  const fileName = String(req.body?.fileName || 'documento_assinado.pdf').trim();
+  const contentType = String(req.body?.contentType || '').toLowerCase();
+  const fileContentBase64 = String(req.body?.fileContentBase64 || '').trim();
+  if (!token || !fileContentBase64) {
+    return res.status(400).json({ ok: false, error: 'Token e arquivo são obrigatórios.' });
+  }
+  if (contentType !== 'application/pdf' && !/\.pdf$/i.test(fileName)) {
+    return res.status(400).json({ ok: false, error: 'Envie apenas um arquivo PDF.' });
+  }
+
+  const buffer = Buffer.from(fileContentBase64, 'base64');
+  if (!buffer.length || buffer.length > 4 * 1024 * 1024) {
+    return res.status(400).json({ ok: false, error: 'O PDF deve ter até 4 MB.' });
+  }
+
+  const { db, FieldValue } = await getAdminResources();
+  const docSnap = await findDocumentByToken(db, token);
+  if (!docSnap) return res.status(404).json({ ok: false, error: 'Documento não encontrado ou link inválido.' });
+
+  const caseRef = docSnap.ref.parent.parent;
+  const specialistId = caseRef?.parent?.parent?.id || '';
+  const caseId = caseRef?.id || '';
+  if (!specialistId || !caseId) {
+    return res.status(500).json({ ok: false, error: 'Caminho do documento inválido.' });
+  }
+
+  const safeName = fileName.replace(/[^\w.-]+/g, '_').slice(0, 120) || 'documento_assinado.pdf';
+  const path = `documentsForSignature/${specialistId}/${caseId}/signed/${Date.now()}-${safeName}`;
+  const bucketName = process.env.FIREBASE_STORAGE_BUCKET || process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || 'trabalheila.firebasestorage.app';
+  const file = getStorage().bucket(bucketName).file(path);
+  await file.save(buffer, { metadata: { contentType: 'application/pdf' } });
+  const [signedUrl] = await file.getSignedUrl({
+    action: 'read',
+    expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
+  });
+
+  await docSnap.ref.update({
+    status: 'signed',
+    signedUrl,
+    signedAt: FieldValue.serverTimestamp(),
+    signedByUserId: docSnap.data()?.workerUid || null,
+  });
+
+  return res.status(200).json({ ok: true, signedUrl });
 }
 
 // ── POST /api/documents/notify-send ─────────────────────────────────────
