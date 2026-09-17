@@ -19,7 +19,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { auth, db } from "../firebase";
-import { collectionGroup, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import { collection, collectionGroup, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import AppHeader from "../components/AppHeader";
 import { listAcceptedAdExitumForWorker } from "../services/contactRequests";
 import { getWorkerAdExitumSummary } from "../services/commissions";
