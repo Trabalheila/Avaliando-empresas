@@ -771,6 +771,35 @@ export default async function handler(req, res) {
     return handleCaseDocGovBrCallback(req, res);
   }
 
+  if (String(req.body?.type || "").toLowerCase() === "document-signed") {
+    const workerUid = String(req.body?.workerUid || "").trim();
+    const specialistId = String(req.body?.specialistId || "").trim();
+    const documentTitle = String(req.body?.documentTitle || "").trim();
+    if (!workerUid || !specialistId || !documentTitle) {
+      return res.status(400).json({ ok: false, error: "Dados incompletos." });
+    }
+
+    try {
+      const { db, FieldValue } = await getAdminResources();
+      const apoiadorSnap = await db.collection("apoiadores").doc(specialistId).get();
+      const apoiador = apoiadorSnap.exists ? apoiadorSnap.data() || {} : {};
+      const specialistUid = String(apoiador.uid || specialistId);
+      await db.collection("notifications").add({
+        toUid: specialistUid,
+        fromUid: workerUid,
+        type: "documentSignature",
+        message: `O documento "${documentTitle}" foi assinado pelo cliente.`,
+        link: `${(process.env.APP_BASE_URL || "").replace(/\/+$/, "")}/especialista/advogado/caso/${encodeURIComponent(req.body?.caseId || "")}`,
+        read: false,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      return res.status(200).json({ ok: true, notified: true });
+    } catch (err) {
+      console.warn("[document-signed] Falha ao criar notificação:", err?.message || err);
+      return res.status(200).json({ ok: true, notified: false });
+    }
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, error: "Método não permitido" });
   }

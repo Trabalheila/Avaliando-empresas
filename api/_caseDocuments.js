@@ -119,6 +119,24 @@ export async function handleCaseDocUploadSigned(req, res) {
     signedByUserId: docSnap.data()?.workerUid || null,
   });
 
+  // A notificação não pode invalidar um upload já concluído.
+  try {
+    const baseUrl = getAppBaseUrl();
+    await fetch(`${baseUrl}/api/send-contact-request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'document-signed',
+        workerUid: docSnap.data()?.workerUid || '',
+        specialistId,
+        caseId,
+        documentTitle: docSnap.data()?.documentTitle || '',
+      }),
+    });
+  } catch (err) {
+    console.warn('[case-documents] Falha ao notificar especialista:', err?.message || err);
+  }
+
   return res.status(200).json({ ok: true, signedUrl });
 }
 
