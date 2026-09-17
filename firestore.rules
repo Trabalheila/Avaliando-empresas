@@ -395,6 +395,15 @@ service cloud.firestore {
       }
     }
 
+    // Permite que o trabalhador consulte documentos de assinatura pelo
+    // collectionGroup; o link opaco também permite a leitura pública do
+    // documento correspondente.
+    match /{path=**}/documentsForSignature/{docId} {
+      allow read: if request.auth != null
+        && resource.data.workerUid == request.auth.uid;
+      allow read: if resource.data.clientAccessToken != null;
+    }
+
     // Profissionais de Apoio (userType = 'supportProfessional').
     // Perfil público de leitura aberta; escrita apenas pelo dono autenticado.
     match /supportProfessionals/{profId} {
