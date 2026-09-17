@@ -124,11 +124,21 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
 
   useEffect(() => {
     let cancelled = false;
-    const currentWorkerUid = auth?.currentUser?.uid;
+    const authUid = auth?.currentUser?.uid;
+    let currentWorkerUid = authUid;
+    if (!currentWorkerUid) {
+      try {
+        const profileData = JSON.parse(localStorage.getItem("userProfile") || "{}");
+        currentWorkerUid = profileData.uid || profileData.id || profileData.userId || "";
+      } catch {
+        currentWorkerUid = "";
+      }
+    }
     if (!currentWorkerUid) {
       setCaseSignatureDocs([]);
       return undefined;
     }
+    console.log("[DocsParaAssinar] workerUid usado na query:", currentWorkerUid);
     (async () => {
       try {
         const snap = await getDocs(
@@ -610,7 +620,11 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
               </section>
             )}
 
-            {caseSignatureDocs.length > 0 && (
+            {caseSignatureDocs.length === 0 ? (
+              <div className="border border-dashed border-amber-400 rounded-xl p-4 mb-4 text-amber-500 text-sm">
+                🔏 Documentos para Assinar — Nenhum pendente no momento
+              </div>
+            ) : (
               <section className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl shadow border border-amber-200 dark:border-amber-700 p-5">
                 <h2 className="text-base font-bold text-amber-900 dark:text-amber-100 flex items-center gap-2">
                   🔏 Documentos para Assinar
