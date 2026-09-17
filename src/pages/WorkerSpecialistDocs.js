@@ -19,7 +19,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { auth, db } from "../firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { collectionGroup, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import AppHeader from "../components/AppHeader";
 import { listAcceptedAdExitumForWorker } from "../services/contactRequests";
 import { getWorkerAdExitumSummary } from "../services/commissions";
@@ -74,6 +74,14 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
   const [searchParams] = useSearchParams();
   const casoId = searchParams.get("caso") || "";
   const uid = auth.currentUser?.uid || "";
+  const userProfile = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("userProfile") || "{}");
+    } catch {
+      return {};
+    }
+  }, []);
+  const workerUid = uid || userProfile?.uid || "";
   const myName = useMemo(() => readWorkerName(), []);
 
   const [loading, setLoading] = useState(true);
@@ -97,7 +105,69 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
   const [confirmMsg, setConfirmMsg] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [deletingId, setDeletingId] = useState("");
+  const [signatureDocs, setSignatureDocs] = useState([]);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!workerUid) {
+      setSignatureDocs([]);
+      return undefined;
+    }
+    (async () => {
+      try {
+        const snap = await getDocs(
+          query(
+            collectionGroup(db, "documentsForSignature"),
+            where("workerUid", "==", workerUid),
+            where("status", "in", ["pending", "awaiting_signature"])
+          )
+        );
+        const docs = snap.docs.map((documentSnap) => {
+          const caseRef = documentSnap.ref.parent.parent;
+          const specialistId = caseRef?.parent?.parent?.id || "";
+          return {
+            id: documentSnap.id,
+            specialistId,
+            caseId: caseRef?.id || "",
+            ...documentSnap.data(),
+          };
+        });
+        const specialistIds = [...new Set(docs.map((item) => item.specialistId).filter(Boolean))];
+        const names = new Map();
+        await Promise.all(
+          specialistIds.map(async (specialistId) => {
+            try {
+              const specialistSnap = await getDoc(doc(db, "apoiadores", specialistId));
+              if (specialistSnap.exists()) {
+                const specialist = specialistSnap.data() || {};
+                names.set(
+                  specialistId,
+                  specialist.nome || specialist.name || specialist.displayName || "Especialista"
+                );
+              }
+            } catch {
+              /* nome é complementar ao documento */
+            }
+          })
+        );
+        if (!cancelled) {
+          setSignatureDocs(
+            docs.map((item) => ({
+              ...item,
+              specialistName: item.specialistName || names.get(item.specialistId) || "Especialista",
+            }))
+          );
+        }
+      } catch (err) {
+        console.warn("Falha ao carregar documentos para assinatura:", err);
+        if (!cancelled) setSignatureDocs([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [workerUid]);
 
   // Descobre o especialista (a partir dos pedidos Ad Exitum aceitos) e os
   // dados públicos do apoiador (nome, disponibilidade, plano).
@@ -306,6 +376,39 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
       <AppHeader theme={theme} toggleTheme={toggleTheme} title="Meus documentos" />
 
       <main className="flex-1 w-full max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
+        {signatureDocs.length > 0 && (
+          <section className="bg-white dark:bg-slate-900 rounded-2xl shadow border border-blue-100 dark:border-slate-700 p-5">
+            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+              🔏 Documentos aguardando sua assinatura
+            </h2>
+            <ul className="mt-4 space-y-3">
+              {signatureDocs.map((document) => (
+                <li
+                  key={document.id}
+                  className="rounded-xl border border-slate-200 dark:border-slate-700 p-4"
+                >
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                    {document.documentTitle || "Documento para assinatura"}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                    Enviado por: {document.specialistName}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Enviado em: {formatDateTime(document.sentAt)}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/assinatura/${encodeURIComponent(document.clientAccessToken)}`)}
+                    className="mt-3 inline-flex items-center justify-center px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
+                  >
+                    Visualizar e assinar
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         <button
           type="button"
           onClick={() => navigate(-1)}
