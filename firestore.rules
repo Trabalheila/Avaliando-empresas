@@ -366,6 +366,7 @@ service cloud.firestore {
         // atualização restrita aos campos status/signedUrl/signedAt/
         // signedByUserId, sem alterar o restante do documento.
         match /documentsForSignature/{docId} {
+          allow read: if request.auth != null;
           allow read: if isCaseOwner()
             || (isCaseWorker() && resource.data.workerUid == request.auth.uid);
           allow create: if isCaseOwner()

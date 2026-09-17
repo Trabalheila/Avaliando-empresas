@@ -116,7 +116,35 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [deletingId, setDeletingId] = useState("");
   const [signatureDocs, setSignatureDocs] = useState([]);
+  const [caseSignatureDocs, setCaseSignatureDocs] = useState([]);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!apoiadorId || !casoId) {
+      setCaseSignatureDocs([]);
+      return undefined;
+    }
+    (async () => {
+      try {
+        const snap = await getDocs(
+          query(
+            collection(db, "apoiadores", String(apoiadorId), "cases", String(casoId), "documentsForSignature")
+          )
+        );
+        const pending = snap.docs
+          .map((documentSnap) => ({ id: documentSnap.id, ...documentSnap.data() }))
+          .filter((document) => ["pending", "awaiting_signature"].includes(document.status));
+        if (!cancelled) setCaseSignatureDocs(pending);
+      } catch (err) {
+        console.warn("Falha ao carregar documentos para assinar neste caso:", err);
+        if (!cancelled) setCaseSignatureDocs([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [apoiadorId, casoId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -572,6 +600,39 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
                     </p>
                   </div>
                 </div>
+              </section>
+            )}
+
+            {caseSignatureDocs.length > 0 && (
+              <section className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl shadow border border-amber-200 dark:border-amber-700 p-5">
+                <h2 className="text-base font-bold text-amber-900 dark:text-amber-100 flex items-center gap-2">
+                  🔏 Documentos para Assinar
+                </h2>
+                <ul className="mt-4 space-y-2">
+                  {caseSignatureDocs.map((document) => (
+                    <li
+                      key={document.id}
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-amber-200 dark:border-amber-700 p-3"
+                    >
+                      <div className="min-w-0 flex items-center gap-2">
+                        <span aria-hidden="true">📄</span>
+                        <span className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
+                          {document.documentTitle || "Documento para assinatura"}
+                        </span>
+                        <span className="shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                          Falta assinar
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => window.open(`/assinatura/${encodeURIComponent(document.clientAccessToken || "")}`, "_blank", "noopener,noreferrer")}
+                        className="shrink-0 inline-flex items-center justify-center px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
+                      >
+                        Visualizar e assinar
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </section>
             )}
 
