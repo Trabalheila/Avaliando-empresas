@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import AppHeader from "../components/AppHeader";
 import {
@@ -1086,7 +1086,9 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
     (async () => {
       try {
         const convs = await listConversationsForParticipant(uid, 20);
-        if (!cancelled) setRecentConversations(convs);
+        if (!cancelled) {
+          setRecentConversations(convs.filter((c) => !c.deletedBySpecialist));
+        }
       } catch (err) {
         console.warn("Falha ao carregar conversas recentes:", err);
         if (!cancelled) setRecentConversations([]);
@@ -1304,11 +1306,20 @@ export default function MyContactsApoiador({ theme, toggleTheme }) {
               )}&peerRole=trabalhador`
             );
           };
-          const handleDeleteConversation = (id) => {
+          const handleDeleteConversation = async (id) => {
             hideConversation(id);
             setHiddenConvs((prev) =>
               prev.includes(id) ? prev : [...prev, id]
             );
+            try {
+              await setDoc(
+                doc(db, "conversations", id),
+                { deletedBySpecialist: true },
+                { merge: true }
+              );
+            } catch (err) {
+              console.warn("Falha ao persistir exclusão da conversa:", err);
+            }
           };
           const unreadCount = convs.filter((c) => c.isUnread).length;
           return (
