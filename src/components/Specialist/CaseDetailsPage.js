@@ -13,7 +13,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../AppHeader";
 import { getCaseDetails } from "../../data/mockCaseDetails";
 import { SPECIALIST_CONFIGS } from "../../pages/MyContactsApoiador";
-import { db, auth, storage } from "../../firebase";
+import { db, auth, storage, ensureAuthReady } from "../../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getSpecialistCase } from "../../services/specialistCases";
@@ -2419,8 +2419,14 @@ function DocumentsForSignatureCard({ specialistId, caseId, workerUid, specialist
     if (!workerUid) {
       throw new Error("Não foi possível identificar o cliente deste caso.");
     }
+    const currentUser = await ensureAuthReady();
+    if (!currentUser) {
+      throw new Error("Sua sessão do Firebase expirou. Faça login novamente e tente enviar o documento.");
+    }
+    const authUid = auth?.currentUser?.uid;
+    if (!authUid) throw new Error("Sessão expirada. Faça login novamente.");
     const safeName = (filename || "documento").replace(/[^\w.-]+/g, "_").slice(0, 120);
-    const path = `documentsForSignature/${specialistId}/${caseId}/${Date.now()}-${safeName}`;
+    const path = `documentsForSignature/${authUid}/${caseId}/${Date.now()}-${safeName}`;
     const sRef = storageRef(storage, path);
     let originalUrl;
     try {
