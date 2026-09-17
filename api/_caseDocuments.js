@@ -30,13 +30,33 @@ function getAppBaseUrl() {
 /** Busca o documento pelo token opaco enviado ao cliente. Retorna o snapshot ou null. */
 async function findDocumentByToken(db, token) {
   if (!token || typeof token !== 'string') return null;
-  const snap = await db
-    .collectionGroup('documentsForSignature')
-    .where('clientAccessToken', '==', token)
-    .limit(1)
-    .get();
-  if (snap.empty) return null;
-  return snap.docs[0];
+  try {
+    const snap = await db
+      .collectionGroup('documentsForSignature')
+      .where('clientAccessToken', '==', token)
+      .limit(1)
+      .get();
+    if (!snap.empty) return snap.docs[0];
+    return null;
+  } catch (err) {
+    // A collection-group index can be unavailable in a newly configured
+    // Firebase project. Fall back to the known document hierarchy so an
+    // already-sent link remains usable while the index is repaired.
+    console.warn('[case-documents] collectionGroup falhou; usando fallback:', err?.message || err);
+    const specialists = await db.collection('apoiadores').get();
+    for (const specialist of specialists.docs) {
+      const cases = await specialist.ref.collection('cases').get();
+      for (const caseDoc of cases.docs) {
+        const documents = await caseDoc.ref
+          .collection('documentsForSignature')
+          .where('clientAccessToken', '==', token)
+          .limit(1)
+          .get();
+        if (!documents.empty) return documents.docs[0];
+      }
+    }
+    return null;
+  }
 }
 
 async function resolveEmail(db, collectionName, docId) {
