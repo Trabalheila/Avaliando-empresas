@@ -124,8 +124,9 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
 
   useEffect(() => {
     let cancelled = false;
+    const caseWorkerUid = caso?.workerUid || caso?.userId || caso?.trabalhadorId || "";
     const authUid = auth?.currentUser?.uid;
-    let currentWorkerUid = authUid;
+    let currentWorkerUid = caseWorkerUid || authUid;
     if (!currentWorkerUid) {
       try {
         const profileData = JSON.parse(localStorage.getItem("userProfile") || "{}");
@@ -138,7 +139,7 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
       setCaseSignatureDocs([]);
       return undefined;
     }
-    console.log("[DocsParaAssinar] workerUid usado na query:", currentWorkerUid);
+    console.log("[DocsParaAssinar] workerUid da query:", currentWorkerUid);
     (async () => {
       try {
         const snap = await getDocs(
@@ -161,7 +162,7 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
     return () => {
       cancelled = true;
     };
-  }, [workerUid]);
+  }, [workerUid, caso?.workerUid, caso?.userId, caso?.trabalhadorId]);
 
   useEffect(() => {
     let cancelled = false;
