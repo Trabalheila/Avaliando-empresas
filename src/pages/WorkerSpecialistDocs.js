@@ -38,6 +38,16 @@ import {
 
 const ACCEPT_TYPES = "image/*,.pdf,audio/mpeg,video/mp4";
 
+function formatDateTime(ts) {
+  try {
+    const date = ts?.toDate ? ts.toDate() : ts ? new Date(ts) : null;
+    if (!date || Number.isNaN(date.getTime())) return "";
+    return date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  } catch {
+    return "";
+  }
+}
+
 /** Formata um número como moeda pt-BR (R$ 1.000,00). */
 function formatBRL(value) {
   const v = Number(value);
