@@ -31,6 +31,9 @@ import { buildApiUrl } from "../utils/apiBase";
 
 /** Traduz erros comuns do Firebase Storage para mensagens amigáveis ao usuário. */
 export function friendlyStorageErrorMessage(err) {
+  if (err?.code === "storage/unauthorized" && !auth.currentUser) {
+    return "Sua sessão do Firebase expirou. Faça login novamente e tente enviar o documento.";
+  }
   if (err?.code === "storage/unauthorized") {
     return "Erro de permissão ao enviar o documento. Por favor, verifique suas permissões ou tente novamente mais tarde.";
   }
