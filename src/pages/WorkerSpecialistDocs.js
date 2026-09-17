@@ -23,7 +23,11 @@ import { collection, collectionGroup, doc, getDoc, getDocs, query, where } from 
 import AppHeader from "../components/AppHeader";
 import { listAcceptedAdExitumForWorker } from "../services/contactRequests";
 import { getWorkerAdExitumSummary } from "../services/commissions";
-import { buildSpecialistConversationId, buildCaseConversationId } from "../utils/chatId";
+import { buildCaseIdFromConversation } from "../services/specialistCases";
+import {
+  buildSpecialistConversationId,
+  buildCaseConversationId,
+} from "../utils/chatId";
 import { getCaso } from "../services/casos";
 import {
   listWorkerDocuments,
@@ -127,12 +131,26 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
     }
     (async () => {
       try {
-        const snap = await getDocs(
-          query(
-            collection(db, "apoiadores", String(apoiadorId), "cases", String(casoId), "documentsForSignature")
+        const specialistCaseId = buildCaseIdFromConversation(caso?.conversationId);
+        const caseIds = [...new Set([specialistCaseId, casoId].filter(Boolean))];
+        const snapshots = await Promise.all(
+          caseIds.map((candidateCaseId) =>
+            getDocs(
+              query(
+                collection(
+                  db,
+                  "apoiadores",
+                  String(apoiadorId),
+                  "cases",
+                  String(candidateCaseId),
+                  "documentsForSignature"
+                )
+              )
+            )
           )
         );
-        const pending = snap.docs
+        const pending = snapshots
+          .flatMap((snapshot) => snapshot.docs)
           .map((documentSnap) => ({ id: documentSnap.id, ...documentSnap.data() }))
           .filter((document) => ["pending", "awaiting_signature"].includes(document.status));
         if (!cancelled) setCaseSignatureDocs(pending);
@@ -144,7 +162,7 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
     return () => {
       cancelled = true;
     };
-  }, [apoiadorId, casoId]);
+  }, [apoiadorId, casoId, caso?.conversationId]);
 
   useEffect(() => {
     let cancelled = false;
