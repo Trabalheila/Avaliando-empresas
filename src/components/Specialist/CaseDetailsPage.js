@@ -2505,6 +2505,14 @@ function DocumentsForSignatureCard({ specialistId, caseId, workerUid, specialist
                       >
                         Visualizar
                       </a>
+                      <a
+                        href={`/assinatura/${encodeURIComponent(item.clientAccessToken || "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-700 dark:text-blue-300 font-bold hover:underline"
+                      >
+                        Ver página de assinatura
+                      </a>
                       {item.signedUrl && (
                         <a
                           href={item.signedUrl}
