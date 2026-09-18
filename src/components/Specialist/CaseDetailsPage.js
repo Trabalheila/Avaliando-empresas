@@ -14,7 +14,7 @@ import AppHeader from "../AppHeader";
 import { getCaseDetails } from "../../data/mockCaseDetails";
 import { SPECIALIST_CONFIGS } from "../../pages/MyContactsApoiador";
 import { db, auth, storage, ensureAuthReady } from "../../firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getSpecialistCase } from "../../services/specialistCases";
 import { listWorkerDocuments } from "../../services/workerDocuments";
@@ -2437,13 +2437,30 @@ function DocumentsForSignatureCard({ specialistId, caseId, workerUid, specialist
       throw new Error(friendlyStorageErrorMessage(err));
     }
 
-    await sendDocumentForSignature(specialistId, caseId, {
+    const casoId = caseId.includes("__c_") ? caseId.split("__c_")[1] : caseId;
+    const sentDoc = await sendDocumentForSignature(specialistId, caseId, {
       documentTitle,
       originalUrl,
       workerUid,
       specialistName,
-      casoId: caseId.includes("__c_") ? caseId.split("__c_")[1] : caseId,
+      casoId,
     });
+
+    // Espelha o envio no documento do caso para a leitura direta do
+    // trabalhador em WorkerSpecialistDocs.js (evita collectionGroup/índices).
+    try {
+      await updateDoc(doc(db, "casos", casoId), {
+        pendingSignatures: arrayUnion({
+          token: sentDoc.clientAccessToken,
+          title: documentTitle,
+          sentAt: new Date().toISOString(),
+          status: "pending",
+        }),
+      });
+    } catch (err) {
+      console.warn("Falha ao atualizar pendingSignatures no caso:", err);
+    }
+
     setModalOpen(false);
     await reload();
   };

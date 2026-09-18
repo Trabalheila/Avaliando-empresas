@@ -122,9 +122,8 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
   const [caseSignatureDocs, setCaseSignatureDocs] = useState([]);
   const fileInputRef = useRef(null);
 
-  // Filtra pelo `casoId` (curto, o mesmo lido de ?caso= na URL) gravado no
-  // documento pelo especialista — evita depender do `workerUid` do doc
-  // bater com o uid lido do caso/perfil local.
+  // Lê diretamente casos/{casoId}.pendingSignatures — evita
+  // collectionGroup/índices e qualquer mismatch de workerUid.
   useEffect(() => {
     let cancelled = false;
     const casoIdParam = new URLSearchParams(window.location.search).get("caso");
@@ -134,14 +133,9 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
     }
     (async () => {
       try {
-        const q = query(
-          collectionGroup(db, "documentsForSignature"),
-          where("casoId", "==", casoIdParam),
-          where("status", "in", ["pending", "awaiting_signature"])
-        );
-        const snap = await getDocs(q);
-        const pending = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        console.log("[DocsParaAssinar] casoId:", casoIdParam, "docs:", pending.length);
+        const casoDoc = await getDoc(doc(db, "casos", casoIdParam));
+        const data = casoDoc.data();
+        const pending = (data?.pendingSignatures || []).filter((d) => d.status === "pending");
         if (!cancelled) setCaseSignatureDocs(pending);
       } catch (err) {
         console.warn("Falha ao carregar documentos para assinar neste caso:", err);
@@ -620,27 +614,28 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
                   🔏 Documentos para Assinar
                 </h2>
                 <ul className="mt-4 space-y-2">
-                  {caseSignatureDocs.map((document) => (
+                  {caseSignatureDocs.map((document, index) => (
                     <li
-                      key={document.id}
+                      key={document.token || index}
                       className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-amber-200 dark:border-amber-700 p-3"
                     >
                       <div className="min-w-0 flex items-center gap-2">
                         <span aria-hidden="true">📄</span>
                         <span className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
-                          {document.documentTitle || "Documento para assinatura"}
+                          {document.title || "Documento para assinatura"}
                         </span>
                         <span className="shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
                           Falta assinar
                         </span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => window.open(`/assinatura/${encodeURIComponent(document.clientAccessToken || "")}`, "_blank", "noopener,noreferrer")}
+                      <a
+                        href={`/assinatura/${document.token}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="shrink-0 inline-flex items-center justify-center px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
                       >
                         Visualizar e assinar
-                      </button>
+                      </a>
                     </li>
                   ))}
                 </ul>
