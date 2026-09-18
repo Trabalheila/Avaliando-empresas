@@ -119,33 +119,13 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [deletingId, setDeletingId] = useState("");
   const [signatureDocs, setSignatureDocs] = useState([]);
-  const [caseSignatureDocs, setCaseSignatureDocs] = useState([]);
   const fileInputRef = useRef(null);
 
-  // Lê diretamente casos/{casoId}.pendingSignatures — evita
-  // collectionGroup/índices e qualquer mismatch de workerUid.
-  useEffect(() => {
-    let cancelled = false;
-    const casoIdParam = new URLSearchParams(window.location.search).get("caso");
-    if (!casoIdParam) {
-      setCaseSignatureDocs([]);
-      return undefined;
-    }
-    (async () => {
-      try {
-        const casoDoc = await getDoc(doc(db, "casos", casoIdParam));
-        const data = casoDoc.data();
-        const pending = (data?.pendingSignatures || []).filter((d) => d.status === "pending");
-        if (!cancelled) setCaseSignatureDocs(pending);
-      } catch (err) {
-        console.warn("Falha ao carregar documentos para assinar neste caso:", err);
-        if (!cancelled) setCaseSignatureDocs([]);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [casoId]);
+  // Lido direto do state `caso` (já carregado via getCaso) — sem query nova.
+  const pendingSignatures = useMemo(
+    () => (caso?.pendingSignatures || []).filter((d) => d.status === "pending"),
+    [caso?.pendingSignatures]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -604,17 +584,13 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
               </section>
             )}
 
-            {caseSignatureDocs.length === 0 ? (
-              <div className="border border-dashed border-amber-400 rounded-xl p-4 mb-4 text-amber-500 text-sm">
-                🔏 Documentos para Assinar — Nenhum pendente no momento
-              </div>
-            ) : (
+            {pendingSignatures.length > 0 && (
               <section className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl shadow border border-amber-200 dark:border-amber-700 p-5">
                 <h2 className="text-base font-bold text-amber-900 dark:text-amber-100 flex items-center gap-2">
                   🔏 Documentos para Assinar
                 </h2>
                 <ul className="mt-4 space-y-2">
-                  {caseSignatureDocs.map((document, index) => (
+                  {pendingSignatures.map((document, index) => (
                     <li
                       key={document.token || index}
                       className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-amber-200 dark:border-amber-700 p-3"
