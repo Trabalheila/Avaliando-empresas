@@ -28,6 +28,8 @@ import {
   buildCaseConversationId,
 } from "../utils/chatId";
 import { getCaso } from "../services/casos";
+import { buildCaseIdFromConversation } from "../services/specialistCases";
+import { listDocumentsForSignature } from "../services/documentSignature";
 import {
   listWorkerDocuments,
   stageWorkerDocument,
@@ -122,37 +124,23 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
   const [caseSignatureDocs, setCaseSignatureDocs] = useState([]);
   const fileInputRef = useRef(null);
 
+  // Lê diretamente apoiadores/{apoiadorId}/cases/{caseId}/documentsForSignature
+  // — o mesmo caminho determinístico usado pelo especialista ao enviar o
+  // documento (CaseDetailsPage → DocumentsForSignatureCard). Evita depender
+  // de o campo `workerUid` gravado no documento coincidir com o uid lido do
+  // caso/perfil local, que era a causa raiz de o card aparecer sempre vazio.
   useEffect(() => {
     let cancelled = false;
-    const caseWorkerUid = caso?.workerUid || caso?.userId || caso?.trabalhadorId || "";
-    const authUid = auth?.currentUser?.uid;
-    let currentWorkerUid = caseWorkerUid || authUid;
-    if (!currentWorkerUid) {
-      try {
-        const profileData = JSON.parse(localStorage.getItem("userProfile") || "{}");
-        currentWorkerUid = profileData.uid || profileData.id || profileData.userId || "";
-      } catch {
-        currentWorkerUid = "";
-      }
-    }
-    if (!currentWorkerUid) {
+    const caseId = buildCaseIdFromConversation(spec?.conversationId);
+    if (!apoiadorId || !caseId) {
       setCaseSignatureDocs([]);
       return undefined;
     }
-    console.log("[DocsParaAssinar] workerUid da query:", currentWorkerUid);
     (async () => {
       try {
-        const snap = await getDocs(
-          query(
-            collectionGroup(db, "documentsForSignature"),
-            where("workerUid", "==", currentWorkerUid),
-            where("status", "in", ["pending", "awaiting_signature"])
-          )
+        const pending = (await listDocumentsForSignature(apoiadorId, caseId)).filter((item) =>
+          ["pending", "awaiting_signature"].includes(item.status)
         );
-        const pending = snap.docs.map((documentSnap) => ({
-          id: documentSnap.id,
-          ...documentSnap.data(),
-        }));
         if (!cancelled) setCaseSignatureDocs(pending);
       } catch (err) {
         console.warn("Falha ao carregar documentos para assinar neste caso:", err);
@@ -162,7 +150,7 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
     return () => {
       cancelled = true;
     };
-  }, [workerUid, caso?.workerUid, caso?.userId, caso?.trabalhadorId]);
+  }, [apoiadorId, spec?.conversationId]);
 
   useEffect(() => {
     let cancelled = false;
