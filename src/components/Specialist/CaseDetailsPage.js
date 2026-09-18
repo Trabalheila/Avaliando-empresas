@@ -2442,6 +2442,7 @@ function DocumentsForSignatureCard({ specialistId, caseId, workerUid, specialist
       originalUrl,
       workerUid,
       specialistName,
+      casoId: caseId.includes("__c_") ? caseId.split("__c_")[1] : caseId,
     });
     setModalOpen(false);
     await reload();

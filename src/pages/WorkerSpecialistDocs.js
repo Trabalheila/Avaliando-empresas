@@ -28,8 +28,6 @@ import {
   buildCaseConversationId,
 } from "../utils/chatId";
 import { getCaso } from "../services/casos";
-import { buildCaseIdFromConversation } from "../services/specialistCases";
-import { listDocumentsForSignature } from "../services/documentSignature";
 import {
   listWorkerDocuments,
   stageWorkerDocument,
@@ -124,23 +122,26 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
   const [caseSignatureDocs, setCaseSignatureDocs] = useState([]);
   const fileInputRef = useRef(null);
 
-  // Lê diretamente apoiadores/{apoiadorId}/cases/{caseId}/documentsForSignature
-  // — o mesmo caminho determinístico usado pelo especialista ao enviar o
-  // documento (CaseDetailsPage → DocumentsForSignatureCard). Evita depender
-  // de o campo `workerUid` gravado no documento coincidir com o uid lido do
-  // caso/perfil local, que era a causa raiz de o card aparecer sempre vazio.
+  // Filtra pelo `casoId` (curto, o mesmo lido de ?caso= na URL) gravado no
+  // documento pelo especialista — evita depender do `workerUid` do doc
+  // bater com o uid lido do caso/perfil local.
   useEffect(() => {
     let cancelled = false;
-    const caseId = buildCaseIdFromConversation(spec?.conversationId);
-    if (!apoiadorId || !caseId) {
+    const casoIdParam = new URLSearchParams(window.location.search).get("caso");
+    if (!casoIdParam) {
       setCaseSignatureDocs([]);
       return undefined;
     }
     (async () => {
       try {
-        const pending = (await listDocumentsForSignature(apoiadorId, caseId)).filter((item) =>
-          ["pending", "awaiting_signature"].includes(item.status)
+        const q = query(
+          collectionGroup(db, "documentsForSignature"),
+          where("casoId", "==", casoIdParam),
+          where("status", "in", ["pending", "awaiting_signature"])
         );
+        const snap = await getDocs(q);
+        const pending = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        console.log("[DocsParaAssinar] casoId:", casoIdParam, "docs:", pending.length);
         if (!cancelled) setCaseSignatureDocs(pending);
       } catch (err) {
         console.warn("Falha ao carregar documentos para assinar neste caso:", err);
@@ -150,7 +151,7 @@ export default function WorkerSpecialistDocs({ theme, toggleTheme }) {
     return () => {
       cancelled = true;
     };
-  }, [apoiadorId, spec?.conversationId]);
+  }, [casoId]);
 
   useEffect(() => {
     let cancelled = false;

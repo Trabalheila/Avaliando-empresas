@@ -127,7 +127,7 @@ export async function listDocumentsForSignature(specialistId, caseId) {
 export async function sendDocumentForSignature(
   specialistId,
   caseId,
-  { documentTitle, originalUrl, workerUid, specialistName = "" }
+  { documentTitle, originalUrl, workerUid, specialistName = "", casoId = "" }
 ) {
   if (!specialistId || !caseId) throw new Error("specialistId e caseId obrigatórios.");
   if (!String(documentTitle || "").trim()) throw new Error("Informe o título do documento.");
@@ -147,6 +147,7 @@ export async function sendDocumentForSignature(
     sentByUserId: currentUid(),
     signedByUserId: null,
     workerUid: String(workerUid),
+    casoId: String(casoId || ""),
     clientAccessToken,
   };
 
