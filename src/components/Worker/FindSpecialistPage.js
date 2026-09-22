@@ -731,6 +731,16 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
       (snap) => {
         const list = snap.docs.map((d) => {
           const data = d.data() || {};
+          const resultPlanType =
+            String(data.plano || data.planType || "").toLowerCase() === "premium"
+              ? "Premium"
+              : "Essencial";
+          console.log("[DEBUG plano]", d.id, {
+            plano: data.plano,
+            planType: data.planType,
+            apoiadorPlano: data.apoiadorPlano,
+            resultado: resultPlanType,
+          });
           return {
             id: d.id,
             nome: data.nome || data.displayName || "Especialista",
@@ -744,10 +754,7 @@ export default function FindSpecialistPage({ theme, toggleTheme }) {
             isVerified: Boolean(
               data.isVerified || data.verified || data.verificado
             ),
-            planType:
-              String(data.plano || data.planType || "").toLowerCase() === "premium"
-                ? "Premium"
-                : "Essencial",
+            planType: resultPlanType,
             offersFirstConsultationDiscount: Boolean(
               data.offersFirstConsultationDiscount
             ),
