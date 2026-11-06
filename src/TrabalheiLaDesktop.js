@@ -12,6 +12,7 @@ import {
   FiClock, FiArrowUpCircle, FiInfo,
 } from "react-icons/fi";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
+import AdBanner from "./components/AdBanner";
 import CaptchaModal from "./components/CaptchaModal";
 import EvaluationConfirmModal from "./components/EvaluationConfirmModal";
 import RestrictableTextarea from "./components/RestrictableTextarea";
@@ -606,6 +607,7 @@ function TrabalheiLaDesktop({
         </header>
 
         <div style={{ height: headerSpacerHeight + 24 }} />
+        <AdBanner />
 
         {/* CARD DA EMPRESA SELECIONADA — logo grande, nota e classificação */}
         {company && (

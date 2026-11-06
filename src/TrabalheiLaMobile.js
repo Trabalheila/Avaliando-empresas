@@ -13,6 +13,7 @@ import {
 } from "react-icons/fi";
 import Select from "react-select";
 import LoginLinkedInButton from "./components/LoginLinkedInButton";
+import AdBanner from "./components/AdBanner";
 import CaptchaModal from "./components/CaptchaModal";
 import EvaluationConfirmModal from "./components/EvaluationConfirmModal";
 import RestrictableTextarea from "./components/RestrictableTextarea";
@@ -707,8 +708,8 @@ function TrabalheiLaMobile({
 
         {firebaseStatus && <p className="text-[11px] text-red-500 dark:text-red-400 mt-1 text-center">{firebaseStatus}</p>}
       </header>
-
       <div style={{ height: headerSpacerHeight }} />
+      <AdBanner />
 
       <main className="px-4 space-y-3">
         {/* Card empresa pesquisada — logo grande, nota e classificação visíveis */}
